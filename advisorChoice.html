@@ -32,13 +32,12 @@
         let trials = [];
         let blockLength = 5;
            for (let id=0; id<trialCount; id++) {
-               trials.push({
-                   id,
+               trials.push(new ESM.Trial(id, {
                    whichSide: Math.random() < 0.5? 1 : 2,
                    block: Math.ceil(blockLength / id),
                    answer: [NaN, NaN],
                    confidence: [NaN, NaN]
-               });
+               }));
            }
         return trials;
     }

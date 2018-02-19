@@ -339,6 +339,19 @@ window.ESM = {
         }
     },
 
+    /**
+     * A Trial aggregates the information needed to run a single judge-advisor system trial.
+     */
+    Trial: class {
+        constructor(id, args = {}) {
+            for (let key in args) {
+                if (args.hasOwnProperty(key))
+                    this[key] = args[key];
+            }
+            this.id = id;
+        }
+    },
+
 
     /**
      * A Governor manages the overarching structure of the experiment. It should be assigned to a wide scope (e.g.
@@ -349,15 +362,26 @@ window.ESM = {
          * @constructor
          *
          * @param {object} [args={}] - properties to assign to the Governor
+         * @param {Advisor[]} [args.advisors=[]] - advisor list
+         * @param {int} [args.currentAdvisorIndex=0] - index of advisor for current trial
+         * @param {Trial[]} [args.trials=[]] - trial list
+         * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
+         *
+         * @property {Advisor} currentAdvisor - advisor currently in focus
+         * @property {Trial} currentTrial - trial currently underway
          */
         constructor(args = {}) {
-            let self = this;
             for (let key in args) {
                 if (args.hasOwnProperty(key))
                     this[key] = args[key];
             }
+            this.advisors = args.advisors || [];
+            this.currentAdvisorIndex = args.currentAdvisorIndex || 0;
+            this.trials = args.trials || [];
+            this.currentTrialIndex = args.currentTrialIndex || 0;
 
             this.currentAdvisor = this.advisors[this.currentAdvisorIndex];
+            this.currentTrial = this.trials[this.currentTrialIndex];
         }
     }
 };
