@@ -118,15 +118,19 @@ window.ESM = {
          *
          * @param {string} filePath - path to the audio file
          * @param {string} string - text of the audio file content
+         * @param {int} side - whether the answer is 0=left or 1=right
+         * @confidence {int} - whether the answer is given with 0=low, 1=med, or 2=high confidence
          * @param {boolean} skipPreload - whether to skip preloading the audio data into a buffer
          */
-        constructor(filePath, string, skipPreload = false) {
+        constructor(filePath, string, side, confidence, skipPreload = false) {
             this.filePath = filePath;
             this.string = string;
             this.loaded = false;
             this.loading = false;
             this.data = null;
             this.buffer = null;
+            this.side = side;
+            this.confidence = confidence;
 
             if (skipPreload !== true)
                 this.load();
@@ -153,20 +157,36 @@ window.ESM = {
         }
 
         decodeAudioData(callback) {
-            let audioCtx = new AudioContext();
-            let self = this;
-            audioCtx.decodeAudioData(this.data,
-                function (buffer) {
-                    self.buffer = buffer;
-                    self.data = null;
-                    self.loaded = true;
-                    this.close();
-                    if (typeof callback === "function")
-                        callback(self);
-                },
-                function(e){
-                    console.log("Error with decoding audio data" + e.err);
-            });
+            try {
+                let audioCtx = new AudioContext();
+                let self = this;
+                audioCtx.decodeAudioData(this.data,
+                    function (buffer) {
+                        self.buffer = buffer;
+                        self.data = null;
+                        self.loaded = true;
+                        this.close();
+                        if (typeof callback === "function")
+                            callback(self);
+                        // now the buffer is closed we can continue preloading another audio file
+                        if (typeof gov.audioPreloadQueue !== 'undefined' && gov.audioPreloadQueue.length > 0) {
+                            let queueItem = gov.audioPreloadQueue.pop();
+                            queueItem.obj.decodeAudioData(queueItem.callback);
+                        }
+                    },
+                    function(e){
+                        console.log("Error with decoding audio data" + e.err);
+                    });
+            } catch (err) {
+                if (err.code === 9) {
+                    // DOMException
+                    // Trying to do too much at once, so add this to a queue and do it later
+                    if (typeof gov.audioPreloadQueue === 'undefined')
+                        gov.audioPreloadQueue = [];
+                    gov.audioPreloadQueue.push({obj: this, callback});
+                }
+            }
+
         }
 
         /** Play the voice line */
@@ -216,7 +236,7 @@ window.ESM = {
                 case 2:
                     return "Bea";
                 case 3:
-                    return "Sarah";
+                    return "Kate";
                 default:
                     return "Name not found!"
             }
@@ -232,10 +252,14 @@ window.ESM = {
         getLines(id, skipPreload = false) {
             let pth = this.basePath + "assets/audio/voices/";
             return {
-                think_left: new ESM.Line(pth + id.toString() + '/111.wav', "I think it was on the LEFT", skipPreload),
-                think_right: new ESM.Line(pth + id.toString() + '/112.wav', "I think it was on the RIGHT", skipPreload),
-                left_think: new ESM.Line(pth + id.toString() + '/121.wav', "It was on the LEFT, I think", skipPreload),
-                right_think: new ESM.Line(pth + id.toString() + '/122.wav', "It was on the RIGHT, I think", skipPreload),
+                think_left: new ESM.Line(pth + id.toString() + '/think_left.wav', "I think it was on the LEFT",
+                    0, 0, skipPreload),
+                think_right: new ESM.Line(pth + id.toString() + '/think_right.wav', "I think it was on the RIGHT",
+                    1, 0, skipPreload),
+                left_think: new ESM.Line(pth + id.toString() + '/left_think.wav', "It was on the LEFT, I think",
+                    0, 0, skipPreload),
+                right_think: new ESM.Line(pth + id.toString() + '/right_think.wav', "It was on the RIGHT, I think",
+                    1, 0, skipPreload),
                 intro: new ESM.Line(pth + id.toString() + '/intro.wav',
                     "Hello, my name is "+this.name.toUpperCase(), skipPreload)
             };

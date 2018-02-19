@@ -33,10 +33,15 @@
         let blockLength = 5;
            for (let id=0; id<trialCount; id++) {
                trials.push(new ESM.Trial(id, {
-                   whichSide: Math.random() < 0.5? 1 : 2,
+                   whichSide: Math.random() < 0.5? 0 : 1,
                    block: Math.ceil(blockLength / id),
                    answer: [NaN, NaN],
-                   confidence: [NaN, NaN]
+                   confidence: [NaN, NaN],
+                   getCorrect: function(finalAnswer = true) {
+                       let answer = finalAnswer? this.answer[1] : this.answer[1];
+                       return answer === this.whichSide;
+                   },
+                   warnings: []
                }));
            }
         return trials;
@@ -46,16 +51,46 @@
     window.gov = new ESM.Governor({
         dotCount: 200,
         dotDifference: 30,
+        difficultyStep: 2,
         advisors: [
             new ESM.Advisor(1,1),
             new ESM.Advisor(2,2),
             new ESM.Advisor(3,0)
         ],
         currentAdvisorIndex: 0,
-        processResponse: function (trial) {
+        initialResponse: function (trial) {
             // trial is the complete trial object with its trial.response object
             // Here we should check the answer and agreement and stuff and dis/agree as appropriate
             gov.advice = gov.currentAdvisor.voice.lines.left_think;
+        },
+        finalResponse: function (trial) {
+            // Staircasing stuff
+            let warning = "";
+            if (this.currentTrialIndex > 1) {
+                // two-down one-up staircase
+                lastTrial = this.trials[this.currentTrialIndex-1];
+                if (!this.currentTrial.getCorrect(false)) {
+                    // Wrong! Make it easier
+                    this.dotDifference += this.difficultyStep;
+                    if (this.dotDifference > this.dotCount-1) {
+                        this.dotDifference = this.dotCount-1;
+                        let warning = "Difficulty at minimum!";
+                    }
+                } else if (lastTrial.getCorrect(false) && this.currentTrial.getCorrect(false)) {
+                    // Two hits, impressive! Make it harder
+                    this.dotDifference -= this.difficultyStep;
+                    if (this.dotDifference < 1) {
+                        this.dotDifference = 1;
+                        warning = "Difficulty at maximum!";
+                    }
+                }
+            }
+
+            this.currentTrialIndex++;
+            if (warning.length > 0 && this.currentTrialIndex < this.trials.length) {
+                this.currentTrial.warnings.push(warning);
+                console.warn(warning);
+            }
         },
         trials: getTrials(20)
     });
@@ -102,7 +137,7 @@
         require_change: [1, 1],
         canvasWidth: 370,
         canvasHeight: 172,
-        on_finish: gov.processResponse
+        on_finish: gov.initialResponse
     };
 
     /* Advice: present advice to the judge */
@@ -124,8 +159,26 @@
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
-    let finalDecision = initialDecision;
-    finalDecision.cue = true;
+    let finalDecision = {
+        type: "canvas-sliders-response",
+        stimulus: drawDots,
+        prompt: '<p>Final decision:<br/>Which box had more dots?</p>',
+        sliderCount: 2,
+        labels: [
+            ['Certain', 'Unsure'],
+            ['Unsure', 'Certain']
+        ],
+        slider_prompt: [
+            'Left',
+            'Right'
+        ],
+        slider_col_spacing: [40],
+        exclusive_group: [1, 1],
+        require_change: [1, 1],
+        canvasWidth: 370,
+        canvasHeight: 172,
+        on_finish: gov.finalResponse
+    };
 
     const test_procedure = {
         timeline: [initialDecision, advice, finalDecision],
@@ -148,6 +201,7 @@
     /* start the experiment */
     jsPsych.init({
         timeline: timeline,
+        show_progress_bar: true,
         on_finish: function() {
             jsPsych.data.displayData();
         }
