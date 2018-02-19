@@ -23,9 +23,23 @@
     function drawDots(canvasId) {
         let low = gov.dotCount - gov.dotDifference;
         let high = gov.dotCount + gov.dotDifference;
-        let dots = (Math.random()<0.5)? [high, low] : [low, high];
+        let dots = gov.currentTrial.whichSide === 0 ? [high, low] : [low, high];
         let grid = new ESM.DoubleDotGrid(dots[0], dots[1]);
+        gov.currentTrial.grid = grid;
         grid.draw(canvasId);
+    }
+
+    function getTrialAnswer(trial) {
+        // Which slider was moved last?
+        let L = trial.response[0].lastChangedTime;
+        let R = trial.response[1].lastChangedTime;
+        if (isNaN(L) && isNaN(R))
+            return NaN;
+        if (isNaN(R))
+            return 0;
+        if (isNaN(L))
+            return 1;
+        return R > L ? 1 : 0;
     }
 
     function getTrials (trialCount) {
@@ -34,14 +48,15 @@
            for (let id=0; id<trialCount; id++) {
                trials.push(new ESM.Trial(id, {
                    whichSide: Math.random() < 0.5? 0 : 1,
-                   block: Math.ceil(blockLength / id),
+                   block: Math.ceil(id / blockLength),
                    answer: [NaN, NaN],
                    confidence: [NaN, NaN],
                    getCorrect: function(finalAnswer = true) {
-                       let answer = finalAnswer? this.answer[1] : this.answer[1];
+                       let answer = finalAnswer? this.answer[1] : this.answer[0];
                        return answer === this.whichSide;
                    },
-                   warnings: []
+                   warnings: [],
+                   rawResponse: {initial: [], final: []}
                }));
            }
         return trials;
@@ -51,51 +66,62 @@
     window.gov = new ESM.Governor({
         dotCount: 200,
         dotDifference: 30,
-        difficultyStep: 2,
+        difficultyStep: 3,
         advisors: [
             new ESM.Advisor(1,1),
             new ESM.Advisor(2,2),
             new ESM.Advisor(3,0)
         ],
-        currentAdvisorIndex: 0,
+        currentAdvisorIndex: 1,
         initialResponse: function (trial) {
+            gov.currentTrial.rawResponse.initial = trial.response;
             // trial is the complete trial object with its trial.response object
-            // Here we should check the answer and agreement and stuff and dis/agree as appropriate
-            gov.advice = gov.currentAdvisor.voice.lines.left_think;
+            gov.currentTrial.answer[0] = getTrialAnswer(trial);
+
+            // Check the answer and dis/agree as appropriate
+            if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
+                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+                    return line.side === gov.currentTrial.whichSide;
+                });
+            } else {
+                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+                    let side = [1, 0][gov.currentTrial.whichSide];
+                    return line.side === side;
+                });
+            }
         },
         finalResponse: function (trial) {
+            gov.currentTrial.rawResponse.final = trial.response;
+            gov.currentTrial.answer[1] = getTrialAnswer(trial);
             // Staircasing stuff
             let warning = "";
-            if (this.currentTrialIndex > 1) {
+            if (gov.currentTrialIndex > 1) {
                 // two-down one-up staircase
-                lastTrial = this.trials[this.currentTrialIndex-1];
-                if (!this.currentTrial.getCorrect(false)) {
+                let lastTrial = gov.trials[gov.currentTrialIndex-1];
+                if (!gov.currentTrial.getCorrect(false)) {
                     // Wrong! Make it easier
-                    this.dotDifference += this.difficultyStep;
-                    if (this.dotDifference > this.dotCount-1) {
-                        this.dotDifference = this.dotCount-1;
+                    gov.dotDifference += gov.difficultyStep;
+                    if (gov.dotDifference > gov.dotCount-1) {
+                        gov.dotDifference = gov.dotCount-1;
                         let warning = "Difficulty at minimum!";
                     }
-                } else if (lastTrial.getCorrect(false) && this.currentTrial.getCorrect(false)) {
+                } else if (lastTrial.getCorrect(false) && gov.currentTrial.getCorrect(false)) {
                     // Two hits, impressive! Make it harder
-                    this.dotDifference -= this.difficultyStep;
-                    if (this.dotDifference < 1) {
-                        this.dotDifference = 1;
+                    gov.dotDifference -= gov.difficultyStep;
+                    if (gov.dotDifference < 1) {
+                        gov.dotDifference = 1;
                         warning = "Difficulty at maximum!";
                     }
                 }
             }
-
-            this.currentTrialIndex++;
-            if (warning.length > 0 && this.currentTrialIndex < this.trials.length) {
-                this.currentTrial.warnings.push(warning);
+            gov.currentTrialIndex++;
+            if (warning.length > 0 && gov.currentTrialIndex < gov.trials.length) {
+                gov.currentTrial.warnings.push(warning);
                 console.warn(warning);
             }
         },
-        trials: getTrials(20)
+        trials: getTrials(5)
     });
-</script>
-<script>
 
     /* create timeline */
     let timeline = [];
@@ -201,7 +227,6 @@
     /* start the experiment */
     jsPsych.init({
         timeline: timeline,
-        show_progress_bar: true,
         on_finish: function() {
             jsPsych.data.displayData();
         }

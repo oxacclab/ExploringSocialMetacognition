@@ -264,6 +264,20 @@ window.ESM = {
                     "Hello, my name is "+this.name.toUpperCase(), skipPreload)
             };
         }
+
+        /**
+         * Return a random Line from the set evaluating *func(line)* to true
+         * @param {function} func - function to evaluate on a prospective line
+         * @returns {Line} - random line from those passing the func check
+         */
+        getLineByFunction(func) {
+            let options = [];
+            for (let key in this.lines) {
+                if (func(this.lines[key]))
+                    options.push(this.lines[key]);
+            }
+            return options[Math.floor(Math.random()*options.length)];
+        }
     },
 
 
@@ -403,9 +417,9 @@ window.ESM = {
             this.currentAdvisorIndex = args.currentAdvisorIndex || 0;
             this.trials = args.trials || [];
             this.currentTrialIndex = args.currentTrialIndex || 0;
-
-            this.currentAdvisor = this.advisors[this.currentAdvisorIndex];
-            this.currentTrial = this.trials[this.currentTrialIndex];
         }
+
+        get currentAdvisor() {return this.advisors[this.currentAdvisorIndex];}
+        get currentTrial() {return this.trials[this.currentTrialIndex];}
     }
 };
