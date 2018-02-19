@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My experiment</title>
+    <script src="../jsPsych/jspsych.js"></script>
+    <script src="../jsPsych/plugins/jspsych-instructions.js"></script>
+    <script src="../jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
+    <script src="exploringSocialMetacognition.js/"></script>
+    <script src="jspsych-jas-present-advice.js"></script>
+    <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
+    <style type="text/css">
+    </style>
+</head>
+<body></body>
+<script type="text/javascript">
+    // This function does the actual drawing on the canvas, and is the one
+    // called by the trial (it is passed in as a stimulus and called with
+    // the id of the canvas supplied).
+    // At the moment this doesn't do anything exciting; it just presents
+    // 200 dots in random places in the box, but we could make it staircase
+    // the number of dots based on past performance, etc.
+    function drawDots(canvasId) {
+        let low = gov.dotCount - gov.dotDifference;
+        let high = gov.dotCount + gov.dotDifference;
+        let dots = (Math.random()<0.5)? [high, low] : [low, high];
+        let grid = new ESM.DoubleDotGrid(dots[0], dots[1]);
+        grid.draw(canvasId);
+    }
+
+    function getTrials (trialCount) {
+        let trials = [];
+        let blockLength = 5;
+           for (let id=0; id<trialCount; id++) {
+               trials.push({
+                   id,
+                   whichSide: Math.random() < 0.5? 1 : 2,
+                   block: Math.ceil(blockLength / id),
+                   answer: [NaN, NaN],
+                   confidence: [NaN, NaN]
+               });
+           }
+        return trials;
+    }
+
+    // The governor contains the properties which the experiment functions need to access from everywhere.
+    window.gov = new ESM.Governor({
+        dotCount: 200,
+        dotDifference: 30,
+        advisors: [
+            new ESM.Advisor(1,1),
+            new ESM.Advisor(2,2),
+            new ESM.Advisor(3,0)
+        ],
+        currentAdvisorIndex: 0,
+        processResponse: function (trial) {
+            // trial is the complete trial object with its trial.response object
+            // Here we should check the answer and agreement and stuff and dis/agree as appropriate
+            gov.advice = gov.currentAdvisor.voice.lines.left_think;
+        },
+        trials: getTrials(20)
+    });
+</script>
+<script>
+
+    /* create timeline */
+    let timeline = [];
+
+    /* define welcome message trial */
+    const welcome = {
+        type: 'instructions',
+        pages: [
+            "Welcome to the experiment. Press any key to begin.",
+            "<p>In this experiment, a box with dots will appear in the center"+
+            " of the screen. Your task is to use the slider to give an estimate "+
+            "of the number of dots that are in the box.</p>"+
+            "<p>You will not know how many dots there can be in the box, except"+
+            "by observing the boxes on each trial; nevertheless, you should try "+
+            "to use the whole width of the scale, indicating the smallest "+
+            "number of dots by using the left side and the largest number by "+
+            "using the right side.</p>"
+        ],
+        show_clickable_nav: true,
+    };
+    //timeline.push(welcome);
+
+    /* Initial response: present an initial stimulus and get a decision */
+    const initialDecision = {
+        type: "canvas-sliders-response",
+        stimulus: drawDots,
+        prompt: '<p>Which box had more dots?</p>',
+        sliderCount: 2,
+        labels: [
+            ['Certain', 'Unsure'],
+            ['Unsure', 'Certain']
+        ],
+        slider_prompt: [
+            'Left',
+            'Right'
+        ],
+        slider_col_spacing: [40],
+        exclusive_group: [1, 1],
+        require_change: [1, 1],
+        canvasWidth: 370,
+        canvasHeight: 172,
+        on_finish: gov.processResponse
+    };
+
+    /* Advice: present advice to the judge */
+    const advice = {
+        type: "jspsych-jas-present-advice",
+        displayImageFunction: function(divId) {
+            let div = document.querySelector('#' + divId);
+            let a = gov.currentAdvisor;
+            div.innerHTML = a.portrait.outerHTML;
+            return a.portrait.src;
+        },
+        trial_duration: 2000,
+        playAudioFunction: function () {
+            let div = document.querySelector('#jspsych-jas-present-advice-prompt');
+            div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.advice.string;
+            gov.advice.play();
+        },
+        prompt: ""
+    };
+
+    /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
+    let finalDecision = initialDecision;
+    finalDecision.cue = true;
+
+    const test_procedure = {
+        timeline: [initialDecision, advice, finalDecision],
+        randomize_order: false,
+        repetitions: gov.trials.length
+    };
+    timeline.push(test_procedure);
+
+    /* define debrief */
+
+    let debrief_block = {
+        type: "html-keyboard-response",
+        stimulus: function() {
+            return "<p>You did it beautifully!</p>"+
+                "<p>Press any key to end.</p>"
+        }
+    };
+    timeline.push(debrief_block);
+
+    /* start the experiment */
+    jsPsych.init({
+        timeline: timeline,
+        on_finish: function() {
+            jsPsych.data.displayData();
+        }
+    });
+</script>
+</html>
