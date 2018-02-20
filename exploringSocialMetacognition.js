@@ -38,6 +38,14 @@ window.ESM = {
             this.displayWidth = this.gridWidth * this.dotWidth + (this.gridWidth + 2) * this.paddingX;
             this.displayHeight = this.gridHeight * this.dotHeight + (this.gridHeight + 2) * this.paddingY;
             this.spacing = args.spacing || 26;
+
+            // style properties
+            this.style = {
+                gridBorderColor: '#ffffff',
+                gridBorderWidth: '3',
+                dotColor: '#ffffff',
+                dotLineWidth: '1'
+            };
         };
         /** Create a grid
          * @param {int} dotCount - number of dots to place in the grid
@@ -81,11 +89,13 @@ window.ESM = {
         drawGrid(grid, ctx, offset) {
             let xMin = (offset)? this.spacing+this.displayWidth : 0;
             // Draw frame
-            ctx.lineWidth = "3";
+            ctx.lineWidth = this.style.gridBorderWidth;
+            ctx.strokeStyle = this.style.gridBorderColor;
             ctx.rect(xMin, 0, this.displayWidth, this.displayHeight);
             ctx.stroke();
             // Draw dots
-            ctx.lineWidth = "1";
+            ctx.lineWidth = this.style.dotLineWidth;
+            ctx.fillStyle = this.style.dotColor;
             for(let x=0; x<this.gridWidth; x++) {
                 for(let y=0; y<this.gridHeight; y++) {
                     if(grid[x][y] === 1) {
@@ -165,7 +175,8 @@ window.ESM = {
                         self.buffer = buffer;
                         self.data = null;
                         self.loaded = true;
-                        this.close();
+                        if (typeof this !== 'undefined')
+                           this.close();
                         if (typeof callback === "function")
                             callback(self);
                         // now the buffer is closed we can continue preloading another audio file
@@ -387,6 +398,29 @@ window.ESM = {
                     this[key] = args[key];
             }
             this.id = id;
+        }
+
+        /**
+         * Return a new copy of this object with each array flattened to make life easy for processing the data in R.
+         * Non-array properties are preserved (including objects), but functions are dropped.
+         *
+         * @returns {Window.ESM.Trial}
+         * @constructor
+         */
+        get Rformat() {
+            let out = new ESM.Trial(this.id);
+            for (let key in this) {
+                if (this.hasOwnProperty(key)) {
+                    if (Array.isArray(this[key])) {
+                        this[key].forEach(function (e, i) {
+                            out[key.toString()+i.toString()] = e;
+                        });
+                    } else if (typeof this[key] !== 'function') {
+                        out[key] = this[key];
+                    }
+                }
+            }
+            return out;
         }
     },
 

@@ -1,0 +1,183 @@
+/* Styling for the sliders (yes, it's complicated).
+Matt Jaquiery, Feb 2018
+General thanks to https://css-tricks.com/styling-cross-browser-compatible-range-inputs-css/ */
+:root{
+    --slider-track-cursor: pointer;
+    --slider-track-color: #373737;
+    --slider-track-color-focus: #999999;
+    --slider-track-height: 24px;
+    --slider-track-box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+    --slider-track-border-radius: 0;
+    --slider-track-border: 0.2px solid #010101;
+    --slider-thumb-color: #ffffff;
+    --slider-thumb-height: 28px;
+    --slider-thumb-width: 12px;
+    --slider-thumb-box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
+    --slider-thumb-border: 0.2px solid #010101;
+    --slider-thumb-border-radius: 3px;
+    --slider-thumb-background: #ffffff;
+    --slider-thumb-cursor: pointer;
+    --slider-thumb-margin-top: calc((var(--slider-track-height) - var(--slider-thumb-height)) / 2);
+}
+
+input.jspsych-sliders-response-slider {
+    -webkit-appearance: none;
+    margin: 18px 0;
+    width: 100%;
+}
+input.jspsych-sliders-response-slider:focus {
+    outline: inherit;
+}
+
+/* Chrome */
+input.jspsych-sliders-response-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: var(--slider-track-height);
+    cursor: var(--slider-track-cursor);
+    box-shadow: var(--slider-track-box-shadow);
+    background: var(--slider-track-color);
+    border-radius: var(--slider-track-border-radius);
+    border: var(--slider-track-border);
+}
+input.jspsych-sliders-response-slider::-webkit-slider-thumb {
+    height: var(--slider-thumb-height);
+    width: var(--slider-thumb-width);
+    border: none;
+    border-radius: var(--slider-thumb-border-radius);
+    box-shadow: none;
+    background: transparent;
+    cursor: var(--slider-thumb-cursor);
+    -webkit-appearance: none;
+    margin-top: var(--slider-thumb-margin-top);
+}
+input.jspsych-sliders-response-slider:focus::-webkit-slider-runnable-track {
+    background: var(--slider-track-color-focus);
+}
+input.jspsych-sliders-response-slider:focus::-webkit-slider-thumb {
+    background: var(--slider-thumb-background);
+    border: var(--slider-thumb-border);
+    box-shadow: var(--slider-thumb-box-shadow);
+}
+input.jspsych-sliders-response-slider-touched::-webkit-slider-thumb {
+    background: var(--slider-thumb-background);
+    border: var(--slider-thumb-border);
+    box-shadow: var(--slider-thumb-box-shadow);
+}
+input.jspsych-sliders-response-slider-untouched::-webkit-slider-thumb {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+input.jspsych-sliders-response-slider-untouched::-webkit-slider-runnable-track {
+    box-shadow: var(--slider-track-box-shadow);
+    background: var(--slider-track-color);
+    border: var(--slider-track-border);
+}
+
+/* Firefox */
+input.jspsych-sliders-response-slider::-moz-range-track{
+    width: 100%;
+    height: var(--slider-track-height);
+    cursor: var(--slider-track-cursor);
+    box-shadow: var(--slider-track-box-shadow);
+    background: var(--slider-track-color);
+    border-radius: var(--slider-track-border-radius);
+    border: var(--slider-track-border);
+}
+input.jspsych-sliders-response-slider::-moz-range-thumb{
+    height: var(--slider-thumb-height);
+    width: var(--slider-thumb-width);
+    border: none;
+    border-radius: var(--slider-thumb-border-radius);
+    box-shadow: none;
+    background: transparent;
+    cursor: var(--slider-thumb-cursor);
+    -webkit-appearance: none;
+    margin-top: var(--slider-thumb-margin-top);
+}
+input.jspsych-sliders-response-slider:focus::-moz-range-track {
+    background: var(--slider-track-color-focus);
+}
+input.jspsych-sliders-response-slider:focus::-moz-range-thumb {
+    background: var(--slider-thumb-background);
+    border: var(--slider-thumb-border);
+    box-shadow: var(--slider-thumb-box-shadow);
+}
+input.jspsych-sliders-response-slider-touched::-moz-range-thumb {
+    background: var(--slider-thumb-background);
+    border: var(--slider-thumb-border);
+    box-shadow: var(--slider-thumb-box-shadow);
+}
+input.jspsych-sliders-response-slider-untouched::-moz-range-thumb {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+input.jspsych-sliders-response-slider-untouched::-moz-range-track {
+    box-shadow: var(--slider-track-box-shadow);
+    background: var(--slider-track-color);
+    border: var(--slider-track-border);
+}
+
+/* Microsoft browsers have AWFUL support for custom properties... sigh */
+input.jspsych-sliders-response-slider::-ms-track {
+    width: 100%;
+    height: 24px;
+    cursor: pointer;
+    background: transparent;
+    border-color: transparent;
+    border-width: 16px 0;
+    color: transparent;
+}
+input.jspsych-sliders-response-slider::-ms-fill-lower {
+    background: #373737;
+    border: 0.2px solid #010101;
+    border-radius: 2.6px;
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input.jspsych-sliders-response-slider::-ms-fill-upper {
+    background: #373737;
+    border: 0.2px solid #010101;
+    border-radius: 2.6px;
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input.jspsych-sliders-response-slider::-ms-thumb {
+    box-shadow: none;
+    border: none;
+    height: 28px;
+    width: 12px;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+}
+input.jspsych-sliders-response-slider:focus::-ms-fill-lower {
+    background: #999999;
+}
+input.jspsych-sliders-response-slider:focus::-ms-fill-upper {
+    background: #999999;
+}
+input.jspsych-sliders-response-slider:focus::-ms-thumb {
+    background: #ffffff;
+    border: 0.2px solid #010101;
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input.jspsych-sliders-response-slider-touched::-ms-thumb {
+    background: #ffffff;
+    border: 0.2px solid #010101;
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input.jspsych-sliders-response-slider-untouched::-ms-thumb {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+input.jspsych-sliders-response-slider-untouched::-ms-fill-lower {
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+    background: #373737;
+    border: 0.2px solid #010101;
+}
+input.jspsych-sliders-response-slider-untouched::-ms-fill-upper {
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+    background: #373737;
+    border: 0.2px solid #010101;
+}

@@ -9,10 +9,11 @@
     <script src="exploringSocialMetacognition.js/"></script>
     <script src="jspsych-jas-present-advice.js"></script>
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
+    <link rel="stylesheet" href="confidenceSliders.css"/>
     <style type="text/css">
     </style>
 </head>
-<body></body>
+<body style="background-color: #858585;"></body>
 <script type="text/javascript">
     // This function does the actual drawing on the canvas, and is the one
     // called by the trial (it is passed in as a stimulus and called with
@@ -29,10 +30,10 @@
         grid.draw(canvasId);
     }
 
-    function getTrialAnswer(trial) {
+    function getAnswerFromResponse(response) {
         // Which slider was moved last?
-        let L = trial.response[0].lastChangedTime;
-        let R = trial.response[1].lastChangedTime;
+        let L = response[0].lastChangedTime;
+        let R = response[1].lastChangedTime;
         if (isNaN(L) && isNaN(R))
             return NaN;
         if (isNaN(R))
@@ -40,6 +41,10 @@
         if (isNaN(L))
             return 1;
         return R > L ? 1 : 0;
+    }
+
+    function getConfidenceFromResponse(response, answer) {
+        return parseInt(response[answer].answer);
     }
 
     function getTrials (trialCount) {
@@ -55,8 +60,7 @@
                        let answer = finalAnswer? this.answer[1] : this.answer[0];
                        return answer === this.whichSide;
                    },
-                   warnings: [],
-                   rawResponse: {initial: [], final: []}
+                   warnings: []
                }));
            }
         return trials;
@@ -74,9 +78,9 @@
         ],
         currentAdvisorIndex: 1,
         initialResponse: function (trial) {
-            gov.currentTrial.rawResponse.initial = trial.response;
             // trial is the complete trial object with its trial.response object
-            gov.currentTrial.answer[0] = getTrialAnswer(trial);
+            gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
+            gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
 
             // Check the answer and dis/agree as appropriate
             if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
@@ -91,8 +95,8 @@
             }
         },
         finalResponse: function (trial) {
-            gov.currentTrial.rawResponse.final = trial.response;
-            gov.currentTrial.answer[1] = getTrialAnswer(trial);
+            gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
+            gov.currentTrial.confidence[1]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
             // Staircasing stuff
             let warning = "";
             if (gov.currentTrialIndex > 1) {
@@ -103,7 +107,7 @@
                     gov.dotDifference += gov.difficultyStep;
                     if (gov.dotDifference > gov.dotCount-1) {
                         gov.dotDifference = gov.dotCount-1;
-                        let warning = "Difficulty at minimum!";
+                        warning = "Difficulty at minimum!";
                     }
                 } else if (lastTrial.getCorrect(false) && gov.currentTrial.getCorrect(false)) {
                     // Two hits, impressive! Make it harder
@@ -158,6 +162,7 @@
             'Left',
             'Right'
         ],
+        reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
         require_change: [1, 1],
@@ -198,6 +203,7 @@
             'Left',
             'Right'
         ],
+        reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
         require_change: [1, 1],
