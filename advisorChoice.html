@@ -11,6 +11,14 @@
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
     <style type="text/css">
+        div.advisorChoice-marker {
+            width: 12px;
+            height: 40px;
+            position: relative;
+            z-index: -1;
+            box-shadow: 0px 0px 5px 1px yellow;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body style="background-color: #858585;"></body>
@@ -44,6 +52,8 @@
     }
 
     function getConfidenceFromResponse(response, answer) {
+        if (isNaN(response[answer].answer))
+            return NaN;
         return parseInt(response[answer].answer);
     }
 
@@ -64,6 +74,56 @@
                }));
            }
         return trials;
+    }
+
+    /**
+     * Sets a click function on the sliders which makes them behave as if they are moved to 50 when they are focussed.
+     * This prevents users clicking on the slider, getting the visual feedback of the slider being activated and set,
+     * and then being told they have not moved the slider.
+     */
+    function setSliderClick() {
+        let sliders = document.querySelectorAll('.jspsych-sliders-response-slider');
+        sliders.forEach(function (slider) {
+            slider.addEventListener('click', function () {
+                if (typeof this.clickFunctionRun !== 'undefined')
+                    return;
+                this.clickFunctionRun = true;
+                if (this.value !== "50")
+                    return;
+                // send a change event
+                let event = new Event('change');
+                this.dispatchEvent(event);
+            });
+        });
+    }
+
+    /**
+     * Show a ghost of the previous thumb placement to remind judges of their previous answer.
+     */
+    function showMarker() {
+        let slider = document.querySelector('#jspsych-canvas-sliders-response-slider'+
+            gov.currentTrial.answer[0].toString());
+        let marker = document.createElement('div');
+        marker.className = 'advisorChoice-marker';
+        slider.parentElement.appendChild(marker);
+        let yOffset = document.querySelector('#jspsych-canvas-sliders-response-labels'+
+            gov.currentTrial.answer[0].toString()).clientHeight;
+        yOffset += slider.clientHeight + 18; // +18 for the margin
+        yOffset *= -1;
+        yOffset -= (marker.clientHeight - slider.clientHeight) / 2;
+        yOffset += 1; // compensate for box shadow on the slider making things look off
+        marker.style.top = yOffset.toString() + 'px';
+        let xOffset = 0;
+        if (gov.currentTrial.answer[0] === 0) {
+            // Left bar is scored in reverse
+            xOffset = 100 - gov.currentTrial.confidence[0];
+        } else {
+            xOffset = gov.currentTrial.confidence[0];
+        }
+        marker.style.left = (xOffset * slider.clientWidth / 100).toString() + 'px';
+
+        // and call the slider-click function because we only get one on_load call
+        setSliderClick();
     }
 
     // The governor contains the properties which the experiment functions need to access from everywhere.
@@ -96,7 +156,13 @@
         },
         finalResponse: function (trial) {
             gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
-            gov.currentTrial.confidence[1]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
+            // empty responses are allowed 2nd time through (copy intial response)
+            if (isNaN(gov.currentTrial.answer[1])) {
+                gov.currentTrial.answer[1] = gov.currentTrial.answer[0];
+                gov.currentTrial.confidence[1] = gov.currentTrial.confidence[0];
+            } else {
+                gov.currentTrial.confidence[1]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
+            }
             // Staircasing stuff
             let warning = "";
             if (gov.currentTrialIndex > 1) {
@@ -138,7 +204,7 @@
             "<p>In this experiment, a box with dots will appear in the center"+
             " of the screen. Your task is to use the slider to give an estimate "+
             "of the number of dots that are in the box.</p>"+
-            "<p>You will not know how many dots there can be in the box, except"+
+            "<p>You will not know how many dots there can be in the box, except "+
             "by observing the boxes on each trial; nevertheless, you should try "+
             "to use the whole width of the scale, indicating the smallest "+
             "number of dots by using the left side and the largest number by "+
@@ -152,6 +218,7 @@
     const initialDecision = {
         type: "canvas-sliders-response",
         stimulus: drawDots,
+        stimulus_duration: null,
         prompt: '<p>Which box had more dots?</p>',
         sliderCount: 2,
         labels: [
@@ -168,6 +235,7 @@
         require_change: [1, 1],
         canvasWidth: 370,
         canvasHeight: 172,
+        on_load: setSliderClick,
         on_finish: gov.initialResponse
     };
 
@@ -192,7 +260,7 @@
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
     let finalDecision = {
         type: "canvas-sliders-response",
-        stimulus: drawDots,
+        stimulus: function(){},
         prompt: '<p>Final decision:<br/>Which box had more dots?</p>',
         sliderCount: 2,
         labels: [
@@ -206,9 +274,9 @@
         reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
-        require_change: [1, 1],
         canvasWidth: 370,
         canvasHeight: 172,
+        on_load: showMarker,
         on_finish: gov.finalResponse
     };
 

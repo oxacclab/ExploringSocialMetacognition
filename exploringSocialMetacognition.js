@@ -101,6 +101,8 @@ window.ESM = {
                     if(grid[x][y] === 1) {
                         let startX = xMin + (x+1)*this.paddingX + x*this.dotWidth;
                         let startY = (y+1)*this.paddingY + y*this.dotHeight;
+                        // alternating the color should prevent brightness being used as a proxy
+                        //ctx.fillStyle = ctx.fillStyle==='#000000'? this.style.dotColor : '#000000';
                         ctx.fillRect(startX, startY, this.dotWidth, this.dotHeight);
                         ctx.stroke();
                     }
