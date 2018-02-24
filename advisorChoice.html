@@ -16,8 +16,9 @@
             height: 40px;
             position: relative;
             z-index: -1;
-            box-shadow: 0px 0px 5px 1px yellow;
+            box-shadow: 0px 0px 5px 0px yellow;
             border-radius: 3px;
+            background-color: yellow;
         }
     </style>
 </head>
@@ -120,7 +121,7 @@
         } else {
             xOffset = gov.currentTrial.confidence[0];
         }
-        marker.style.left = (xOffset * slider.clientWidth / 100).toString() + 'px';
+        marker.style.left = (xOffset * (slider.clientWidth-marker.clientWidth) / 100).toString() + 'px';
 
         // and call the slider-click function because we only get one on_load call
         setSliderClick();
@@ -136,7 +137,7 @@
             new ESM.Advisor(2,2),
             new ESM.Advisor(3,0)
         ],
-        currentAdvisorIndex: 1,
+        currentAdvisorIndex: 0,
         initialResponse: function (trial) {
             // trial is the complete trial object with its trial.response object
             gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);

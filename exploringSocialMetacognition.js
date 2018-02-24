@@ -332,7 +332,7 @@ window.ESM = {
             if (portrait === 0)
                 portraitId = this.id;
             this.portrait = new Image();
-            this.portrait.src = "assets/image/advisor" + portraitId + ".jpg";
+            this.portrait.src = "assets/image/advisor" + portraitId + ".png";
             this.portrait.id = 'advisor-portrait-' + portraitId;
         }
 
