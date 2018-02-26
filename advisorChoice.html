@@ -44,6 +44,11 @@
         force: 1,
         choice: 2
     };
+    const trialTypeNames = {
+        [trialTypes.catch]: 'catch',
+        [trialTypes.force]: 'force',
+        [trialTypes.choice]: 'choice'
+    }
 
     // This function does the actual drawing on the canvas, and is the one
     // called by the trial (it is passed in as a stimulus and called with
@@ -117,6 +122,7 @@
                 let choice = trialType === trialTypes.choice? [advisorChoices[r], advisorChoices[1-r]] : [];
                 trials.push(new ESM.Trial(id, {
                     type: trialType,
+                    typeName: trialTypeNames[trialType],
                     block: b,
                     advisorId,
                     choice,
@@ -221,7 +227,6 @@
         display_element.appendChild(choiceImgs.pop());
     }
 
-    let adviceTypes = shuffle([1, 2]);
     // The governor contains the properties which the experiment functions need to access from everywhere.
     window.gov = new ESM.Governor({
         dotCount: 200,
@@ -239,7 +244,6 @@
 
             if (typeof gov.currentAdvisor === 'undefined' && gov.currentTrial.choice.length === 0) {
                 gov.closeTrial(trial);
-                return;
             } else if (gov.currentTrial.choice.length === 0)
                 gov.setAgreementVars();
         },
@@ -280,6 +284,8 @@
                 gov.currentTrial.warnings.push(warning);
                 console.warn(warning);
             }
+            // Save this trial data (jspsych would do this for us, but we have access to a bunch of stuff it doesn't
+            gov.currentTrial.pluginResponse = trial;
             // Move to next trial
             gov.currentTrialIndex++;
             if (gov.currentTrialIndex > gov.trials.length) {
@@ -368,6 +374,10 @@
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
+            "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
+            "concentrating or you will miss them.</p>" +
+            "<p>Also, sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
+            "two advisors and you will click one to hear their advice.</p>" +
             "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
             "ready to begin.</p>"],
         show_clickable_nav: true
@@ -377,6 +387,31 @@
         type: 'instructions',
         pages: ["<h1>Break</h1><p>You may take a moment to rest here. Press 'next' when you are ready.</p>"],
         show_clickable_nav: true
+    };
+
+    /* Initial response: present an initial stimulus and get a decision */
+    const introInitialDecision = {
+        type: "canvas-sliders-response",
+        stimulus: drawDots,
+        stimulus_duration: null,
+        prompt: '<p>Which box had more dots?</p>',
+        sliderCount: 2,
+        labels: [
+            ['Certain', 'Unsure'],
+            ['Unsure', 'Certain']
+        ],
+        slider_prompt: [
+            'Left',
+            'Right'
+        ],
+        reversed: [true, false],
+        slider_col_spacing: [40],
+        exclusive_group: [1, 1],
+        require_change: [1, 1],
+        canvasWidth: 370,
+        canvasHeight: 172,
+        on_load: setSliderClick,
+        on_finish: gov.initialResponse
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -426,7 +461,7 @@
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
-    let finalDecision = {
+    const finalDecision = {
         type: "canvas-sliders-response",
         stimulus: function(){},
         prompt: '<p>Final decision:<br/>Which box had more dots?</p>',
@@ -449,7 +484,7 @@
     };
 
     const intro_procedure = {
-        timeline: [initialDecision, advice, finalDecision],
+        timeline: [introInitialDecision, advice, finalDecision],
         randomize_order: false,
         repetitions: 0
     };
@@ -468,9 +503,9 @@
 
     // intro and practice
     timeline.push(welcome);
-    timeline.push(initialDecision);
+    timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
-    timeline.push(initialDecision);
+    timeline.push(introInitialDecision);
     timeline.push(adviceInstructions);
     timeline.push(intro_procedure);
     timeline.push(finalInstructions);
@@ -490,7 +525,7 @@
     timeline.pop();
 
     /* define debrief */
-    let debrief_block = {
+    const debrief_block = {
         type: "html-keyboard-response",
         stimulus: function() {
             return "<p>You did it beautifully!</p>"+
