@@ -65,6 +65,12 @@ jsPsych.plugins["jspsych-jas-present-advice"] = (function() {
         display_element.innerHTML = html;
 
         response.image = trial.displayImageFunction(containerId);
+        // short out if the trial.displayImageFunction returned '-1'
+        if (response.image === -1) {
+            end_trial()
+            return;
+        }
+
         if (typeof trial.playAudioFunction === "function")
             response.audio = trial.playAudioFunction();
 

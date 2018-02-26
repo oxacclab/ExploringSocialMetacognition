@@ -333,6 +333,7 @@ window.ESM = {
                 portraitId = this.id;
             this.portrait = new Image();
             this.portrait.src = "assets/image/advisor" + portraitId + ".png";
+            this.portrait.className = 'advisor-portrait';
             this.portrait.id = 'advisor-portrait-' + portraitId;
         }
 
@@ -437,7 +438,6 @@ window.ESM = {
          *
          * @param {object} [args={}] - properties to assign to the Governor
          * @param {Advisor[]} [args.advisors=[]] - advisor list
-         * @param {int} [args.currentAdvisorIndex=0] - index of advisor for current trial
          * @param {Trial[]} [args.trials=[]] - trial list
          * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
          *
@@ -450,12 +450,52 @@ window.ESM = {
                     this[key] = args[key];
             }
             this.advisors = args.advisors || [];
-            this.currentAdvisorIndex = args.currentAdvisorIndex || 0;
             this.trials = args.trials || [];
             this.currentTrialIndex = args.currentTrialIndex || 0;
         }
 
-        get currentAdvisor() {return this.advisors[this.currentAdvisorIndex];}
         get currentTrial() {return this.trials[this.currentTrialIndex];}
+        get currentAdvisor() {return this.advisors[this.getAdvisorIndex(this.currentTrial.advisorId)];}
+
+        getAdvisorIndex(id) {
+            for (let i=0; i<this.advisors.length; i++) {
+                if (this.advisors[i].id == id)
+                    return i;
+            }
+            return null;
+        }
     }
 };
+
+//https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
+function shuffle(array) {
+    let counter = array.length;
+
+    // While there are elements in the array
+    while (counter > 0) {
+        // Pick a random index
+        let index = Math.floor(Math.random() * counter);
+
+        // Decrease counter by 1
+        counter--;
+
+        // And swap the last element with it
+        let temp = array[counter];
+        array[counter] = array[index];
+        array[index] = temp;
+    }
+
+    return array;
+}
+
+// Return a single array containing deckCount copies of deck shuffled together
+function shuffleShoe(deck, deckCount=1) {
+    let shoe = [];
+    for (let d=0; d<deck.length; d++) {
+        let item = deck[d];
+        for (let i=0; i<deckCount; i++) {
+            shoe.push(item);
+        }
+    }
+    return shuffle(shoe);
+}

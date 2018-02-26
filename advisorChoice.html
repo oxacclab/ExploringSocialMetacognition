@@ -7,7 +7,7 @@
     <script src="../jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
     <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
     <script src="exploringSocialMetacognition.js"></script>
-    <script src="jspsych-jas-present-advice.js"></script>
+    <script src="jspsych-jas-present-advice-choice.js"></script>
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
     <style type="text/css">
@@ -20,10 +20,31 @@
             border-radius: 3px;
             background-color: yellow;
         }
+        img.advisor-portrait {
+            border: 2px solid black;
+            padding: 5px;
+            background-color: black;
+            border-radius: 25px;
+        }
+        img.advisorChoice-choice {
+            max-height: 150px;
+            display: block;
+            margin: 20px auto;
+        }
+        img.advisorChoice-choice:hover {
+            cursor: pointer;
+            background-color: white;
+        }
     </style>
 </head>
 <body style="background-color: #858585;"></body>
 <script type="text/javascript">
+    const trialTypes = {
+        catch: 0,
+        force: 1,
+        choice: 2
+    };
+
     // This function does the actual drawing on the canvas, and is the one
     // called by the trial (it is passed in as a stimulus and called with
     // the id of the canvas supplied).
@@ -58,22 +79,61 @@
         return parseInt(response[answer].answer);
     }
 
-    function getTrials (trialCount) {
+    function getTrials() {
         let trials = [];
-        let blockLength = 5;
-           for (let id=0; id<trialCount; id++) {
-               trials.push(new ESM.Trial(id, {
-                   whichSide: Math.random() < 0.5? 0 : 1,
-                   block: Math.ceil(id / blockLength),
-                   answer: [NaN, NaN],
-                   confidence: [NaN, NaN],
-                   getCorrect: function(finalAnswer = true) {
-                       let answer = finalAnswer? this.answer[1] : this.answer[0];
-                       return answer === this.whichSide;
-                   },
-                   warnings: []
-               }));
-           }
+        let id = 0;
+        let realId = 0;
+        let advisorChoices = [2, 3];
+        // Shuffle advisors so they appear an equal number of times
+        let advisorDeck = shuffleShoe(advisorChoices, gov.blockCount*gov.blockStructure[trialTypes.force]);
+        // Same for which side the correct answer appears on
+        let whichSideDeck = shuffleShoe([0, 1], gov.blockCount*gov.blockLength);
+        // Define trials
+        for (let b=1; b<=gov.practiceBlockCount+gov.blockCount; b++) {
+            let blockLength = b<=gov.practiceBlockCount? gov.practiceBlockLength : gov.blockLength;
+            // intro trials are a special case so the block length needs to be longer to accommodate them
+            if (b === 1)
+                blockLength += 3;
+            // Work out what type of trial to be
+            let trialTypeDeck = [];
+            let structure = b<=gov.practiceBlockCount? gov.practiceBlockStructure : gov.blockStructure;
+            if (b === 1)
+                structure = {0:0, 1:5, 2:0};
+            for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
+                for (let i=0; i<structure[tt]; i++)
+                    trialTypeDeck.push(tt);
+            }
+            trialTypeDeck = shuffle(trialTypeDeck);
+            for (let i=1; i<=blockLength; i++) {
+                id++;
+                let isPractice = b<=gov.practiceBlockCount;
+                let trialType = trialTypeDeck[i-1];
+                let advisorId = 0;
+                if (isPractice)
+                    advisorId = id<=2? 0 : 1;
+                else
+                    advisorId = trialType === trialTypes.force? advisorDeck[realId] : 0;
+                let r = Math.random() < .5? 1 : 0;
+                let choice = trialType === trialTypes.choice? [advisorChoices[r], advisorChoices[1-r]] : [];
+                trials.push(new ESM.Trial(id, {
+                    type: trialType,
+                    block: b,
+                    advisorId,
+                    choice,
+                    answer: [NaN, NaN],
+                    confidence: [NaN, NaN],
+                    getCorrect: function(finalAnswer = true) {
+                        let answer = finalAnswer? this.answer[1] : this.answer[0];
+                        return answer === this.whichSide;
+                    },
+                    whichSide: isPractice? Math.round(Math.random()) : whichSideDeck[realId],
+                    practice: isPractice,
+                    warnings: []
+                }));
+                if (!isPractice)
+                    realId++;
+            }
+        }
         return trials;
     }
 
@@ -127,33 +187,61 @@
         setSliderClick();
     }
 
+    function getAdvisorChoice(callback, display_element) {
+        let choices = gov.currentTrial.choice;
+        if (choices.length === 0) { // force and catch trials
+            if (typeof gov.currentAdvisor === 'undefined') {
+                callback(-1); // catch trials
+                return;
+            } else {
+                callback(gov.currentAdvisor.id); // force trials
+                return;
+            }
+        }
+        // present choices
+        let choiceImgs = [];
+        for (let a=0; a<choices.length; a++) {
+            let advisor = gov.advisors[gov.getAdvisorIndex(choices[a])];
+            let img = document.createElement('img');
+            img.className = 'advisorChoice-choice advisor-portrait';
+            img.id = 'advisorChoice-choice-' + a.toString();
+            img.src = advisor.portrait.src;
+            img.addEventListener('click', function () {
+                gov.currentTrial.advisorId = choices[a];
+                gov.setAgreementVars();
+                callback(choices[a]);
+            });
+            choiceImgs.push(img);
+        }
+        let p = document.createElement('p');
+        p.innerText = 'Click on a portrait to hear the advisor\'s advice';
+        p.className = 'advisorChoice-choice';
+        display_element.appendChild(choiceImgs.pop());
+        display_element.appendChild(p);
+        display_element.appendChild(choiceImgs.pop());
+    }
+
+    let adviceTypes = shuffle([1, 2]);
     // The governor contains the properties which the experiment functions need to access from everywhere.
     window.gov = new ESM.Governor({
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: 3,
         advisors: [
-            new ESM.Advisor(1,1),
-            new ESM.Advisor(2,2),
-            new ESM.Advisor(3,0)
+            new ESM.Advisor(1,0),
+            new ESM.Advisor(2,1),
+            new ESM.Advisor(3,2)
         ],
-        currentAdvisorIndex: 0,
         initialResponse: function (trial) {
             // trial is the complete trial object with its trial.response object
             gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
             gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
 
-            // Check the answer and dis/agree as appropriate
-            if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
-                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
-                    return line.side === gov.currentTrial.whichSide;
-                });
-            } else {
-                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
-                    let side = [1, 0][gov.currentTrial.whichSide];
-                    return line.side === side;
-                });
-            }
+            if (typeof gov.currentAdvisor === 'undefined' && gov.currentTrial.choice.length === 0) {
+                gov.closeTrial(trial);
+                return;
+            } else if (gov.currentTrial.choice.length === 0)
+                gov.setAgreementVars();
         },
         finalResponse: function (trial) {
             gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
@@ -162,8 +250,11 @@
                 gov.currentTrial.answer[1] = gov.currentTrial.answer[0];
                 gov.currentTrial.confidence[1] = gov.currentTrial.confidence[0];
             } else {
-                gov.currentTrial.confidence[1]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
+                gov.currentTrial.confidence[1] = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
             }
+            gov.closeTrial(trial);
+        },
+        closeTrial: function (trial) {
             // Staircasing stuff
             let warning = "";
             if (gov.currentTrialIndex > 1) {
@@ -185,14 +276,50 @@
                     }
                 }
             }
-            gov.currentTrialIndex++;
             if (warning.length > 0 && gov.currentTrialIndex < gov.trials.length) {
                 gov.currentTrial.warnings.push(warning);
                 console.warn(warning);
             }
+            // Move to next trial
+            gov.currentTrialIndex++;
+            if (gov.currentTrialIndex > gov.trials.length) {
+                gov.currentTrialIndex = 0; // reset to 0
+                console.warn('gov: Reset currentTrialIndex!')
+            }
+
         },
-        trials: getTrials(5)
+        setAgreementVars: function () {
+            // Check the answer and dis/agree as appropriate
+            if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
+                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+                    gov.currentTrial.advisorAgrees = true;
+                    return line.side === gov.currentTrial.whichSide;
+                });
+            } else {
+                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+                    gov.currentTrial.advisorAgrees = false;
+                    let side = [1, 0][gov.currentTrial.whichSide];
+                    return line.side === side;
+                });
+            }
+        },
+        blockCount: 2,
+        blockStructure: {
+            [trialTypes.catch]: 0,
+            [trialTypes.choice]: 2,
+            [trialTypes.force]: 2
+        },
+        blockLength: 0 + 2 + 2,
+        practiceBlockCount: 1,
+        practiceBlockStructure: {
+            [trialTypes.catch]: 0,
+            [trialTypes.choice]: 0,
+            [trialTypes.force]: 2
+        },
+        practiceBlockLength: 2
     });
+
+    gov.trials = getTrials();
 
     /* create timeline */
     let timeline = [];
@@ -202,24 +329,61 @@
         type: 'instructions',
         pages: [
             "Welcome to the experiment. Press any key to begin.",
-            "<p>In this experiment, a box with dots will appear in the center"+
-            " of the screen. Your task is to use the slider to give an estimate "+
-            "of the number of dots that are in the box.</p>"+
-            "<p>You will not know how many dots there can be in the box, except "+
-            "by observing the boxes on each trial; nevertheless, you should try "+
-            "to use the whole width of the scale, indicating the smallest "+
-            "number of dots by using the left side and the largest number by "+
-            "using the right side.</p>"
+            "<p>You will see two boxes containing dots either side of the centre of the screen. " +
+            "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
+            "<p>You make your decision by using the grey bars below the boxes. Click one of the boxes and then " +
+            "press the 'continue' button.</p>"
         ],
-        show_clickable_nav: true,
+        show_clickable_nav: true
     };
-    //timeline.push(welcome);
+
+    const sliderInstructions = {
+        type: 'instructions',
+        pages: ["<p>Good. The task is very difficult at first, but you will get used to it.</p>" +
+            "<p>You can use the slider to indicate your <strong>confidence</strong> as well. " +
+            "You do this by moving the slider more towards the edges if you are sure, and more towards the " +
+            "middle if you are unsure.</p>" +
+            "<p>E.g. if you were <strong>sure</strong> there were more dots on the <strong>left</strong>, you would move the " +
+            "<strong>left</strong> slider all the way to the <strong>left</strong>.</p>" +
+            "<p>If you thought there were more dots on the <strong>right</strong>, but you were " +
+            "<strong>guessing</strong>, you would move the <strong>right</strong> slider, but you would move it as " +
+            "far <strong>left</strong> as it will go.</p>" +
+            "<p>Try using the slider to indicate your confidence now.</p>"],
+        show_clickable_nav: true
+    };
+
+    const adviceInstructions = {
+        type: 'instructions',
+        pages: ["<p>Most of the time you will get <strong>advice</strong> from an advisor to help you make your " +
+            "decision.</p>" +
+            "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
+            "perform better on the task.</p>" +
+            "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
+            "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
+            "that you are more or less sure, and even to change which box you think had most dots.</p>" +
+            "<p>Click 'next' to see how the advice works.</p>"],
+        show_clickable_nav: true
+    };
+
+    const finalInstructions = {
+        type: 'instructions',
+        pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
+            "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
+            "ready to begin.</p>"],
+        show_clickable_nav: true
+    };
+
+    const blockBreak = {
+        type: 'instructions',
+        pages: ["<h1>Break</h1><p>You may take a moment to rest here. Press 'next' when you are ready.</p>"],
+        show_clickable_nav: true
+    };
 
     /* Initial response: present an initial stimulus and get a decision */
     const initialDecision = {
         type: "canvas-sliders-response",
         stimulus: drawDots,
-        stimulus_duration: null,
+        stimulus_duration: 200,
         prompt: '<p>Which box had more dots?</p>',
         sliderCount: 2,
         labels: [
@@ -242,16 +406,19 @@
 
     /* Advice: present advice to the judge */
     const advice = {
-        type: "jspsych-jas-present-advice",
-        displayImageFunction: function(divId) {
+        type: "jspsych-jas-present-advice-choice",
+        choiceFunction: getAdvisorChoice,
+        displayImageFunction: function(choice, divId) {
             let div = document.querySelector('#' + divId);
             let a = gov.currentAdvisor;
+            if (typeof a === 'undefined')
+                return -1; // special value which tells the present-advice plugin to end early
             div.innerHTML = a.portrait.outerHTML;
             return a.portrait.src;
         },
         trial_duration: 2000,
-        playAudioFunction: function () {
-            let div = document.querySelector('#jspsych-jas-present-advice-prompt');
+        playAudioFunction: function (choice) {
+            let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
             div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.advice.string;
             gov.advice.play();
         },
@@ -281,15 +448,48 @@
         on_finish: gov.finalResponse
     };
 
+    const intro_procedure = {
+        timeline: [initialDecision, advice, finalDecision],
+        randomize_order: false,
+        repetitions: 0
+    };
+
+    const practice_procedure = {
+        timeline: [initialDecision, advice, finalDecision],
+        randomize_order: false,
+        repetitions: gov.practiceBlockLength
+    };
+
     const test_procedure = {
         timeline: [initialDecision, advice, finalDecision],
         randomize_order: false,
-        repetitions: gov.trials.length
+        repetitions: gov.blockLength
     };
-    timeline.push(test_procedure);
+
+    // intro and practice
+    timeline.push(welcome);
+    timeline.push(initialDecision);
+    timeline.push(sliderInstructions);
+    timeline.push(initialDecision);
+    timeline.push(adviceInstructions);
+    timeline.push(intro_procedure);
+    timeline.push(finalInstructions);
+
+    for (let b=1; b<=gov.practiceBlockCount; b++) {
+        timeline.push(practice_procedure);
+        timeline.push(blockBreak);
+    }
+
+    // real experiment
+    for (let b=1; b<=gov.blockCount; b++) {
+        timeline.push(test_procedure);
+        timeline.push(blockBreak);
+    }
+
+    // Remove the last break screen
+    timeline.pop();
 
     /* define debrief */
-
     let debrief_block = {
         type: "html-keyboard-response",
         stimulus: function() {
