@@ -6,17 +6,21 @@
     <script src="../jsPsych/plugins/jspsych-instructions.js"></script>
     <script src="../jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
     <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
+    <script src="jspsych-function-sliders-response.js"></script>
     <script src="exploringSocialMetacognition.js"></script>
     <script src="jspsych-jas-present-advice-choice.js"></script>
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
     <style type="text/css">
+        body {
+            background-color: #858585;
+        }
         div.advisorChoice-marker {
             width: 12px;
             height: 40px;
-            position: relative;
+            position: absolute;
             z-index: -1;
-            box-shadow: 0px 0px 5px 0px yellow;
+            box-shadow: 0 0 5px 0 yellow;
             border-radius: 3px;
             background-color: yellow;
         }
@@ -35,9 +39,12 @@
             cursor: pointer;
             background-color: white;
         }
+        .jspsych-content {
+            width: 100%;
+        }
     </style>
 </head>
-<body style="background-color: #858585;"></body>
+<body></body>
 <script type="text/javascript">
     const trialTypes = {
         catch: 0,
@@ -48,23 +55,33 @@
         [trialTypes.catch]: 'catch',
         [trialTypes.force]: 'force',
         [trialTypes.choice]: 'choice'
-    }
+    };
 
-    // This function does the actual drawing on the canvas, and is the one
-    // called by the trial (it is passed in as a stimulus and called with
-    // the id of the canvas supplied).
-    // At the moment this doesn't do anything exciting; it just presents
-    // 200 dots in random places in the box, but we could make it staircase
-    // the number of dots based on past performance, etc.
+    /**
+     * Do the actual drawing on the canvas.
+     *
+     * This function is called by the trial (supplied as stimulus). Query the Governor to get the details for
+     * drawing.
+     *
+     * @param {string} canvasId - id of the canvas on which to draw the dots (supplied by the trial)
+     */
     function drawDots(canvasId) {
         let low = gov.dotCount - gov.dotDifference;
         let high = gov.dotCount + gov.dotDifference;
         let dots = gov.currentTrial.whichSide === 0 ? [high, low] : [low, high];
-        let grid = new ESM.DoubleDotGrid(dots[0], dots[1]);
+        let grid = new ESM.DoubleDotGrid(dots[0], dots[1], {
+            spacing: 100
+        });
         gov.currentTrial.grid = grid;
         grid.draw(canvasId);
     }
 
+    /**
+     * Extract the answer from the plugin's response. The plugin provides indices of the last time a slider was
+     * moved; the answer is simply the slider which was moved last.
+     *
+     * @param {Object} response - response field provided by the jspsych-canvas-sliders-response plugin
+     */
     function getAnswerFromResponse(response) {
         // Which slider was moved last?
         let L = response[0].lastChangedTime;
@@ -78,12 +95,34 @@
         return R > L ? 1 : 0;
     }
 
+    /**
+     * Return the confidence score associated with a given slider.
+     *
+     * @param {Object} response - response field provided by jspsych-canvas-sliders-response plugin
+     * @param {int} answer - which slider's value to extract
+     */
     function getConfidenceFromResponse(response, answer) {
         if (isNaN(response[answer].answer))
             return NaN;
         return parseInt(response[answer].answer);
     }
 
+    /**
+     * Return a list of ESM.Trial objects.
+     *
+     * A large part of the work of defining the experiment takes place here, although the key properties are
+     * actually defined in the Governor definition.
+     *
+     * The trials defined here are the master list used by the Governor to decide which stimuli to serve,
+     * which advisor or choice to offer, etc. This list is **not necessarily the same as** the trial list
+     * established at the beginning of the experiment and handed to jsPsych. It is therefore the responsibility
+     * of the programmer to ensure that these lists are lawfully aligned such that the block structures, etc.
+     * match.
+     *
+     * TODO: Implement alternative strategy - push new trials to the jsPsych timeline at
+     * the end of each completed trial. Since we don't get nice progress bar this way we may as well use on-the-fly
+     * timeline tweaking.
+     */
     function getTrials() {
         let trials = [];
         let id = 0;
@@ -173,13 +212,12 @@
         let marker = document.createElement('div');
         marker.className = 'advisorChoice-marker';
         slider.parentElement.appendChild(marker);
-        let yOffset = document.querySelector('#jspsych-canvas-sliders-response-labels'+
-            gov.currentTrial.answer[0].toString()).clientHeight;
-        yOffset += slider.clientHeight + 18; // +18 for the margin
-        yOffset *= -1;
+
+        let yOffset = slider.getBoundingClientRect().y;
         yOffset -= (marker.clientHeight - slider.clientHeight) / 2;
         yOffset += 1; // compensate for box shadow on the slider making things look off
         marker.style.top = yOffset.toString() + 'px';
+
         let xOffset = 0;
         if (gov.currentTrial.answer[0] === 0) {
             // Left bar is scored in reverse
@@ -187,13 +225,21 @@
         } else {
             xOffset = gov.currentTrial.confidence[0];
         }
-        marker.style.left = (xOffset * (slider.clientWidth-marker.clientWidth) / 100).toString() + 'px';
+        marker.style.left = (slider.getBoundingClientRect().x +
+            xOffset * (slider.clientWidth-marker.clientWidth) / 100).toString() + 'px';
 
         // and call the slider-click function because we only get one on_load call
         setSliderClick();
     }
 
-    function getAdvisorChoice(callback, display_element) {
+    /**
+     * Advisor choice function called by the jspsych-jas-present-advice-choice plugin.
+     * Offer a choice of advisors by drawing clickable portraits.
+     *
+     * @param {HTMLElement} display_element - element within which to display the choices
+     * @param {function} callback - function to call when a portrait is clicked. Called with the choice as an argument.
+     */
+    function getAdvisorChoice(display_element, callback) {
         let choices = gov.currentTrial.choice;
         if (choices.length === 0) { // force and catch trials
             if (typeof gov.currentAdvisor === 'undefined') {
@@ -227,6 +273,11 @@
         display_element.appendChild(choiceImgs.pop());
     }
 
+    /**
+     * Save the data sent from the plugin in the ESM.Trial object
+     *
+     * @param {Object} pluginData - response data sent by a jsPsych plugin
+     */
     function storePluginData(pluginData) {
         if (Object.keys(gov.currentTrial).indexOf('pluginResponse') === -1)
             gov.currentTrial.pluginResponse = [];
@@ -234,7 +285,140 @@
         gov.currentTrial.pluginResponse.push(pluginData);
     }
 
-    // The governor contains the properties which the experiment functions need to access from everywhere.
+    /**
+     * Process the judge's initial response
+     * @param {Object} trial - jsPsych plugin response
+     */
+    function initialResponse(trial) {
+        storePluginData(trial);
+        // trial is the complete trial object with its trial.response object
+        gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
+        gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
+
+        if (typeof gov.currentAdvisor === 'undefined' && gov.currentTrial.choice.length === 0) {
+            gov.closeTrial(trial);
+        } else if (gov.currentTrial.choice.length === 0)
+            gov.setAgreementVars();
+    }
+
+    /**
+     * Determine whether the advisor in this trial is to agree or disagree with the judge
+     */
+    function setAgreementVars() {
+        // Check the answer and dis/agree as appropriate
+        if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
+            gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+                gov.currentTrial.advisorAgrees = true;
+                return line.side === gov.currentTrial.whichSide;
+            });
+        } else {
+            gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+                gov.currentTrial.advisorAgrees = false;
+                let side = [1, 0][gov.currentTrial.whichSide];
+                return line.side === side;
+            });
+        }
+    }
+
+    /**
+     * Process the judge's final response
+     * @param {Object} trial - jsPsych plugin response
+     */
+    function finalResponse(trial) {
+        storePluginData(trial);
+        gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
+        // empty responses are allowed 2nd time through (copy intial response)
+        if (isNaN(gov.currentTrial.answer[1])) {
+            gov.currentTrial.answer[1] = gov.currentTrial.answer[0];
+            gov.currentTrial.confidence[1] = gov.currentTrial.confidence[0];
+        } else {
+            gov.currentTrial.confidence[1] = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
+        }
+        gov.closeTrial(trial);
+    }
+
+    /**
+     * Wrap up a trial. Store data, staircase difficulty, and prepare next trial.
+     * @param {Object} trial - jsPsych plugin response
+     */
+    function closeTrial(trial) {
+        // Staircasing stuff
+        let warning = "";
+        if (gov.currentTrialIndex > 1) {
+            // two-down one-up staircase
+            let lastTrial = gov.trials[gov.currentTrialIndex-1];
+            if (!gov.currentTrial.getCorrect(false)) {
+                // Wrong! Make it easier
+                gov.dotDifference += gov.difficultyStep;
+                if (gov.dotDifference > gov.dotCount-1) {
+                    gov.dotDifference = gov.dotCount-1;
+                    warning = "Difficulty at minimum!";
+                }
+            } else if (lastTrial.getCorrect(false) && gov.currentTrial.getCorrect(false)) {
+                // Two hits, impressive! Make it harder
+                gov.dotDifference -= gov.difficultyStep;
+                if (gov.dotDifference < 1) {
+                    gov.dotDifference = 1;
+                    warning = "Difficulty at maximum!";
+                }
+            }
+        }
+        if (warning.length > 0 && gov.currentTrialIndex < gov.trials.length) {
+            gov.currentTrial.warnings.push(warning);
+            console.warn(warning);
+        }
+        // Move to next trial
+        gov.currentTrialIndex++;
+        if (gov.currentTrialIndex > gov.trials.length) {
+            gov.currentTrialIndex = 0; // reset to 0
+            console.warn('gov: Reset currentTrialIndex!')
+        }
+
+    }
+
+    /**
+     * Draws the questionnaire portrait. Called by the jsPsych plugin
+     *
+     * @param {HTMLElement} display_element - element within which to draw the portrait
+     * @param {Function} callback - function to execute when drawing is complete. Called with the portrait src
+     */
+    function drawQuestionnaire(display_element, callback) {
+        let advisor = gov.currentAdvisor;
+        let img = document.createElement('img');
+        img.className = 'advisor-portrait';
+        img.id = 'advisorChoice-choice-stimulus';
+        img.src = advisor.portrait.src;
+        display_element.appendChild(img);
+        callback(img.src);
+    }
+
+    /**
+     * Save the response to the questionnaire.
+     */
+    function questionnaireResponse(trial) {
+        if (Object.keys(gov).indexOf('questionnaires') === -1)
+            gov.questionnaires = [];
+        trial.afterTrial = gov.currentTrialIndex-1;
+        gov.questionnaires.push(trial);
+    }
+
+    /**
+     * Send all the data in the governor object to a backend which will save it to a file.
+     */
+    function exportGovernor() {
+        let ask = new XMLHttpRequest();
+        ask.open('POST', 'http://localhost:3000/saveData.js');
+        ask.setRequestHeader('Content-Type', 'application/json');
+        ask.send(JSON.stringify(gov));
+    }
+
+    /**
+     * The governor contains the properties which the experiment functions need to access from everywhere.
+     *
+     * The governor serves two key functions: it acts as a master object holding the disparate objects
+     * required to run the experiment (e.g. advisors, trials); and it holds miscellaneous temporary
+     * variables which are required for things such as staircasing.
+    */
     window.gov = new ESM.Governor({
         dotCount: 200,
         dotDifference: 30,
@@ -244,84 +428,6 @@
             new ESM.Advisor(2,1),
             new ESM.Advisor(3,2)
         ],
-        initialResponse: function (trial) {
-            storePluginData(trial);
-            // trial is the complete trial object with its trial.response object
-            gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
-            gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
-
-            if (typeof gov.currentAdvisor === 'undefined' && gov.currentTrial.choice.length === 0) {
-                gov.closeTrial(trial);
-            } else if (gov.currentTrial.choice.length === 0)
-                gov.setAgreementVars();
-        },
-        finalResponse: function (trial) {
-            storePluginData(trial);
-            gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
-            // empty responses are allowed 2nd time through (copy intial response)
-            if (isNaN(gov.currentTrial.answer[1])) {
-                gov.currentTrial.answer[1] = gov.currentTrial.answer[0];
-                gov.currentTrial.confidence[1] = gov.currentTrial.confidence[0];
-            } else {
-                gov.currentTrial.confidence[1] = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[1]);
-            }
-            gov.closeTrial(trial);
-        },
-        closeTrial: function (trial) {
-            // Staircasing stuff
-            let warning = "";
-            if (gov.currentTrialIndex > 1) {
-                // two-down one-up staircase
-                let lastTrial = gov.trials[gov.currentTrialIndex-1];
-                if (!gov.currentTrial.getCorrect(false)) {
-                    // Wrong! Make it easier
-                    gov.dotDifference += gov.difficultyStep;
-                    if (gov.dotDifference > gov.dotCount-1) {
-                        gov.dotDifference = gov.dotCount-1;
-                        warning = "Difficulty at minimum!";
-                    }
-                } else if (lastTrial.getCorrect(false) && gov.currentTrial.getCorrect(false)) {
-                    // Two hits, impressive! Make it harder
-                    gov.dotDifference -= gov.difficultyStep;
-                    if (gov.dotDifference < 1) {
-                        gov.dotDifference = 1;
-                        warning = "Difficulty at maximum!";
-                    }
-                }
-            }
-            if (warning.length > 0 && gov.currentTrialIndex < gov.trials.length) {
-                gov.currentTrial.warnings.push(warning);
-                console.warn(warning);
-            }
-            // Move to next trial
-            gov.currentTrialIndex++;
-            if (gov.currentTrialIndex > gov.trials.length) {
-                gov.currentTrialIndex = 0; // reset to 0
-                console.warn('gov: Reset currentTrialIndex!')
-            }
-
-        },
-        setAgreementVars: function () {
-            // Check the answer and dis/agree as appropriate
-            if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
-                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
-                    gov.currentTrial.advisorAgrees = true;
-                    return line.side === gov.currentTrial.whichSide;
-                });
-            } else {
-                gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
-                    gov.currentTrial.advisorAgrees = false;
-                    let side = [1, 0][gov.currentTrial.whichSide];
-                    return line.side === side;
-                });
-            }
-        },
-        export: function () {
-            let ask = new XMLHttpRequest();
-            ask.open('POST', 'http://localhost:3000/saveData.js');
-            ask.setRequestHeader('Content-Type', 'application/json');
-            ask.send(JSON.stringify(gov));
-        },
         blockCount: 2,
         blockStructure: {
             [trialTypes.catch]: 0,
@@ -335,7 +441,17 @@
             [trialTypes.choice]: 0,
             [trialTypes.force]: 2
         },
-        practiceBlockLength: 2
+        practiceBlockLength: 2,
+        drawDots,
+        initialResponse,
+        finalResponse,
+        closeTrial,
+        drawQuestionnaire,
+        questionnaireResponse,
+        setAgreementVars,
+        showMarker,
+        storePluginData,
+        exportGovernor
     });
 
     gov.trials = getTrials();
@@ -405,7 +521,7 @@
     /* Initial response: present an initial stimulus and get a decision */
     const introInitialDecision = {
         type: "canvas-sliders-response",
-        stimulus: drawDots,
+        stimulus: gov.drawDots,
         stimulus_duration: null,
         prompt: '<p>Which box had more dots?</p>',
         sliderCount: 2,
@@ -417,12 +533,16 @@
             'Left',
             'Right'
         ],
+        slider_name: [
+            'Left',
+            'Right'
+        ],
         reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
         require_change: [1, 1],
-        canvasWidth: 370,
-        canvasHeight: 172,
+        canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
         on_load: setSliderClick,
         on_finish: gov.initialResponse
     };
@@ -430,7 +550,7 @@
     /* Initial response: present an initial stimulus and get a decision */
     const initialDecision = {
         type: "canvas-sliders-response",
-        stimulus: drawDots,
+        stimulus: gov.drawDots,
         stimulus_duration: 200,
         prompt: '<p>Which box had more dots?</p>',
         sliderCount: 2,
@@ -442,12 +562,16 @@
             'Left',
             'Right'
         ],
+        slider_name: [
+            'Left',
+            'Right'
+        ],
         reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
         require_change: [1, 1],
-        canvasWidth: 370,
-        canvasHeight: 172,
+        canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
         on_load: setSliderClick,
         on_finish: gov.initialResponse
     };
@@ -471,7 +595,7 @@
             gov.advice.play();
         },
         prompt: "",
-        on_finish: storePluginData
+        on_finish: gov.storePluginData
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
@@ -488,13 +612,40 @@
             'Left',
             'Right'
         ],
+        slider_name: [
+            'Left',
+            'Right'
+        ],
         reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
-        canvasWidth: 370,
-        canvasHeight: 172,
-        on_load: showMarker,
+        canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
+        on_load: gov.showMarker,
         on_finish: gov.finalResponse
+    };
+
+    /* Questionnaires to ask about how the judge feels about the advisors */
+    let order = shuffle([0, 1, 2]);
+    const questionnaire = {
+        type: "function-sliders-response",
+        stimulus: gov.drawQuestionnaire,
+        prompt: '<p>This advisor is...</p>',
+        sliderCount: 3,
+        slider_name: orderArray([
+            'Likability',
+            'Ability',
+            'Benevolence'
+        ], order),
+        labels: orderArray([
+            ['Unlikeable', 'Likeable'],
+            ['Incompetent', 'Competent'],
+            ['Not trying to help', 'Trying to help']
+        ], order),
+        slider_arrangement: [0, 1, 2],
+        require_change: [0, 1, 2],
+        on_load: setSliderClick,
+        on_finish: gov.questionnaireResponse
     };
 
     const intro_procedure = {
@@ -515,12 +666,14 @@
         repetitions: gov.blockLength
     };
 
+    //gov.currentTrial.advisorId = 1;
     // intro and practice
     timeline.push(welcome);
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
     timeline.push(adviceInstructions);
+    //timeline.push(questionnaire);
     timeline.push(intro_procedure);
     timeline.push(finalInstructions);
 
@@ -552,7 +705,7 @@
     jsPsych.init({
         timeline: timeline,
         on_finish: function() {
-            gov.export();
+            gov.exportGovernor();
             jsPsych.data.displayData();
         }
     });

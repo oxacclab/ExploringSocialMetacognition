@@ -467,7 +467,9 @@ window.ESM = {
     }
 };
 
-//https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
+/**
+ * https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
+ */
 function shuffle(array) {
     let counter = array.length;
 
@@ -488,7 +490,9 @@ function shuffle(array) {
     return array;
 }
 
-// Return a single array containing deckCount copies of deck shuffled together
+/**
+ * Return a single array containing deckCount copies of deck shuffled together
+ */
 function shuffleShoe(deck, deckCount=1) {
     let shoe = [];
     for (let d=0; d<deck.length; d++) {
@@ -498,4 +502,33 @@ function shuffleShoe(deck, deckCount=1) {
         }
     }
     return shuffle(shoe);
+}
+
+/**
+ * Return *array* ordered according to a second array containing the indices of the new order. If the order array
+ * is shorter than the value array, the order array is repeated. A warning is issued if
+ *
+ * orderArray([11, 12, 13, 14, 15], [0, 2, 4, 1, 3]) -> [11, 13, 15, 12, 14]
+ * orderArray([1, 2, 3, 4, 5, 6], [1, 0]) -> [2, 1, 4, 3, 6, 5]
+ *
+ * @param {Array} array - the array of values to reorder
+ * @param {int[]} order - the array of indices specifying the order into which the value array should be placed
+ * @returns {Array} - *array* ordered by *order*
+ */
+function orderArray(array, order) {
+    let out = [];
+    let o = 0;
+    let pass = 0;
+    if (array.length % order)
+        console.warn('orderArray: length of array not a multiple of order list length. The array is reordered, but '+
+            'this might be due to providing the wrong values.');
+    for (let i=0; i<array.length; i++) {
+        out[i] = array[order[o]+pass*order.length];
+        if (o >= order.length-1) {
+            o = 0;
+            pass++;
+        } else
+            o++;
+    }
+    return out;
 }

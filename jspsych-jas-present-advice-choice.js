@@ -73,7 +73,7 @@ jsPsych.plugins["jspsych-jas-present-advice-choice"] = (function() {
         if (typeof trial.choiceFunction === 'undefined')
             console.error('Required parameter "choiceFunction" missing in jspsych-jas-present-advice-choice');
 
-        trial.choiceFunction(run_trial, display_element);
+        trial.choiceFunction(display_element, run_trial);
 
         function run_trial(choice) {
             if(typeof trial.displayImageFunction === 'undefined'){
