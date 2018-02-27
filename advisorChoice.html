@@ -227,6 +227,13 @@
         display_element.appendChild(choiceImgs.pop());
     }
 
+    function storePluginData(pluginData) {
+        if (Object.keys(gov.currentTrial).indexOf('pluginResponse') === -1)
+            gov.currentTrial.pluginResponse = [];
+        // Save this trial data (jspsych would do this for us, but we have access to a bunch of stuff it doesn't
+        gov.currentTrial.pluginResponse.push(pluginData);
+    }
+
     // The governor contains the properties which the experiment functions need to access from everywhere.
     window.gov = new ESM.Governor({
         dotCount: 200,
@@ -238,6 +245,7 @@
             new ESM.Advisor(3,2)
         ],
         initialResponse: function (trial) {
+            storePluginData(trial);
             // trial is the complete trial object with its trial.response object
             gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
             gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
@@ -248,6 +256,7 @@
                 gov.setAgreementVars();
         },
         finalResponse: function (trial) {
+            storePluginData(trial);
             gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
             // empty responses are allowed 2nd time through (copy intial response)
             if (isNaN(gov.currentTrial.answer[1])) {
@@ -284,8 +293,6 @@
                 gov.currentTrial.warnings.push(warning);
                 console.warn(warning);
             }
-            // Save this trial data (jspsych would do this for us, but we have access to a bunch of stuff it doesn't
-            gov.currentTrial.pluginResponse = trial;
             // Move to next trial
             gov.currentTrialIndex++;
             if (gov.currentTrialIndex > gov.trials.length) {
@@ -308,6 +315,12 @@
                     return line.side === side;
                 });
             }
+        },
+        export: function () {
+            let ask = new XMLHttpRequest();
+            ask.open('POST', 'http://localhost:3000/saveData.js');
+            ask.setRequestHeader('Content-Type', 'application/json');
+            ask.send(JSON.stringify(gov));
         },
         blockCount: 2,
         blockStructure: {
@@ -457,7 +470,8 @@
             div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.advice.string;
             gov.advice.play();
         },
-        prompt: ""
+        prompt: "",
+        on_finish: storePluginData
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
@@ -538,6 +552,7 @@
     jsPsych.init({
         timeline: timeline,
         on_finish: function() {
+            gov.export();
             jsPsych.data.displayData();
         }
     });
