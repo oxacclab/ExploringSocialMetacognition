@@ -89,6 +89,7 @@ window.ESM = {
         drawGrid(grid, ctx, offset) {
             let xMin = (offset)? this.spacing+this.displayWidth : 0;
             // Draw frame
+            ctx.beginPath();
             ctx.lineWidth = this.style.gridBorderWidth;
             ctx.strokeStyle = this.style.gridBorderColor;
             ctx.rect(xMin, 0, this.displayWidth, this.displayHeight);
@@ -436,7 +437,7 @@ window.ESM = {
         /**
          * @constructor
          *
-         * @param {object} [args={}] - properties to assign to the Governor
+         * @param {Object} [args={}] - properties to assign to the Governor
          * @param {Advisor[]} [args.advisors=[]] - advisor list
          * @param {Trial[]} [args.trials=[]] - trial list
          * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list

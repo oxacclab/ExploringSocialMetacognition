@@ -42,6 +42,21 @@
         .jspsych-content {
             width: 100%;
         }
+        #progressbar-outer {
+            width: 80%;
+            height: 15px;
+            background-color: #F1F1F1;
+            display: inline-block;
+            border-radius: 5px;
+        }
+        #progressbar-inner {
+            background-color: #2196F3;
+            height: 15px;
+            border-radius: 5px;
+        }
+        #jspsych-progressbar-container > span {
+            font-size: 0.8em;
+        }
     </style>
 </head>
 <body></body>
@@ -64,6 +79,7 @@
      * drawing.
      *
      * @param {string} canvasId - id of the canvas on which to draw the dots (supplied by the trial)
+     * @param {function} callback - function to execute in order to enable plugin to collect a response
      */
     function drawDots(canvasId) {
         let low = gov.dotCount - gov.dotDifference;
@@ -73,7 +89,32 @@
             spacing: 100
         });
         gov.currentTrial.grid = grid;
-        grid.draw(canvasId);
+        setTimeout(function () {
+            gov.currentTrial.fixationDrawTime = performance.now();
+            drawFixation(canvasId);
+        }, gov.preTrialInterval);
+        setTimeout(function(){
+            gov.currentTrial.stimulusDrawTime = performance.now();
+            grid.draw(canvasId);
+        }, gov.preTrialInterval+gov.preStimulusInterval);
+    }
+
+    function drawFixation(canvasId) {
+        let ctx = document.querySelector('#'+canvasId).getContext('2d');
+        let len = 5;
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = '2';
+        ctx.beginPath();
+        // horizontal
+        ctx.moveTo((ctx.canvas.clientWidth/2)-len, ctx.canvas.clientHeight/2);
+        ctx.lineTo((ctx.canvas.clientWidth/2)+len, ctx.canvas.clientHeight/2);
+        ctx.stroke();
+        // vertical
+        ctx.strokeStyle = 'black';
+        ctx.beginPath();
+        ctx.moveTo(ctx.canvas.clientWidth/2, (ctx.canvas.clientHeight/2)-len);
+        ctx.lineTo(ctx.canvas.clientWidth/2, (ctx.canvas.clientHeight/2)+len);
+        ctx.stroke();
     }
 
     /**
@@ -119,9 +160,9 @@
      * of the programmer to ensure that these lists are lawfully aligned such that the block structures, etc.
      * match.
      *
-     * TODO: Implement alternative strategy - push new trials to the jsPsych timeline at
+     * A possible alternative strategy - push new trials to the jsPsych timeline at
      * the end of each completed trial. Since we don't get nice progress bar this way we may as well use on-the-fly
-     * timeline tweaking.
+     * timeline tweaking. This may just be more work to duplicate jsPsych's capabilities, though
      */
     function getTrials() {
         let trials = [];
@@ -173,7 +214,10 @@
                     },
                     whichSide: isPractice? Math.round(Math.random()) : whichSideDeck[realId],
                     practice: isPractice,
-                    warnings: []
+                    warnings: [],
+                    stimulusDrawTime: null,
+                    stimulusOffTime: null,
+                    fixationDrawTime: null
                 }));
                 if (!isPractice)
                     realId++;
@@ -291,6 +335,8 @@
      */
     function initialResponse(trial) {
         storePluginData(trial);
+        if (typeof trial.stimulusOffTime !== 'undefined')
+            gov.currentTrial.stimulusOffTime = trial.stimulusOffTime;
         // trial is the complete trial object with its trial.response object
         gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
         gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
@@ -369,11 +415,31 @@
         }
         // Move to next trial
         gov.currentTrialIndex++;
-        if (gov.currentTrialIndex > gov.trials.length) {
+        /*if (gov.currentTrialIndex > gov.trials.length) {
             gov.currentTrialIndex = 0; // reset to 0
             console.warn('gov: Reset currentTrialIndex!')
-        }
+        }*/
 
+    }
+
+    /**
+     * Draw a progress bar at the top of the screen
+     */
+    function drawProgressBar() {
+        if (document.querySelector('#jspsych-progressbar-container') === null) {
+            let div = document.createElement('div');
+            div.id = 'jspsych-progressbar-container';
+            let outer = document.createElement('div');
+            outer.id = 'progressbar-outer';
+            div.appendChild(outer);
+            let inner = document.createElement('div');
+            inner.id = 'progressbar-inner';
+            outer.appendChild(inner);
+            let content = document.querySelector('.jspsych-content-wrapper');
+            content.parentElement.insertBefore(div, content);
+        }
+        let inner = document.querySelector('#progressbar-inner');
+        inner.style.width = (10+(gov.trials.indexOf(gov.currentTrial)/gov.trials.length)*100).toString()+'%';
     }
 
     /**
@@ -442,10 +508,14 @@
             [trialTypes.force]: 2
         },
         practiceBlockLength: 2,
+        preTrialInterval: 200,
+        preStimulusInterval: 300,
+        stimulusDuration: 200,
         drawDots,
         initialResponse,
         finalResponse,
         closeTrial,
+        drawProgressBar,
         drawQuestionnaire,
         questionnaireResponse,
         setAgreementVars,
@@ -469,7 +539,8 @@
             "<p>You make your decision by using the grey bars below the boxes. Click one of the boxes and then " +
             "press the 'continue' button.</p>"
         ],
-        show_clickable_nav: true
+        show_clickable_nav: true,
+        on_load: gov.drawProgressBar
     };
 
     const sliderInstructions = {
@@ -484,7 +555,8 @@
             "<strong>guessing</strong>, you would move the <strong>right</strong> slider, but you would move it as " +
             "far <strong>left</strong> as it will go.</p>" +
             "<p>Try using the slider to indicate your confidence now.</p>"],
-        show_clickable_nav: true
+        show_clickable_nav: true,
+        on_load: gov.drawProgressBar
     };
 
     const adviceInstructions = {
@@ -497,7 +569,8 @@
             "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
             "that you are more or less sure, and even to change which box you think had most dots.</p>" +
             "<p>Click 'next' to see how the advice works.</p>"],
-        show_clickable_nav: true
+        show_clickable_nav: true,
+        on_load: gov.drawProgressBar
     };
 
     const finalInstructions = {
@@ -509,13 +582,15 @@
             "two advisors and you will click one to hear their advice.</p>" +
             "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
             "ready to begin.</p>"],
-        show_clickable_nav: true
+        show_clickable_nav: true,
+        on_load: gov.drawProgressBar
     };
 
     const blockBreak = {
         type: 'instructions',
         pages: ["<h1>Break</h1><p>You may take a moment to rest here. Press 'next' when you are ready.</p>"],
-        show_clickable_nav: true
+        show_clickable_nav: true,
+        on_load: gov.drawProgressBar
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -551,7 +626,7 @@
     const initialDecision = {
         type: "canvas-sliders-response",
         stimulus: gov.drawDots,
-        stimulus_duration: 200,
+        stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
         prompt: '<p>Which box had more dots?</p>',
         sliderCount: 2,
         labels: [
@@ -595,14 +670,15 @@
             gov.advice.play();
         },
         prompt: "",
-        on_finish: gov.storePluginData
+        on_finish: gov.storePluginData,
+        on_load: gov.drawProgressBar
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
     const finalDecision = {
         type: "canvas-sliders-response",
         stimulus: function(){},
-        prompt: '<p>Final decision:<br/>Which box had more dots?</p>',
+        prompt: '<p>Final decision: Which box had more dots?</p>',
         sliderCount: 2,
         labels: [
             ['Certain', 'Unsure'],
