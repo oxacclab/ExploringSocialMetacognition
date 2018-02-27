@@ -214,6 +214,7 @@
                     },
                     whichSide: isPractice? Math.round(Math.random()) : whichSideDeck[realId],
                     practice: isPractice,
+                    feedback: isPractice,
                     warnings: [],
                     stimulusDrawTime: null,
                     stimulusOffTime: null,
@@ -245,6 +246,7 @@
                 this.dispatchEvent(event);
             });
         });
+        drawProgressBar();
     }
 
     /**
@@ -388,6 +390,14 @@
      * @param {Object} trial - jsPsych plugin response
      */
     function closeTrial(trial) {
+        // Feedback
+        if (gov.currentTrial.feedback) {
+            if (gov.currentTrial.answer[1] === gov.currentTrial.whichSide ||
+                (isNaN(gov.currentTrial.answer[1]) && gov.currentTrial.whichSide === gov.currentTrial.answer[0]))
+                document.querySelector('body').style.backgroundColor = 'white';
+            else
+                document.querySelector('body').style.backgroundColor = 'black';
+        }
         // Staircasing stuff
         let warning = "";
         if (gov.currentTrialIndex > 1) {
@@ -440,6 +450,8 @@
         }
         let inner = document.querySelector('#progressbar-inner');
         inner.style.width = (10+(gov.trials.indexOf(gov.currentTrial)/gov.trials.length)*100).toString()+'%';
+
+        document.querySelector('body').style.backgroundColor = '';
     }
 
     /**
@@ -511,6 +523,7 @@
         preTrialInterval: 200,
         preStimulusInterval: 300,
         stimulusDuration: 200,
+        feedbackDuration: 200,
         drawDots,
         initialResponse,
         finalResponse,
@@ -619,7 +632,8 @@
         canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
         on_load: setSliderClick,
-        on_finish: gov.initialResponse
+        on_finish: gov.initialResponse,
+        post_trial_gap: gov.feedbackDuration
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -698,7 +712,8 @@
         canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
         on_load: gov.showMarker,
-        on_finish: gov.finalResponse
+        on_finish: gov.finalResponse,
+        post_trial_gap: gov.feedbackDuration
     };
 
     /* Questionnaires to ask about how the judge feels about the advisors */
@@ -781,6 +796,7 @@
     jsPsych.init({
         timeline: timeline,
         on_finish: function() {
+            drawProgressBar(); // change color back to grey
             gov.exportGovernor();
             jsPsych.data.displayData();
         }
