@@ -8,6 +8,7 @@
     <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
     <script src="jspsych-function-sliders-response.js"></script>
     <script src="exploringSocialMetacognition.js"></script>
+    <script src="analysis.js"></script>
     <script src="jspsych-jas-present-advice-choice.js"></script>
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
@@ -461,7 +462,7 @@
      * @param {Function} callback - function to execute when drawing is complete. Called with the portrait src
      */
     function drawQuestionnaire(display_element, callback) {
-        let advisor = gov.currentAdvisor;
+        let advisor = gov.advisors[gov.getAdvisorIndex(gov.questionnaireStack.pop())];
         let img = document.createElement('img');
         img.className = 'advisor-portrait';
         img.id = 'advisorChoice-choice-stimulus';
@@ -524,6 +525,7 @@
         preStimulusInterval: 300,
         stimulusDuration: 200,
         feedbackDuration: 200,
+        questionnaireStack: [2, 3, 3, 2, 1],
         drawDots,
         initialResponse,
         finalResponse,
@@ -549,8 +551,9 @@
             "Welcome to the experiment. Press any key to begin.",
             "<p>You will see two boxes containing dots either side of the centre of the screen. " +
             "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
-            "<p>You make your decision by using the grey bars below the boxes. Click one of the boxes and then " +
-            "press the 'continue' button.</p>"
+            "<p>You make your decision by using the grey bars below the boxes. If you get the decision " +
+            "wrong the screen will go black temporarily. If you get the decision right, it will go white. " +
+            "Click one of the boxes and then press the 'continue' button.</p>"
         ],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar
@@ -582,6 +585,14 @@
             "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
             "that you are more or less sure, and even to change which box you think had most dots.</p>" +
             "<p>Click 'next' to see how the advice works.</p>"],
+        show_clickable_nav: true,
+        on_load: gov.drawProgressBar
+    };
+
+    const practiceInstructions = {
+        type: 'instructions',
+        pages: ["<p>Good.</p><p>The main experiment will start after you have had a bit of practice with " +
+            "the task. To continue with the practice, press 'next'.</p>"],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar
     };
@@ -718,6 +729,28 @@
 
     /* Questionnaires to ask about how the judge feels about the advisors */
     let order = shuffle([0, 1, 2]);
+
+    const questionnaireProspective = {
+        type: "function-sliders-response",
+        stimulus: gov.drawQuestionnaire,
+        prompt: '<p>This advisor will be...</p>',
+        sliderCount: 3,
+        slider_name: orderArray([
+            'Likability',
+            'Ability',
+            'Benevolence'
+        ], order),
+        labels: orderArray([
+            ['Unlikeable', 'Likeable'],
+            ['Incompetent', 'Competent'],
+            ['Not trying to help', 'Trying to help']
+        ], order),
+        slider_arrangement: [0, 1, 2],
+        require_change: [0, 1, 2],
+        on_load: setSliderClick,
+        on_finish: gov.questionnaireResponse
+    };
+
     const questionnaire = {
         type: "function-sliders-response",
         stimulus: gov.drawQuestionnaire,
@@ -757,21 +790,25 @@
         repetitions: gov.blockLength
     };
 
-    //gov.currentTrial.advisorId = 1;
     // intro and practice
     timeline.push(welcome);
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
     timeline.push(adviceInstructions);
-    //timeline.push(questionnaire);
     timeline.push(intro_procedure);
-    timeline.push(finalInstructions);
+    timeline.push(practiceInstructions);
 
     for (let b=1; b<=gov.practiceBlockCount; b++) {
         timeline.push(practice_procedure);
+        if (b===1)
+            timeline.push(questionnaire);
         timeline.push(blockBreak);
     }
+
+    timeline.push(finalInstructions);
+    timeline.push(questionnaireProspective);
+    timeline.push(questionnaireProspective);
 
     // real experiment
     for (let b=1; b<=gov.blockCount; b++) {
@@ -781,6 +818,9 @@
 
     // Remove the last break screen
     timeline.pop();
+
+    timeline.push(questionnaire);
+    timeline.push(questionnaire);
 
     /* define debrief */
     const debrief_block = {
@@ -796,7 +836,8 @@
     jsPsych.init({
         timeline: timeline,
         on_finish: function() {
-            drawProgressBar(); // change color back to grey
+            // reset background colour
+            document.querySelector('body').style.backgroundColor = '';
             gov.exportGovernor();
             jsPsych.data.displayData();
         }
