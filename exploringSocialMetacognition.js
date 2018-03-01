@@ -336,6 +336,7 @@ window.ESM = {
             this.portrait.src = "assets/image/advisor" + portraitId + ".png";
             this.portrait.className = 'advisor-portrait';
             this.portrait.id = 'advisor-portrait-' + portraitId;
+            this.portraitSrc = this.portrait.src;
         }
 
         /**

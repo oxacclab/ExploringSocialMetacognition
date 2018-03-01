@@ -1,0 +1,178 @@
+*.feedback {
+    box-sizing: border-box;
+}
+
+body.feedback {
+    margin: 0;
+}
+
+#jspsych-progressbar-container.feedback {
+    background-color: white;
+}
+
+section.feedback {
+    background-color: white;
+    width: 100%;
+    margin: 0 auto;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px outset #e7e7e7;
+}
+
+section.feedback:first-of-type {
+}
+
+body.feedback > section > div {
+    width: 100%;
+    margin: 0 auto;
+    margin: 0;
+    padding: 1em;
+}
+
+body.feedback > section:nth-of-type(even) {
+}
+
+*.feedback:first-of-type {
+    margin-top: 0;
+}
+
+*.feedback:last-of-type {
+    margin-bottom: 0;
+}
+
+nav.feedback {
+    background-color: palegoldenrod;
+    height: 1.5em;
+    top: 0;
+    width: 100%;
+    position: fixed;
+    z-index: 10;
+}
+
+ul.feedback {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #e7e7e7;
+    background-color: #f3f3f3;
+}
+
+li.feedback {
+    float: right;
+}
+
+li.feedback, a.feedback {
+    display: block;
+    color: #666;
+    text-align: center;
+    padding: 0.2em;
+    text-decoration: none;
+}
+
+a.feedback {
+    text-decoration: none;
+}
+
+li.feedback a.feedback:hover {
+    background-color: #ddd;
+}
+
+h1.feedback, h2.feedback > a {
+    color: black;
+    text-decoration: none;
+    margin-bottom: 0.5em;
+    text-align: left;
+}
+
+h2.feedback > a:hover {
+    background-color: #f3f3f3;
+}
+
+p.feedback {
+    padding: 0 1em;
+    text-align: justify;
+    line-height: 1.2em;
+    font-size: 1.2em;
+}
+
+div.feedback.advisor-stats-container > p {
+    line-height: 1em;
+    font-size: 1em;
+    text-align: left;
+    padding: 0;
+}
+
+div.feedback.graph {
+    min-width: 50vw;
+    background-color: transparent;
+}
+
+div#advisorContainer.feedback {
+    display: flex;
+}
+
+div.feedback.container {
+    display: flex;
+}
+
+div.feedback.description > p {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    padding-right: 0;
+    padding-left: 0;
+}
+
+div.feedback.advisor {
+    width: 40%;
+    margin: 0 5%;
+    border: 5px solid black;
+    border-radius: 25px;
+    overflow: hidden;
+    background-color: white;
+}
+
+div.feedback.advisor-stats-wrapper {
+    display: inline-flex;
+    width: 100%;
+}
+
+div.feedback.advisor-stats-wrapper > p {
+    display: block;
+}
+
+div.feedback.advisor-stats-wrapper > div.advisor-portrait {
+    width: 50%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin: 0;
+    padding: 0;
+}
+
+div.feedback.advisor-stats {
+    background-color: #ccd7df;
+    width: 100%;
+}
+
+div.feedback.advisor-stats > h3 {
+    text-align: center;
+    margin: 0;
+}
+
+div.feedback.advisor-stats-container {
+    margin-left: 1em;
+}
+
+div.feedback.advisor-stats-container > p:first-of-type {
+    margin-top: 0.5em;
+}
+
+div.feedback.advisor-stats-container > p:last-of-type {
+    margin-bottom: 0.5em;
+}
+
+div.feedback.advisor-graph {
+    width: 100%;
+    max-height: 150px;
+}

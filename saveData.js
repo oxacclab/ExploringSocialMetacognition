@@ -1,34 +1,77 @@
-//let http = require('http');
+let srv = require('http');
 let express = require("express");
 let bodyParser = require("body-parser");
 let cors = require('cors');
 let fs = require('fs');
+let url = require('url');
+let path = require('path');
+
+// app server
+srv.createServer(function(request, response) {
+
+    let uri = url.parse(request.url).pathname
+    let filename = path.join(process.cwd(), uri);
+
+    fs.exists(filename, function(exists) {
+        if(!exists) {
+            response.writeHead(404, {"Content-Type": "text/plain"});
+            response.write("404 Not Found\n");
+            response.end();
+            return;
+        }
+
+        if (fs.statSync(filename).isDirectory()) filename += '/index.html';
+
+        fs.readFile(filename, "binary", function(err, file) {
+            if(err) {
+                response.writeHead(500, {"Content-Type": "text/plain"});
+                response.write(err + "\n");
+                response.end();
+                return;
+            }
+
+            response.writeHead(200);
+            response.write(file, "binary");
+            response.end();
+        });
+    });
+}).listen(8080);
+
+console.log("HTTP server initialized");
 
 
-console.log("server initialized");
-
-let http = express();
-http.use(bodyParser.json());
-http.use(cors());
+// Backend listener
+let app = express();
+app.use(bodyParser.json());
+app.use(cors());
 
 let corsOptions = {
     origin: 'http://localhost:8080',
     optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
-http.post('/saveData.js', cors(corsOptions), function(request, response)
+app.post('/saveData.js', cors(corsOptions), function(request, response)
 {
     console.log("Data recieved");
+    console.log(request);
     let id = (new Date).getTime();
     request.body.participantId = id;
-    fs.appendFile('participantData.JSON', JSON.stringify(request.body), function (err) {
+    fs.appendFile('ExploringSocialMetacognition/participantData.JSON', '\n\n'+JSON.stringify(request.body), function (err) {
         if (err) {
             // tell the user we couldn't save their data
+            console.log(err);
+            response.writeHead(500, {"Content-Type": "text/plain"});
+            response.write("500 Server error (could not write data to disk)\n");
+            response.end();
             throw err;
-        }
-        // send an okay response
-        console.log('Saved!');
+        }   else
+            console.log('Saved data for '+id); // send an okay response
+        response.writeHead(200, {"Content-Type": "text/plain"});
+        response.write("Data saved.\n");
+        response.end();
     });
+
+    console.log(response);
 
     /*// Data about the participant
     let participantData = {
@@ -55,6 +98,9 @@ http.post('/saveData.js', cors(corsOptions), function(request, response)
         trialData.push(flattenTrialData(response.body.trials[t]), participantData.id);
     */
 }).listen(3000);
+
+console.log("Backend listener initialized");
+
 
 /** Return a trial squeezed into a format suitable for saving as .csv
  * @param {ESM.Trial} trial - trial object to squeeze
