@@ -88,6 +88,7 @@
      * @param {function} callback - function to execute in order to enable plugin to collect a response
      */
     function drawDots(canvasId) {
+        gov.currentTrial.dotDifference = gov.dotDifference;
         let low = gov.dotCount - gov.dotDifference;
         let high = gov.dotCount + gov.dotDifference;
         let dots = gov.currentTrial.whichSide === 0 ? [high, low] : [low, high];
@@ -96,15 +97,19 @@
         });
         gov.currentTrial.grid = grid;
         setTimeout(function () {
-            gov.currentTrial.fixationDrawTime = performance.now();
+            gov.currentTrial.fixationDrawTime.push(performance.now());
             drawFixation(canvasId);
         }, gov.preTrialInterval);
         setTimeout(function(){
-            gov.currentTrial.stimulusDrawTime = performance.now();
+            gov.currentTrial.stimulusDrawTime.push(performance.now());
             grid.draw(canvasId);
         }, gov.preTrialInterval+gov.preStimulusInterval);
     }
 
+    /**
+     * Draw a fixation cross on *canvasId*
+     * @param {string} canvasId - id of the canvas on which to draw
+     */
     function drawFixation(canvasId) {
         let ctx = document.querySelector('#'+canvasId).getContext('2d');
         let len = 5;
@@ -222,9 +227,9 @@
                     practice: isPractice,
                     feedback: isPractice,
                     warnings: [],
-                    stimulusDrawTime: null,
-                    stimulusOffTime: null,
-                    fixationDrawTime: null
+                    stimulusDrawTime: [],
+                    stimulusOffTime: [],
+                    fixationDrawTime: []
                 }));
                 if (!isPractice)
                     realId++;
@@ -338,13 +343,108 @@
     }
 
     /**
+     * Storage function for any trial not otherwise handled (e.g. breaks, instructions) so we don't lose their timings.
+     */
+    function storeMiscTrialData(trial) {
+        gov.miscTrials.push(trial);
+    }
+
+    /**
+     * Return the category of the confidence offered in the trial with id *trialId*. Confidence category is 0, 1, or 2
+     * depending upon whether the confidence is in the lower 30%, middle 40%, or upper 30% of trials.
+     * @param {int} trialId - identifier of the trial
+     * @param {Object} [args] - additional options object
+     * @param {int} [args.nTrialsBack=null] - maximum number of trials to search
+     * @param {boolean} [args.correctOnly=true] - whether to only extract confidence on correct trials
+     * @param {boolean} [args.initialAnswerCorrect=true] - whether to test the inital (as opposed to final answer) correctness
+     * @param {boolean} [args.initialConfidence=true] - whether to count the initial (as opposed to final) confidence
+     */
+    function getConfidenceCategory(trialId, args) {
+        args = args || {};
+        args.nTrialsBack = args.nTrialsBack || null;
+        args.correctOnly = typeof args.correctOnly === 'undefined'? true : args.correctOnly;
+        args.initialAnswerCorrect = typeof args.initialAnswerCorrect? true : args.initialAnswerCorrect;
+        args.initialConfidence = typeof args.initialConfidence? true : args.initialConfidence;
+        let trialIndex = gov.trials.indexOf(analysis.getMatches(gov.trials, function (trial) {
+            return trial.id === trialId;
+        })[0]);
+        if (trialIndex === -1) {
+            gov.currentTrial.warnings.push('getConfidenceCategory: trial not found in gov.trials');
+            return 1;
+        }
+        let confidenceScore = gov.trials[trialIndex].confidence[(args.initialConfidence? 0 : 1)];
+
+        // collate valid trials
+        let validTrials = [];
+        for (let i=0; i<args.nTrialsBack; i++) {
+            // stop if we run out of trials
+            if (i+1 === trialIndex) {
+                break;
+            }
+            let trial = gov.trials[trialIndex-(i+1)];
+            // have to have provided a confidence
+            if (isNaN(trial.confidence[(args.initialConfidence? 0 : 1)]))
+                continue;
+            // have to be correct if we want only correct trials
+            if (args.correctOnly && trial.answer[(args.initialAnswerCorrect? 0 : 1)] !== trial.whichSide)
+                continue;
+            validTrials.push(trial);
+        }
+
+        // Get confidence list
+        let confidenceList = [];
+        validTrials.forEach(function (trial) {
+            confidenceList.push(trial.confidence[(args.initialConfidence? 0 : 1)]);
+        });
+        // Put it in order
+        confidenceList.sort();
+        // Find the markers at 30% and 70%
+        let bounds = {
+            low: confidenceList[Math.ceil(confidenceList.length*.3)],
+            high: confidenceList[Math.floor(confidenceList.length*.7)]
+        };
+        // Protect against too few trials
+        if (typeof bounds.low === 'undefined' || typeof bounds.high === 'undefined' ||
+            !bounds.low.length || !bounds.high.length) {
+            gov.currentTrial.warnings.push('getConfidenceCategory: too few trials available to estimate confidence');
+            return 1;
+        }
+        if (confidenceScore > bounds.low && confidenceScore < bounds.high)
+            return 1;
+        if (confidenceScore <= bounds.low)
+            return 0;
+        if (confidenceScore >= bounds.high)
+            return 2;
+
+        // Fallback
+        gov.currentTrial.warnings.push('getConfidenceCategory: confidence score ('+confidenceScore+') fell through ' +
+            'bounds ['+bounds.low+', '+bounds.high+']');
+
+    }
+
+    /**
+     * Get the confidence category of the last response
+     * @param {Object} [args] - additional options object
+     * @param {int} [args.nTrialsBack=null] - maximum number of trials to search
+     * @param {boolean} [args.correctOnly=true] - whether to only extract confidence on correct trials
+     * @param {boolean} [args.initialAnswerCorrect=true] - whether to test the inital (as opposed to final answer) correctness
+     * @param {boolean} [args.initialConfidence=true] - whether to count the initial (as opposed to final) confidence
+     */
+    function getLastConfidenceCategory(args) {
+        let last = analysis.getMatches(gov.trials, function (trial) {
+            return !isNaN(trial.answer[0]);
+        }).length-1;
+
+        return gov.getConfidenceCategory(gov.trials[last].id, args);
+    }
+
+    /**
      * Process the judge's initial response
      * @param {Object} trial - jsPsych plugin response
      */
     function initialResponse(trial) {
         storePluginData(trial);
-        if (typeof trial.stimulusOffTime !== 'undefined')
-            gov.currentTrial.stimulusOffTime = trial.stimulusOffTime;
+        gov.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
         // trial is the complete trial object with its trial.response object
         gov.currentTrial.answer[0] = getAnswerFromResponse(trial.response);
         gov.currentTrial.confidence[0]  = getConfidenceFromResponse(trial.response, gov.currentTrial.answer[0]);
@@ -360,7 +460,7 @@
      */
     function setAgreementVars() {
         // Check the answer and dis/agree as appropriate
-        if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), 1)) {
+        if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), gov.getLastConfidenceCategory())) {
             gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
                 gov.currentTrial.advisorAgrees = true;
                 return line.side === gov.currentTrial.whichSide;
@@ -379,6 +479,7 @@
      * @param {Object} trial - jsPsych plugin response
      */
     function finalResponse(trial) {
+        gov.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
         storePluginData(trial);
         gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
         // empty responses are allowed 2nd time through (copy intial response)
@@ -431,11 +532,6 @@
         }
         // Move to next trial
         gov.currentTrialIndex++;
-        /*if (gov.currentTrialIndex > gov.trials.length) {
-            gov.currentTrialIndex = 0; // reset to 0
-            console.warn('gov: Reset currentTrialIndex!')
-        }*/
-
     }
 
     /**
@@ -455,7 +551,9 @@
             content.parentElement.insertBefore(div, content);
         }
         let inner = document.querySelector('#progressbar-inner');
-        inner.style.width = (10+(gov.trials.indexOf(gov.currentTrial)/gov.trials.length)*100).toString()+'%';
+        inner.style.width = ((gov.trials.indexOf(gov.currentTrial)/gov.trials.length)*100).toString()+'%';
+        console.log('Progress: '+inner.style.width+' ('+gov.trials.indexOf(gov.currentTrial).toString()+
+            '/'+gov.trials.length.toString()+')');
 
         document.querySelector('body').style.backgroundColor = '';
     }
@@ -498,6 +596,15 @@
         ask.send(JSON.stringify(gov));
     }
 
+    let advisorIdDeck = shuffle([1, 2, 3]);
+    let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], 0);
+    let advisorList = [
+        new ESM.Advisor(advisorIdDeck[1], 1),
+        new ESM.Advisor(advisorIdDeck[2], 2)
+    ];
+    if (Math.random() < .5)
+        advisorList = [advisorList[1], advisorList[0]];
+
     /**
      * The governor contains the properties which the experiment functions need to access from everywhere.
      *
@@ -506,37 +613,41 @@
      * variables which are required for things such as staircasing.
     */
     window.gov = new ESM.Governor({
+        participantId: (new Date).getTime(),
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: 3,
         advisors: [
-            new ESM.Advisor(1,0),
-            new ESM.Advisor(2,1),
-            new ESM.Advisor(3,2)
+            practiceAdvisor,
+            advisorList[0],
+            advisorList[1]
         ],
-        blockCount: 1,
+        blockCount: 4,
         blockStructure: {
             [trialTypes.catch]: 0,
-            [trialTypes.choice]: 2,
-            [trialTypes.force]: 2
+            [trialTypes.choice]: 6,
+            [trialTypes.force]: 6
         },
-        blockLength: 0 + 2 + 2,
+        blockLength: 0 + 6 + 6,
         practiceBlockCount: 1,
         practiceBlockStructure: {
             [trialTypes.catch]: 0,
             [trialTypes.choice]: 0,
-            [trialTypes.force]: 2
+            [trialTypes.force]: 12
         },
-        practiceBlockLength: 2,
+        practiceBlockLength: 12,
         preTrialInterval: 200,
-        preStimulusInterval: 300,
+        preStimulusInterval: 500,
         stimulusDuration: 200,
         feedbackDuration: 200,
         questionnaireStack: [2, 3, 3, 2, 1],
         drawDots,
+        getConfidenceCategory,
+        getLastConfidenceCategory,
         initialResponse,
         finalResponse,
         closeTrial,
+        storeMiscTrialData,
         drawProgressBar,
         drawQuestionnaire,
         questionnaireResponse,
@@ -565,7 +676,8 @@
             "<p>Click 'next' to proceed.</p>"
         ],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar
+        on_load: gov.drawProgressBar,
+        on_finish: gov.storeMiscTrialData
     };
 
     const sliderInstructions = {
@@ -581,7 +693,8 @@
             "far <strong>left</strong> as it will go.</p>" +
             "<p>Try using the slider to indicate your confidence now.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar
+        on_load: gov.drawProgressBar,
+        on_finish: gov.storeMiscTrialData
     };
 
     const adviceInstructions = {
@@ -595,7 +708,8 @@
             "that you are more or less sure, and even to change which box you think had most dots.</p>" +
             "<p>Click 'next' to see how the advice works.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar
+        on_load: gov.drawProgressBar,
+        on_finish: gov.storeMiscTrialData
     };
 
     const practiceInstructions = {
@@ -603,7 +717,8 @@
         pages: ["<p>Good.</p><p>The main experiment will start after you have had a bit of practice with " +
             "the task. To continue with the practice, press 'next'.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar
+        on_load: gov.drawProgressBar,
+        on_finish: gov.storeMiscTrialData
     };
 
     const finalInstructions = {
@@ -616,14 +731,16 @@
             "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
             "ready to begin.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar
+        on_load: gov.drawProgressBar,
+        on_finish: gov.storeMiscTrialData
     };
 
     const blockBreak = {
         type: 'instructions',
         pages: ["<h1>Break</h1><p>You may take a moment to rest here. Press 'next' when you are ready.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar
+        on_load: gov.drawProgressBar,
+        on_finish: gov.storeMiscTrialData
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -851,10 +968,10 @@
             feedback(gov);
         }
     });
-    x =JSON.parse(DATA_IN);
+    /*x =JSON.parse(DATA_IN);
     Object.keys(x).forEach(function (key) {gov[key] = x[key]});
     gov.exportGovernor();
-    feedback(gov);
+    feedback(gov);*/
     function feedback(data) {
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(function(){analysis.advisorChoice.showFeedback(data)});

@@ -42,7 +42,7 @@ console.log("HTTP server initialized");
 
 // Backend listener
 let app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '16mb'}));
 app.use(cors());
 
 let corsOptions = {
@@ -50,79 +50,163 @@ let corsOptions = {
     optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
+
 app.post('/saveData.js', cors(corsOptions), function(request, response)
 {
     console.log("Data recieved");
-    console.log(request);
-    let id = (new Date).getTime();
-    request.body.participantId = id;
-    fs.appendFile('ExploringSocialMetacognition/participantData.JSON', '\n\n'+JSON.stringify(request.body), function (err) {
+    let id = response.body.participantId;
+    // Check existence of raw data file
+    fs.open('ExploringSocialMetacognition/data/raw/'+id+'_RAW.JSON', 'wx', (err) => {
         if (err) {
-            // tell the user we couldn't save their data
-            console.log(err);
-            response.writeHead(500, {"Content-Type": "text/plain"});
-            response.write("500 Server error (could not write data to disk)\n");
-            response.end();
+            if (err.code === 'EEXIST') {
+                console.error('File already exists: ExploringSocialMetacognition/data/raw/'+id+'_RAW.JSON');
+                response.writeHead(500, {"Content-Type": "text/plain"});
+                response.write("500 Server error (could not write data to disk)\n");
+                response.end();
+                return;
+            }
             throw err;
-        }   else
-            console.log('Saved data for '+id); // send an okay response
-        response.writeHead(200, {"Content-Type": "text/plain"});
-        response.write("Data saved.\n");
-        response.end();
+        }
+        // write RAW data
+        fs.writeFile('ExploringSocialMetacognition/data/raw/'+id+'_RAW.JSON', JSON.stringify(request.body), function (err) {
+            if (err) {
+                // tell the user we couldn't save their data
+                console.log(err);
+                response.writeHead(500, {"Content-Type": "text/plain"});
+                response.write("500 Server error (could not write data to disk)\n");
+                response.end();
+                throw err;
+            }   else {
+                console.log('Saved raw data for '+id); // send an okay response
+                // Write PROCESSED data (don't check existence first)
+                fs.writeFile('ExploringSocialMetacognition/data/processed/'+id+'_processed.JSON',
+                    JSON.stringify(processData(request.body)),
+                    function (err) {
+                        if (err) {
+                            // tell the user we couldn't save their data
+                            console.log(err);
+                            response.writeHead(500, {"Content-Type": "text/plain"});
+                            response.write("500 Server error (could not write data to disk)\n");
+                            response.end();
+                            throw err;
+                        }   else {
+                            console.log('Saved processed data for '+id); // send an okay response
+                            response.write("Processed data saved.\n");
+                        }
+                        console.log(response.statusCode);
+                        response.end();
+                    });
+            }
+
+        });
     });
 
-    console.log(response);
-
-    /*// Data about the participant
-    let participantData = {
-        id: (new Date).getTime(),
-        blockCount: response.body.blockCount,
-        blockLength: response.body.blockLength,
-        catchPerBlock: response.body.blockStructure[0],
-        forcePerBlock: response.body.blockStructure[1],
-        choicePerBlock: response.body.blockStructure[2],
-        practiceBlockCount: response.body.practiceBlockCount,
-        practiceBlockLength: response.body.practiceBlockLength,
-        practiceCatchPerBlock: response.body.practiceBlockStructure[0],
-        practiceForcePerBlock: response.body.practiceBlockStructure[1],
-        practiceChoicePerBlock: response.body.practiceBlockStructure[2],
-        difficultyStep: response.body.difficultyStep,
-        dotCount: response.body.dotCount
-    };
-    for (let a=0; a<response.body.advisors.length; a++)
-        participantData['advisor'+a.toString()] = response.body.advisors[a];
-
-    // Participant's performance across trials
-    let trialData = [];
-    for (let t=0; t<response.body.trials.length; t++)
-        trialData.push(flattenTrialData(response.body.trials[t]), participantData.id);
-    */
 }).listen(3000);
 
 console.log("Backend listener initialized");
 
+function processData(data) {
+    // Data about the participant
+    let participantData = {
+        id: (new Date).getTime(),
+        blockCount: data.blockCount,
+        blockLength: data.blockLength,
+        catchPerBlock: data.blockStructure[0],
+        forcePerBlock: data.blockStructure[1],
+        choicePerBlock: data.blockStructure[2],
+        practiceBlockCount: data.practiceBlockCount,
+        practiceBlockLength: data.practiceBlockLength,
+        practiceCatchPerBlock: data.practiceBlockStructure[0],
+        practiceForcePerBlock: data.practiceBlockStructure[1],
+        practiceChoicePerBlock: data.practiceBlockStructure[2],
+        difficultyStep: data.difficultyStep,
+        dotCount: data.dotCount,
+        preTrialInterval: data.preTrialInterval,
+        preStimulusInterval: data.preStimulusInterval,
+        stimulusDuration: data.stimulusDuration,
+        feedbackDuration: data.feedbackDuration
+    };
+
+    for (let a=0; a<data.advisors.length; a++) {
+        let advisorData = flattenAdvisorData(data.advisors[a]);
+        Object.keys(advisorData).forEach(function (key) {
+            participantData['advisor'+a.toString()+key] = advisorData[key];
+        });
+    }
+
+    // Participant's performance across trials
+    let trialData = [];
+    for (let t=0; t<data.trials.length; t++)
+        trialData.push(flattenTrialData(data.trials[t], participantData.id));
+
+    participantData.trials = trialData;
+    return participantData;
+}
 
 /** Return a trial squeezed into a format suitable for saving as .csv
  * @param {ESM.Trial} trial - trial object to squeeze
  * @param {int} id - id of the participant (inserted as first column)
  */
 function flattenTrialData(trial, id) {
-    let out = {
-        participantId: id,
-        trialId: id,
-        advisorId: trial.advisorId,
-        initialAnswer: trial.answer[0],
-        finalAnswer: trial.answer[1],
-        initialConfidence: trial.confidence[0],
-        finalConfidence: trial.confidence[1],
-        block: trial.block,
-        practice: trial.practice,
-        type: trial.type.toString() + ' (' + trial.typeName + ')',
-        correctAnswer: trial.whichSide
-    };
-    // flatten arrays
-    for (let c=0; c<trial.choice.length; c++)
-        out['choice' + c.toString()] = trial.choice[c];
+    let out = {};
+    out.participantId = id;
+    out.id = trial.id;
+    out.block = trial.block;
+    out.practice = trial.practice;
+    out.type = trial.type;
+    out.typeName = trial.typeName;
+    out.correctAnswer = trial.whichSide;
+    out.initialAnswer = trial.answer[0];
+    out.finalAnswer = trial.answer[1];
+    out.initialConfidence = trial.confidence[0];
+    out.finalConfidence = trial.confidence[1];
+    out.hasChoice = !!trial.choice.length;
+    out.choice0 = trial.choice.length? trial.choice[0] : null;
+    out.choice1 = trial.choice.length? trial.choice[1] : null;
+    out.advisorId = trial.advisorId;
+    out.advisorAgrees = trial.advisorAgrees;
+    if (trial.advisorId !== 0)
+        out.adviceSide = trial.advisorAgrees? trial.whichSide : 1-trial.whichSide;
+    else
+        out.adviceSide = null;
+    out.feedback = trial.feedback;
+    out.warnings = trial.warnings.join("\n");
+    // timings
+    if (trial.pluginResponse.length > 0) {
+        // initial decision
+        out.timeInitialStart = trial.pluginResponse[0].startTime;
+        out.timeInitialFixation = trial.fixationDrawTime[0];
+        out.timeInitialStimOn = trial.stimulusDrawTime[0];
+        out.timeInitialStimOff = trial.pluginResponse[0].startTime + trial.pluginResponse[0].stimulusOffTime;
+        out.timeInitialResponse = trial.pluginResponse[0].startTime + trial.pluginResponse[0].rt;
+        if (trial.pluginResponse.length === 3) {
+            // advice and final decision
+            // advice
+            out.durationAdvisorChoice = trial.pluginResponse[1].choiceTime;
+            out.durationAdviceDuration = trial.pluginResponse[1].adviceTime;
+            // final decision
+            out.timeFinalStart = trial.pluginResponse[2].startTime;
+            out.timeFinalFixation = trial.fixationDrawTime[0];
+            out.timeFinalStimOn = trial.stimulusDrawTime[0];
+            out.timeFinalStimOff = trial.pluginResponse[2].startTime + trial.pluginResponse[2].stimulusOffTime;
+            out.timeFinalResponse = trial.pluginResponse[2].startTime + trial.pluginResponse[2].rt;
+        }
+    }
 
+    return out;
+}
+
+/**
+ * Extract the key variables from the advisor object
+ * @param {ESM.Advisor} data - advisor object
+ * @returns {Object} - slim representation of advisor object
+ */
+function flattenAdvisorData(data) {
+    let out = {};
+    out.id = data.id;
+    out.adviceType = data.adviceType;
+    out.name = data.name;
+    out.portraitSrc = data.portraitSrc;
+    out.voiceId = data.voice.id;
     return out;
 }
