@@ -437,7 +437,7 @@ window.analysis = {
                 let helping = 0;
                 for (let r=0; r<q.response.length; r++) {
                     switch(q.response[r].name) {
-                        case "Likability":
+                        case "Likeability":
                             likeable = q.response[r].answer;
                             break;
                         case "Ability":

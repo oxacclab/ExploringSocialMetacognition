@@ -419,7 +419,6 @@
         // Fallback
         gov.currentTrial.warnings.push('getConfidenceCategory: confidence score ('+confidenceScore+') fell through ' +
             'bounds ['+bounds.low+', '+bounds.high+']');
-
     }
 
     /**
@@ -435,7 +434,9 @@
             return !isNaN(trial.answer[0]);
         }).length-1;
 
-        return gov.getConfidenceCategory(gov.trials[last].id, args);
+        let cc = gov.getConfidenceCategory(gov.trials[last].id, args);
+        gov.trials[last].confidenceCategory = cc;
+        return cc;
     }
 
     /**
@@ -479,7 +480,7 @@
      * @param {Object} trial - jsPsych plugin response
      */
     function finalResponse(trial) {
-        gov.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
+        gov.currentTrial.stimulusOffTime.push(trial.stimulusOffTime); // always undefined - no stimulus!
         storePluginData(trial);
         gov.currentTrial.answer[1] = getAnswerFromResponse(trial.response);
         // empty responses are allowed 2nd time through (copy intial response)
@@ -552,8 +553,6 @@
         }
         let inner = document.querySelector('#progressbar-inner');
         inner.style.width = ((gov.trials.indexOf(gov.currentTrial)/gov.trials.length)*100).toString()+'%';
-        console.log('Progress: '+inner.style.width+' ('+gov.trials.indexOf(gov.currentTrial).toString()+
-            '/'+gov.trials.length.toString()+')');
 
         document.querySelector('body').style.backgroundColor = '';
     }
@@ -597,10 +596,12 @@
     }
 
     let advisorIdDeck = shuffle([1, 2, 3]);
-    let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], 0);
+    let advisorVoiceDeck = shuffle([1, 2, 3]);
+    let advisorPicDeck = shuffle([1, 2, 3]);
+    let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], 0, advisorVoiceDeck[0], advisorPicDeck[0]);
     let advisorList = [
-        new ESM.Advisor(advisorIdDeck[1], 1),
-        new ESM.Advisor(advisorIdDeck[2], 2)
+        new ESM.Advisor(advisorIdDeck[1], 1, advisorVoiceDeck[1], advisorPicDeck[1]),
+        new ESM.Advisor(advisorIdDeck[2], 2, advisorVoiceDeck[2], advisorPicDeck[2])
     ];
     if (Math.random() < .5)
         advisorList = [advisorList[1], advisorList[0]];
@@ -641,6 +642,7 @@
         stimulusDuration: 200,
         feedbackDuration: 200,
         questionnaireStack: [2, 3, 3, 2, 1],
+        miscTrials: [],
         drawDots,
         getConfidenceCategory,
         getLastConfidenceCategory,
@@ -657,6 +659,7 @@
         exportGovernor
     });
 
+    gov.timeStart = gov.participantId;
     gov.trials = getTrials();
 
     /* create timeline */
@@ -862,7 +865,7 @@
         prompt: '<p>This advisor will be...</p>',
         sliderCount: 3,
         slider_name: orderArray([
-            'Likability',
+            'Likeability',
             'Ability',
             'Benevolence'
         ], order),
@@ -883,7 +886,7 @@
         prompt: '<p>This advisor is...</p>',
         sliderCount: 3,
         slider_name: orderArray([
-            'Likability',
+            'Likeability',
             'Ability',
             'Benevolence'
         ], order),
@@ -962,6 +965,7 @@
     jsPsych.init({
         timeline: timeline,
         on_finish: function() {
+            gov.timeEnd = (new Date()).getTime();
             // reset background colour
             document.querySelector('body').style.backgroundColor = '';
             gov.exportGovernor();

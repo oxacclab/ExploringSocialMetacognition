@@ -53,8 +53,8 @@ let corsOptions = {
 
 app.post('/saveData.js', cors(corsOptions), function(request, response)
 {
-    console.log("Data recieved");
-    let id = response.body.participantId;
+    console.log("---Data incoming---");
+    let id = request.body.participantId;
     // Check existence of raw data file
     fs.open('ExploringSocialMetacognition/data/raw/'+id+'_RAW.JSON', 'wx', (err) => {
         if (err) {
@@ -93,7 +93,6 @@ app.post('/saveData.js', cors(corsOptions), function(request, response)
                             console.log('Saved processed data for '+id); // send an okay response
                             response.write("Processed data saved.\n");
                         }
-                        console.log(response.statusCode);
                         response.end();
                     });
             }
@@ -124,21 +123,28 @@ function processData(data) {
         preTrialInterval: data.preTrialInterval,
         preStimulusInterval: data.preStimulusInterval,
         stimulusDuration: data.stimulusDuration,
-        feedbackDuration: data.feedbackDuration
+        feedbackDuration: data.feedbackDuration,
+        timeStart: data.timeStart,
+        timeEnd: data.timeEnd,
+        experimentDuration: data.timeEnd - data.timeStart
     };
 
-    for (let a=0; a<data.advisors.length; a++) {
-        let advisorData = flattenAdvisorData(data.advisors[a]);
-        Object.keys(advisorData).forEach(function (key) {
-            participantData['advisor'+a.toString()+key] = advisorData[key];
-        });
-    }
+    // Advisor data
+    let advisorData = [];
+    for (let a=0; a<data.advisors.length; a++)
+        advisorData.push(flattenAdvisorData(data.advisors[a], participantData.id));
+    participantData.advisors = advisorData;
 
-    // Participant's performance across trials
+    // Questionnaires
+    let questionnaireData = [];
+    for (let q=0; q<data.questionnaires.length; q++)
+        questionnaireData.push(flattenQuestionnaireData(data.questionnaires[q], participantData.id))
+    participantData.questionnaires = questionnaireData;
+
+    // Trials
     let trialData = [];
     for (let t=0; t<data.trials.length; t++)
         trialData.push(flattenTrialData(data.trials[t], participantData.id));
-
     participantData.trials = trialData;
     return participantData;
 }
@@ -199,14 +205,46 @@ function flattenTrialData(trial, id) {
 /**
  * Extract the key variables from the advisor object
  * @param {ESM.Advisor} data - advisor object
+ * @param {int} id - id of the participant (inserted as first column)
  * @returns {Object} - slim representation of advisor object
  */
-function flattenAdvisorData(data) {
+function flattenAdvisorData(data, id) {
     let out = {};
+    out.participantId = id;
     out.id = data.id;
     out.adviceType = data.adviceType;
     out.name = data.name;
     out.portraitSrc = data.portraitSrc;
     out.voiceId = data.voice.id;
+    return out;
+}
+
+/**
+ * Extract the key variables from the quesitonnaire object
+ * @param {Object[]} Q - questionnaire
+ * @param {int} id - id of the participant (inserted as first column)
+ * @returns {Object} - slim representation of advisor object
+ */
+function flattenQuestionnaireData(Q, id) {
+    let out = {};
+    out.participantId = id;
+    out.advisorId = Q.advisorId;
+    out.timeStart = Q.startTime;
+    out.timeResponseStart = Q.responseStartTime;
+    out.timeEnd = Q.time_elapsed;
+    out.duration = Q.rt;
+    for(let r=0; r < Q.response.length; r++) {
+        switch(Q.response[r].name) {
+            case 'Likeability':
+                out.likeability = Q.response[r].answer;
+                break;
+            case 'Benevolence':
+                out.benevolence = Q.response[r].answer;
+                break;
+            case 'Ability':
+                out.ability = Q.response[r].answer;
+                break;
+        }
+    }
     return out;
 }
