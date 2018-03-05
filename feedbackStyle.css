@@ -126,11 +126,13 @@ div.feedback.description > p {
 
 div.feedback.advisor {
     width: 40%;
-    margin: 0 5%;
     border: 5px solid black;
     border-radius: 25px;
     overflow: hidden;
     background-color: white;
+    max-width: 500px;
+    display: block;
+    margin: auto;
 }
 
 div.feedback.advisor-stats-wrapper {
@@ -174,5 +176,5 @@ div.feedback.advisor-stats-container > p:last-of-type {
 
 div.feedback.advisor-graph {
     width: 100%;
-    max-height: 150px;
+    max-height: 500px;
 }

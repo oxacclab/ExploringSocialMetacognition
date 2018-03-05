@@ -99,7 +99,6 @@ app.post('/saveData.js', cors(corsOptions), function(request, response)
 
         });
     });
-
 }).listen(3000);
 
 console.log("Backend listener initialized");
@@ -166,6 +165,7 @@ function flattenTrialData(trial, id) {
     out.finalAnswer = trial.answer[1];
     out.initialConfidence = trial.confidence[0];
     out.finalConfidence = trial.confidence[1];
+    out.confidenceCategory = trial.confidenceCategory;
     out.hasChoice = !!trial.choice.length;
     out.choice0 = trial.choice.length? trial.choice[0] : null;
     out.choice1 = trial.choice.length? trial.choice[1] : null;
@@ -198,6 +198,7 @@ function flattenTrialData(trial, id) {
             out.timeFinalResponse = trial.pluginResponse[2].startTime + trial.pluginResponse[2].rt;
         }
     }
+    out.adviceString = typeof trial.advice==='undefined'? "" : trial.advice.string;
 
     return out;
 }

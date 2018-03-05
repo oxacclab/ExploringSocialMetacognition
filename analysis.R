@@ -35,21 +35,23 @@ prettyPrint <- function(results) {
                ' p=',round(results$p.value,3)))
 }
 # Return the id of the advisor with adviceType for participant
-getAdvisorIdByType <- function(pid, type) {
-  aid <- advisors[which(advisors$participantId==pid && advisors$adviceType==type),]
-  if (length(aid) > 0)
-    return(aid$id)
+getAdvisorIdByType <- function(pid, type, advisor.data.frame) {
+  rows <- advisor.data.frame[which(advisor.data.frame$participantId==pid),] 
+  row <- rows[which(rows$adviceType==type),]
+  if (length(row) > 0)
+    return(row$id)
   return(NA)
 }
 # Return the advice type of an advisor for participant with row number=pid
-getAdviceTypeById <- function(aid, pid) {
-  type = advisors[which(advisors$participantId==pid && advisors$id==aid),]
+getAdviceTypeById <- function(aid, pid, advisor.data.frame) {
+  type <- advisor.data.frame[which(advisor.data.frame$participantId==pid),]
+  type <- type[which(type$id==aid),]
   if (length(type) > 0)
     return(type$adviceType)
   return(NA)
 }
 # Return a vector of advice types for trial list t
-getAdviceType <- function (t, forceRecalculate = FALSE) {
+getAdviceType <- function (t, participant.data.frame, advisor.data.frame, forceRecalculate = FALSE) {
   # shortcut if we already calculated this
   if('adviceType' %in% colnames(t) && !forceRecalculate)
     return(t$adviceType)
@@ -58,8 +60,8 @@ getAdviceType <- function (t, forceRecalculate = FALSE) {
   else
     out <- vector(length=dim(t)[1])
   for (i in seq(length(out))) {
-    pid <- which(participants$id==t$participantId[i])
-    out[i] <- getAdviceTypeById(t$advisorId[i], pid)
+    pid <- t$participantId[i]
+    out[i] <- getAdviceTypeById(t$advisorId[i], pid, advisor.data.frame)
   }
   return(out)
 }
@@ -179,7 +181,8 @@ for(p in seq(dim(participants)[1])) {
   # and also store those with middling confidence (i.e. where advisors are equivalent)
   t.70 <- t[which(t$confidenceCategory==confidenceCategories$medium),]
   # Find proportion of these which selected agree-in-confidence
-  aicAdvisorId <- getAdvisorIdByType(p, adviceTypes$AiC)
+  aicAdvisorId <- getAdvisorIdByType(participants$id[p], adviceTypes$AiC, advisors)
+  aiuAdvisorId <- getAdvisorIdByType(participants$id[p], adviceTypes$AiU, advisors)
   selection <- rbind(selection, data.frame(N=dim(t)[1], 
                                            AiC=length(which(t$advisorId==aicAdvisorId)), 
                                            AiU=length(which(t$advisorId==aiuAdvisorId))))
@@ -222,7 +225,7 @@ print('## 4) ANOVA investigating influence #####################################
 
 print('Calculating influence on each trial')
      
-trials$adviceType <- getAdviceType(trials)
+trials$adviceType <- getAdviceType(trials, participants, advisors)
 trials$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
 trials$influence <- getInfluence(trials) # amount the confidence changes in the direction of the advice
 

@@ -179,7 +179,7 @@
         let trials = [];
         let id = 0;
         let realId = 0;
-        let advisorChoices = [2, 3];
+        let advisorChoices = [gov.advisors[1].id, gov.advisors[2].id];
         // Shuffle advisors so they appear an equal number of times
         let advisorDeck = shuffleShoe(advisorChoices, gov.blockCount*gov.blockStructure[trialTypes.force]);
         // Same for which side the correct answer appears on
@@ -361,7 +361,7 @@
      */
     function getConfidenceCategory(trialId, args) {
         args = args || {};
-        args.nTrialsBack = args.nTrialsBack || null;
+        args.nTrialsBack = args.nTrialsBack || gov.trials.length;
         args.correctOnly = typeof args.correctOnly === 'undefined'? true : args.correctOnly;
         args.initialAnswerCorrect = typeof args.initialAnswerCorrect? true : args.initialAnswerCorrect;
         args.initialConfidence = typeof args.initialConfidence? true : args.initialConfidence;
@@ -403,12 +403,13 @@
             low: confidenceList[Math.ceil(confidenceList.length*.3)],
             high: confidenceList[Math.floor(confidenceList.length*.7)]
         };
+
         // Protect against too few trials
-        if (typeof bounds.low === 'undefined' || typeof bounds.high === 'undefined' ||
-            !bounds.low.length || !bounds.high.length) {
+        if (typeof bounds.low === 'undefined' || typeof bounds.high === 'undefined') {
             gov.currentTrial.warnings.push('getConfidenceCategory: too few trials available to estimate confidence');
             return 1;
         }
+
         if (confidenceScore > bounds.low && confidenceScore < bounds.high)
             return 1;
         if (confidenceScore <= bounds.low)
@@ -462,12 +463,12 @@
     function setAgreementVars() {
         // Check the answer and dis/agree as appropriate
         if (gov.currentAdvisor.agrees(gov.currentTrial.getCorrect(false), gov.getLastConfidenceCategory())) {
-            gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+            gov.currentTrial.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
                 gov.currentTrial.advisorAgrees = true;
                 return line.side === gov.currentTrial.whichSide;
             });
         } else {
-            gov.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
+            gov.currentTrial.advice = gov.currentAdvisor.voice.getLineByFunction(function (line) {
                 gov.currentTrial.advisorAgrees = false;
                 let side = [1, 0][gov.currentTrial.whichSide];
                 return line.side === side;
@@ -623,7 +624,7 @@
             advisorList[0],
             advisorList[1]
         ],
-        blockCount: 4,
+        blockCount: 2,
         blockStructure: {
             [trialTypes.catch]: 0,
             [trialTypes.choice]: 6,
@@ -634,14 +635,19 @@
         practiceBlockStructure: {
             [trialTypes.catch]: 0,
             [trialTypes.choice]: 0,
-            [trialTypes.force]: 12
+            [trialTypes.force]: 4
         },
-        practiceBlockLength: 12,
+        practiceBlockLength: 4,
         preTrialInterval: 200,
         preStimulusInterval: 500,
         stimulusDuration: 200,
         feedbackDuration: 200,
-        questionnaireStack: [2, 3, 3, 2, 1],
+        questionnaireFrequency: 4,
+        questionnaireStack: [
+            advisorList[0].id, advisorList[1].id,
+            advisorList[1].id, advisorList[0].id,
+            practiceAdvisor.id
+        ],
         miscTrials: [],
         drawDots,
         getConfidenceCategory,
@@ -820,8 +826,8 @@
         trial_duration: 2000,
         playAudioFunction: function (choice) {
             let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
-            div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.advice.string;
-            gov.advice.play();
+            div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.currentTrial.advice.string;
+            gov.currentTrial.advice.play();
         },
         prompt: "",
         on_finish: gov.storePluginData,
@@ -943,6 +949,8 @@
     for (let b=1; b<=gov.blockCount; b++) {
         timeline.push(test_procedure);
         timeline.push(blockBreak);
+        if (!b%gov.questionnaireFrequency && b!==gov.blockCount-1)
+            timeline.push(questionnaire);
     }
 
     // Remove the last break screen
