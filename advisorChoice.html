@@ -10,6 +10,7 @@
     <script src="jspsych-function-sliders-response.js"></script>
     <script src="exploringSocialMetacognition.js"></script>
     <script src="analysis.js"></script>
+    <script src="saveData.js"></script>
     <script src="jspsych-jas-present-advice-choice.js"></script>
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
@@ -63,6 +64,7 @@
         #jspsych-content {
             max-width: 600px;
         }
+
     </style>
 </head>
 <body></body>
@@ -565,6 +567,13 @@
      * @param {Function} callback - function to execute when drawing is complete. Called with the portrait src
      */
     function drawQuestionnaire(display_element, callback) {
+        // set some styling stuff
+        let style = display_element.appendChild(document.createElement('style'));
+        style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:30%} ' +
+            '.jspsych-sliders-response-container {max-width:100%} ' +
+            '#jspsych-content {max-width: 1000px !important; display:flex; margin:auto;}' +
+            '#advisorChoice-choice-stimulus {max-width:100%; display:block; position:relative; ' +
+            'top:60%; left:10%; margin-top:-50%;}';
         let advisor = gov.advisors[gov.getAdvisorIndex(gov.questionnaireStack.pop())];
         gov.lastQuestionnaireAdvisorId = advisor.id;
         let img = document.createElement('img');
@@ -591,14 +600,26 @@
      */
     function exportGovernor() {
         let ask = new XMLHttpRequest();
-        ask.open('POST', 'http://localhost:3000/saveData.js');
+        if (window.location.href.indexOf('localhost') !== -1)
+            ask.open('POST', 'http://localhost:3000/server.js');
+        else
+            ask.open('POST', 'saveData.php');
+
         ask.setRequestHeader('Content-Type', 'application/json');
-        ask.send(JSON.stringify(gov));
+        ask.send(JSON.stringify({
+            rawData: JSON.stringify(gov),
+            processedData: JSON.stringify(processData(gov))
+        }));
+        ask.onreadystatechange = function() {
+            if (this.readyState===4 && this.status===200) {
+                console.log(this.responseText);
+            }
+        };
     }
 
     let advisorIdDeck = shuffle([1, 2, 3]);
     let advisorVoiceDeck = shuffle([1, 2, 3]);
-    let advisorPicDeck = shuffle([1, 2, 3]);
+    let advisorPicDeck = shuffle([1, 2, 3, 4]);
     let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], 0, advisorVoiceDeck[0], advisorPicDeck[0]);
     let advisorList = [
         new ESM.Advisor(advisorIdDeck[1], 1, advisorVoiceDeck[1], advisorPicDeck[1]),
@@ -615,7 +636,7 @@
      * variables which are required for things such as staircasing.
     */
     window.gov = new ESM.Governor({
-        participantId: (new Date).getTime(),
+        timeStart: (new Date).getTime(),
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: 3,
@@ -665,7 +686,7 @@
         exportGovernor
     });
 
-    gov.timeStart = gov.participantId;
+    gov.participantId = gov.timeStart - 1520333415000;
     gov.trials = getTrials();
 
     /* create timeline */
@@ -882,6 +903,12 @@
         ], order),
         slider_arrangement: [0, 1, 2],
         require_change: [0, 1, 2],
+        require_change_warning: orderArray([
+            '<p style="color: red;">Please answer the <em>likeability</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>competence</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
+        ], order),
+        max_warnings: 1,
         on_load: setSliderClick,
         on_finish: gov.questionnaireResponse
     };
@@ -902,7 +929,13 @@
             ['Not trying to help', 'Trying to help']
         ], order),
         slider_arrangement: [0, 1, 2],
-        require_change: [0, 1, 2],
+        require_change: [1, 2, 3],
+        require_change_warning: orderArray([
+            '<p style="color: red;">Please answer the <em>likeability</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>competence</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
+        ], order),
+        max_warnings: 1,
         on_load: setSliderClick,
         on_finish: gov.questionnaireResponse
     };
@@ -924,7 +957,7 @@
         randomize_order: false,
         repetitions: gov.blockLength
     };
-
+    
     // intro and practice
     timeline.push(welcome);
     timeline.push(introInitialDecision);
@@ -980,10 +1013,10 @@
             feedback(gov);
         }
     });
-    /*x =JSON.parse(DATA_IN);
+    x =JSON.parse(DATA_IN);
     Object.keys(x).forEach(function (key) {gov[key] = x[key]});
     gov.exportGovernor();
-    feedback(gov);*/
+    feedback(gov);
     function feedback(data) {
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(function(){analysis.advisorChoice.showFeedback(data)});

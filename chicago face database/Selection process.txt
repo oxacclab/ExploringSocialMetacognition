@@ -1,0 +1,2 @@
+1. Filter white female faces by 'proportion female' = 1.
+2. Order by 'attractiveness' and select middle (median) 4.

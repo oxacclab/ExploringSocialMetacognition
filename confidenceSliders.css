@@ -20,9 +20,19 @@ General thanks to https://css-tricks.com/styling-cross-browser-compatible-range-
     --slider-thumb-margin-top: calc((var(--slider-track-height) - var(--slider-thumb-height)) / 2);
 }
 
+div#jspsych-canvas-sliders-response-prompt > p {
+    margin-bottom: 0;
+}
+
+table.jspsych-sliders-table {
+    margin: 0;
+    padding: 0;
+    border-collapse: collapse;
+}
+
 input.jspsych-sliders-response-slider {
     -webkit-appearance: none;
-    margin: 18px 0;
+    margin: 0 0;
     width: 100%;
 }
 input.jspsych-sliders-response-slider:focus {

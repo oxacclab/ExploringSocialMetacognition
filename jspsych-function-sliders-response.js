@@ -186,6 +186,14 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 default: ['jspsych-sliders-response-slider-untouched'],
                 description: 'Class to apply to a slider when reset. Applied within an exclusive_group.'
             },
+            max_warnings: {
+                type: jsPsych.plugins.parameterType.INT,
+                pretty_name: 'Maximum warnings',
+                array: false,
+                default: 0,
+                description: 'Maximum require_change_warnings to display at any one time. Prioritises ' +
+                    'require_change_warning sliders with lower numbers.'
+            },
             button_label: {
                 type: jsPsych.plugins.parameterType.STRING,
                 pretty_name: 'Button label',
@@ -239,7 +247,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 response.stimulus = stimulusSaveData;
             response.responseStartTime = performance.now();
 
-            let html = "";
+            let html = '<div id="jspsych-function-sliders-response-wrapper" class="jspsych-sliders-response-wrapper">';
             // Prompt text
             if (trial.prompt !== null) {
                 html += '<div id="jspsych-canvas-sliders-response-prompt">'+trial.prompt+'</div>';
@@ -368,7 +376,6 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 html += '</div>';
             }
             html += '</div>';
-            html += '</div>';
 
             // warning area if sliders are missed
             html += '<div id="jspsych-function-sliders-response-warnings"></div>';
@@ -381,7 +388,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 'div.jspsych-sliders-row {display: inline-flex; width: 100%}'+
                 'div.jspsych-sliders-col {width: 100%}</style>';
 
-            display_element.innerHTML += html;
+            display_element.innerHTML += html + '</div>';
 
             // Swap the touched and reset classes on the slider
             function swapClass(el, classIn, classOut) {
@@ -449,6 +456,9 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                         } else {
                             // note the warning string
                             warnings[slider.require_change] = slider.require_change_warning;
+                            // limit the warnings according to max_warnings
+                            if (Object.keys(warnings).length === trial.max_warnings)
+                                break;
                         }
                     }
                 }

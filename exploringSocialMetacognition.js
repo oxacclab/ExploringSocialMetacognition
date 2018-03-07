@@ -333,7 +333,7 @@ window.ESM = {
             if (portrait === 0)
                 portraitId = this.id;
             this.portrait = new Image();
-            this.portrait.src = "assets/image/advisor" + portraitId + ".png";
+            this.portrait.src = "assets/image/advisor" + portraitId + ".jpg";
             this.portrait.className = 'advisor-portrait';
             this.portrait.id = 'advisor-portrait-' + portraitId;
             this.portraitSrc = this.portrait.src;

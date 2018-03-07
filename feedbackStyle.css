@@ -29,10 +29,11 @@ body.feedback > section > div {
     padding: 1em;
 }
 
-body.feedback > section:nth-of-type(even) {
+body.feedback > section:nth-of-type(odd) {
+    background-color: ghostwhite;
 }
 
-*.feedback:first-of-type {
+h1.feedback:first-of-type {
     margin-top: 0;
 }
 
@@ -90,10 +91,11 @@ h2.feedback > a:hover {
 }
 
 p.feedback {
-    padding: 0 1em;
+    padding: 0;
     text-align: justify;
-    line-height: 1.2em;
+    line-height: 1.1em;
     font-size: 1.2em;
+    margin: 0.5em 0;
 }
 
 div.feedback.advisor-stats-container > p {
@@ -101,10 +103,12 @@ div.feedback.advisor-stats-container > p {
     font-size: 1em;
     text-align: left;
     padding: 0;
+    margin: 0.2em;
 }
 
 div.feedback.graph {
-    min-width: 50vw;
+    min-width: 40vw;
+    min-height: 200px;
     background-color: transparent;
 }
 
@@ -145,16 +149,18 @@ div.feedback.advisor-stats-wrapper > p {
 }
 
 div.feedback.advisor-stats-wrapper > div.advisor-portrait {
-    width: 50%;
+    width: 40%;
     background-repeat: no-repeat;
     background-size: cover;
+    background-position-x: 50%;
     margin: 0;
     padding: 0;
+    border-bottom: 1px solid #0000000d;
 }
 
 div.feedback.advisor-stats {
-    background-color: #ccd7df;
-    width: 100%;
+    background-color: #e7e7e726;
+    width: 60%;
 }
 
 div.feedback.advisor-stats > h3 {
@@ -163,11 +169,11 @@ div.feedback.advisor-stats > h3 {
 }
 
 div.feedback.advisor-stats-container {
-    margin-left: 1em;
+    margin-left: 0.5em;
 }
 
 div.feedback.advisor-stats-container > p:first-of-type {
-    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 div.feedback.advisor-stats-container > p:last-of-type {
@@ -177,4 +183,75 @@ div.feedback.advisor-stats-container > p:last-of-type {
 div.feedback.advisor-graph {
     width: 100%;
     max-height: 500px;
+}
+
+div.confidenceBar {
+    width: calc(100% - 3em);
+    height: 35px;
+    background-color: green;
+    display: inline-flex;
+    margin: 1em;
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;;
+    background: #373737;
+    border-radius: 0;
+    border: 0.2px solid #010101;
+}
+
+div#confidenceBarPre, div#confidenceBarPost {
+    margin: 1em;
+}
+
+div.confidenceMarker {
+    height: 100%;
+    width: 20px;
+    position: relative;
+    z-index: 1;
+    border: none;
+    border-radius: 3px;
+    box-shadow: none;
+    background: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+}
+
+div.confidenceMarker.correct {
+    background-color: dodgerblue;
+    bottom: 50%;
+}
+
+div.confidenceMarker.incorrect {
+    background-color: lightpink;
+    top: 50%;
+}
+
+div.confidenceMarker:hover {
+    z-index: 2;
+}
+
+div.confidenceMarker:hover div.confidencePopup, div.confidencePopup:hover  {
+    display: block;
+}
+
+div.confidencePopup {
+    position: relative;
+    border: 2px solid;
+    border-radius: 0.5em;
+    font-size: 1em;
+    line-height: 1em;
+    padding: 0.5em;
+    margin: 0;
+    min-width: 10em;
+    left: 50%;
+    display: none;
+    z-index: 3;
+    bottom: 50%;
+    background-color: white;
+}
+
+div.confidencePopup.correct {
+    border-color: blue;
+}
+
+div.confidencePopup.incorrect {
+    border-color: red;
 }
