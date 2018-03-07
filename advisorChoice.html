@@ -11,10 +11,12 @@
     <script src="exploringSocialMetacognition.js"></script>
     <script src="analysis.js"></script>
     <script src="saveData.js"></script>
+    <script src="debriefForm.js"></script>
     <script src="jspsych-jas-present-advice-choice.js"></script>
     <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
     <link rel="stylesheet" href="feedbackStyle.css"/>
+    <link rel="stylesheet" href="debriefForm.css"/>
     <style type="text/css">
         body {
             background-color: #858585;
@@ -595,6 +597,16 @@
         gov.questionnaires.push(trial);
     }
 
+    function debriefFormSubmit(form) {
+        let txt = form.querySelector('#debriefManipulationAnswer');
+        if (txt.value.length===0) {
+            txt.style.border = '1px solid red';
+            return;
+        }
+        gov.manipulationQuestion = txt.value;
+        endExperiment();
+    }
+
     /**
      * Send all the data in the governor object to a backend which will save it to a file.
      */
@@ -683,6 +695,7 @@
         setAgreementVars,
         showMarker,
         storePluginData,
+        debriefFormSubmit,
         exportGovernor
     });
 
@@ -991,35 +1004,26 @@
 
     timeline.push(questionnaire);
     timeline.push(questionnaire);
-
-    /* define debrief */
-    const debrief_block = {
-        type: "html-keyboard-response",
-        stimulus: function() {
-            return "<p>You did it beautifully!</p>"+
-                "<p>Press any key to end.</p>"
-        }
-    };
-    //timeline.push(debrief_block);
-
+    
     /* start the experiment */
     jsPsych.init({
         timeline: timeline,
-        on_finish: function() {
-            gov.timeEnd = (new Date()).getTime();
-            // reset background colour
-            document.querySelector('body').style.backgroundColor = '';
-            gov.exportGovernor();
-            feedback(gov);
-        }
+        on_finish: function(){drawDebriefForm(gov.debriefFormSubmit)}
     });
-    x =JSON.parse(DATA_IN);
+    /*x =JSON.parse(DATA_IN);
     Object.keys(x).forEach(function (key) {gov[key] = x[key]});
     gov.exportGovernor();
-    feedback(gov);
+    feedback(gov);*/
     function feedback(data) {
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(function(){analysis.advisorChoice.showFeedback(data)});
+    }
+    function endExperiment() {
+        gov.timeEnd = (new Date()).getTime();
+        // reset background colour
+        document.querySelector('body').style.backgroundColor = '';
+        gov.exportGovernor();
+        feedback(gov);
     }
 
 </script>
