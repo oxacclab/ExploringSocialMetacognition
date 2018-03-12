@@ -274,7 +274,7 @@
         marker.className = 'advisorChoice-marker';
         slider.parentElement.appendChild(marker);
 
-        let yOffset = slider.getBoundingClientRect().y;
+        let yOffset = slider.getBoundingClientRect().top;
         yOffset -= (marker.clientHeight - slider.clientHeight) / 2;
         yOffset += 1; // compensate for box shadow on the slider making things look off
         marker.style.top = yOffset.toString() + 'px';
@@ -286,7 +286,7 @@
         } else {
             xOffset = gov.currentTrial.confidence[0];
         }
-        marker.style.left = (slider.getBoundingClientRect().x +
+        marker.style.left = (slider.getBoundingClientRect().left +
             xOffset * (slider.clientWidth-marker.clientWidth) / 100).toString() + 'px';
 
         // and call the slider-click function because we only get one on_load call
