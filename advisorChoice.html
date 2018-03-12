@@ -69,7 +69,13 @@
 
     </style>
 </head>
-<body></body>
+<body>
+    <div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
+        <h1>Loading...</h1>
+        <p>If you continue to see this message after a couple of seconds something has gone wrong. In order to run
+        properly the experiment requires a modern browser with javascript enabled.</p>
+    </div>
+</body>
 <script type="text/javascript">
     const trialTypes = {
         catch: 0,
@@ -257,7 +263,7 @@
                 if (this.value !== "50")
                     return;
                 // send a change event
-                let event = new Event('change');
+                let event = new Event('input');
                 this.dispatchEvent(event);
             });
         });
