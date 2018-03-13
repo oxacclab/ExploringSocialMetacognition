@@ -610,6 +610,8 @@
             return;
         }
         gov.manipulationQuestion = txt.value;
+        gov.comments = form.querySelector('#debreifCommentAnswer').value;
+        document.removeChild(form);
         endExperiment();
     }
 

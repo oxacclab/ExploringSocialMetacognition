@@ -34,5 +34,8 @@ function drawDebriefForm(submitFunction) {
     let ok = form.appendChild(document.createElement('button'));
     ok.innerText = 'submit';
     ok.className = 'debrief jspsych-btn';
-    ok.onclick = function(){submitFunction(form)};
+    ok.onclick = function(e){
+        e.preventDefault();
+        submitFunction(form)
+    };
 }
