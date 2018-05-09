@@ -70,11 +70,11 @@
     </style>
 </head>
 <body>
-<div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
-    <h1>Loading...</h1>
-    <p>If you continue to see this message after a couple of seconds something has gone wrong. In order to run
+    <div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
+        <h1>Loading...</h1>
+        <p>If you continue to see this message after a couple of seconds something has gone wrong. In order to run
         properly the experiment requires a modern browser with javascript enabled.</p>
-</div>
+    </div>
 </body>
 <script type="text/javascript">
     const trialTypes = {
@@ -98,7 +98,6 @@
      * @param {function} callback - function to execute in order to enable plugin to collect a response
      */
     function drawDots(canvasId) {
-        // Update the advisors to match the advisor set for this trial
         gov.currentTrial.dotDifference = gov.dotDifference;
         let low = gov.dotCount - gov.dotDifference;
         let high = gov.dotCount + gov.dotDifference;
@@ -190,34 +189,20 @@
         let trials = [];
         let id = 0;
         let realId = 0;
-        let advisorSets = gov.advisorLists.length;
-        let blockCount = gov.blockStructure.length * advisorSets;
+        let advisorChoices = [gov.advisors[1].id, gov.advisors[2].id];
+        // Shuffle advisors so they appear an equal number of times
+        let advisorDeck = shuffleShoe(advisorChoices, gov.blockCount*gov.blockStructure[trialTypes.force]);
         // Same for which side the correct answer appears on
-        let whichSideDeck = shuffleShoe([0, 1], advisorSets*sumList(gov.blockStructure));
+        let whichSideDeck = shuffleShoe([0, 1], gov.blockCount*gov.blockLength);
         // Define trials
-        for (let b=1; b<=gov.practiceBlockCount+blockCount; b++) {
-            let advisorSet = 0;
-            let blockIndex = b;
-            let advisorChoices = [];
-            let advisorDeck = null;
-            if (b > gov.practiceBlockCount) {
-                advisorSet = Math.floor((b-gov.practiceBlockCount-1) / gov.blockStructure.length);
-                blockIndex = (b-gov.practiceBlockCount-1)%gov.blockStructure.length;
-                advisorChoices = gov.advisorLists[advisorSet];
-                // Shuffle advisors so they appear an equal number of times
-                advisorDeck = shuffleShoe(advisorChoices,
-                    gov.blockStructure[blockIndex][trialTypes.force]);
-            } else {
-                advisorSet = NaN;
-            }
-            let blockLength = b<=gov.practiceBlockCount? gov.practiceBlockLength :
-                sumList(gov.blockStructure[blockIndex]);
+        for (let b=1; b<=gov.practiceBlockCount+gov.blockCount; b++) {
+            let blockLength = b<=gov.practiceBlockCount? gov.practiceBlockLength : gov.blockLength;
             // intro trials are a special case so the block length needs to be longer to accommodate them
             if (b === 1)
                 blockLength += 3;
             // Work out what type of trial to be
             let trialTypeDeck = [];
-            let structure = b<=gov.practiceBlockCount? gov.practiceBlockStructure : gov.blockStructure[blockIndex];
+            let structure = b<=gov.practiceBlockCount? gov.practiceBlockStructure : gov.blockStructure;
             if (b === 1)
                 structure = {0:0, 1:5, 2:0};
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
@@ -228,19 +213,18 @@
             for (let i=1; i<=blockLength; i++) {
                 id++;
                 let isPractice = b<=gov.practiceBlockCount;
-                let trialType = trialTypeDeck.pop();
+                let trialType = trialTypeDeck[i-1];
                 let advisorId = 0;
                 if (isPractice)
-                    advisorId = id<=2? 0 : gov.practiceAdvisor.id;
+                    advisorId = id<=2? 0 : gov.advisors[0].id;
                 else
-                    advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
+                    advisorId = trialType === trialTypes.force? advisorDeck[realId] : 0;
                 let r = Math.random() < .5? 1 : 0;
-                let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
+                let choice = trialType === trialTypes.choice? [advisorChoices[r], advisorChoices[1-r]] : [];
                 trials.push(new ESM.Trial(id, {
                     type: trialType,
                     typeName: trialTypeNames[trialType],
                     block: b,
-                    advisorSet,
                     advisorId,
                     choice,
                     answer: [NaN, NaN],
@@ -626,7 +610,7 @@
             return;
         }
         gov.manipulationQuestion = txt.value;
-        gov.comments = form.querySelector('#debriefCommentAnswer').value;
+        gov.comments = form.querySelector('#debreifCommentAnswer').value;
         document.removeChild(form);
         endExperiment();
     }
@@ -653,22 +637,16 @@
         };
     }
 
-    let adviceTypes = [0,3,4,3,4];
-    let advisorIdDeck = shuffle([1, 2, 3, 4, 5]);
-    let advisorPicDeck = shuffle([1, 2, 3, 4, 5]);
-    let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], adviceTypes[0], null, advisorPicDeck[0]);
-    let advisorListA = [
-        new ESM.Advisor(advisorIdDeck[1], adviceTypes[1], null, advisorPicDeck[1]),
-        new ESM.Advisor(advisorIdDeck[2], adviceTypes[2], null, advisorPicDeck[2])
-    ];
-    let advisorListB = [
-        new ESM.Advisor(advisorIdDeck[3], adviceTypes[3], null, advisorPicDeck[3]),
-        new ESM.Advisor(advisorIdDeck[4], adviceTypes[4], null, advisorPicDeck[4])
+    let advisorIdDeck = shuffle([1, 2, 3]);
+    let advisorVoiceDeck = shuffle([1, 2, 3]);
+    let advisorPicDeck = shuffle([1, 2, 3, 4]);
+    let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], 0, advisorVoiceDeck[0], advisorPicDeck[0]);
+    let advisorList = [
+        new ESM.Advisor(advisorIdDeck[1], 1, advisorVoiceDeck[1], advisorPicDeck[1]),
+        new ESM.Advisor(advisorIdDeck[2], 2, advisorVoiceDeck[2], advisorPicDeck[2])
     ];
     if (Math.random() < .5)
-        advisorListA = [advisorListA[1], advisorListA[0]];
-    if (Math.random() < .5)
-        advisorListB = [advisorListB[1], advisorListB[0]];
+        advisorList = [advisorList[1], advisorList[0]];
 
     /**
      * The governor contains the properties which the experiment functions need to access from everywhere.
@@ -676,37 +654,23 @@
      * The governor serves two key functions: it acts as a master object holding the disparate objects
      * required to run the experiment (e.g. advisors, trials); and it holds miscellaneous temporary
      * variables which are required for things such as staircasing.
-     */
+    */
     window.gov = new ESM.Governor({
         timeStart: (new Date).getTime(),
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: 3,
-        practiceAdvisor,
-        advisorLists: [
-            advisorListA,
-            advisorListB
-        ],
         advisors: [
             practiceAdvisor,
-            advisorListA[0],
-            advisorListA[1],
-            advisorListB[0],
-            advisorListB[1]
+            advisorList[0],
+            advisorList[1]
         ],
         blockCount: 2,
-        blockStructure: [
-            {
-                [trialTypes.catch]: 0,
-                [trialTypes.choice]: 0,
-                [trialTypes.force]: 6
-            },
-            {
-                [trialTypes.catch]: 0,
-                [trialTypes.choice]: 6,
-                [trialTypes.force]: 0
-            }
-        ],
+        blockStructure: {
+            [trialTypes.catch]: 0,
+            [trialTypes.choice]: 6,
+            [trialTypes.force]: 6
+        },
         blockLength: 0 + 6 + 6,
         practiceBlockCount: 1,
         practiceBlockStructure: {
@@ -721,10 +685,8 @@
         feedbackDuration: 200,
         questionnaireFrequency: 4,
         questionnaireStack: [
-            advisorListB[0].id, advisorListB[1].id,
-            advisorListB[1].id, advisorListB[0].id,
-            advisorListA[0].id, advisorListA[1].id,
-            advisorListA[1].id, advisorListA[0].id,
+            advisorList[0].id, advisorList[1].id,
+            advisorList[1].id, advisorList[0].id,
             practiceAdvisor.id
         ],
         miscTrials: [],
@@ -772,15 +734,15 @@
     const sliderInstructions = {
         type: 'instructions',
         pages: ["<p>Good. The task is very difficult at first, but you will get used to it.</p>" +
-        "<p>You can use the slider to indicate your <strong>confidence</strong> as well. " +
-        "You do this by moving the slider more towards the edges if you are sure, and more towards the " +
-        "middle if you are unsure.</p>" +
-        "<p>E.g. if you were <strong>sure</strong> there were more dots on the <strong>left</strong>, you would move the " +
-        "<strong>left</strong> slider all the way to the <strong>left</strong>.</p>" +
-        "<p>If you thought there were more dots on the <strong>right</strong>, but you were " +
-        "<strong>guessing</strong>, you would move the <strong>right</strong> slider, but you would move it as " +
-        "far <strong>left</strong> as it will go.</p>" +
-        "<p>Try using the slider to indicate your confidence now.</p>"],
+            "<p>You can use the slider to indicate your <strong>confidence</strong> as well. " +
+            "You do this by moving the slider more towards the edges if you are sure, and more towards the " +
+            "middle if you are unsure.</p>" +
+            "<p>E.g. if you were <strong>sure</strong> there were more dots on the <strong>left</strong>, you would move the " +
+            "<strong>left</strong> slider all the way to the <strong>left</strong>.</p>" +
+            "<p>If you thought there were more dots on the <strong>right</strong>, but you were " +
+            "<strong>guessing</strong>, you would move the <strong>right</strong> slider, but you would move it as " +
+            "far <strong>left</strong> as it will go.</p>" +
+            "<p>Try using the slider to indicate your confidence now.</p>"],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar,
         on_finish: gov.storeMiscTrialData
@@ -789,13 +751,13 @@
     const adviceInstructions = {
         type: 'instructions',
         pages: ["<p>Most of the time you will get <strong>advice</strong> from an advisor to help you make your " +
-        "decision.</p>" +
-        "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
-        "perform better on the task.</p>" +
-        "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
-        "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
-        "that you are more or less sure, and even to change which box you think had most dots.</p>" +
-        "<p>Click 'next' to see how the advice works.</p>"],
+            "decision.</p>" +
+            "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
+            "perform better on the task.</p>" +
+            "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
+            "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
+            "that you are more or less sure, and even to change which box you think had most dots.</p>" +
+            "<p>Click 'next' to see how the advice works.</p>"],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar,
         on_finish: gov.storeMiscTrialData
@@ -804,7 +766,7 @@
     const practiceInstructions = {
         type: 'instructions',
         pages: ["<p>Good.</p><p>The main experiment will start after you have had a bit of practice with " +
-        "the task. To continue with the practice, press 'next'.</p>"],
+            "the task. To continue with the practice, press 'next'.</p>"],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar,
         on_finish: gov.storeMiscTrialData
@@ -813,12 +775,12 @@
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
-        "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
-        "concentrating or you will miss them.</p>" +
-        "<p>Also, sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
-        "two advisors and you will click one to hear their advice.</p>" +
-        "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
-        "ready to begin.</p>"],
+            "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
+            "concentrating or you will miss them.</p>" +
+            "<p>Also, sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
+            "two advisors and you will click one to hear their advice.</p>" +
+            "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
+            "ready to begin.</p>"],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar,
         on_finish: gov.storeMiscTrialData
@@ -907,7 +869,7 @@
         playAudioFunction: function (choice) {
             let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
             div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.currentTrial.advice.string;
-            //gov.currentTrial.advice.play();
+            gov.currentTrial.advice.play();
         },
         prompt: "",
         on_finish: gov.storePluginData,
@@ -1016,7 +978,7 @@
         randomize_order: false,
         repetitions: gov.blockLength
     };
-
+    
     // intro and practice
     timeline.push(welcome);
     timeline.push(introInitialDecision);

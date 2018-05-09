@@ -154,6 +154,8 @@ window.ESM = {
          * @param {function} [callback=null] - function to execute with the Line as a parameter once loading completes.
          */
         load(callback = null) {
+            if (this.filePath === null)
+                return;
             this.loading = true;
             let self = this;
             console.log("Preloading "+self.filePath);
@@ -200,14 +202,15 @@ window.ESM = {
                     gov.audioPreloadQueue.push({obj: this, callback});
                 }
             }
-
         }
 
         /** Play the voice line */
         play() {
+            if (this.filePath === null)
+                return false;
             if (this.loaded !== true) {
                 console.warn("Attempted to play "+this.filePath+" before loading completed.");
-                return;
+                return false;
             }
             let audioCtx = new AudioContext();
             let source = audioCtx.createBufferSource();
@@ -244,6 +247,8 @@ window.ESM = {
          * @returns {string} - name with which the voice introduces themself
          */
         getName(id) {
+            if(id === null)
+                id = Math.floor(Math.random()*10)+1; // random name from the full list
             switch(id) {
                 case 1:
                     return "Annie";
@@ -251,6 +256,20 @@ window.ESM = {
                     return "Bea";
                 case 3:
                     return "Kate";
+                case 4: // Names below do not have voice lines; they're only selected by silent advisors
+                    return "Sarah";
+                case 5:
+                    return "Lisa";
+                case 6:
+                    return "Heather";
+                case 7:
+                    return "Julie";
+                case 8:
+                    return "Beth";
+                case 9:
+                    return "Pam";
+                case 10:
+                    return "Emma";
                 default:
                     return "Name not found!"
             }
@@ -264,6 +283,14 @@ window.ESM = {
          * @returns {{think_left: Line, think_right: Line, left_think: Line, right_think: Line}}
          */
         getLines(id, skipPreload = false) {
+            if(id===null)
+                return {
+                    think_left: new ESM.Line(null, "I think it was on the LEFT", 0, 0, true),
+                    think_right: new ESM.Line(null, "I think it was on the RIGHT", 1, 0, true),
+                    left_think: new ESM.Line(null, "It was on the LEFT, I think", 0, 0, true),
+                    right_think: new ESM.Line(null, "It was on the RIGHT, I think", 1, 0, true),
+                    intro: new ESM.Line(null, "Hello, my name is "+this.name.toUpperCase(), true)
+                };
             let pth = this.basePath + "assets/audio/voices/";
             return {
                 think_left: new ESM.Line(pth + id.toString() + '/think_left.wav', "I think it was on the LEFT",
@@ -285,6 +312,8 @@ window.ESM = {
          * @returns {Line} - random line from those passing the func check
          */
         getLineByFunction(func) {
+            if(this.lines === null)
+                return null;
             let options = [];
             for (let key in this.lines) {
                 if (func(this.lines[key]))
@@ -324,7 +353,7 @@ window.ESM = {
                 if (voice !== null)
                     this.voice = new ESM.Voice(voice);
                 else
-                    this.voice = new ESM.Voice(this.id);
+                    this.voice = new ESM.Voice(null);
             }
             // Hoist the name for ease-of-access
             this.name = this.voice.name;
@@ -368,6 +397,32 @@ window.ESM = {
                                 return 0.6;
                             case 0: // low confidence
                                 return 0.8;
+                            default: // medium confidence
+                                return 0.7;
+                        }
+                    };
+                case 3: // Extreme Agree in Confidence
+                    return function(judgeCorrect, judgeConfidenceCategory) {
+                        if (judgeCorrect !== true)
+                            return 0.3;
+                        switch(judgeConfidenceCategory) {
+                            case 0: // low confidence
+                                return 0.5;
+                            case 2: // high confidence
+                                return 0.9;
+                            default: // medium confidence
+                                return 0.7;
+                        }
+                    };
+                case 4: // Extreme Agree in Uncertainty
+                    return function(judgeCorrect, judgeConfidenceCategory) {
+                        if (judgeCorrect !== true)
+                            return 0.3;
+                        switch(judgeConfidenceCategory) {
+                            case 2: // high confidence
+                                return 0.5;
+                            case 0: // low confidence
+                                return 0.9;
                             default: // medium confidence
                                 return 0.7;
                         }
@@ -533,4 +588,36 @@ function orderArray(array, order) {
             o++;
     }
     return out;
+}
+
+/**
+ * Sum the contents of a list
+ *
+ * @param {number[]} list - list of numbers to be summed
+ * @param {boolean} ignoreBadValues - whether to ignore non-finite values in *list*
+ * @returns {number}
+ */
+function sumList(list, recursive = true, ignoreBadValues = true) {
+    if(typeof list !== 'object')
+        return NaN;
+    let sum = 0;
+    for(let i=0; i<Object.keys(list).length; i++) {
+        let k = Object.keys(list)[i];
+        if(!isFinite(list[k])) {
+          if(typeof list[k] === 'object') {
+              let tmp = sumList(list[k], recursive, ignoreBadValues);
+              if(isNaN(tmp))
+                  return NaN;
+              else
+                  sum += tmp;
+          } else {
+              if(!ignoreBadValues)
+                  return NaN;
+          }
+        } else {
+            if(isFinite(list[k]))
+                sum += list[k]
+        }
+    }
+    return sum;
 }
