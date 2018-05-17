@@ -34,6 +34,8 @@ input.jspsych-sliders-response-slider {
     -webkit-appearance: none;
     margin: 0 0;
     width: 100%;
+    position: relative;
+    z-index: 10;
 }
 input.jspsych-sliders-response-slider:focus {
     outline: inherit;
@@ -190,4 +192,11 @@ input.jspsych-sliders-response-slider-untouched::-ms-fill-upper {
     box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
     background: #373737;
     border: 0.2px solid #010101;
+}
+
+div.jspsych-sliders-col.advisor-endorsed {
+    background-color: white;
+    border: 3px solid black;
+    border-radius: 1em;
+    margin-bottom: 1em;
 }

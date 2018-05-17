@@ -99,7 +99,6 @@ app.post('/server.js', cors(corsOptions), function(request, response)
                             response.writeHead(500, {"Content-Type": "text/plain"});
                             response.write("500 Server error (could not write data to disk)\n");
                             response.end();
-                            throw err;
                         }   else {
                             console.log('Saved processed data for '+id); // send an okay response
                             response.write("Processed data saved.\n");
@@ -107,10 +106,31 @@ app.post('/server.js', cors(corsOptions), function(request, response)
                         response.end();
                     });
             }
-
         });
     });
-}).listen(3000);
+});
+
+app.get('/feedback/:uid', function(req, res) {
+    let uid = parseInt(req.params['uid']);
+    console.log('Serving feedback request for ' + uid);
+    let path = 'ExploringSocialMetacognition/data/raw/'+uid+'_RAW.JSON';
+    fs.open(path, 'r', (err, fd) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                console.log(err);
+                res.writeHead(404, {"Content-Type": "text/plain"});
+                res.write("404 Requested results not found\n");
+                res.end();
+                return;
+            }
+            throw err;
+        }
+        let stream = fs.createReadStream(null,{fd});
+        stream.pipe(res).on('end',res.end);
+    });
+});
+
+app.listen(3000);
 
 console.log("Backend listener initialized");
 

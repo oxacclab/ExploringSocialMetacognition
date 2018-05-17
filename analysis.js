@@ -284,7 +284,8 @@ window.analysis = {
          */
         showFeedback: function (g) {
             let self = this;
-            let advisors = [g.advisors[1], g.advisors[2]];
+            let advisors = copyArray(g.advisors);
+            advisors.shift(); // drop the practice advisor
             let body = document.querySelector('body');
                 // Nav
             let nav = document.createElement('nav');
@@ -304,6 +305,25 @@ window.analysis = {
                 "confident. Let's have a look at how your results and see how you did on the task and whether your " +
                 "choices matched our prediction.</p>";
             thanksSection.appendChild(thanksDiv);
+            let permalinkDiv = thanksDiv.appendChild(document.createElement('div'));
+            permalinkDiv.className = 'permalink-container';
+            let permalinkLabel = permalinkDiv.appendChild(document.createElement('div'));
+            permalinkLabel.className = 'permalink-label';
+            permalinkLabel.innerText = 'Permanent link:';
+            let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
+            permalinkLink.className = 'permalink-link';
+            permalinkLink.innerText = window.location.origin + '/' + window.location.pathname.split('/')[1] +
+                '/feedback.html?uid=' + g.participantId;
+            let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
+            permalinkCopy.className = 'permalink-copy';
+            permalinkCopy.onclick = function(){
+                let linkDiv = document.querySelector('div.permalink-link');
+                let range = document.createRange();
+                range.selectNodeContents(linkDiv);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+            };
             // Accuracy
             let accuracySection = body.appendChild(document.createElement('section'));
             let accuracyDiv = document.createElement('div');
@@ -324,7 +344,8 @@ window.analysis = {
             accuracyDescription.innerHTML = "<p>The task difficulty changes based on your performance so that we " +
                 "can compare advice-taking properly. Your initial accuracy should be approximately 71%. " +
                 "We expect most people to have higher accuracy after advice than " +
-                "before advice. Your pre-advice accuracy was <strong>"+pre+"%</strong>, and your post-advice accuracy " +
+                "before advice. Your pre-advice accuracy was <strong>"+pre+
+                "%</strong>, and your post-advice accuracy " +
                 "was <strong>"+post+"%</strong>. The advisors are programmed to be equally accurate on average, and " +
                 "they should score around 70%.</p>";
             accuracyContainer.appendChild(accuracyDescription);
@@ -339,64 +360,72 @@ window.analysis = {
             advisorSection.appendChild(advisorWrapper);
             advisorWrapper.appendChild(document.createElement('h2')).innerHTML =
                 '<a href="#top" name="advisors">Advisors</a>';
-            let advisorContainer = document.createElement('div');
-            advisorContainer.id = 'advisorContainer';
-            advisorSection.appendChild(advisorContainer);
-            advisors.forEach(function (advisor) {
-                let i = advisor.id;
-                let advisorDiv = document.createElement('div');
-                advisorDiv.id = 'advisor'+i;
-                advisorDiv.className = 'advisor';
-                // stats (portrait + statistics)
-                let statsDiv = document.createElement('div');
-                statsDiv.id = 'advisor'+i+'statsWrapper';
-                statsDiv.className = 'advisor-stats-wrapper';
-                advisorDiv.appendChild(statsDiv);
-                // portrait
-                let portraitDiv = document.createElement('div');
-                portraitDiv.id = 'advisor'+i+'portrait';
-                portraitDiv.className = 'advisor-portrait';
-                portraitDiv.style.backgroundImage = "url('"+advisor.portraitSrc+"')";
-                statsDiv.appendChild(portraitDiv);
-                // stats
-                let statsContainer = document.createElement('div');
-                statsContainer.id = 'advisor'+i+'statsContainer';
-                statsContainer.className = 'advisor-stats-container';
-                let stats = document.createElement('div');
-                stats.id = 'advisor'+i+'stats';
-                stats.className = 'advisor-stats';
-                stats.appendChild(document.createElement('h3')).innerText = advisor.name;
-                let last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML= "<em>Agrees when "+(advisor.adviceType===1? 'confident' : 'uncertain')+"</em>";
-                last.title = 'When your initial decision is correct, this advisor is '+
-                    (advisor.adviceType==1? 'more' : 'less')+' likely to agree with you if you are more confident ' +
-                    'in your initial decision.';
-                last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML = "Chosen: <strong>"+
-                    Math.round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,3).toString()+'%</strong>';
-                last.title = 'How many times did you select this advisor when you had a choice?';
-                last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML = "Influence: <strong>"+
-                    Math.round(self.getTotalInfluence(g.trials, advisor.id),3).toString()+'</strong>';
-                last.title = 'How much did you change your confidence after hearing this advisor\'s advice.';
-                let changedAnswers = self.adviceAnswerChanges(g.trials, advisor.id);
-                last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML = "Mistakes avoided: <strong>"+changedAnswers[1]+'</strong>';
-                last.title = 'How many times did you get the initial decision wrong, but correct it after hearing ' +
-                    'this advisor\'s advice?';
-                last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML = "Mistakes caused: <strong>"+changedAnswers[2]+'</strong>';
-                last.title = 'How many times did you get the initial decision correct, but select the wrong answer ' +
-                    'after hearing this advisor\'s advice?';
-                stats.appendChild(statsContainer);
-                statsDiv.appendChild(stats);
-                // graphs (questionnaire answers over time)
-                let graphDiv = document.createElement('div');
-                graphDiv.id = 'advisor'+i+'graph';
-                graphDiv.className = 'advisor-graph graph';
-                advisorDiv.appendChild(graphDiv);
-                advisorContainer.appendChild(advisorDiv);
-            });
+            for(let aS=0; aS<advisors.length/2; aS++) {
+                let advisorContainer = document.createElement('div');
+                advisorContainer.id = 'advisorContainer' + aS.toString();
+                advisorContainer.className = 'advisor-container container';
+                advisorSection.appendChild(advisorContainer);
+                for(let a=aS*2; a<aS*2+2; a++) {
+                    let advisor = advisors[a];
+                    let i = advisor.id;
+                    let advisorDiv = document.createElement('div');
+                    advisorDiv.id = 'advisor'+i;
+                    advisorDiv.className = 'advisor';
+                    // stats (portrait + statistics)
+                    let statsDiv = document.createElement('div');
+                    statsDiv.id = 'advisor'+i+'statsWrapper';
+                    statsDiv.className = 'advisor-stats-wrapper';
+                    advisorDiv.appendChild(statsDiv);
+                    // portrait
+                    let portraitDiv = document.createElement('div');
+                    portraitDiv.id = 'advisor'+i+'portrait';
+                    portraitDiv.className = 'advisor-portrait';
+                    portraitDiv.style.backgroundImage = "url('"+advisor.portraitSrc+"')";
+                    statsDiv.appendChild(portraitDiv);
+                    // stats
+                    let statsContainer = document.createElement('div');
+                    statsContainer.id = 'advisor'+i+'statsContainer';
+                    statsContainer.className = 'advisor-stats-container';
+                    let stats = document.createElement('div');
+                    stats.id = 'advisor'+i+'stats';
+                    stats.className = 'advisor-stats';
+                    stats.appendChild(document.createElement('h3')).innerText = advisor.name;
+                    let last = statsContainer.appendChild(document.createElement('p'));
+                    last.innerHTML= "<em>Agrees when "+(advisor.adviceType===3? 'confident' : 'uncertain')+"</em>";
+                    last.title = 'When your initial decision is correct, this advisor is '+
+                        (advisor.adviceType==1? 'more' : 'less')+
+                        ' likely to agree with you if you are more confident ' +
+                        'in your initial decision.';
+                    last = statsContainer.appendChild(document.createElement('p'));
+                    last.innerHTML = "Chosen: <strong>"+
+                        Math.round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,3).toString()+'%</strong>';
+                    last.title = 'How many times did you select this advisor when you had a choice?';
+                    last = statsContainer.appendChild(document.createElement('p'));
+                    last.innerHTML = "Influence: <strong>"+
+                        Math.round(self.getTotalInfluence(g.trials, advisor.id),3).toString()+'</strong>';
+                    last.title = 'How much did you change your confidence after hearing this advisor\'s advice.';
+                    let changedAnswers = self.adviceAnswerChanges(g.trials, advisor.id);
+                    last = statsContainer.appendChild(document.createElement('p'));
+                    last.innerHTML = "Mistakes avoided: <strong>"+changedAnswers[1]+'</strong>';
+                    last.title = 'How many times did you get the initial decision wrong, '+
+                        'but correct it after hearing ' +
+                        'this advisor\'s advice?';
+                    last = statsContainer.appendChild(document.createElement('p'));
+                    last.innerHTML = "Mistakes caused: <strong>"+changedAnswers[2]+'</strong>';
+                    last.title = 'How many times did you get the initial decision correct, ' +
+                        'but select the wrong answer ' +
+                        'after hearing this advisor\'s advice?';
+                    stats.appendChild(statsContainer);
+                    statsDiv.appendChild(stats);
+                    // graphs (questionnaire answers over time)
+                    let graphDiv = document.createElement('div');
+                    graphDiv.id = 'advisor'+i+'graph';
+                    graphDiv.className = 'advisor-graph graph';
+                    advisorDiv.appendChild(graphDiv);
+                    advisorContainer.appendChild(advisorDiv);
+                }
+            }
+
             // confidence
             let confidenceSection = body.appendChild(document.createElement('section'));
             let confidenceDiv = document.createElement('div');
@@ -451,24 +480,24 @@ window.analysis = {
             ];
 
             let timepoint = 0;
-            for (let t=1; t<(input.questionnaires.length); t+=2) {
-                let Qs = [input.questionnaires[t], input.questionnaires[t+1]];
-                let q = analysis.getMatches(Qs, function(questionnaire) {
-                    return questionnaire.advisorId === advisorId;
-                })[0];
+            let Qs = analysis.getMatches(input.questionnaires, function(questionnaire) {
+                return questionnaire.advisorId === advisorId;
+            });
+            for (let q=0; q<Qs.length; q++) {
+                let Q = Qs[q];
                 let likeable = 0;
                 let capable = 0;
                 let helping = 0;
-                for (let r=0; r<q.response.length; r++) {
-                    switch(q.response[r].name) {
+                for (let r=0; r<Q.response.length; r++) {
+                    switch(Q.response[r].name) {
                         case "Likeability":
-                            likeable = q.response[r].answer;
+                            likeable = Q.response[r].answer;
                             break;
                         case "Ability":
-                            capable = q.response[r].answer;
+                            capable = Q.response[r].answer;
                             break;
                         case "Benevolence":
-                            helping = q.response[r].answer;
+                            helping = Q.response[r].answer;
                             break;
                     }
                 }

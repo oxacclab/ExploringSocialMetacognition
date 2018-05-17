@@ -25,8 +25,8 @@
             width: 12px;
             height: 40px;
             position: absolute;
-            z-index: -1;
-            box-shadow: 0 0 5px 0 yellow;
+            z-index: 1;
+            box-shadow: 0 0 5px 0 black;
             border-radius: 3px;
             background-color: yellow;
         }
@@ -98,7 +98,6 @@
      * @param {function} callback - function to execute in order to enable plugin to collect a response
      */
     function drawDots(canvasId) {
-        // Update the advisors to match the advisor set for this trial
         gov.currentTrial.dotDifference = gov.dotDifference;
         let low = gov.dotCount - gov.dotDifference;
         let high = gov.dotCount + gov.dotDifference;
@@ -316,6 +315,61 @@
     }
 
     /**
+     * Show advice over the stimulus presentation area
+     */
+    function showAdvice(){
+        // Hack an advisor display in here with a directional indicator
+        let div = document.querySelector('canvas').parentElement;
+        div.innerHTML = "";
+        let picDiv = div.appendChild(document.createElement('div'));
+        picDiv.id = '#jspsych-jas-present-advice-choice-image';
+        let textDiv = div.appendChild(document.createElement('div'));
+        textDiv.id = '#jspsych-jas-present-advice-choice-prompt';
+        let a = gov.currentAdvisor;
+        picDiv.innerHTML = a.portrait.outerHTML;
+        textDiv.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.currentTrial.advice.string;
+        // Set the class of the slider the advisor endorsed
+        let slider = document.querySelector('#jspsych-sliders-response-slider-col' +
+                gov.currentTrial.advice.side);
+        slider.className += ' advisor-endorsed';
+        showMarker();
+    }
+
+    /**
+     * inject the proportion correct into the block feedback
+    */
+    function blockFeedback(){
+        let block = gov.currentTrial.block-1;
+        let trialList = analysis.getMatches(gov.trials, (trial)=>{
+           return trial.block === block;
+        });
+        let hitList = analysis.getMatches(trialList, (trial)=>{
+            let answer = trial.answer[1];
+            if (answer === null)
+                answer = trial.answer[0];
+            return answer === trial.whichSide;
+        });
+
+        let score = hitList.length / trialList.length * 100;
+        if (score < gov.minimumBlockScore) {
+            terminateExperiment(score);
+        }
+        let div = document.querySelector('#jspsych-content');
+        let p = div.insertBefore(document.createElement('p'), div.querySelector('p'));
+        p.innerText = "Your score on the last block was " + (Math.round(score*100)/100).toString() + "%.";
+        drawProgressBar();
+    }
+
+    /**
+     * Stop the experiment prematurely
+     *
+     * @param {number} score - score obtained on previous block
+     */
+    function terminateExperiment(score = 0.0) {
+
+    }
+
+    /**
      * Advisor choice function called by the jspsych-jas-present-advice-choice plugin.
      * Offer a choice of advisors by drawing clickable portraits.
      *
@@ -467,6 +521,20 @@
     }
 
     /**
+     *
+     */
+    function checkIntroResponse(trial) {
+        switch(gov.currentTrialIndex) {
+            case 0:
+                if(getAnswerFromResponse(trial.response) !== gov.currentTrial.whichSide) {
+
+                } // else fallthrough
+            default:
+                initialResponse(trial);
+        }
+    }
+
+    /**
      * Process the judge's initial response
      * @param {Object} trial - jsPsych plugin response
      */
@@ -500,6 +568,38 @@
                 return line.side === side;
             });
         }
+    }
+
+    /**
+     * determine the advisor this trial should have on the basis of the confidence of the trial
+    */
+    function findAdvisorFromContingency() {
+        // Only apply where advisor ID is specified already (i.e. force trials)
+        if (gov.currentTrial.advisorId === 0 || gov.currentTrial.practice)
+            return;
+        // Determine confidence
+        let cc = getConfidenceCategory(gov.currentTrial.id);
+        // Redraw advisor list if the answer was not valid
+        let a = gov.contingentAdvisors[cc].pop();
+        if (typeof a === 'undefined' || gov.advisorLists[gov.currentTrial.advisorSet].indexOf(a) === -1) {
+            redrawContingency(cc);
+            findAdvisorFromContingency();
+            return;
+        }
+        // Store advisor
+        gov.currentTrial.advisorId = a.id;
+    }
+
+    /**
+     * produce a shuffled list of advisors to be used for the specified confidence category
+     */
+    function redrawContingency(confidenceCategory) {
+        let advisors = gov.advisorLists[gov.currentTrial.advisorSet];
+        let blockLength = analysis.getMatches(gov.trials, (trial)=>{
+            return trial.block === gov.currentTrial.block;
+        }).length;
+        let shoe = shuffleShoe(advisors, Math.ceil(blockLength/advisors.length));
+        gov.contingentAdvisors[confidenceCategory] = shoe;
     }
 
     /**
@@ -580,7 +680,6 @@
         }
         let inner = document.querySelector('#progressbar-inner');
         inner.style.width = ((gov.trials.indexOf(gov.currentTrial)/gov.trials.length)*100).toString()+'%';
-
         document.querySelector('body').style.backgroundColor = '';
     }
 
@@ -598,7 +697,8 @@
             '#jspsych-content {max-width: 1000px !important; display:flex; margin:auto;}' +
             '#advisorChoice-choice-stimulus {max-width:100%; display:block; position:relative; ' +
             'top:60%; left:10%; margin-top:-50%;}';
-        let advisor = gov.advisors[gov.getAdvisorIndex(gov.questionnaireStack.pop())];
+
+        let advisor = gov.questionnaireStack.pop();
         gov.lastQuestionnaireAdvisorId = advisor.id;
         let img = document.createElement('img');
         img.className = 'advisor-portrait';
@@ -619,6 +719,10 @@
         gov.questionnaires.push(trial);
     }
 
+    /**
+     * submit the debrief form and finish the experiment
+     *
+     */
     function debriefFormSubmit(form) {
         let txt = form.querySelector('#debriefManipulationAnswer');
         if (txt.value.length===0) {
@@ -627,7 +731,7 @@
         }
         gov.manipulationQuestion = txt.value;
         gov.comments = form.querySelector('#debriefCommentAnswer').value;
-        document.removeChild(form);
+        document.querySelector('body').innerHTML = "";
         endExperiment();
     }
 
@@ -682,6 +786,7 @@
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: 3,
+        minimumBlockScore: 0.10,
         practiceAdvisor,
         advisorLists: [
             advisorListA,
@@ -694,44 +799,44 @@
             advisorListB[0],
             advisorListB[1]
         ],
+        contingentAdvisors: [[], [], []],
         blockCount: 2,
         blockStructure: [
             {
                 [trialTypes.catch]: 0,
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 6
+                [trialTypes.force]: 2
             },
             {
                 [trialTypes.catch]: 0,
-                [trialTypes.choice]: 6,
+                [trialTypes.choice]: 2,
                 [trialTypes.force]: 0
             }
         ],
-        blockLength: 0 + 6 + 6,
         practiceBlockCount: 1,
         practiceBlockStructure: {
             [trialTypes.catch]: 0,
             [trialTypes.choice]: 0,
-            [trialTypes.force]: 4
+            [trialTypes.force]: 2
         },
-        practiceBlockLength: 4,
         preTrialInterval: 200,
         preStimulusInterval: 500,
+        questionnaireStack: [
+            advisorListB[0], advisorListB[1],
+            advisorListB[1], advisorListB[0],
+            advisorListA[0], advisorListA[1],
+            advisorListA[1], advisorListA[0],
+            practiceAdvisor
+        ],
         stimulusDuration: 200,
         feedbackDuration: 200,
-        questionnaireFrequency: 4,
-        questionnaireStack: [
-            advisorListB[0].id, advisorListB[1].id,
-            advisorListB[1].id, advisorListB[0].id,
-            advisorListA[0].id, advisorListA[1].id,
-            advisorListA[1].id, advisorListA[0].id,
-            practiceAdvisor.id
-        ],
         miscTrials: [],
         drawDots,
         getConfidenceCategory,
         getLastConfidenceCategory,
+        checkIntroResponse,
         initialResponse,
+        findAdvisorFromContingency,
         finalResponse,
         closeTrial,
         storeMiscTrialData,
@@ -739,13 +844,15 @@
         drawQuestionnaire,
         questionnaireResponse,
         setAgreementVars,
-        showMarker,
+        showAdvice,
+        blockFeedback,
         storePluginData,
         debriefFormSubmit,
         exportGovernor
     });
 
     gov.participantId = gov.timeStart - 1520333415000;
+    gov.practiceBlockLength = sumList(gov.practiceBlockStructure);
     gov.trials = getTrials();
 
     /* create timeline */
@@ -771,8 +878,7 @@
 
     const sliderInstructions = {
         type: 'instructions',
-        pages: ["<p>Good. The task is very difficult at first, but you will get used to it.</p>" +
-        "<p>You can use the slider to indicate your <strong>confidence</strong> as well. " +
+        pages: ["<p>You can use the slider to indicate your <strong>confidence</strong> as well. " +
         "You do this by moving the slider more towards the edges if you are sure, and more towards the " +
         "middle if you are unsure.</p>" +
         "<p>E.g. if you were <strong>sure</strong> there were more dots on the <strong>left</strong>, you would move the " +
@@ -803,8 +909,12 @@
 
     const practiceInstructions = {
         type: 'instructions',
-        pages: ["<p>Good.</p><p>The main experiment will start after you have had a bit of practice with " +
-        "the task. To continue with the practice, press 'next'.</p>"],
+        pages: ["<p>Good.</p>" +
+        "<p>The main experiment will start after you have had a bit of practice with the task.</p>" +
+        "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
+        "concentrating or you will miss them. " +
+        "The task is difficult at first, but you will get used to it.</p>" +
+        "<p>To begin the practice, press 'next'.</p>"],
         show_clickable_nav: true,
         on_load: gov.drawProgressBar,
         on_finish: gov.storeMiscTrialData
@@ -813,9 +923,7 @@
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
-        "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
-        "concentrating or you will miss them.</p>" +
-        "<p>Also, sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
+        "<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
         "two advisors and you will click one to hear their advice.</p>" +
         "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
         "ready to begin.</p>"],
@@ -828,7 +936,7 @@
         type: 'instructions',
         pages: ["<h1>Break</h1><p>You may take a moment to rest here. Press 'next' when you are ready.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar,
+        on_load: gov.blockFeedback,
         on_finish: gov.storeMiscTrialData
     };
 
@@ -837,15 +945,15 @@
         type: "canvas-sliders-response",
         stimulus: gov.drawDots,
         stimulus_duration: null,
-        prompt: '<p>Which box had more dots?</p>',
+        prompt: '<p>Which box has more dots?</p>',
         sliderCount: 2,
         labels: [
             ['Certain', 'Unsure'],
             ['Unsure', 'Certain']
         ],
         slider_prompt: [
-            'Left',
-            'Right'
+            'LEFT',
+            'RIGHT'
         ],
         slider_name: [
             'Left',
@@ -858,7 +966,7 @@
         canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
         on_load: setSliderClick,
-        on_finish: gov.initialResponse,
+        on_finish: gov.checkIntroResponse,
         post_trial_gap: gov.feedbackDuration
     };
 
@@ -874,8 +982,8 @@
             ['Unsure', 'Certain']
         ],
         slider_prompt: [
-            'Left',
-            'Right'
+            'LEFT',
+            'RIGHT'
         ],
         slider_name: [
             'Left',
@@ -903,7 +1011,7 @@
             div.innerHTML = a.portrait.outerHTML;
             return a.portrait.src;
         },
-        trial_duration: 2000,
+        trial_duration: 1000,
         playAudioFunction: function (choice) {
             let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
             div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.currentTrial.advice.string;
@@ -911,22 +1019,21 @@
         },
         prompt: "",
         on_finish: gov.storePluginData,
-        on_load: gov.drawProgressBar
+        on_load: gov.findAdvisorFromContingency
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
     const finalDecision = {
         type: "canvas-sliders-response",
         stimulus: function(){},
-        prompt: '<p>Final decision: Which box had more dots?</p>',
         sliderCount: 2,
         labels: [
             ['Certain', 'Unsure'],
             ['Unsure', 'Certain']
         ],
         slider_prompt: [
-            'Left',
-            'Right'
+            'LEFT',
+            'RIGHT'
         ],
         slider_name: [
             'Left',
@@ -937,7 +1044,7 @@
         exclusive_group: [1, 1],
         canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
-        on_load: gov.showMarker,
+        on_load: gov.showAdvice,
         on_finish: gov.finalResponse,
         post_trial_gap: gov.feedbackDuration
     };
@@ -1014,7 +1121,7 @@
     const test_procedure = {
         timeline: [initialDecision, advice, finalDecision],
         randomize_order: false,
-        repetitions: gov.blockLength
+        repetitions: sumList(gov.blockStructure)/2
     };
 
     // intro and practice
@@ -1030,26 +1137,32 @@
         timeline.push(practice_procedure);
         if (b===1)
             timeline.push(questionnaire);
-        timeline.push(blockBreak);
     }
 
     timeline.push(finalInstructions);
-    timeline.push(questionnaireProspective);
-    timeline.push(questionnaireProspective);
 
     // real experiment
-    for (let b=1; b<=gov.blockCount; b++) {
-        timeline.push(test_procedure);
+    for (let a=0; a<gov.advisorLists.length; a++) {
+        timeline.push(questionnaireProspective);
+        timeline.push(questionnaireProspective);
+
+        // real experiment
+        for (let b=0; b<gov.blockStructure.length; b++) {
+            test_procedure.repetitions = sumList(gov.blockStructure[b]);
+            timeline.push(test_procedure);
+            timeline.push(blockBreak);
+        }
+
+        // Remove the last break screen
+        timeline.pop();
+
+        timeline.push(questionnaire);
+        timeline.push(questionnaire);
         timeline.push(blockBreak);
-        if (!b%gov.questionnaireFrequency && b!==gov.blockCount-1)
-            timeline.push(questionnaire);
     }
 
-    // Remove the last break screen
     timeline.pop();
 
-    timeline.push(questionnaire);
-    timeline.push(questionnaire);
 
     /* start the experiment */
     jsPsych.init({

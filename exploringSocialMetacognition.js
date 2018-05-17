@@ -437,6 +437,25 @@ window.ESM = {
         }
 
         /**
+         * Return a string describing policy of agreementType
+         *
+         * @param {int} agreementType
+         * @returns {string}
+         */
+        agreementTypeNames(agreementType) {
+            switch(agreementType) {
+                case 1:
+                case 3:
+                    return "Agree in Confidence";
+                case 2:
+                case 4:
+                    return "Agree in Uncertainty";
+                default:
+                    return "Balanced";
+            }
+        }
+
+        /**
          * Return true if Advisor agrees with judgement
          *
          * @param {boolean} judgeCorrect - whether the judge's judgement was correct
@@ -620,4 +639,41 @@ function sumList(list, recursive = true, ignoreBadValues = true) {
         }
     }
     return sum;
+}
+
+/**
+ * Return a new copy of object
+ *
+ * @param {object} obj - object to copy
+ * @param {boolean} [deep=true] - whether to recursively copy child objects
+ * @returns {object} - copy of *obj*
+ */
+function copyObject(obj, deep = true) {
+    let out = {};
+    for(let k=0; k<Object.keys(obj).length; k++) {
+        let key = Object.keys(obj)[k];
+        if (typeof obj[key] === 'object' && deep)
+            out[key] = copyObject(obj[key], deep);
+        else
+            out[key] = obj[key];
+    }
+    return out;
+}
+
+/**
+ * return a new copy of an array
+ *
+ * @param {Array} array - array to copy
+ * @param {boolean} [recursive=true] - whether to create new copies of arrays within *array*
+ * @returns {Array}
+ */
+function copyArray(array, recursive = true) {
+    let out = [];
+    for (let i=0; i<array.length; i++) {
+        if(Array.isArray(array[i]) && recursive)
+            out.push(copyArray(array[i]), true);
+        else
+            out.push(array[i]);
+    }
+    return out;
 }
