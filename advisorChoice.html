@@ -14,10 +14,6 @@
     <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
     <script src="src/bowser.min.js"></script>
     <script src="src/jspsych-function-sliders-response.js"></script>
-    <script src="src/exploringSocialMetacognition.js"></script>
-    <script src="src/analysis.js"></script>
-    <script src="src/saveData.js"></script>
-    <script src="src/debriefForm.js"></script>
     <script src="src/jspsych-jas-present-advice-choice.js"></script>
 
     <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
@@ -85,7 +81,13 @@
         </div>
     </div>
 </body>
-<script type="text/javascript">
+<script type="module">
+    import {DoubleDotGrid, Advisor, Trial, Governor,
+        shuffleShoe, sumList, orderArray, shuffle} from './src/exploringSocialMetacognition.js';
+    import {advisorChoice, getMatches} from "./src/analysis.js";
+    import processData from "./src/saveData.js";
+    import drawDebriefForm from "./src/debriefForm.js";
+
     const trialTypes = {
         catch: 0,
         force: 1,
@@ -104,14 +106,13 @@
      * drawing.
      *
      * @param {string} canvasId - id of the canvas on which to draw the dots (supplied by the trial)
-     * @param {function} callback - function to execute in order to enable plugin to collect a response
      */
     function drawDots(canvasId) {
         gov.currentTrial.dotDifference = gov.dotDifference;
         let low = gov.dotCount - gov.dotDifference;
         let high = gov.dotCount + gov.dotDifference;
         let dots = gov.currentTrial.whichSide === 0 ? [high, low] : [low, high];
-        let grid = new ESM.DoubleDotGrid(dots[0], dots[1], {
+        let grid = new DoubleDotGrid(dots[0], dots[1], {
             spacing: 100
         });
         gov.currentTrial.grid = grid;
@@ -179,7 +180,7 @@
     }
 
     /**
-     * Return a list of ESM.Trial objects.
+     * Return a list of Trial objects.
      *
      * A large part of the work of defining the experiment takes place here, although the key properties are
      * actually defined in the Governor definition.
@@ -244,7 +245,7 @@
                     advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
                 let r = Math.random() < .5? 1 : 0;
                 let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
-                trials.push(new ESM.Trial(id, {
+                trials.push(new Trial(id, {
                     type: trialType,
                     typeName: trialTypeNames[trialType],
                     block: b,
@@ -335,6 +336,7 @@
         let textDiv = div.appendChild(document.createElement('div'));
         textDiv.id = '#jspsych-jas-present-advice-choice-prompt';
         let a = gov.currentAdvisor;
+        console.log('current advisor > ' + a.id)
         picDiv.innerHTML = a.portrait.outerHTML;
         textDiv.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.currentTrial.advice.string;
         // Set the class of the slider the advisor endorsed
@@ -349,10 +351,10 @@
     */
     function blockFeedback(){
         let block = gov.currentTrial.block-1;
-        let trialList = analysis.getMatches(gov.trials, (trial)=>{
+        let trialList = getMatches(gov.trials, (trial)=>{
            return trial.block === block;
         });
-        let hitList = analysis.getMatches(trialList, (trial)=>{
+        let hitList = getMatches(trialList, (trial)=>{
             let answer = trial.answer[1];
             if (answer === null)
                 answer = trial.answer[0];
@@ -392,6 +394,7 @@
                 callback(-1); // catch trials
                 return;
             } else {
+                findAdvisorFromContingency();
                 callback(gov.currentAdvisor.id); // force trials
                 return;
             }
@@ -420,7 +423,7 @@
     }
 
     /**
-     * Save the data sent from the plugin in the ESM.Trial object
+     * Save the data sent from the plugin in the Trial object
      *
      * @param {Object} pluginData - response data sent by a jsPsych plugin
      */
@@ -454,7 +457,7 @@
         args.correctOnly = typeof args.correctOnly === 'undefined'? true : args.correctOnly;
         args.initialAnswerCorrect = typeof args.initialAnswerCorrect? true : args.initialAnswerCorrect;
         args.initialConfidence = typeof args.initialConfidence? true : args.initialConfidence;
-        let trialIndex = gov.trials.indexOf(analysis.getMatches(gov.trials, function (trial) {
+        let trialIndex = gov.trials.indexOf(getMatches(gov.trials, function (trial) {
             return trial.id === trialId;
         })[0]);
         if (trialIndex === -1) {
@@ -520,7 +523,7 @@
      * @param {boolean} [args.initialConfidence=true] - whether to count the initial (as opposed to final) confidence
      */
     function getLastConfidenceCategory(args) {
-        let last = analysis.getMatches(gov.trials, function (trial) {
+        let last = getMatches(gov.trials, function (trial) {
             return !isNaN(trial.answer[0]);
         }).length-1;
 
@@ -533,16 +536,17 @@
      * Ensure the participant did the intro trial correctly
      * @param {Object} trial - jsPsych plugin response
      *
-     * @return false if trial should be repeated or void if okay
+     * @return {Boolean|void} false if trial should be repeated or void if okay
      */
     function checkIntroResponse(trial) {
         switch(gov.currentTrialIndex) {
-            case 0:
+            case 0: // First practice - have to get it right (it's very easy)
                 if(getAnswerFromResponse(trial.response) !== gov.currentTrial.whichSide) {
                     // redo the first trial
                     // returning false tells jsPsych to repeat the trial
                     return false;
-                } // else fallthrough
+                } else
+                    return initialResponse(trial);
             default:
                 return initialResponse(trial);
         }
@@ -609,11 +613,10 @@
      */
     function redrawContingency(confidenceCategory) {
         let advisors = gov.advisorLists[gov.currentTrial.advisorSet];
-        let blockLength = analysis.getMatches(gov.trials, (trial)=>{
+        let blockLength = getMatches(gov.trials, (trial)=>{
             return trial.block === gov.currentTrial.block;
         }).length;
-        let shoe = shuffleShoe(advisors, Math.ceil(blockLength/advisors.length));
-        gov.contingentAdvisors[confidenceCategory] = shoe;
+        gov.contingentAdvisors[confidenceCategory] = shuffleShoe(advisors, Math.ceil(blockLength/advisors.length));
     }
 
     /**
@@ -774,14 +777,14 @@
     let adviceTypes = [0,3,4,3,4];
     let advisorIdDeck = shuffle([1, 2, 3, 4, 5]);
     let advisorPicDeck = shuffle([1, 2, 3, 4, 5]);
-    let practiceAdvisor = new ESM.Advisor(advisorIdDeck[0], adviceTypes[0], null, advisorPicDeck[0]);
+    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0], null, advisorPicDeck[0]);
     let advisorListA = [
-        new ESM.Advisor(advisorIdDeck[1], adviceTypes[1], null, advisorPicDeck[1]),
-        new ESM.Advisor(advisorIdDeck[2], adviceTypes[2], null, advisorPicDeck[2])
+        new Advisor(advisorIdDeck[1], adviceTypes[1], null, advisorPicDeck[1]),
+        new Advisor(advisorIdDeck[2], adviceTypes[2], null, advisorPicDeck[2])
     ];
     let advisorListB = [
-        new ESM.Advisor(advisorIdDeck[3], adviceTypes[3], null, advisorPicDeck[3]),
-        new ESM.Advisor(advisorIdDeck[4], adviceTypes[4], null, advisorPicDeck[4])
+        new Advisor(advisorIdDeck[3], adviceTypes[3], null, advisorPicDeck[3]),
+        new Advisor(advisorIdDeck[4], adviceTypes[4], null, advisorPicDeck[4])
     ];
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];
@@ -795,7 +798,7 @@
      * required to run the experiment (e.g. advisors, trials); and it holds miscellaneous temporary
      * variables which are required for things such as staircasing.
      */
-    window.gov = new ESM.Governor({
+    let gov = new Governor({
         timeStart: (new Date).getTime(),
         dotCount: 200,
         dotDifference: 30,
@@ -864,6 +867,9 @@
         debriefFormSubmit,
         exportGovernor
     });
+
+    // hoist gov to allow console access
+    window.gov = gov;
 
     gov.participantId = gov.timeStart - 1520333415000;
     gov.practiceBlockLength = sumList(gov.practiceBlockStructure);
@@ -977,8 +983,8 @@
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
         require_change: [1, 1],
-        canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: setSliderClick,
         on_finish: gov.checkIntroResponse,
         post_trial_gap: gov.feedbackDuration
@@ -1007,8 +1013,8 @@
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
         require_change: [1, 1],
-        canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: setSliderClick,
         on_finish: gov.initialResponse
     };
@@ -1020,6 +1026,7 @@
         displayImageFunction: function(choice, divId) {
             let div = document.querySelector('#' + divId);
             let a = gov.currentAdvisor;
+            console.log('current advisor = ' + a.id)
             if (typeof a === 'undefined')
                 return -1; // special value which tells the present-advice plugin to end early
             div.innerHTML = a.portrait.outerHTML;
@@ -1032,8 +1039,7 @@
             //gov.currentTrial.advice.play();
         },
         prompt: "",
-        on_finish: gov.storePluginData,
-        on_load: gov.findAdvisorFromContingency
+        on_finish: gov.storePluginData
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
@@ -1056,8 +1062,8 @@
         reversed: [true, false],
         slider_col_spacing: [40],
         exclusive_group: [1, 1],
-        canvasWidth: (new ESM.DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new ESM.DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: gov.showAdvice,
         on_finish: gov.finalResponse,
         post_trial_gap: gov.feedbackDuration
@@ -1194,7 +1200,7 @@
 
     function feedback(data) {
         google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(function(){analysis.advisorChoice.showFeedback(data)});
+        google.charts.setOnLoadCallback(function(){new advisorChoice().showFeedback(data)});
     }
     function endExperiment() {
         gov.timeEnd = (new Date()).getTime();

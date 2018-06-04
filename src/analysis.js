@@ -1,709 +1,724 @@
-window.analysis = {
+/**
+ * Analysis functions for Exploring Social Metacognition
+ * Matt Jaquiery, Feb 2018
+ *
+ * Javascript library for running social metacognition analyses.
+ */
+
+"use strict";
+import {Trial, copyArray} from "./exploringSocialMetacognition.js";
+
+/**
+ * @class advisorChoice
+ *
+ * Functions pertaining to the advisorChoice experiment
+ */
+class advisorChoice {
     /**
-     * @class advisorChoice
+     * Return the overall accuracy of the judge
      *
-     * Functions pertaining to the advisorChoice experiment
+     * @param {Trial[]} trials - trial list
+     * @param {boolean} firstResponse - whether to query initial response rather than final response
+     * @param {boolean} returnArray - whether to return an array with proportion hits, hits, and misses
+     * @returns {number[]|number} - proportion of hits / total [, hits, misses]
      */
-    advisorChoice: {
-        /**
-         * Return the overall accuracy of the judge
-         *
-         * @param {ESM.Trial[]} trials - trial list
-         * @param {boolean} firstResponse - whether to query initial response rather than final response
-         * @param {boolean} returnArray - whether to return an array with proportion hits, hits, and misses
-         * @returns {number[]|number} - proportion of hits / total [, hits, misses]
-         */
-        overallAccuracy: function(trials, returnArray = false, firstResponse = true) {
-            let hits = 0;
-            let misses = 0;
-            let i = firstResponse? 0 : 1;
-            trials.forEach(function (trial) {
-                if (typeof trial.answer[i] === 'undefined' || typeof trial.whichSide === 'undefined'
-                    || isNaN(trial.answer[i]))
-                    return;
-                if (trial.answer[i] === trial.whichSide)
-                    hits++;
-                else
-                    misses++;
-            });
-            // protect against div0 errors
-            if (hits === 0 && misses === 0)
-                return returnArray? [NaN] : NaN;
-            if (misses === 0)
-                return returnArray? [1, hits, misses] : 1;
-            if (returnArray)
-                return [hits/(hits+misses), hits, misses];
+    overallAccuracy(trials, returnArray = false, firstResponse = true) {
+        let hits = 0;
+        let misses = 0;
+        let i = firstResponse? 0 : 1;
+        trials.forEach(function (trial) {
+            if (typeof trial.answer[i] === null || typeof trial.whichSide === null
+                || isNaN(trial.answer[i]))
+                return;
+            if (trial.answer[i] === trial.whichSide)
+                hits++;
             else
-                return hits/(hits+misses);
-        },
-
-        /**
-         * Return accuracy summary broken down by decision
-         * @param {ESM.Trial[]} trials - trial list
-         * @returns {{initial: number[], final: number[], combined: number[]}}
-         */
-        accuracySummary: function(trials) {
-            let initial = this.overallAccuracy(trials, true, true);
-            let final = this.overallAccuracy(trials, true, false);
-            let combined = [
-                (initial[1]+final[1]) / (initial[1]+initial[2]+final[1]+final[2]),
-                (initial[1]+final[1]),
-                (initial[2]+final[2])
-            ];
-            return {initial, final, combined};
-        },
-
-        /**
-         * Return the mean confidence of trials
-         * @param {ESM.Trial[]} trials - trial list
-         * @param {boolean} firstResponse - whether to extract the initial vs final response
-         * @returns {number[]} - [mean, sum, count]
-         */
-        meanConfidence: function(trials, firstResponse = true) {
-            let sum = 0;
-            let count = 0;
-            let i = firstResponse? 0 : 1;
-            trials.forEach(function (trial) {
-                if (typeof trial.confidence[i] === 'undefined' || isNaN(trial.confidence[i]))
-                    return;
-                sum += trial.confidence[i];
-                count++;
-            });
-            if (count===0)
-                return NaN;
-            return [sum/count, sum, count];
-        },
-
-        /**
-         * Get a summary of confidence for inital, final, and combined scores
-         * @param {ESM.Trial[]} trials - trial list
-         * @returns {{initial: number[], final: number[], combined: number[]}}
-         */
-        confidenceSummary: function(trials) {
-              let initial = this.meanConfidence(trials, true);
-              let final = this.meanConfidence(trials, false);
-              let combined = [
-                  (initial[1]+final[1] / (initial[1]+initial[2]+final[1]+final[2])),
-                  (initial[1]+final[1]),
-                  (initial[2]+final[2])
-              ];
-              return {initial, final, combined};
-        },
-
-        /**
-         * Confidence broken down by whether the initial/final decision was in/correct
-         * @param trials
-         * @returns {{initial: {correct: *|{initial: number[], final: number[], combined: number[]}, incorrect: *|{initial: number[], final: number[], combined: number[]}}, final: {correct: *|{initial: number[], final: number[], combined: number[]}, incorrect: *|{initial: number[], final: number[], combined: number[]}}}}
-         */
-        confidenceBreakdown: function(trials) {
-            let self = this;
-            let initialCorrectTrials = analysis.getMatches(trials, function(trial) {
-                return self.accuracySummary([trial]).initial[0] === 1;
-            });
-            let initialIncorrectTrials = analysis.getMatches(trials, function(trial) {
-                return self.accuracySummary([trial]).initial[0] === 0;
-            });
-            let finalCorrectTrials = analysis.getMatches(trials, function(trial) {
-                return self.accuracySummary([trial]).final[0] === 1;
-            });
-            let finalIncorrectTrials = analysis.getMatches(trials, function(trial) {
-                return self.accuracySummary([trial]).final[0] === 0;
-            });
-            let correct = this.confidenceSummary(initialCorrectTrials);
-            let incorrect = this.confidenceSummary(initialIncorrectTrials);
-            let correctFinal = this.confidenceSummary(finalCorrectTrials);
-            let incorrectFinal = this.confidenceSummary(finalIncorrectTrials);
-
-            return {
-                initial: {correct, incorrect},
-                final: {correct: correctFinal, incorrect: incorrectFinal}
-            };
-        },
-
-        /**
-         * Return true if the advice offered on *trial* was correct
-         * @param {ESM.Trial} trial
-         * @returns {boolean}
-         */
-        isGoodAdvice: function (trial) {
-            if (typeof trial.advisorAgrees === 'undefined' || typeof trial.whichSide === 'undefined'
-                || typeof trial.answer === 'undefined' || isNaN(trial.answer[0]))
-                return false;
-            if (trial.answer[0] === trial.whichSide && trial.advisorAgrees)
-                return true;
-            if (trial.answer[0] !== trial.whichSide && !trial.advisorAgrees)
-                return true;
-            return false;
-        },
-
-        /**
-         * Return the accuracy of the advisor
-         * @param {ESM.Trial[]} trials - trial list
-         * @param {int} advisorId - id of the advisor
-         * @returns {number[]} - [mean accuracy, hits, misses]
-         */
-        advisorAccuracy: function (trials, advisorId) {
-            let self = this;
-            let hits = analysis.getMatches(trials, function(trial) {
-                return (trial.advisorId === advisorId && self.isGoodAdvice(trial));
-            }).length;
-            let misses = analysis.getMatches(trials, function(trial) {
-                return (trial.advisorId === advisorId && !self.isGoodAdvice(trial));
-            }).length;
-
-            if (misses === 0 && hits === 0)
-                return [NaN, 0, 0];
-            if (misses === 0)
-                return [1, hits, misses];
+                misses++;
+        });
+        // protect against div0 errors
+        if (hits === 0 && misses === 0)
+            return returnArray? [NaN] : NaN;
+        if (misses === 0)
+            return returnArray? [1, hits, misses] : 1;
+        if (returnArray)
             return [hits/(hits+misses), hits, misses];
-        },
-
-        /**
-         * Return the influence rating of the advice on *trial*
-         * @param {ESM.Trial} trial
-         * @returns {number}
-         */
-        getInfluence: function(trial) {
-            if (typeof trial.advisorId === 'undefined' || typeof trial.advisorAgrees === 'undefined'
-                || typeof trial.confidence === 'undefined' || isNaN(trial.confidence[0]))
-                return 0;
-            // advisor agrees; influence is the increase in confidence
-            if (trial.advisorAgrees)
-                return trial.confidence[1] - trial.confidence[0];
-            else if (trial.answer[0] === trial.answer[1]) {
-                // advisor disagrees, and the answer stays the same. Influence is decrease in confidence
-                return trial.confidence[0] - trial.confidence[1];
-            } else {
-                // advisor disagrees, answer has changed. Influence is new confidence + old confidence
-                return trial.confidence[0] + trial.confidence[1];
-            }
-        },
-
-        /**
-         * Return the maximum influence the advisor could have had on *trial* given the initial confidence
-         * @param {ESM.Trial} trial
-         * @returns {number}
-         */
-        getMaxInfluence: function (trial) {
-            if (typeof trial.advisorId === 'undefined' || typeof trial.advisorAgrees === 'undefined'
-                || typeof trial.confidence === 'undefined' || isNaN(trial.confidence[0]))
-                return 0;
-            // advisor agrees; max influence 100-confidence
-            if (trial.advisorAgrees)
-                return 100 - trial.confidence[0];
-            else // advisor disagrees; max influence is 100+confidence
-                return 100 + trial.confidence[0];
-        },
-
-        getTotalInfluence(trials, advisorId) {
-            let influence = [];
-            trials.forEach(function (trial){
-                if (trial.advisorId !== advisorId)
-                    return;
-                influence.push(analysis.advisorChoice.getInfluence(trial));
-            });
-            if (!influence.length)
-                return NaN;
-            let sum = 0;
-            influence.forEach((x)=>{sum+=x});
-            return sum/influence.length;
-        },
-
-        /**
-         * Return the portion of good advice utilized by the judge. Can be >1 if the judge disagrees on incorrect
-         * advice trials (the 'max' simply ignores advice on incorrect trials).
-         *
-         * @param {ESM.Trials[]} trials - trial list
-         * @param {int} advisorId - advisor id
-         * @returns {number[]} - [influence/maxInfluence, influence, maxInfluence]
-         */
-        strategicAdviceUsage: function (trials, advisorId) {
-            let self = this;
-            let goodAdviceTrials = analysis.getMatches(trials, function(trial) {
-                return trial.advisorId === advisorId && self.isGoodAdvice(trial);
-            });
-            let badAdviceTrials = analysis.getMatches(trials, function(trial) {
-                return trial.advisorId === advisorId && !self.isGoodAdvice(trial);
-            });
-            let maxInfluence = 0;
-            let influence = 0;
-            // Judge accrues points for heeding good advice
-            goodAdviceTrials.forEach(function (trial) {
-                maxInfluence += self.getMaxInfluence(trial);
-                influence += self.getInfluence(trial);
-            });
-            // Judge looses points for heeding bad advice
-            badAdviceTrials.forEach(function (trial) {
-                influence -= self.getInfluence(trial);
-            });
-
-            return [influence/maxInfluence, influence, maxInfluence];
-        },
-
-        adviceAnswerChanges: function (trials, advisorId) {
-            let advisorChangedTrials = analysis.getMatches(trials, function (trial) {
-                if (trial.advisorId !== advisorId)
-                    return false;
-                if (trial.answer[0] === trial.answer[1])
-                    return false;
-                return trial.advisorAgrees;
-            });
-            if (advisorChangedTrials.length === 0)
-                return [NaN, 0, 0];
-            let hits = analysis.getMatches(advisorChangedTrials, function(trial) {
-                return trial.answer[1] === trial.whichSide;
-            }).length;
-            let misses = advisorChangedTrials.length - hits;
-            if (misses === 0)
-                return [NaN, hits, misses];
-            else
-                return [hits/misses, hits, misses];
-        },
-
-        /**
-         * Return the proportion of possible choices in which this advisor was chosen
-         * @param {ESM.Trial[]} trials - trial list
-         * @param {int} advisorId - id of the candidate advisor
-         * @returns {number[]}
-         */
-        advisorChoiceRate: function (trials, advisorId) {
-            let choiceTrials = analysis.getMatches(trials, function(trial) {
-                return trial.choice.length && trial.choice.indexOf(advisorId) !== -1;
-            });
-            if (!choiceTrials.length)
-                return [NaN];
-            let chosenTrials = analysis.getMatches(choiceTrials, function(trial) {
-                return trial.advisorId === advisorId;
-            });
-            return [chosenTrials.length/choiceTrials.length, chosenTrials.length, choiceTrials.length];
-        },
-
-        /**
-         * Show feedback based on a Governor object
-         * @param {ESM.Governor} g
-         */
-        showFeedback: function (g) {
-            let self = this;
-            let advisors = copyArray(g.advisors);
-            advisors.shift(); // drop the practice advisor
-            let body = document.querySelector('body');
-                // Nav
-            let nav = document.createElement('nav');
-            nav.innerHTML = "<ul><li><a href='#confidence'>confidence</a></li>" +
-                "<li><a href='#advisors'>advisors</a></li>" +
-                "<li><a href='#accuracy'>accuracy</a></li></ul>";
-            body.appendChild(nav);
-            // Thanks
-            let thanksSection = body.appendChild(document.createElement('section'));
-            let thanksDiv = document.createElement('div');
-            thanksDiv.id = 'thanks';
-            thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment you " +
-                "had two advisors, and were sometimes able to choose between them. Both of these advisors are " +
-                "equally accurate on the task, but one agreed with you more often when you are more confident, " +
-                "while the other agreed with you more often when you were unsure.</p>" +
-                "<p>We suspect that most people will prefer the advisor who agrees with them more when they are more " +
-                "confident. Let's have a look at how your results and see how you did on the task and whether your " +
-                "choices matched our prediction.</p>";
-            thanksSection.appendChild(thanksDiv);
-            let permalinkDiv = thanksDiv.appendChild(document.createElement('div'));
-            permalinkDiv.className = 'permalink-container';
-            let permalinkLabel = permalinkDiv.appendChild(document.createElement('div'));
-            permalinkLabel.className = 'permalink-label';
-            permalinkLabel.innerText = 'Permanent link:';
-            let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
-            permalinkLink.className = 'permalink-link';
-            permalinkLink.innerText = window.location.origin + '/' + window.location.pathname.split('/')[1] +
-                '/feedback.html?uid=' + g.participantId;
-            let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
-            permalinkCopy.className = 'permalink-copy';
-            permalinkCopy.onclick = function(){
-                let linkDiv = document.querySelector('div.permalink-link');
-                let range = document.createRange();
-                range.selectNodeContents(linkDiv);
-                window.getSelection().removeAllRanges();
-                window.getSelection().addRange(range);
-                document.execCommand('copy');
-            };
-            // Accuracy
-            let accuracySection = body.appendChild(document.createElement('section'));
-            let accuracyDiv = document.createElement('div');
-            accuracyDiv.id = 'accuracy';
-            accuracySection.appendChild(accuracyDiv);
-            accuracyDiv.appendChild(document.createElement('h2')).innerHTML =
-                '<a href="#top" name="accuracy">Accuracy</a>';
-            let accuracyContainer = document.createElement('div');
-            accuracyContainer.id = 'accuracyContainer';
-            accuracyContainer.className = 'container';
-            accuracyDiv.appendChild(accuracyContainer);
-            let accuracyDescription = document.createElement('div');
-            accuracyDescription.id = 'accuracyDescription';
-            accuracyDescription.className = 'description';
-            let pre = this.accuracySummary(g.trials);
-            let post = Math.round(pre.final[0]*100,3);
-            pre = Math.round(pre.initial[0]*100,3);
-            accuracyDescription.innerHTML = "<p>The task difficulty changes based on your performance so that we " +
-                "can compare advice-taking properly. Your initial accuracy should be approximately 71%. " +
-                "We expect most people to have higher accuracy after advice than " +
-                "before advice. Your pre-advice accuracy was <strong>"+pre+
-                "%</strong>, and your post-advice accuracy " +
-                "was <strong>"+post+"%</strong>. The advisors are programmed to be equally accurate on average, and " +
-                "they should score around 70%.</p>";
-            accuracyContainer.appendChild(accuracyDescription);
-            let accuracyGraph = document.createElement('div');
-            accuracyGraph.id = 'accuracyGraph';
-            accuracyGraph.className = 'graph';
-            accuracyContainer.appendChild(accuracyGraph);
-            // Advisor choice
-            let advisorSection = body.appendChild(document.createElement('section'));
-            let advisorWrapper = document.createElement('div');
-            advisorWrapper.id = 'advisorWrapper';
-            advisorSection.appendChild(advisorWrapper);
-            advisorWrapper.appendChild(document.createElement('h2')).innerHTML =
-                '<a href="#top" name="advisors">Advisors</a>';
-            for(let aS=0; aS<advisors.length/2; aS++) {
-                let advisorContainer = document.createElement('div');
-                advisorContainer.id = 'advisorContainer' + aS.toString();
-                advisorContainer.className = 'advisor-container container';
-                advisorSection.appendChild(advisorContainer);
-                for(let a=aS*2; a<aS*2+2; a++) {
-                    let advisor = advisors[a];
-                    let i = advisor.id;
-                    let advisorDiv = document.createElement('div');
-                    advisorDiv.id = 'advisor'+i;
-                    advisorDiv.className = 'advisor';
-                    // stats (portrait + statistics)
-                    let statsDiv = document.createElement('div');
-                    statsDiv.id = 'advisor'+i+'statsWrapper';
-                    statsDiv.className = 'advisor-stats-wrapper';
-                    advisorDiv.appendChild(statsDiv);
-                    // portrait
-                    let portraitDiv = document.createElement('div');
-                    portraitDiv.id = 'advisor'+i+'portrait';
-                    portraitDiv.className = 'advisor-portrait';
-                    portraitDiv.style.backgroundImage = "url('"+advisor.portraitSrc+"')";
-                    statsDiv.appendChild(portraitDiv);
-                    // stats
-                    let statsContainer = document.createElement('div');
-                    statsContainer.id = 'advisor'+i+'statsContainer';
-                    statsContainer.className = 'advisor-stats-container';
-                    let stats = document.createElement('div');
-                    stats.id = 'advisor'+i+'stats';
-                    stats.className = 'advisor-stats';
-                    stats.appendChild(document.createElement('h3')).innerText = advisor.name;
-                    let last = statsContainer.appendChild(document.createElement('p'));
-                    last.innerHTML= "<em>Agrees when "+(advisor.adviceType===3? 'confident' : 'uncertain')+"</em>";
-                    last.title = 'When your initial decision is correct, this advisor is '+
-                        (advisor.adviceType==1? 'more' : 'less')+
-                        ' likely to agree with you if you are more confident ' +
-                        'in your initial decision.';
-                    last = statsContainer.appendChild(document.createElement('p'));
-                    last.innerHTML = "Chosen: <strong>"+
-                        Math.round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,3).toString()+'%</strong>';
-                    last.title = 'How many times did you select this advisor when you had a choice?';
-                    last = statsContainer.appendChild(document.createElement('p'));
-                    last.innerHTML = "Influence: <strong>"+
-                        Math.round(self.getTotalInfluence(g.trials, advisor.id),3).toString()+'</strong>';
-                    last.title = 'How much did you change your confidence after hearing this advisor\'s advice.';
-                    let changedAnswers = self.adviceAnswerChanges(g.trials, advisor.id);
-                    last = statsContainer.appendChild(document.createElement('p'));
-                    last.innerHTML = "Mistakes avoided: <strong>"+changedAnswers[1]+'</strong>';
-                    last.title = 'How many times did you get the initial decision wrong, '+
-                        'but correct it after hearing ' +
-                        'this advisor\'s advice?';
-                    last = statsContainer.appendChild(document.createElement('p'));
-                    last.innerHTML = "Mistakes caused: <strong>"+changedAnswers[2]+'</strong>';
-                    last.title = 'How many times did you get the initial decision correct, ' +
-                        'but select the wrong answer ' +
-                        'after hearing this advisor\'s advice?';
-                    stats.appendChild(statsContainer);
-                    statsDiv.appendChild(stats);
-                    // graphs (questionnaire answers over time)
-                    let graphDiv = document.createElement('div');
-                    graphDiv.id = 'advisor'+i+'graph';
-                    graphDiv.className = 'advisor-graph graph';
-                    advisorDiv.appendChild(graphDiv);
-                    advisorContainer.appendChild(advisorDiv);
-                }
-            }
-
-            // confidence
-            let confidenceSection = body.appendChild(document.createElement('section'));
-            let confidenceDiv = document.createElement('div');
-            confidenceDiv.id = 'confidence';
-            confidenceSection.appendChild(confidenceDiv);
-            confidenceDiv.appendChild(document.createElement('h2')).innerHTML =
-                '<a href="#top" name="confidence">Confidence</a>';
-            let confidenceContainer = document.createElement('div');
-            confidenceContainer.id = 'confidenceContainer';
-            confidenceContainer.className = 'container';
-            confidenceDiv.appendChild(confidenceContainer);
-            let confidenceGraph = document.createElement('div');
-            confidenceGraph.id = 'confidenceGraph';
-            confidenceGraph.className = 'graph';
-            confidenceContainer.appendChild(confidenceGraph);
-            let confidenceDescription = document.createElement('div');
-            confidenceDescription.id = 'confidenceDescription';
-            confidenceDescription.className = 'description';
-            let preconf = this.accuracySummary(g.trials);
-            let postconf = Math.round(preconf.final[0]*100,3);
-            pre = Math.round(preconf.initial[0]*100,3);
-            confidenceDescription.innerHTML = "<p>Your confidence is presented here broken down by whether " +
-                "or not your final decision was correct. Most people show a pattern where they are more confident " +
-                "when they are correct than when they are mistaken. Additionally, most people are more confident " +
-                "after receiving advice than they were on their initial decision.</p>";
-            confidenceContainer.appendChild(confidenceDescription);
-
-            // apply 'feedback' class to all elements for styling purposes
-            body.className += ' feedback';
-            analysis.applyClassToChildren(body, 'feedback');
-            body.style.backgroundColor = 'ghostwhite';
-
-            // fill in graphs
-            this.getAccuracyGraph(g, accuracyGraph);
-            this.getConfidenceFeedback(g, confidenceGraph);
-            advisors.forEach(function (advisor) {
-                let graphDiv = document.querySelector('#advisor'+advisor.id+'graph');
-                self.getQuestionnaireGraph(g, advisor.id, graphDiv);
-            })
-        },
-
-        /**
-         * Display a graph of questionnaire responses for a given advisor. Uses google graph API.
-         * @param {ESM.Governor} input
-         * @param {int} advisorId - the advisor who is the subject of the graph
-         * @param {Element} div - div to draw the graph in
-         */
-        getQuestionnaireGraph: function (input, advisorId, div) {
-            // Create the data table.
-            let raw = [
-                ['Time', 'Likeable', 'Capable', 'Helping']
-            ];
-
-            let timepoint = 0;
-            let Qs = analysis.getMatches(input.questionnaires, function(questionnaire) {
-                return questionnaire.advisorId === advisorId;
-            });
-            for (let q=0; q<Qs.length; q++) {
-                let Q = Qs[q];
-                let likeable = 0;
-                let capable = 0;
-                let helping = 0;
-                for (let r=0; r<Q.response.length; r++) {
-                    switch(Q.response[r].name) {
-                        case "Likeability":
-                            likeable = Q.response[r].answer;
-                            break;
-                        case "Ability":
-                            capable = Q.response[r].answer;
-                            break;
-                        case "Benevolence":
-                            helping = Q.response[r].answer;
-                            break;
-                    }
-                }
-                raw.push([timepoint.toString(), parseInt(likeable), parseInt(capable), parseInt(helping)]);
-                timepoint++;
-            }
-            let data = google.visualization.arrayToDataTable(raw);
-
-            let options = {
-                width: div.parentElement.clientWidth,
-                height: div.clientHeight,
-                hAxis: {
-                    title: 'Time'
-                },
-                vAxis: {
-                    title: 'Your rating',
-                    minValue: 0,
-                    maxValue: 100
-                },
-                legend: {
-                    position: 'top',
-                    maxLines: 2,
-                    alignment: 'end',
-                }
-            };
-
-            // Instantiate and draw our chart, passing in some options.
-            let chart = new google.visualization.LineChart(div);
-            chart.draw(data, options);
-        },
-
-        /**
-         * Display a graph of participant accuracy. Uses google graph API.
-         * @param {ESM.Governor} input
-         * @param {HTMLElement} div - div to draw the graph in
-         */
-        getAccuracyGraph: function (input, div) {
-            let advisors = [];
-            for (let a=1; a<input.advisors.length; a++) {
-                advisors.push(input.advisors[a]);
-            }
-            let judgeAcc = this.accuracySummary(input.trials);
-
-            // Create the data table.
-            let raw = [
-                ['Person', 'Accuracy', { role: 'style' }],
-                ['You (pre advice)', judgeAcc.initial[0]*100, 'blue'],
-                ['You (post advice)', judgeAcc.final[0]*100, 'cornflower']
-            ];
-
-            let col = ['silver', '#e5e4e2'];
-            let coli = 0;
-            advisors.forEach(function(advisor) {
-                raw.push([
-                    advisor.name,
-                    analysis.advisorChoice.advisorAccuracy(input.trials, advisor.id)[0]*100,
-                    col[coli++]
-                ]);
-            });
-            let data = google.visualization.arrayToDataTable(raw);
-            let options = {
-                title: 'Dot-task accuracy',
-                width: div.clientWidth,
-                height: div.parentElement.clientHeight,
-                legend: {
-                    position: 'none',
-                },
-                vAxis: {
-                    title: '% correct',
-                    minValue: 50,
-                    maxValue: 100
-                }
-            };
-            // Instantiate and draw our chart, passing in some options.
-            let chart = new google.visualization.ColumnChart(div);
-            chart.draw(data, options);
-        },
-
-        /**
-         * Display a graph of participant confidence. Uses google graph API.
-         * @param {ESM.Governor} input
-         * @param {HTMLElement} div - div to draw the graph in
-         */
-        getConfidenceGraph: function (input, div) {
-            let confReport = this.confidenceBreakdown(input.trials);
-
-            // Create the data table.
-            let raw = [
-                ['Contingency', 'Confidence', { role: 'style' }],
-                ['Correct (pre advice)', confReport.final.correct.initial[0], 'blue'],
-                ['Incorrect (pre advice)', confReport.final.incorrect.initial[0], 'pink'],
-                ['Correct (post advice)', confReport.final.correct.final[0], 'blue'],
-                ['Incorrect (post advice)', confReport.final.incorrect.final[0], 'pink']
-            ];
-
-            let data = google.visualization.arrayToDataTable(raw);
-            let options = {
-                title: 'Dot-task confidence',
-                width: div.clientWidth,
-                height: div.parentElement.clientHeight,
-                legend: {
-                    position: 'none',
-                },
-                vAxis: {
-                    title: 'mean confidence',
-                    minValue: 0,
-                    maxValue: 100
-                }
-            };
-            // Instantiate and draw our chart, passing in some options.
-            let chart = new google.visualization.ColumnChart(div);
-            chart.draw(data, options);
-        },
-
-        /**
-         * Show the confidence breakdown using positions on the sliders
-         * @param {ESM.Governor} input - data holder
-         * @param {HTMLElement} div - div to draw the output inside
-         */
-        getConfidenceFeedback: function (input, div) {
-            let confReport = this.confidenceBreakdown(input.trials);
-            // Draw a representation of the slider
-            let container = div.appendChild(document.createElement('div'));
-            container.className = 'feedback confidenceBarContainer';
-            let label = container.appendChild(document.createElement('h3'));
-            label.id = 'confidenceBarLabel';
-            label.className = 'confidenceLabel preAdvice feedback';
-            label.innerText = 'Before taking advice';
-            let bar = container.appendChild(document.createElement('div'));
-            bar.id = 'confidenceBarPre';
-            bar.className = 'feedback confidenceBar preAdvice';
-            // Add indicators for the various positions
-            let correctPre = bar.appendChild(document.createElement('div'));
-            correctPre.id = 'confidenceCorrectPre';
-            correctPre.className = 'confidenceMarker correct preAdvice feedback';
-            correctPre.style.left = confReport.final.correct.initial[0].toString()+'%';
-            let incorrectPre = bar.appendChild(document.createElement('div'));
-            incorrectPre.id = 'confidenceIncorrectPre';
-            incorrectPre.className = 'confidenceMarker incorrect preAdvice feedback';
-            incorrectPre.style.left = 'calc(-20px + '+confReport.final.incorrect.initial[0].toString()+'%)';
-            // Repeat the steps for post-advice
-            let containerPost = div.appendChild(document.createElement('div'));
-            containerPost.className = 'feedback confidenceBarContainer';
-            let barPost = containerPost.appendChild(document.createElement('div'));
-            barPost.id = 'confidenceBarPost';
-            barPost.className = 'feedback confidenceBar postAdvice';
-            let correctPost = barPost.appendChild(document.createElement('div'));
-            correctPost.id = 'confidenceCorrectPost';
-            correctPost.className = 'confidenceMarker correct postAdvice feedback';
-            correctPost.style.left = confReport.final.correct.final[0].toString()+'%';
-            let incorrectPost = barPost.appendChild(document.createElement('div'));
-            incorrectPost.id = 'confidenceIncorrectPost';
-            incorrectPost.className = 'confidenceMarker incorrect postAdvice feedback';
-            incorrectPost.style.left = 'calc(-20px + '+confReport.final.incorrect.final[0].toString()+'%)';
-            let labelPost = containerPost.appendChild(document.createElement('h3'));
-            labelPost.id = 'confidenceBarLabel';
-            labelPost.className = 'confidenceLabel postAdvice feedback';
-            labelPost.innerText = 'After taking advice';
-            // Add popups
-            let cpChild = correctPre.appendChild(document.createElement('div'));
-            cpChild.className = 'confidencePopup correct preAdvice feedback';
-            cpChild.innerHTML = 'Your confidence before advice was <strong>'+
-                Math.round(confReport.final.correct.initial[0],2).toString()+
-                '</strong> when you were correct.';
-            let ipChild = incorrectPre.appendChild(document.createElement('div'));
-            ipChild.className = 'confidencePopup incorrect preAdvice feedback';
-            ipChild.innerHTML = 'Your confidence before advice was <strong>'+
-                Math.round(confReport.final.incorrect.initial[0],2).toString()+
-                '</strong> when you were incorrect.';
-            let ctChild = correctPost.appendChild(document.createElement('div'));
-            ctChild.className = 'confidencePopup correct postAdvice feedback';
-            ctChild.innerHTML = 'Your confidence after advice was <strong>'+
-                Math.round(confReport.final.correct.final[0],2).toString()+
-                '</strong> when you were correct.';
-            let itChild = incorrectPost.appendChild(document.createElement('div'));
-            itChild.className = 'confidencePopup incorrect postAdvice feedback';
-            itChild.innerHTML = 'Your confidence after advice was <strong>'+
-                Math.round(confReport.final.incorrect.final[0],2).toString()+
-                '</strong> when you were incorrect.';
-        }
-
-    },
+        else
+            return hits/(hits+misses);
+    }
 
     /**
-     * Return a subset of list where items within it return true when fed into matchFunc
-     * @param {Array} array - array to examine
-     * @param {function} matchFunc - function to examine items with
-     * @returns {Array} - array of items in *array* which pass *matchFunc*
+     * Return accuracy summary broken down by decision
+     * @param {Trial[]} trials - trial list
+     * @returns {{initial: number[], final: number[], combined: number[]}}
      */
-    getMatches: function (array, matchFunc) {
-        let out = [];
-        array.forEach(function (item) {
-            if (matchFunc(item))
-                out.push(item);
-        });
-        return out;
-    },
+    accuracySummary(trials) {
+        let initial = this.overallAccuracy(trials, true, true);
+        let final = this.overallAccuracy(trials, true, false);
+        let combined = [
+            (initial[1]+final[1]) / (initial[1]+initial[2]+final[1]+final[2]),
+            (initial[1]+final[1]),
+            (initial[2]+final[2])
+        ];
+        return {initial, final, combined};
+    }
 
-    applyClassToChildren: function (element, classname, recursive = true) {
-        for (let i=0; i<element.childElementCount; i++) {
-            let child = element.children[i];
-            child.className += ' '+classname;
-            if (recursive)
-                this.applyClassToChildren(child, classname, true);
+    /**
+     * Return the mean confidence of trials
+     * @param {Trial[]} trials - trial list
+     * @param {boolean} firstResponse - whether to extract the initial vs final response
+     * @returns {number|number[]} - [mean, sum, count] or NaN if no trials are found
+     */
+    meanConfidence(trials, firstResponse = true) {
+        let sum = 0;
+        let count = 0;
+        let i = firstResponse? 0 : 1;
+        trials.forEach(function (trial) {
+            if (typeof trial.confidence[i] === null || isNaN(trial.confidence[i]))
+                return;
+            sum += trial.confidence[i];
+            count++;
+        });
+        if (count===0)
+            return NaN;
+        return [sum/count, sum, count];
+    }
+
+    /**
+     * Get a summary of confidence for inital, final, and combined scores
+     * @param {Trial[]} trials - trial list
+     * @returns {{initial: number[], final: number[], combined: number[]}}
+     */
+    confidenceSummary(trials) {
+          let initial = this.meanConfidence(trials, true);
+          let final = this.meanConfidence(trials, false);
+          let combined = [
+              (initial[1]+final[1] / (initial[1]+initial[2]+final[1]+final[2])),
+              (initial[1]+final[1]),
+              (initial[2]+final[2])
+          ];
+          return {initial, final, combined};
+    }
+
+    /**
+     * Confidence broken down by whether the initial/final decision was in/correct
+     * @param trials
+     * @returns {{initial: {correct: *|{initial: number[], final: number[], combined: number[]}, incorrect: *|{initial: number[], final: number[], combined: number[]}}, final: {correct: *|{initial: number[], final: number[], combined: number[]}, incorrect: *|{initial: number[], final: number[], combined: number[]}}}}
+     */
+    confidenceBreakdown(trials) {
+        let self = this;
+        let initialCorrectTrials = getMatches(trials, function(trial) {
+            return self.accuracySummary([trial]).initial[0] === 1;
+        });
+        let initialIncorrectTrials = getMatches(trials, function(trial) {
+            return self.accuracySummary([trial]).initial[0] === 0;
+        });
+        let finalCorrectTrials = getMatches(trials, function(trial) {
+            return self.accuracySummary([trial]).final[0] === 1;
+        });
+        let finalIncorrectTrials = getMatches(trials, function(trial) {
+            return self.accuracySummary([trial]).final[0] === 0;
+        });
+        let correct = this.confidenceSummary(initialCorrectTrials);
+        let incorrect = this.confidenceSummary(initialIncorrectTrials);
+        let correctFinal = this.confidenceSummary(finalCorrectTrials);
+        let incorrectFinal = this.confidenceSummary(finalIncorrectTrials);
+
+        return {
+            initial: {correct, incorrect},
+            final: {correct: correctFinal, incorrect: incorrectFinal}
+        };
+    }
+
+    /**
+     * Return true if the advice offered on *trial* was correct
+     * @param {Trial} trial
+     * @returns {boolean}
+     */
+    static isGoodAdvice(trial) {
+        if (typeof trial.advisorAgrees === null || typeof trial.whichSide === null
+            || typeof trial.answer === null || isNaN(trial.answer[0]))
+            return false;
+        if (trial.answer[0] === trial.whichSide && trial.advisorAgrees)
+            return true;
+        return trial.answer[0] !== trial.whichSide && !trial.advisorAgrees;
+
+    }
+
+    /**
+     * Return the accuracy of the advisor
+     * @param {Trial[]} trials - trial list
+     * @param {int} advisorId - id of the advisor
+     * @returns {number[]} - [mean accuracy, hits, misses]
+     */
+    static advisorAccuracy(trials, advisorId) {
+        let hits = getMatches(trials, function(trial) {
+            return (trial.advisorId === advisorId && advisorChoice.isGoodAdvice(trial));
+        }).length;
+        let misses = getMatches(trials, function(trial) {
+            return (trial.advisorId === advisorId && !advisorChoice.isGoodAdvice(trial));
+        }).length;
+
+        if (misses === 0 && hits === 0)
+            return [NaN, 0, 0];
+        if (misses === 0)
+            return [1, hits, misses];
+        return [hits/(hits+misses), hits, misses];
+    }
+
+    /**
+     * Return the influence rating of the advice on *trial*
+     * @param {Trial} trial
+     * @returns {number}
+     */
+    static getInfluence(trial) {
+        if (typeof trial.advisorId === null || typeof trial.advisorAgrees === null
+            || typeof trial.confidence === null || isNaN(trial.confidence[0]))
+            return 0;
+        // advisor agrees; influence is the increase in confidence
+        if (trial.advisorAgrees)
+            return trial.confidence[1] - trial.confidence[0];
+        else if (trial.answer[0] === trial.answer[1]) {
+            // advisor disagrees, and the answer stays the same. Influence is decrease in confidence
+            return trial.confidence[0] - trial.confidence[1];
+        } else {
+            // advisor disagrees, answer has changed. Influence is new confidence + old confidence
+            return trial.confidence[0] + trial.confidence[1];
         }
     }
-};
 
-const DATA_IN = '{"timeStart":1520951033974,"dotCount":200,"dotDifference":6,"difficultyStep":3,"advisors":[{"id":1,"adviceType":0,"voice":{"basePath":"","id":3,"name":"Kate","lines":{"think_left":{"filePath":"assets/audio/voices/3/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0},"think_right":{"filePath":"assets/audio/voices/3/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0},"left_think":{"filePath":"assets/audio/voices/3/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0},"right_think":{"filePath":"assets/audio/voices/3/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0},"intro":{"filePath":"assets/audio/voices/3/intro.wav","string":"Hello, my name is KATE","loaded":true,"loading":true,"data":null,"buffer":{},"side":false}}},"name":"Kate","portrait":{},"portraitSrc":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor3.jpg"},{"id":2,"adviceType":1,"voice":{"basePath":"","id":1,"name":"Annie","lines":{"think_left":{"filePath":"assets/audio/voices/1/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0},"think_right":{"filePath":"assets/audio/voices/1/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0},"left_think":{"filePath":"assets/audio/voices/1/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0},"right_think":{"filePath":"assets/audio/voices/1/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0},"intro":{"filePath":"assets/audio/voices/1/intro.wav","string":"Hello, my name is ANNIE","loaded":true,"loading":true,"data":null,"buffer":{},"side":false}}},"name":"Annie","portrait":{},"portraitSrc":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg"},{"id":3,"adviceType":2,"voice":{"basePath":"","id":2,"name":"Bea","lines":{"think_left":{"filePath":"assets/audio/voices/2/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0},"think_right":{"filePath":"assets/audio/voices/2/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0},"left_think":{"filePath":"assets/audio/voices/2/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0},"right_think":{"filePath":"assets/audio/voices/2/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0},"intro":{"filePath":"assets/audio/voices/2/intro.wav","string":"Hello, my name is BEA","loaded":true,"loading":true,"data":null,"buffer":{},"side":false}}},"name":"Bea","portrait":{},"portraitSrc":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg"}],"blockCount":2,"blockStructure":{"0":0,"1":6,"2":6},"blockLength":12,"practiceBlockCount":1,"practiceBlockStructure":{"0":0,"1":4,"2":0},"practiceBlockLength":4,"preTrialInterval":200,"preStimulusInterval":500,"stimulusDuration":200,"feedbackDuration":200,"questionnaireFrequency":4,"questionnaireStack":[],"miscTrials":[{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":1073},{\\"page_index\\":1,\\"viewing_time\\":824}]","rt":1897,"trial_type":"instructions","trial_index":0,"time_elapsed":1899,"internal_node_id":"0.0-0.0"},{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":758}]","rt":758,"trial_type":"instructions","trial_index":2,"time_elapsed":5226,"internal_node_id":"0.0-2.0"},{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":766}]","rt":766,"trial_type":"instructions","trial_index":4,"time_elapsed":8378,"internal_node_id":"0.0-4.0"},{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":822}]","rt":822,"trial_type":"instructions","trial_index":8,"time_elapsed":15722,"internal_node_id":"0.0-6.0"},{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":6886}]","rt":6886,"trial_type":"instructions","trial_index":22,"time_elapsed":117162,"internal_node_id":"0.0-9.0"},{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":1703}]","rt":1703,"trial_type":"instructions","trial_index":23,"time_elapsed":118866,"internal_node_id":"0.0-10.0"},{"view_history":"[{\\"page_index\\":0,\\"viewing_time\\":1135}]","rt":1135,"trial_type":"instructions","trial_index":62,"time_elapsed":212354,"internal_node_id":"0.0-14.0"}],"trials":[{"type":1,"typeName":"force","block":1,"advisorId":0,"choice":[],"answer":[0,null],"confidence":[70,null],"whichSide":0,"practice":true,"feedback":true,"warnings":[],"stimulusDrawTime":[2750.52],"stimulusOffTime":[null],"fixationDrawTime":[2250.42],"id":1,"dotDifference":30,"grid":{"dotCountL":230,"dotCountR":170,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,0,0,1,1,1,0,0,1,0,0,0,0,0,0,1,1,0,1],[1,1,1,0,1,0,1,1,1,1,1,1,0,0,1,0,1,0,0,1],[0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,1,0,1,1,1],[1,1,1,0,0,1,0,1,0,0,0,0,1,0,1,0,0,1,1,0],[0,0,0,0,0,0,1,1,1,0,1,1,1,1,0,1,0,1,1,1],[1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,0,1,1,0,0],[0,1,0,0,1,0,1,1,0,1,1,1,1,1,1,1,0,1,0,0],[1,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0,0,0,1,0],[0,1,1,0,1,1,1,1,1,0,0,1,0,0,0,0,0,0,0,1],[1,1,1,1,0,0,1,0,0,1,1,1,1,1,0,0,1,1,1,1],[1,1,1,0,0,0,0,1,0,1,0,1,1,1,0,0,0,1,1,0],[1,0,1,1,1,0,1,0,0,0,0,0,0,1,0,1,0,1,0,1],[0,1,0,1,1,1,1,1,1,0,1,0,1,1,0,1,1,1,1,1],[0,1,0,1,0,0,0,0,1,1,0,1,0,0,0,1,1,1,1,0],[1,0,1,1,0,0,1,1,0,1,1,0,1,0,1,1,1,0,1,1],[1,1,1,0,0,0,1,0,0,0,1,0,1,1,0,1,1,0,1,0],[0,1,0,1,0,1,1,0,1,1,1,0,1,0,0,0,0,1,0,1],[1,1,0,1,1,1,0,1,1,0,1,0,1,0,0,0,0,1,1,1],[0,0,1,1,1,1,1,1,1,0,1,1,1,1,0,0,1,0,1,1],[0,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,0,1]],"gridR":[[1,0,0,0,1,1,1,0,0,0,0,0,0,1,1,0,1,0,1,0],[0,0,1,0,0,0,1,1,1,1,0,1,1,0,0,1,1,1,1,1],[1,1,1,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,1,0],[0,0,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0],[0,1,0,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,0,0],[0,1,0,1,1,0,0,1,0,1,1,1,0,1,0,0,0,0,0,0],[0,1,1,1,1,0,1,0,0,0,1,1,1,0,0,0,0,1,0,0],[0,0,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,1,1,1],[0,0,0,1,0,0,0,0,0,0,1,1,1,0,1,0,0,1,1,0],[0,0,1,0,0,0,1,1,1,0,1,0,1,1,0,1,0,0,0,1],[0,1,1,0,0,0,0,1,0,0,1,0,0,0,1,1,1,0,1,0],[1,1,1,0,1,0,0,0,0,1,0,0,0,0,1,0,1,0,1,1],[0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0,0,1,0,1],[1,0,1,1,0,1,1,1,0,1,1,1,0,1,0,0,1,1,1,0],[1,1,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,1,0],[0,0,0,0,0,1,0,1,0,0,1,1,1,1,1,0,1,1,0,1],[1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0,1,1],[1,1,0,1,0,0,0,1,1,0,0,0,1,1,1,0,1,0,1,0],[1,1,0,1,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0,0],[1,1,0,0,1,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":2049.7400000000002,"rt":2365.7400000000002,"response":[{"id":0,"name":"Left","answer":70,"prompt":"Left","lastChangedTime":3919.5},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":1,"time_elapsed":4267,"internal_node_id":"0.0-1.0"}]},{"type":1,"typeName":"force","block":1,"advisorId":0,"choice":[],"answer":[0,null],"confidence":[76,null],"whichSide":0,"practice":true,"feedback":true,"warnings":[],"stimulusDrawTime":[6076.76],"stimulusOffTime":[null],"fixationDrawTime":[5577.1],"id":2,"dotDifference":30,"grid":{"dotCountL":230,"dotCountR":170,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1],[1,1,1,0,0,0,1,0,0,1,1,0,1,0,1,1,0,1,1,1],[1,1,0,0,1,1,0,0,0,0,0,1,1,0,1,1,0,0,0,1],[1,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1],[1,1,0,1,1,1,1,1,0,1,0,0,1,1,1,1,0,1,1,1],[1,0,1,0,1,0,1,1,1,0,1,1,1,0,0,0,0,1,0,1],[1,0,1,1,0,0,0,0,1,1,1,1,0,0,1,1,0,1,1,1],[1,0,1,1,0,0,0,0,0,1,1,0,1,0,1,1,0,1,1,0],[1,1,1,1,1,1,1,0,0,1,0,0,0,0,1,1,0,0,1,1],[0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,0,1,1,0,0],[0,1,1,1,1,0,0,1,0,0,1,1,0,1,1,0,1,0,1,1],[0,1,0,1,1,1,0,0,0,1,0,1,0,1,0,1,1,1,1,0],[1,0,0,1,1,1,1,0,0,1,1,0,1,0,1,1,1,0,1,1],[0,0,1,1,1,1,1,1,1,0,0,1,0,0,0,1,0,0,0,1],[1,0,0,1,0,0,0,1,1,0,0,0,1,0,0,1,0,1,1,1],[1,1,0,1,1,0,0,1,1,0,1,1,0,1,1,0,1,0,1,1],[0,1,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,1,0,1],[0,0,1,1,1,1,0,1,1,1,1,1,1,0,1,0,1,0,1,0],[0,1,1,0,0,1,1,0,1,1,1,1,0,1,0,0,1,1,0,0],[0,1,0,0,0,0,1,0,0,0,0,0,0,1,1,1,1,0,1,1]],"gridR":[[1,1,1,0,0,0,0,0,1,0,1,1,1,1,0,1,1,1,0,1],[1,1,0,1,1,0,0,0,0,0,1,0,0,0,1,1,1,0,1,0],[0,0,1,1,0,0,0,1,0,0,0,1,0,1,0,1,0,0,1,0],[0,0,0,0,1,0,1,1,1,1,0,1,1,1,1,0,0,0,0,0],[1,0,1,1,0,1,0,0,1,0,1,0,0,1,1,0,0,0,0,1],[0,0,1,0,0,0,0,1,0,1,1,0,0,1,1,1,0,0,0,1],[0,0,1,0,0,0,1,1,1,1,1,0,0,1,0,0,0,1,1,0],[1,0,0,0,0,1,1,0,0,1,1,0,1,1,0,0,1,1,0,1],[0,1,1,1,0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,0],[1,0,1,0,0,1,0,0,0,1,0,1,1,0,1,1,0,0,1,1],[0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,1,0,1,0,1],[1,0,0,0,0,1,0,1,1,1,1,0,0,1,0,0,0,0,0,0],[0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],[1,1,1,1,1,1,1,0,0,1,0,0,0,1,1,1,1,1,0,0],[0,0,0,0,0,1,1,1,1,0,0,1,0,1,0,1,1,1,1,1],[1,0,1,1,0,1,0,0,1,0,0,0,0,0,0,1,1,0,1,1],[1,0,1,0,0,0,0,0,1,1,0,1,1,0,0,0,1,0,0,0],[0,1,0,0,0,0,0,0,1,0,1,0,1,0,1,0,0,1,1,0],[1,0,0,0,1,0,1,0,0,1,1,1,0,0,0,0,0,0,0,1],[1,0,1,0,0,1,0,0,0,0,1,1,1,0,0,0,0,0,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":5375.9800000000005,"rt":2183.2799999999997,"response":[{"id":0,"name":"Left","answer":76,"prompt":"Left","lastChangedTime":7071.360000000001},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":3,"time_elapsed":7411,"internal_node_id":"0.0-3.0"}]},{"type":1,"typeName":"force","block":1,"advisorId":1,"choice":[],"answer":[0,0],"confidence":[65,74],"whichSide":0,"practice":true,"feedback":true,"warnings":["getConfidenceCategory: too few trials available to estimate confidence"],"stimulusDrawTime":[9228.880000000001],"stimulusOffTime":[null,null],"fixationDrawTime":[8728.8],"id":3,"dotDifference":30,"grid":{"dotCountL":230,"dotCountR":170,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,0,0],[0,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,0,0,0],[0,0,0,0,1,0,0,1,1,1,1,0,1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,0,1],[0,0,1,1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,1,1],[1,1,0,0,1,1,1,1,1,1,1,0,0,1,0,0,1,1,1,0],[0,1,1,1,0,0,1,0,1,0,0,1,0,1,1,1,0,1,0,0],[0,1,0,1,0,1,0,1,0,0,0,1,1,1,0,1,0,1,0,0],[1,1,1,0,1,1,1,0,1,0,1,0,1,0,0,0,0,0,1,0],[0,0,1,1,0,1,0,1,1,1,0,0,1,0,1,0,0,1,0,0],[1,1,0,1,0,1,0,1,0,0,0,1,1,1,1,0,1,1,0,0],[1,1,1,0,1,1,0,1,0,0,1,0,0,1,0,0,1,1,0,0],[1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,0,0,1],[0,1,0,1,1,0,0,1,0,1,0,1,1,0,1,1,0,0,0,1],[0,1,0,0,1,1,1,1,0,0,0,1,0,1,0,1,0,0,1,0],[0,0,1,1,1,1,1,1,1,1,0,0,1,1,1,1,0,1,1,1],[0,0,1,1,1,0,1,1,0,0,1,1,1,1,0,1,1,1,0,1],[0,1,0,1,1,1,0,0,1,1,1,1,1,1,0,0,0,0,0,1],[0,1,1,1,0,1,1,0,0,1,1,1,1,1,0,0,0,1,1,1],[1,0,1,0,0,0,1,0,1,1,1,0,1,1,1,0,0,1,1,0]],"gridR":[[1,0,1,1,1,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0],[1,0,0,1,0,1,1,0,0,1,0,1,1,0,1,1,1,1,0,1],[1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,0,1],[0,0,1,1,1,0,1,0,0,0,0,1,0,0,0,0,1,1,0,1],[0,1,0,0,1,1,0,1,0,1,0,0,0,1,1,0,1,0,1,0],[1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0],[1,0,0,1,1,0,0,1,1,1,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,1,0,1,1,1,0,0,0,0,0,1,1],[1,0,1,0,0,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1],[0,1,0,1,0,1,0,0,1,1,0,0,0,0,0,0,0,0,1,0],[1,1,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,1,0],[0,0,1,1,1,1,1,1,0,0,1,0,0,1,1,0,0,0,0,1],[0,0,1,1,0,0,1,1,0,1,0,1,1,0,0,0,0,1,0,1],[0,1,1,0,0,1,1,1,1,0,1,1,0,1,0,0,1,0,1,1],[1,1,0,0,0,0,0,1,0,0,1,0,0,1,1,0,1,0,1,1],[1,0,0,1,1,1,1,1,0,1,1,1,0,0,0,0,1,1,0,1],[0,0,1,1,1,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0],[0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,0,0,0],[0,0,1,0,1,1,0,1,0,0,1,0,0,0,0,1,0,1,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":8528.02,"rt":2775.1800000000003,"response":[{"id":0,"name":"Left","answer":65,"prompt":"Left","lastChangedTime":10263.98},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":5,"time_elapsed":11155,"internal_node_id":"0.0-5.0-0.0"},{"choiceTime":0.07999999999992724,"choice":1,"totalTime":2002.0599999999995,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor3.jpg","adviceTime":2001.9799999999996,"trial_type":"jspsych-jas-present-advice-choice","trial_index":6,"time_elapsed":13360,"internal_node_id":"0.0-5.0-1.0"},{"startTime":13513.06,"rt":1334.4400000000005,"response":[{"id":0,"name":"Left","answer":74,"prompt":"Left","lastChangedTime":14311.34},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":7,"time_elapsed":14699,"internal_node_id":"0.0-5.0-2.0"}],"confidenceCategory":1,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/3/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":1,"typeName":"force","block":1,"advisorId":1,"choice":[],"answer":[1,1],"confidence":[62,80],"whichSide":1,"practice":true,"feedback":true,"warnings":[],"stimulusDrawTime":[16572.62],"stimulusOffTime":[901.2999999999993,null],"fixationDrawTime":[16073.2],"id":4,"dotDifference":27,"grid":{"dotCountL":173,"dotCountR":227,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,0,0],[0,1,1,0,1,1,0,1,0,0,0,1,0,0,0,1,1,1,0,0],[0,1,1,1,1,0,0,0,1,0,1,1,0,1,0,0,0,1,1,0],[0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,0],[0,0,1,0,1,1,0,1,0,1,1,0,0,1,0,0,1,0,0,0],[1,1,1,0,1,0,1,1,1,0,1,1,0,0,1,0,0,0,1,1],[1,0,0,1,1,1,1,1,0,0,0,0,1,0,0,0,1,1,1,1],[1,1,0,0,0,1,0,1,1,0,1,1,1,0,0,0,1,1,0,0],[0,1,1,0,0,1,0,0,1,0,1,1,0,0,0,1,0,0,0,1],[1,0,0,0,0,1,1,0,0,0,0,1,1,0,1,1,1,0,1,0],[0,0,1,1,0,0,0,0,0,1,0,0,0,1,1,0,1,0,1,0],[0,0,0,1,1,0,0,1,0,1,1,1,1,0,1,1,1,1,0,0],[0,0,0,0,1,1,1,0,1,0,0,0,0,0,0,0,0,1,1,0],[0,1,0,0,1,0,0,0,0,1,0,1,0,0,1,0,1,1,1,0],[1,0,1,0,1,1,1,0,1,1,1,0,1,0,0,0,1,0,0,1],[0,1,0,1,1,1,0,0,1,0,1,0,1,1,0,0,0,0,1,1],[1,0,0,0,1,0,0,0,1,1,0,0,0,1,1,0,1,0,0,1],[1,1,0,0,0,1,0,1,0,0,1,0,0,1,0,0,0,1,1,0],[0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0],[0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0]],"gridR":[[1,0,0,1,1,0,1,0,0,1,1,1,1,0,1,0,0,1,1,1],[0,1,1,1,0,0,0,1,1,0,0,0,0,0,1,1,1,1,0,1],[1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0],[1,1,0,0,0,0,1,1,1,1,0,1,1,0,0,0,0,1,0,1],[1,0,0,1,0,1,1,1,0,1,0,1,0,0,1,0,1,1,1,1],[1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,1,1,1,0,1],[1,1,0,1,0,1,1,0,1,0,1,0,0,0,1,0,1,0,1,1],[1,1,0,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0],[0,1,1,0,1,1,0,1,1,0,0,1,0,1,0,0,0,1,0,0],[0,1,0,0,1,1,0,1,1,0,0,0,1,1,0,0,1,1,0,1],[0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1],[1,0,0,1,0,0,0,1,1,1,0,1,0,0,0,0,0,1,1,0],[1,0,0,1,1,1,1,1,1,0,1,1,0,1,0,0,1,1,1,1],[1,1,1,0,1,1,1,0,1,1,1,1,0,1,1,0,0,1,1,0],[1,1,1,0,0,0,0,0,0,1,1,0,0,1,1,0,1,0,1,1],[0,1,0,0,0,1,1,1,0,0,1,0,1,0,1,0,1,1,1,0],[0,0,1,0,1,1,0,1,1,0,1,0,0,1,1,1,0,0,1,1],[0,1,1,0,0,0,0,1,0,0,1,1,1,0,0,1,1,1,0,1],[0,0,0,1,1,0,0,0,1,0,0,1,0,0,1,1,0,1,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":15872.18,"rt":2367.7400000000016,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"62","prompt":"Right","lastChangedTime":17751.66}],"stimulusOffTime":901.2999999999993,"trial_type":"canvas-sliders-response","trial_index":9,"time_elapsed":18091,"internal_node_id":"0.0-7.0-0.0"},{"choiceTime":0.039999999997235136,"choice":1,"totalTime":2001.1399999999994,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor3.jpg","adviceTime":2001.1000000000022,"trial_type":"jspsych-jas-present-advice-choice","trial_index":10,"time_elapsed":20093,"internal_node_id":"0.0-7.0-1.0"},{"startTime":20243.100000000002,"rt":1419.8999999999978,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"80","prompt":"Right","lastChangedTime":20927.3}],"trial_type":"canvas-sliders-response","trial_index":11,"time_elapsed":21515,"internal_node_id":"0.0-7.0-2.0"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/3/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":1,"advisorId":1,"choice":[],"answer":[0,0],"confidence":[53,74],"whichSide":0,"practice":true,"feedback":true,"warnings":[],"stimulusDrawTime":[22566.86],"stimulusOffTime":[900.880000000001,null],"fixationDrawTime":[22066.52],"id":5,"dotDifference":24,"grid":{"dotCountL":224,"dotCountR":176,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,1,0,0,0,0,0,1,0,1,1,0,0,0,1,1,1,0],[0,1,0,0,1,1,0,1,0,0,0,1,0,1,0,0,0,1,1,1],[0,0,1,1,1,1,1,1,0,1,1,0,1,0,0,1,1,1,1,0],[1,0,0,1,1,1,1,1,0,1,0,1,1,1,1,0,1,1,0,1],[1,1,0,0,0,1,0,1,1,1,0,0,0,1,1,1,0,0,1,1],[0,0,1,0,1,0,0,1,0,1,0,1,1,0,0,0,0,1,1,1],[0,0,1,1,1,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1],[1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,1,1,1],[1,1,0,1,0,1,0,1,1,1,1,1,0,0,0,0,0,1,0,0],[1,0,0,0,0,1,0,0,1,1,1,0,0,1,1,0,1,1,1,0],[1,0,1,1,0,1,0,1,0,1,0,1,1,1,1,0,1,1,0,1],[1,1,1,0,1,1,0,1,1,1,0,0,0,1,1,0,0,0,0,0],[0,0,1,0,1,1,1,1,0,0,0,0,1,0,0,1,0,1,0,0],[0,1,0,0,0,1,0,1,0,0,0,1,0,1,1,0,0,0,0,0],[0,1,0,1,0,1,0,0,1,1,1,1,0,0,0,1,1,0,0,1],[1,1,1,0,1,1,1,1,0,0,1,0,0,0,1,1,1,0,0,1],[1,1,1,1,0,1,1,1,0,1,0,1,1,0,1,1,1,0,0,1],[1,0,1,1,1,1,1,0,1,0,0,1,1,1,1,0,0,0,1,1],[1,0,1,0,1,1,1,0,1,0,0,1,0,1,0,1,0,1,1,1],[1,1,1,1,0,1,1,0,0,1,1,0,0,0,1,0,0,1,1,1]],"gridR":[[0,0,0,0,0,0,1,0,1,0,1,0,0,0,1,0,1,0,1,1],[1,0,1,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1,0,0],[1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,0,0,0,0,1],[1,0,1,1,1,0,0,1,0,1,0,1,1,1,1,1,0,0,1,0],[1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,1],[1,0,1,0,0,1,1,0,0,1,0,0,0,1,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,1],[0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,1],[0,0,0,0,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0],[0,0,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1,1,0,1],[0,0,0,1,0,0,1,0,1,0,0,0,0,1,1,0,0,0,0,0],[0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,1,1,1],[1,0,1,0,0,0,1,1,1,0,1,0,0,0,0,0,0,1,0,1],[1,0,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0,0,1,0],[0,0,1,0,1,0,0,1,1,0,1,1,1,0,0,0,0,1,0,0],[1,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1],[0,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,0,1,1,1],[0,0,0,1,1,1,0,0,1,1,0,0,1,1,0,1,0,0,1,1],[1,0,0,0,0,0,1,1,1,1,1,1,0,0,0,1,1,1,0,1],[0,0,0,0,1,1,0,1,1,0,0,1,1,0,0,1,0,0,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":21865.62,"rt":2133.5800000000017,"response":[{"id":0,"name":"Left","answer":53,"prompt":"Left","lastChangedTime":23519.24},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.880000000001,"trial_type":"canvas-sliders-response","trial_index":12,"time_elapsed":23851,"internal_node_id":"0.0-7.0-0.1"},{"choiceTime":0.01999999999679858,"choice":1,"totalTime":2001.4799999999996,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor3.jpg","adviceTime":2001.4600000000028,"trial_type":"jspsych-jas-present-advice-choice","trial_index":13,"time_elapsed":25853,"internal_node_id":"0.0-7.0-1.1"},{"startTime":26002.68,"rt":1828.4599999999991,"response":[{"id":0,"name":"Left","answer":74,"prompt":"Left","lastChangedTime":27007.34},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":14,"time_elapsed":27682,"internal_node_id":"0.0-7.0-2.1"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/3/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"block":1,"advisorId":1,"choice":[],"answer":[1,1],"confidence":[55,76],"whichSide":1,"practice":true,"feedback":true,"warnings":[],"stimulusDrawTime":[28734.36],"stimulusOffTime":[901.5,null],"fixationDrawTime":[28233.34],"id":6,"dotDifference":21,"grid":{"dotCountL":179,"dotCountR":221,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,0,1,0,0,0,0,0,0,1,1,1,0,1,1,0,0,1,0],[0,1,0,1,1,1,1,1,0,1,1,0,0,1,0,0,0,1,0,0],[0,0,0,0,1,0,0,1,0,0,0,1,0,1,0,0,1,0,0,0],[0,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,1,0,0,1],[1,0,0,0,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,0],[0,1,0,0,0,0,0,0,0,1,1,1,1,0,1,0,0,0,0,0],[1,1,0,0,1,1,1,0,0,1,0,1,1,0,1,1,1,0,1,1],[1,0,0,1,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0],[0,0,1,1,0,0,1,0,0,0,1,1,1,0,0,0,1,1,1,1],[0,0,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,1,1,0],[1,0,0,0,0,1,0,1,1,0,0,1,1,1,1,1,1,0,0,1],[0,1,0,1,0,0,0,0,1,0,1,0,0,0,1,1,1,1,1,0],[1,0,0,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0],[0,1,0,0,1,1,1,1,0,0,0,0,0,0,1,0,1,0,0,1],[1,1,0,0,0,1,0,1,0,0,1,1,0,1,0,1,0,1,0,1],[1,0,1,0,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,0],[0,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,1],[0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,1,1],[1,1,1,1,0,0,0,1,0,1,0,0,0,1,1,1,0,1,0,1],[1,1,0,0,1,1,0,1,1,1,1,1,0,0,0,0,1,1,0,1]],"gridR":[[0,1,1,0,0,0,1,1,0,1,1,0,0,1,1,1,1,0,0,0],[1,1,0,1,1,0,1,1,1,0,1,0,0,1,1,1,1,0,0,1],[1,0,0,0,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,1],[0,1,0,0,1,1,1,0,0,1,0,1,0,1,1,1,1,1,1,1],[0,0,1,1,0,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1],[0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,1,1,1,0,1],[0,0,1,1,1,1,1,0,1,0,1,1,1,1,0,0,1,1,1,1],[1,0,0,1,1,0,1,1,1,0,1,0,0,1,0,1,0,1,1,1],[0,0,0,1,1,1,0,0,1,0,1,0,0,1,0,1,0,0,0,1],[0,1,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,1,1],[0,1,1,0,0,1,0,1,0,0,1,1,1,1,0,1,1,0,1,1],[1,1,1,0,0,1,0,1,0,0,0,1,0,1,0,1,0,0,1,1],[1,1,0,1,1,1,1,0,1,0,1,0,0,1,0,1,1,0,0,0],[0,0,0,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1],[0,1,1,0,0,1,1,1,0,0,1,0,0,0,0,1,1,0,1,1],[1,0,0,0,0,1,0,0,1,1,0,1,1,0,1,1,1,1,0,0],[1,1,0,1,0,0,0,0,0,1,1,1,0,1,1,0,1,1,1,1],[1,0,0,0,0,0,1,1,1,1,0,1,0,1,0,1,0,1,1,1],[1,1,0,1,0,1,0,1,1,0,1,0,1,0,1,0,0,1,1,1],[1,0,0,1,1,1,1,0,0,0,0,0,1,0,0,0,1,0,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":28033.18,"rt":2454.0999999999985,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"55","prompt":"Right","lastChangedTime":29927.16}],"stimulusOffTime":901.5,"trial_type":"canvas-sliders-response","trial_index":15,"time_elapsed":30339,"internal_node_id":"0.0-7.0-0.2"},{"choiceTime":0,"choice":1,"totalTime":2001.7199999999975,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor3.jpg","adviceTime":2001.7199999999975,"trial_type":"jspsych-jas-present-advice-choice","trial_index":16,"time_elapsed":32341,"internal_node_id":"0.0-7.0-1.2"},{"startTime":32490.88,"rt":1564.4999999999964,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"76","prompt":"Right","lastChangedTime":33191.16}],"trial_type":"canvas-sliders-response","trial_index":17,"time_elapsed":33907,"internal_node_id":"0.0-7.0-2.2"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/3/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"block":1,"advisorId":1,"choice":[],"answer":[1,1],"confidence":[54,79],"whichSide":1,"practice":true,"feedback":true,"warnings":[],"stimulusDrawTime":[34958.82],"stimulusOffTime":[900.8999999999942,null],"fixationDrawTime":[34457.96],"id":7,"dotDifference":18,"grid":{"dotCountL":182,"dotCountR":218,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,0,0,0,1,0,1,0,1,1,1,0,1,0,0,1,1,0,0],[1,1,1,0,1,0,0,1,0,0,0,1,0,1,0,0,0,0,0,1],[0,0,1,0,0,1,0,1,0,0,0,1,0,0,0,1,1,1,1,1],[0,0,0,0,0,1,0,1,1,1,0,1,0,0,0,0,1,1,0,1],[1,0,0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,1,0],[0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,0,0,1],[0,1,0,1,1,0,1,0,0,0,1,0,1,1,1,1,1,1,0,0],[0,1,0,1,1,0,1,0,1,1,0,1,0,1,0,0,0,1,1,0],[0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,0,1,1,0,0],[0,0,0,0,0,1,0,1,0,1,1,1,0,0,1,0,1,0,0,0],[0,1,1,1,1,0,0,1,1,1,0,0,1,1,0,0,1,1,0,0],[0,1,1,1,0,1,0,1,1,0,0,0,1,1,0,1,1,0,1,1],[0,0,1,0,0,1,0,0,0,0,0,1,1,1,1,0,1,1,0,0],[1,0,1,0,0,0,0,1,1,0,0,1,1,0,1,0,1,0,0,0],[1,1,0,0,0,1,1,0,0,1,1,1,0,0,1,1,0,1,0,0],[1,0,0,0,1,1,1,1,0,0,1,0,1,1,0,0,1,0,1,1],[1,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,0,0,0],[0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0],[0,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1,1,0,0,0],[0,0,0,1,0,0,1,1,1,0,0,1,0,1,0,0,1,1,0,1]],"gridR":[[0,0,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0],[0,1,1,0,1,1,1,1,0,0,1,0,1,1,1,1,1,1,1,0],[1,1,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0],[1,0,1,1,1,1,0,1,1,0,1,0,0,1,0,0,1,0,0,1],[0,1,0,0,1,0,0,1,0,1,0,0,0,1,1,1,1,1,1,0],[0,0,1,0,1,1,1,1,0,0,1,0,0,0,0,1,1,0,1,0],[1,1,1,0,1,1,1,0,1,0,1,1,0,0,0,0,1,1,0,1],[1,1,1,1,0,0,0,0,1,1,0,1,1,0,0,0,1,1,1,1],[1,1,1,1,1,0,1,1,0,0,0,0,1,0,1,1,0,1,1,0],[1,1,0,1,0,1,0,1,1,0,0,1,1,1,0,1,1,1,1,0],[0,0,0,0,0,1,0,1,0,1,1,0,0,0,1,0,0,1,1,0],[1,0,1,1,0,1,0,0,1,1,1,1,1,1,1,0,1,0,0,0],[0,1,0,0,1,0,1,1,0,0,0,1,1,0,0,0,0,1,0,1],[1,0,0,1,1,0,1,0,1,0,1,0,0,0,1,1,0,0,1,1],[0,0,0,1,1,0,1,0,1,1,1,0,1,1,0,0,1,1,1,1],[1,0,0,1,1,1,1,1,0,0,1,1,0,1,1,0,0,0,1,0],[0,0,1,1,0,1,0,1,1,1,0,0,0,0,1,1,1,0,1,1],[1,1,0,1,0,1,1,1,1,1,0,0,1,1,0,1,1,1,1,1],[0,1,1,1,1,0,0,1,0,1,1,1,0,1,1,1,1,1,0,0],[1,1,1,1,1,0,0,1,0,0,1,1,0,1,0,0,0,1,0,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":34257.520000000004,"rt":2453.6800000000003,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"54","prompt":"Right","lastChangedTime":36119.18}],"stimulusOffTime":900.8999999999942,"trial_type":"canvas-sliders-response","trial_index":18,"time_elapsed":36562,"internal_node_id":"0.0-7.0-0.3"},{"choiceTime":0.020000000004074536,"choice":1,"totalTime":2001.1800000000003,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor3.jpg","adviceTime":2001.1599999999962,"trial_type":"jspsych-jas-present-advice-choice","trial_index":19,"time_elapsed":38564,"internal_node_id":"0.0-7.0-1.3"},{"startTime":38713.54,"rt":1293.7799999999988,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"79","prompt":"Right","lastChangedTime":39391.76}],"trial_type":"canvas-sliders-response","trial_index":20,"time_elapsed":39859,"internal_node_id":"0.0-7.0-2.3"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/3/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":2,"advisorId":3,"choice":[],"answer":[0,0],"confidence":[32,52],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[125350.26000000001],"stimulusOffTime":[900.7200000000012,null],"fixationDrawTime":[124849.08],"id":8,"dotDifference":15,"grid":{"dotCountL":185,"dotCountR":215,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,0,1,1,1,0,1,1,1,0,0,1,0,0,1,1,1,0,1,1],[0,0,1,0,0,0,0,0,0,1,0,1,0,1,0,1,1,1,1,0],[1,1,0,1,0,1,0,1,1,1,1,0,0,0,0,0,1,0,0,1],[1,0,0,0,1,0,1,1,1,0,0,1,0,0,1,1,0,1,1,1],[0,0,0,1,0,0,1,0,1,1,1,0,1,0,1,0,0,1,1,1],[0,0,1,0,0,0,1,1,1,0,1,0,0,1,0,1,0,1,0,1],[0,0,0,0,1,0,1,0,1,1,0,0,1,0,0,1,0,0,1,1],[0,1,1,1,0,1,1,0,1,0,0,0,1,1,1,0,1,1,1,0],[1,0,1,0,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,0],[0,0,0,0,1,0,0,1,0,1,1,0,1,0,1,0,1,1,0,1],[0,0,1,0,0,1,1,1,0,0,1,0,0,0,0,0,0,1,0,0],[1,0,0,0,1,0,1,1,1,0,1,1,1,0,0,0,0,0,1,1],[1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,1,0],[0,0,0,1,1,1,0,1,1,1,1,0,0,0,1,1,1,0,0,0],[0,0,1,0,1,0,0,1,0,1,0,0,0,0,1,0,0,0,0,1],[0,1,0,1,1,1,1,0,0,0,0,0,0,1,1,0,0,0,1,1],[1,0,1,1,0,1,0,1,1,1,1,0,1,0,0,1,0,1,0,1],[0,1,0,1,0,0,0,0,1,1,1,0,0,1,0,0,1,0,0,1],[0,0,0,1,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1,0],[0,0,0,0,0,1,1,1,0,1,1,0,1,0,1,0,0,0,1,1]],"gridR":[[1,0,0,1,0,1,1,0,1,1,1,1,1,0,0,0,0,1,1,0],[0,0,1,0,1,1,0,1,0,0,1,0,1,0,0,1,1,1,1,1],[1,1,0,1,0,0,1,1,1,1,1,1,1,1,0,0,1,1,0,1],[1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1],[0,1,0,0,1,1,0,1,1,0,0,1,1,1,1,1,1,1,1,0],[0,1,0,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,1,0],[1,0,1,1,1,1,0,1,0,0,0,1,0,0,1,1,0,1,1,1],[0,0,1,1,1,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1],[1,0,1,1,1,0,0,1,1,0,1,1,0,0,1,0,1,1,1,1],[0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0],[1,1,0,0,1,0,0,1,1,0,1,0,1,1,1,1,0,1,0,1],[1,0,0,0,0,0,0,1,1,0,0,1,0,1,0,0,1,1,0,1],[1,0,1,0,1,1,1,0,0,1,0,0,0,0,0,1,0,0,0,1],[0,1,1,0,1,0,1,0,1,0,1,1,0,0,1,1,0,0,1,0],[0,1,0,1,0,1,0,1,0,0,1,1,1,0,0,0,0,1,1,1],[0,0,0,1,1,0,1,1,1,0,1,1,1,0,0,0,0,1,0,0],[0,1,1,1,1,0,1,1,1,0,1,0,1,0,1,0,0,0,1,0],[0,0,1,0,0,1,1,1,1,0,0,0,1,1,1,1,0,1,1,0],[0,0,1,1,0,1,1,0,0,0,0,1,1,0,1,1,1,1,0,1],[0,0,0,0,1,1,0,1,0,1,1,1,1,0,0,0,1,0,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":124648.62,"rt":2927.040000000008,"response":[{"id":0,"name":"Left","answer":32,"prompt":"Left","lastChangedTime":127031.12000000001},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.7200000000012,"trial_type":"canvas-sliders-response","trial_index":26,"time_elapsed":127427,"internal_node_id":"0.0-13.0-0.0"},{"choiceTime":0.020000000004074536,"choice":3,"totalTime":2000.9599999999919,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2000.9399999999878,"trial_type":"jspsych-jas-present-advice-choice","trial_index":27,"time_elapsed":129429,"internal_node_id":"0.0-13.0-1.0"},{"startTime":129578.52,"rt":1412.8399999999965,"response":[{"id":0,"name":"Left","answer":52,"prompt":"Left","lastChangedTime":130191.36},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":28,"time_elapsed":130843,"internal_node_id":"0.0-13.0-2.0"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/2/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":2,"advisorId":3,"choice":[2,3],"answer":[0,0],"confidence":[88,100],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[131893.88],"stimulusOffTime":[901.4400000000023,null],"fixationDrawTime":[131393.52],"id":9,"dotDifference":18,"grid":{"dotCountL":218,"dotCountR":182,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,1,0,1,0,0,1,1,1,1,0,1,1,0,1,0,0,1,0],[0,1,1,1,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0],[0,0,1,1,1,0,0,0,1,1,0,0,0,0,0,0,1,0,0,1],[1,0,1,0,1,1,0,1,0,1,0,1,0,0,0,1,1,0,1,1],[0,1,0,1,1,0,0,1,1,1,0,1,1,1,1,1,1,0,0,1],[1,1,0,1,0,0,1,1,1,1,1,0,1,0,0,0,1,1,1,0],[1,0,0,0,1,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1],[1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1],[1,0,1,1,1,1,1,0,1,1,1,0,1,1,0,0,0,0,0,1],[1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1,0,0],[1,1,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0],[1,0,0,1,1,1,1,0,1,0,1,0,1,0,0,0,1,1,0,0],[1,0,1,0,0,0,0,1,1,0,1,1,0,1,0,0,1,1,0,1],[1,0,0,0,1,1,0,1,1,0,1,1,0,0,0,1,1,1,1,1],[1,1,0,1,1,1,1,0,0,1,1,0,1,1,1,1,0,0,0,1],[0,1,1,1,0,1,1,1,1,1,1,1,0,1,0,0,0,0,1,1],[1,0,1,0,0,0,0,0,0,1,0,0,0,1,1,1,1,0,0,0],[1,1,1,1,0,1,0,1,1,1,1,1,1,1,0,1,0,0,0,1],[0,1,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,0,1],[1,1,0,1,1,0,1,0,1,1,0,0,1,1,0,0,1,0,0,1]],"gridR":[[1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,0,1,0,0],[1,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1],[0,0,1,1,0,0,1,0,0,1,0,0,0,1,1,0,0,1,1,0],[1,1,0,1,0,1,0,0,0,0,1,1,0,0,0,1,0,0,1,0],[0,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0,1,0,0],[0,1,0,0,1,0,0,0,0,0,1,1,1,0,1,0,0,1,1,0],[1,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],[0,0,1,1,0,0,1,0,1,1,0,0,1,0,1,0,0,0,0,0],[0,1,0,1,1,0,0,0,1,1,1,0,0,1,0,0,0,0,1,1],[1,1,0,0,1,1,1,0,1,0,0,1,0,0,1,0,0,0,1,0],[1,1,1,1,1,0,0,0,1,0,0,0,1,1,1,1,1,0,1,1],[1,0,1,1,1,1,0,1,0,1,0,0,1,0,1,1,0,1,0,0],[1,1,0,1,0,1,0,1,0,1,0,0,1,1,1,0,0,0,0,0],[1,0,0,0,1,1,0,1,0,0,0,1,1,0,0,0,0,0,0,1],[1,0,0,1,0,0,1,0,0,1,0,1,0,1,1,1,0,0,0,1],[1,0,1,0,0,0,0,0,0,1,0,0,1,1,1,0,0,1,1,1],[0,1,1,0,0,0,1,1,0,0,1,1,1,0,0,0,0,0,0,0],[0,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,0,1,0],[1,1,0,0,0,1,1,0,0,1,1,1,1,1,1,1,0,0,0,0],[1,0,0,1,0,0,1,0,1,1,1,0,0,1,0,1,1,0,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":131193.06,"rt":2653.959999999992,"response":[{"id":0,"name":"Left","answer":88,"prompt":"Left","lastChangedTime":133119.14},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":901.4400000000023,"trial_type":"canvas-sliders-response","trial_index":29,"time_elapsed":133698,"internal_node_id":"0.0-13.0-0.1"},{"choiceTime":903.4200000000128,"choice":3,"totalTime":2905.6199999999953,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2002.1999999999825,"trial_type":"jspsych-jas-present-advice-choice","trial_index":30,"time_elapsed":136605,"internal_node_id":"0.0-13.0-1.1"},{"startTime":136755.44,"rt":1683.7600000000093,"response":[{"id":0,"name":"Left","answer":100,"prompt":"Left","lastChangedTime":137807.12},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":31,"time_elapsed":138291,"internal_node_id":"0.0-13.0-2.1"}],"confidenceCategory":2,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":1,"typeName":"force","block":2,"advisorId":2,"choice":[],"answer":[1,1],"confidence":[9,31],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[139341.52],"stimulusOffTime":[900.6399999999849,null],"fixationDrawTime":[138841.36000000002],"id":10,"dotDifference":18,"grid":{"dotCountL":182,"dotCountR":218,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,1,0,0,1,0,1,1,1,0,0,0,0,1,0,0,1,0],[0,1,1,0,1,1,0,1,0,0,0,0,0,1,0,0,0,0,0,1],[1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1],[0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,0,1,1,0,1],[1,0,1,1,0,0,0,1,1,0,0,0,0,1,1,0,0,1,0,0],[1,1,1,1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,1,1],[0,1,0,0,0,1,1,0,1,1,1,1,0,1,0,0,1,0,0,1],[1,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,1,1,0,1,0,1,0,0,0,0,1,0],[0,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,0,0,0,1],[0,0,1,0,0,1,1,0,0,1,0,1,0,0,1,0,1,1,0,1],[0,1,0,1,0,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0],[1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0],[0,0,1,0,1,0,1,1,0,1,0,1,1,0,1,0,0,1,1,0],[1,1,1,1,1,0,1,1,1,0,0,0,0,1,1,0,1,0,0,0],[1,1,1,1,0,1,1,0,0,0,1,1,0,0,0,0,1,1,1,0],[0,1,1,1,0,0,0,0,0,1,1,0,1,1,0,1,1,1,1,0],[0,0,0,1,0,0,1,1,1,1,0,0,1,0,0,0,1,0,1,1],[0,1,1,1,0,1,0,1,1,1,0,0,0,1,0,0,1,0,0,0],[1,1,1,0,1,0,0,0,1,0,1,0,1,0,0,0,0,1,0,0]],"gridR":[[1,1,1,1,0,0,1,1,0,0,0,1,0,1,0,1,0,0,0,1],[1,0,0,1,1,0,1,1,1,1,0,1,0,1,0,1,1,1,1,0],[0,0,0,1,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,0],[0,0,0,0,1,1,0,0,1,0,1,0,0,1,1,1,0,0,1,1],[1,0,0,0,0,0,1,1,1,0,0,1,1,0,1,1,0,0,0,1],[1,1,1,0,1,1,0,1,0,1,1,0,0,1,1,1,0,1,0,1],[0,0,0,1,1,0,1,1,1,0,0,1,1,0,1,1,0,1,1,0],[0,1,1,0,1,0,1,1,0,0,1,1,1,0,1,0,0,1,0,0],[1,0,1,1,0,1,1,0,1,1,1,1,0,1,0,1,0,1,0,1],[1,0,0,1,1,1,1,0,1,1,0,1,0,0,1,0,1,1,1,1],[1,1,0,1,1,1,1,1,0,1,1,0,0,0,1,0,1,1,0,1],[1,1,1,1,1,1,1,0,0,1,1,0,1,1,0,1,0,1,0,1],[0,0,0,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,1],[0,1,0,1,0,1,0,0,1,1,1,1,0,1,1,0,0,0,0,1],[0,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,0,0,1],[1,1,0,1,0,0,0,1,1,1,1,0,1,1,1,1,0,0,0,1],[1,1,0,0,0,1,0,1,1,0,1,1,1,0,1,0,0,0,1,1],[1,0,1,1,0,1,0,0,1,0,0,1,1,0,1,1,0,1,0,1],[0,1,0,0,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,0],[1,1,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":138640.86000000002,"rt":2478.4199999999837,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"9","prompt":"Right","lastChangedTime":140631.36000000002}],"stimulusOffTime":900.6399999999849,"trial_type":"canvas-sliders-response","trial_index":32,"time_elapsed":140971,"internal_node_id":"0.0-13.0-0.2"},{"choiceTime":0.02000000001862645,"choice":2,"totalTime":2001.6000000000058,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.5799999999872,"trial_type":"jspsych-jas-present-advice-choice","trial_index":33,"time_elapsed":142973,"internal_node_id":"0.0-13.0-1.2"},{"startTime":143122.30000000002,"rt":1245.4799999999814,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"31","prompt":"Right","lastChangedTime":143847.22}],"trial_type":"canvas-sliders-response","trial_index":34,"time_elapsed":144219,"internal_node_id":"0.0-13.0-2.2"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":2,"typeName":"choice","block":2,"advisorId":3,"choice":[3,2],"answer":[0,0],"confidence":[85,100],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[145269.48],"stimulusOffTime":[900.0800000000163,null],"fixationDrawTime":[144770.28],"id":11,"dotDifference":15,"grid":{"dotCountL":215,"dotCountR":185,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,0,0,0,0,1,1,0,0,0,1,1,0,1,0,0,1,0],[1,0,1,1,1,0,1,1,0,1,1,0,0,1,1,1,1,0,0,1],[1,1,1,0,1,0,1,1,1,1,0,1,1,1,1,0,1,0,1,1],[0,1,0,1,1,1,0,0,1,1,0,1,0,0,1,1,1,1,1,0],[0,1,1,1,1,0,0,1,1,1,0,1,0,0,1,0,1,1,1,1],[1,1,0,1,0,1,0,1,1,0,0,0,1,0,1,1,1,1,0,1],[1,0,0,0,1,1,1,1,1,0,1,0,0,1,0,1,1,1,0,0],[0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0,0,0],[0,0,1,0,0,1,0,1,0,0,1,1,1,1,1,0,1,1,1,0],[1,1,0,0,0,1,0,1,1,1,1,0,0,0,0,0,1,0,1,1],[1,0,0,0,1,0,1,0,1,0,1,1,1,1,1,1,1,0,0,1],[0,0,1,0,0,1,0,1,1,0,1,1,1,0,0,1,1,1,1,0],[1,1,0,1,1,0,1,1,1,1,1,1,0,1,0,1,1,0,1,0],[0,1,0,0,0,0,1,1,0,1,0,1,1,0,0,1,0,1,1,0],[1,1,0,1,0,0,1,1,1,1,0,0,1,1,0,1,0,1,0,0],[1,0,1,0,1,0,0,0,1,1,0,1,1,1,1,0,1,0,1,1],[1,1,1,0,0,0,0,1,1,0,0,1,0,0,0,1,0,0,1,0],[1,0,1,0,0,0,0,0,1,1,0,0,1,1,1,0,1,1,0,1],[1,1,0,1,1,1,0,1,0,0,0,1,0,0,1,1,0,1,0,0],[1,0,0,0,1,0,1,0,0,0,1,0,1,0,1,1,1,0,0,0]],"gridR":[[0,0,0,1,1,1,1,0,0,0,1,0,1,0,0,1,1,0,0,1],[0,1,0,1,0,0,0,1,0,0,0,0,0,1,1,0,0,1,1,0],[1,0,1,1,1,1,0,0,0,1,1,0,1,1,1,0,0,0,0,1],[0,1,0,1,1,0,1,1,0,0,0,0,1,0,0,1,1,0,0,1],[0,0,1,0,0,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0],[1,1,1,0,1,1,1,0,0,1,0,0,0,1,0,1,0,1,1,1],[0,1,1,0,1,1,0,0,1,0,0,1,1,1,0,1,1,0,1,0],[0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1],[1,0,1,1,0,0,1,1,0,1,1,0,1,0,1,0,0,0,1,1],[0,1,1,0,0,1,1,0,1,1,1,1,1,1,1,0,0,1,0,0],[1,0,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,1,1,0],[0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,1,0,1,0],[1,1,0,0,1,0,0,1,0,1,1,1,0,1,0,1,1,0,0,0],[0,1,0,0,0,0,0,0,1,0,1,0,1,1,1,0,0,0,1,1],[1,0,0,1,0,0,1,0,0,0,0,0,1,1,1,0,1,0,0,0],[1,1,0,1,0,0,0,1,0,0,0,1,1,0,0,0,0,0,1,1],[0,0,0,1,0,1,0,1,0,1,0,1,1,0,0,1,1,0,1,0],[1,1,0,0,0,1,0,1,0,1,1,0,1,1,1,0,1,1,0,0],[0,0,1,1,0,1,0,1,1,0,0,1,1,0,0,0,0,0,0,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":144568.68,"rt":2630.4800000000105,"response":[{"id":0,"name":"Left","answer":85,"prompt":"Left","lastChangedTime":146367.5},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.0800000000163,"trial_type":"canvas-sliders-response","trial_index":35,"time_elapsed":147050,"internal_node_id":"0.0-13.0-0.3"},{"choiceTime":1543.6999999999825,"choice":3,"totalTime":3544.939999999973,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.2399999999907,"trial_type":"jspsych-jas-present-advice-choice","trial_index":36,"time_elapsed":150596,"internal_node_id":"0.0-13.0-1.3"},{"startTime":150745.30000000002,"rt":1453.9399999999732,"response":[{"id":0,"name":"Left","answer":100,"prompt":"Left","lastChangedTime":151607.7},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":37,"time_elapsed":152051,"internal_node_id":"0.0-13.0-2.3"}],"confidenceCategory":2,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":2,"advisorId":2,"choice":[2,3],"answer":[1,1],"confidence":[56,74],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[153101.46],"stimulusOffTime":[900.6600000000035,null],"fixationDrawTime":[152602.1],"id":12,"dotDifference":12,"grid":{"dotCountL":188,"dotCountR":212,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,1,0,0,1,0,0,0,1,1,1,1,1,0,1,0,0,1,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1],[1,1,0,1,1,1,0,0,0,0,0,1,1,1,1,0,0,0,1,0],[0,0,1,1,0,0,1,0,1,0,0,0,0,1,1,0,1,1,1,0],[0,0,1,0,0,0,0,0,1,1,0,1,0,1,0,0,1,0,0,1],[1,0,0,1,0,0,0,0,1,0,1,0,0,1,0,1,0,1,0,1],[0,1,0,0,1,1,0,1,1,1,1,1,1,1,0,0,1,0,1,0],[1,1,0,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0],[0,0,1,0,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0],[0,1,1,0,0,1,1,0,0,1,0,1,1,0,0,1,1,0,0,0],[0,0,0,1,0,0,0,0,1,0,0,1,1,0,1,0,0,0,1,0],[1,1,0,1,1,0,0,1,0,1,0,0,1,0,1,0,1,0,1,1],[0,1,0,1,0,1,1,1,0,0,0,1,0,1,1,0,0,1,1,1],[1,0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,0,0,1,1],[0,0,1,1,1,0,0,1,1,1,1,0,1,1,0,1,0,1,0,0],[1,1,0,1,1,0,0,0,0,0,1,0,0,0,0,0,1,1,1,0],[0,1,1,1,0,0,0,0,1,1,1,0,1,0,1,1,0,0,0,1],[1,0,0,1,0,1,0,0,0,1,1,0,1,0,0,0,1,1,1,0],[0,0,1,1,1,1,1,1,0,1,0,1,0,1,0,0,1,0,0,1],[1,0,0,0,1,0,1,0,1,1,1,1,0,0,1,0,0,1,1,1]],"gridR":[[1,0,1,0,0,0,0,1,1,1,0,0,0,1,0,1,1,1,0,1],[1,1,1,1,0,0,1,0,1,1,1,0,0,1,1,1,1,1,1,0],[1,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,0,0,0],[1,1,0,0,1,1,0,0,1,1,0,1,1,1,1,1,1,0,0,1],[1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,0,0,0,1,1],[0,0,1,1,0,1,1,0,0,0,1,0,1,0,1,1,0,1,1,1],[1,1,0,1,1,1,0,0,0,0,0,1,1,0,1,1,1,1,1,1],[0,0,1,0,0,1,1,1,0,0,1,1,0,1,1,0,0,0,1,1],[1,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,0,1,1],[1,0,0,1,1,1,0,1,0,1,0,1,0,0,0,0,0,1,0,0],[0,1,0,0,0,1,0,1,1,1,0,1,1,0,0,1,1,1,0,1],[0,1,1,1,0,1,1,0,0,1,0,0,1,0,1,0,0,0,0,0],[0,1,1,0,1,1,1,1,0,0,0,0,0,0,1,0,0,1,1,1],[1,0,0,1,0,0,1,1,1,0,0,1,0,0,0,0,0,0,1,1],[0,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,0,1],[1,0,0,1,1,0,1,1,0,1,1,0,0,1,1,0,0,1,1,0],[0,1,0,1,0,1,1,1,1,0,1,1,1,1,0,1,1,0,0,1],[0,1,1,0,1,0,1,1,1,1,0,0,1,1,1,1,0,0,0,1],[0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,0,0,0,1,0],[0,0,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":152401.16,"rt":2477.7999999999884,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"56","prompt":"Right","lastChangedTime":154311.32}],"stimulusOffTime":900.6600000000035,"trial_type":"canvas-sliders-response","trial_index":38,"time_elapsed":154730,"internal_node_id":"0.0-13.0-0.4"},{"choiceTime":2687.7600000000093,"choice":2,"totalTime":4689.059999999998,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.2999999999884,"trial_type":"jspsych-jas-present-advice-choice","trial_index":39,"time_elapsed":159420,"internal_node_id":"0.0-13.0-1.4"},{"startTime":159569.76,"rt":1541.5599999999977,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"74","prompt":"Right","lastChangedTime":160551.24}],"trial_type":"canvas-sliders-response","trial_index":40,"time_elapsed":160963,"internal_node_id":"0.0-13.0-2.4"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":2,"advisorId":2,"choice":[],"answer":[1,1],"confidence":[29,12],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[162013.52],"stimulusOffTime":[900.820000000007,null],"fixationDrawTime":[161513.68],"id":13,"dotDifference":9,"grid":{"dotCountL":191,"dotCountR":209,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,0,1,1,0,0,1,1,0,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1],[1,0,0,1,1,1,0,1,0,0,1,1,1,1,1,0,0,0,0,1],[1,0,0,0,1,0,1,1,1,1,0,0,1,1,1,1,0,1,0,1],[1,0,0,1,1,1,0,0,0,1,0,1,0,1,1,1,0,0,0,1],[0,1,1,0,1,1,0,0,1,1,0,1,0,0,1,0,0,1,0,1],[0,1,1,0,1,1,1,0,0,0,0,1,0,1,1,1,0,1,1,1],[0,0,1,1,0,0,1,0,0,1,0,0,0,0,1,1,1,0,0,1],[1,0,0,0,1,1,1,0,1,1,0,1,0,0,0,1,0,0,0,0],[0,0,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,0,0],[1,0,1,0,0,0,0,0,1,0,0,0,1,1,0,1,1,0,0,0],[1,0,0,0,1,1,1,0,0,1,1,1,0,0,1,1,1,1,0,0],[1,1,1,0,0,0,0,1,1,1,1,0,0,1,1,0,1,0,1,0],[0,1,0,0,1,0,1,0,1,1,0,0,0,1,1,1,0,0,1,1],[0,0,0,0,0,1,1,0,0,0,1,1,1,1,0,1,0,1,0,0],[0,1,1,1,1,1,1,0,0,0,0,0,0,1,1,0,1,1,0,0],[0,1,0,1,0,0,1,0,0,0,1,1,1,1,1,0,0,1,1,1],[1,0,0,0,0,0,0,1,1,0,0,1,0,1,1,1,1,0,0,0],[1,0,1,1,1,0,0,1,0,1,0,0,0,1,0,0,1,0,1,1],[0,0,1,0,1,1,1,0,1,0,0,0,0,0,1,0,1,1,0,1]],"gridR":[[0,0,0,1,0,0,1,0,1,0,1,1,1,1,1,0,1,1,1,1],[0,0,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,0,0],[1,1,0,0,1,0,0,0,0,0,1,1,0,1,1,0,0,1,1,1],[0,1,1,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,1],[0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,1],[0,1,1,1,0,1,1,1,1,0,1,0,0,1,0,1,1,0,1,1],[1,1,0,1,1,0,1,0,0,1,0,1,0,1,1,1,1,1,0,1],[1,1,1,0,0,0,0,1,1,0,0,0,1,1,1,0,1,0,1,1],[1,0,1,0,1,0,1,1,1,0,1,1,1,1,1,0,1,0,0,1],[0,0,1,1,1,1,1,0,0,0,1,1,0,0,0,0,0,1,1,1],[0,0,1,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1],[0,1,0,1,0,0,1,1,1,1,1,0,1,0,0,0,1,0,1,1],[1,1,1,1,1,1,0,1,0,0,0,0,1,1,0,0,0,0,1,1],[0,1,0,0,0,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1],[0,0,1,1,1,1,1,0,1,0,0,0,0,1,1,1,1,1,0,1],[0,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0],[1,1,0,0,1,0,1,0,0,1,1,1,0,1,1,0,0,0,0,1],[1,1,0,1,0,1,0,0,1,0,1,1,1,1,1,1,0,0,0,1],[0,1,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,0,1,0],[1,0,0,1,0,1,0,0,0,0,0,1,1,1,1,0,1,0,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":161312.98,"rt":2278.1600000000035,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"29","prompt":"Right","lastChangedTime":163094.98}],"stimulusOffTime":900.820000000007,"trial_type":"canvas-sliders-response","trial_index":41,"time_elapsed":163442,"internal_node_id":"0.0-13.0-0.5"},{"choiceTime":0.04000000000814907,"choice":2,"totalTime":2002,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.9599999999919,"trial_type":"jspsych-jas-present-advice-choice","trial_index":42,"time_elapsed":165445,"internal_node_id":"0.0-13.0-1.5"},{"startTime":165594.6,"rt":1628.5,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"12","prompt":"Right","lastChangedTime":166591.36000000002}],"trial_type":"canvas-sliders-response","trial_index":43,"time_elapsed":167074,"internal_node_id":"0.0-13.0-2.5"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/1/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":2,"advisorId":3,"choice":[3,2],"answer":[0,0],"confidence":[45,29],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[168124.82],"stimulusOffTime":[900.6199999999953,null],"fixationDrawTime":[167624.84],"id":14,"dotDifference":6,"grid":{"dotCountL":206,"dotCountR":194,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,0,0,0,0,0,1,0,1,0,1,0,0,1,1,0,0,0,0],[1,1,0,0,1,0,1,0,1,1,0,0,1,0,1,1,1,0,0,0],[0,1,0,1,0,0,0,1,1,0,1,0,0,1,1,0,1,0,1,1],[1,0,1,1,1,0,1,0,1,1,0,0,1,1,0,0,1,0,1,1],[0,0,0,1,1,0,1,0,0,1,1,0,1,0,0,0,1,1,0,1],[1,1,1,0,1,0,0,1,1,0,0,1,1,1,1,1,0,0,1,1],[0,0,1,1,1,0,1,1,0,1,1,1,1,0,0,1,1,0,1,1],[1,1,1,1,1,0,0,1,0,0,1,1,0,1,1,0,1,1,0,1],[0,1,1,0,1,0,1,1,1,0,1,1,0,1,1,1,0,0,0,0],[0,1,0,0,0,1,0,1,1,1,0,0,1,0,1,1,0,1,1,0],[1,1,1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,1,0,0],[0,0,1,0,1,1,1,1,1,1,0,0,1,1,0,1,1,1,0,0],[1,1,0,1,0,0,0,0,1,1,0,1,1,1,0,0,0,0,0,1],[1,0,1,0,1,0,0,1,0,0,0,0,1,1,0,1,0,0,0,0],[1,1,0,0,1,1,0,1,1,0,0,1,1,0,0,1,0,0,1,0],[0,1,0,1,0,0,1,0,1,0,0,0,0,1,0,0,1,1,1,1],[0,0,0,1,0,1,1,0,0,0,0,1,1,0,0,1,0,1,1,1],[0,1,1,1,0,1,1,0,1,1,0,1,1,1,0,0,1,0,0,0],[1,0,1,1,1,0,1,1,0,0,1,0,1,0,0,0,0,1,0,0],[0,1,1,1,0,1,0,0,0,1,1,0,0,1,1,0,0,1,1,0]],"gridR":[[0,0,1,0,0,0,0,0,1,1,0,1,1,1,0,0,0,0,1,0],[0,1,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,0,1,0],[0,0,1,0,0,0,1,0,1,0,1,0,1,0,1,1,0,1,0,1],[0,0,1,0,1,0,1,0,1,1,1,1,0,1,0,0,1,1,1,1],[0,0,0,1,1,0,0,1,1,1,0,0,1,0,1,0,1,1,1,0],[0,1,1,0,1,1,0,0,0,1,1,1,0,0,1,0,1,1,0,0],[1,1,1,1,0,0,0,0,1,0,0,0,0,1,0,1,0,0,0,0],[0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1],[0,0,0,1,0,0,1,1,1,1,0,1,1,1,1,0,1,0,0,0],[0,1,0,0,0,0,1,0,1,1,1,1,0,0,1,1,1,1,1,0],[1,1,0,1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,1],[0,1,0,1,0,1,1,1,0,1,0,0,1,0,1,0,0,1,1,1],[0,1,1,0,1,1,0,1,0,1,1,0,1,1,0,0,1,0,0,0],[1,1,0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,1,1,0],[0,0,0,1,1,0,0,1,0,0,0,1,1,0,1,1,0,0,0,1],[0,1,0,1,1,0,0,0,1,0,1,0,1,1,0,0,1,1,0,1],[1,1,1,1,0,0,1,0,1,0,0,1,1,1,1,1,1,1,0,1],[0,0,1,0,0,1,1,0,1,0,1,1,0,1,1,0,1,0,0,1],[1,1,0,1,1,1,0,0,1,0,0,1,0,1,0,0,0,0,1,0],[1,1,1,0,1,1,1,1,1,0,0,1,0,1,0,0,1,1,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":167424.38,"rt":2582.7600000000093,"response":[{"id":0,"name":"Left","answer":45,"prompt":"Left","lastChangedTime":169311.2},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.6199999999953,"trial_type":"canvas-sliders-response","trial_index":44,"time_elapsed":169858,"internal_node_id":"0.0-13.0-0.6"},{"choiceTime":1231.820000000007,"choice":3,"totalTime":3232.899999999994,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.0799999999872,"trial_type":"jspsych-jas-present-advice-choice","trial_index":45,"time_elapsed":173092,"internal_node_id":"0.0-13.0-1.6"},{"startTime":173240.98,"rt":1142.0199999999895,"response":[{"id":0,"name":"Left","answer":29,"prompt":"Left","lastChangedTime":173871.26},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":46,"time_elapsed":174234,"internal_node_id":"0.0-13.0-2.6"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/2/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":2,"typeName":"choice","block":2,"advisorId":3,"choice":[2,3],"answer":[0,0],"confidence":[100,86],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[175284.94],"stimulusOffTime":[900.5800000000163,null],"fixationDrawTime":[174784.76],"id":15,"dotDifference":3,"grid":{"dotCountL":197,"dotCountR":203,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,0,0,1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,0,0],[1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1,1,1,1,1],[0,0,1,1,0,1,1,0,1,0,1,1,1,1,1,1,1,0,1,1],[1,1,0,1,0,0,0,0,0,0,0,1,1,1,0,1,0,1,0,0],[0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,1,1,0,1,0],[0,0,0,0,0,1,1,1,1,1,1,0,1,1,1,1,0,1,0,0],[0,0,0,1,1,1,0,1,0,1,0,0,0,0,1,0,0,0,0,0],[0,0,0,1,0,1,1,0,0,0,1,1,0,1,0,0,1,1,0,1],[1,0,0,0,0,0,1,1,0,1,1,1,0,1,1,1,1,0,1,1],[0,1,1,1,1,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0],[1,1,1,1,1,1,1,1,1,0,0,1,0,0,0,1,0,0,0,1],[0,0,0,0,1,1,0,1,1,0,0,0,1,0,0,0,1,0,0,1],[0,0,1,0,1,0,0,0,1,1,1,1,1,1,0,1,1,0,0,1],[1,1,1,0,1,1,1,1,1,1,0,1,0,0,0,1,0,0,1,0],[0,1,0,1,1,0,0,1,1,0,0,1,0,1,0,1,0,0,0,1],[0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,1],[1,0,0,1,0,0,0,0,1,0,1,0,1,1,0,0,0,0,0,0],[0,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,0],[0,0,1,1,0,1,1,1,0,0,1,1,1,1,1,0,1,1,1,1],[1,1,0,1,0,0,0,1,1,0,1,0,0,0,0,0,1,1,0,1]],"gridR":[[0,0,1,1,1,0,0,1,1,0,1,0,1,0,1,0,0,1,1,0],[1,1,0,1,0,0,1,1,0,0,1,0,0,0,1,1,1,0,0,0],[0,0,0,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,0,1],[1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,0,0,0,0,1],[1,1,1,0,1,1,0,0,1,1,1,0,1,0,0,0,0,1,1,1],[1,1,1,0,1,1,0,0,1,1,0,0,1,0,1,1,0,0,1,1],[1,0,0,0,0,1,0,0,1,0,1,0,1,1,1,1,1,0,1,1],[1,1,1,1,1,1,0,1,0,0,0,0,0,1,1,0,1,0,1,1],[0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,0,1,1,1,1],[1,0,1,1,0,1,1,0,0,0,0,0,1,1,0,1,1,1,0,1],[1,0,1,1,1,1,1,0,0,1,0,1,1,0,1,1,0,1,1,1],[0,1,0,1,0,0,1,1,1,0,0,1,0,0,1,1,0,0,0,1],[1,0,0,0,0,0,0,1,0,0,1,1,1,0,0,0,0,1,0,1],[1,0,1,0,0,1,1,0,1,1,1,1,0,1,1,1,0,0,1,1],[0,0,1,1,0,1,1,1,0,0,0,1,1,0,0,1,0,0,1,1],[0,0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,1,0],[1,1,0,1,1,1,0,0,0,0,0,1,0,0,0,1,1,1,0,0],[1,0,0,1,0,0,1,1,0,0,1,1,1,0,1,1,1,1,1,0],[0,1,0,0,0,0,1,0,0,1,0,0,1,1,0,0,0,0,1,1],[0,1,1,1,0,0,0,0,1,1,0,0,1,0,0,0,0,0,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":174584.06,"rt":2983.2000000000116,"response":[{"id":0,"name":"Left","answer":100,"prompt":"Left","lastChangedTime":176175.28},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.5800000000163,"trial_type":"canvas-sliders-response","trial_index":47,"time_elapsed":177418,"internal_node_id":"0.0-13.0-0.7"},{"choiceTime":1311.6000000000058,"choice":3,"totalTime":3313.040000000008,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.4400000000023,"trial_type":"jspsych-jas-present-advice-choice","trial_index":48,"time_elapsed":180732,"internal_node_id":"0.0-13.0-1.7"},{"startTime":180881.64,"rt":1509.359999999986,"response":[{"id":0,"name":"Left","answer":86,"prompt":"Left","lastChangedTime":181839.58000000002},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":49,"time_elapsed":182242,"internal_node_id":"0.0-13.0-2.7"}],"confidenceCategory":2,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":2,"advisorId":3,"choice":[],"answer":[0,0],"confidence":[92,100],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[183293.66],"stimulusOffTime":[901.0400000000081,null],"fixationDrawTime":[182794.18],"id":16,"dotDifference":6,"grid":{"dotCountL":194,"dotCountR":206,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,0,1,1,0],[1,1,0,1,0,1,1,0,0,0,1,1,1,0,0,1,1,1,1,1],[1,1,1,0,0,1,0,0,1,0,0,1,1,0,1,1,0,0,1,0],[0,1,0,0,0,0,1,0,1,1,0,0,1,1,0,0,0,1,1,1],[0,1,0,0,1,1,0,1,0,1,1,1,0,1,1,0,0,1,0,0],[1,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0],[0,0,1,1,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,1],[0,1,1,0,0,1,1,0,1,1,0,0,1,1,0,1,0,1,1,1],[0,0,1,1,0,1,0,1,0,1,0,1,1,1,0,1,1,0,1,1],[1,0,0,1,1,1,0,0,0,1,0,1,0,1,0,1,0,1,0,1],[0,1,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,0,1,1],[0,0,1,0,0,1,0,0,1,1,0,1,1,0,1,0,0,0,0,0],[0,1,0,0,0,0,1,0,0,1,0,0,1,1,1,0,1,1,0,0],[1,1,0,0,1,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1],[1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0,0,0],[1,0,1,0,0,0,1,0,0,0,1,1,0,1,0,0,0,1,0,0],[0,0,1,0,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0],[0,0,0,1,0,0,0,1,1,0,1,0,0,0,1,1,0,0,0,0],[1,0,1,1,1,1,1,0,1,1,1,0,1,0,1,0,0,1,1,1]],"gridR":[[1,0,0,0,0,1,0,1,0,0,0,1,0,1,0,1,1,0,0,1],[0,0,0,0,1,1,1,1,1,1,0,1,1,0,1,0,0,1,0,1],[1,0,1,0,1,1,1,0,1,0,0,0,1,0,1,0,1,1,0,1],[1,1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,0,0,1,0],[1,0,1,1,0,0,0,0,0,0,0,1,1,1,0,1,0,0,0,1],[0,0,0,0,1,1,0,1,0,1,0,0,1,0,0,0,1,1,0,1],[1,0,0,0,0,0,1,0,0,1,1,1,1,1,0,0,1,0,1,0],[0,0,1,1,0,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0],[0,1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1,1,1,0],[0,1,0,1,1,1,1,1,0,0,1,1,0,0,0,1,0,1,0,1],[1,0,1,1,0,1,1,1,1,0,0,0,0,0,1,1,0,1,0,0],[1,1,1,0,0,1,0,1,0,1,1,0,0,1,0,1,1,1,0,0],[0,1,0,1,0,0,1,0,1,1,0,1,1,0,0,0,1,1,0,1],[1,1,1,0,1,0,1,1,1,0,0,1,0,0,1,1,0,0,1,1],[0,0,1,1,0,0,1,1,1,0,1,0,1,1,1,1,1,0,1,0],[1,0,1,0,1,0,0,1,1,1,0,1,1,1,0,1,0,1,1,1],[1,1,0,1,0,1,0,1,1,1,0,0,1,0,0,0,0,0,0,1],[0,0,1,1,0,1,0,0,0,1,1,1,1,0,0,0,0,0,0,1],[0,1,1,0,0,0,1,1,1,0,0,0,1,1,0,0,0,1,1,0],[1,1,1,1,0,1,1,1,1,1,1,0,1,0,1,0,1,1,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":182593.28,"rt":2389.7399999999907,"response":[{"id":0,"name":"Left","answer":92,"prompt":"Left","lastChangedTime":184455.28},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":901.0400000000081,"trial_type":"canvas-sliders-response","trial_index":50,"time_elapsed":184834,"internal_node_id":"0.0-13.0-0.8"},{"choiceTime":0,"choice":3,"totalTime":2000.9200000000128,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2000.9200000000128,"trial_type":"jspsych-jas-present-advice-choice","trial_index":51,"time_elapsed":186836,"internal_node_id":"0.0-13.0-1.8"},{"startTime":186985,"rt":2038.4599999999919,"response":[{"id":0,"name":"Left","answer":100,"prompt":"Left","lastChangedTime":188231.6},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":52,"time_elapsed":188875,"internal_node_id":"0.0-13.0-2.8"}],"confidenceCategory":2,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/2/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":2,"advisorId":2,"choice":[3,2],"answer":[0,0],"confidence":[65,91],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[189925.22],"stimulusOffTime":[900.8199999999779,null],"fixationDrawTime":[189425.74],"id":17,"dotDifference":9,"grid":{"dotCountL":209,"dotCountR":191,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,1,0,0,1,1,1,1,0,0,1,0,0,0,1,1,0,1,0],[0,1,1,0,1,0,1,1,0,0,0,0,0,1,0,1,1,1,1,0],[0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1],[1,1,1,1,1,1,0,1,0,1,0,1,0,1,0,1,0,0,0,1],[1,0,0,0,0,1,0,0,1,1,1,1,1,0,0,0,1,0,0,0],[1,1,1,0,1,0,0,0,0,0,1,1,1,1,0,1,1,0,1,1],[0,0,0,1,1,1,1,0,1,0,0,1,0,1,1,1,1,1,0,1],[0,0,1,0,0,1,1,1,1,0,0,1,1,1,0,0,0,1,0,0],[0,0,0,1,0,0,1,1,1,0,0,0,0,0,1,0,0,1,1,0],[1,0,0,1,1,1,0,1,0,0,0,1,0,0,0,1,0,0,1,1],[1,1,1,1,0,0,0,0,1,0,1,0,1,1,1,0,1,1,0,1],[1,0,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],[1,1,0,1,0,1,1,1,0,0,1,1,0,0,1,0,1,0,1,1],[1,1,1,0,0,1,0,0,0,1,1,0,1,1,1,1,0,0,0,0],[1,1,0,1,0,0,1,1,0,0,1,1,1,0,1,1,0,1,1,1],[1,1,0,1,1,1,1,0,1,1,1,1,0,0,0,1,1,0,1,0],[1,0,0,0,1,1,0,0,1,0,1,1,1,0,1,1,1,0,1,0],[0,0,0,1,0,1,0,1,0,1,0,0,1,1,1,1,0,0,0,0],[1,0,0,0,1,1,0,0,1,0,0,0,1,0,0,1,0,1,0,0],[0,0,0,1,0,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0]],"gridR":[[0,0,1,0,1,0,1,0,1,0,1,0,1,1,0,0,0,0,1,1],[1,0,1,0,0,0,1,0,1,1,0,0,1,0,1,0,0,1,1,0],[0,0,1,0,0,0,0,1,0,1,0,1,1,0,0,0,1,1,0,0],[1,1,0,0,1,1,1,0,1,1,1,1,1,1,1,0,1,0,0,1],[0,0,1,0,1,1,1,0,1,1,1,1,0,1,1,1,0,1,0,0],[0,0,1,1,1,1,0,1,0,1,1,1,0,1,0,0,0,0,0,0],[0,0,1,0,1,1,1,0,1,0,0,0,0,1,1,0,1,0,0,1],[1,1,0,0,1,0,0,0,1,0,0,0,0,1,1,0,1,0,0,0],[0,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,0,0,0,0],[1,1,0,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,0,1],[0,1,1,1,0,0,0,1,0,1,1,1,0,1,1,0,0,0,1,0],[0,0,0,0,1,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0],[1,1,0,1,1,0,0,1,0,1,0,0,1,1,0,1,1,1,0,0],[1,1,0,1,1,0,1,1,0,0,0,0,0,1,0,0,0,0,1,0],[1,1,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,1],[1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,0,1,0,1],[1,1,0,1,0,0,1,1,0,0,1,1,0,0,1,0,0,1,0,0],[1,0,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0,0,0,1],[0,0,0,0,1,0,1,0,0,1,1,1,0,0,1,0,1,0,1,0],[1,1,1,0,0,0,0,1,0,1,0,0,0,1,0,0,1,1,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":189225.2,"rt":3125.8399999999965,"response":[{"id":0,"name":"Left","answer":65,"prompt":"Left","lastChangedTime":191663.2},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.8199999999779,"trial_type":"canvas-sliders-response","trial_index":53,"time_elapsed":192202,"internal_node_id":"0.0-13.0-0.9"},{"choiceTime":1600.2200000000012,"choice":2,"totalTime":3602.2600000000093,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2002.0400000000081,"trial_type":"jspsych-jas-present-advice-choice","trial_index":54,"time_elapsed":195805,"internal_node_id":"0.0-13.0-1.9"},{"startTime":195954.2,"rt":1893.0599999999977,"response":[{"id":0,"name":"Left","answer":91,"prompt":"Left","lastChangedTime":197127},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":55,"time_elapsed":197698,"internal_node_id":"0.0-13.0-2.9"}],"confidenceCategory":1,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":1,"typeName":"force","block":2,"advisorId":2,"choice":[],"answer":[0,0],"confidence":[21,35],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[198749.66],"stimulusOffTime":[901.2999999999884,null],"fixationDrawTime":[198249.76],"id":18,"dotDifference":9,"grid":{"dotCountL":209,"dotCountR":191,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,0,0,1,0],[1,0,0,0,0,0,1,0,1,1,0,0,1,1,1,0,1,0,1,1],[1,0,0,1,1,1,1,0,1,1,1,0,0,0,1,1,1,1,0,1],[0,1,0,0,1,0,0,1,0,1,0,0,0,1,0,0,1,1,1,0],[0,1,0,0,0,0,1,0,1,0,0,0,0,0,1,1,1,0,1,1],[1,1,1,0,0,0,1,1,0,1,1,1,0,0,1,0,1,1,0,1],[0,1,0,0,1,1,1,0,0,1,0,1,1,1,1,0,1,0,0,1],[0,0,1,1,1,1,0,0,1,1,0,1,0,0,0,0,0,1,0,1],[1,0,0,0,1,0,0,1,1,1,0,1,1,0,1,0,0,0,0,0],[1,1,1,0,0,1,0,1,0,0,1,1,1,1,1,1,0,1,0,0],[0,0,1,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,0],[1,1,0,1,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,1],[0,1,1,0,1,1,1,1,0,1,1,1,0,1,0,1,0,1,1,1],[1,1,1,0,1,0,1,1,1,1,1,1,1,0,0,1,0,0,1,1],[0,1,1,1,1,0,0,1,0,1,1,1,1,0,0,0,1,0,0,1],[0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,1,0,1,1,1],[1,0,0,1,0,1,0,1,1,0,1,1,0,0,0,0,1,1,0,0],[1,1,0,0,1,0,1,0,1,0,0,0,0,1,1,1,1,0,1,0],[0,0,1,0,1,1,0,0,0,0,1,0,1,1,0,0,1,1,0,0],[1,1,0,1,0,1,0,1,0,1,1,0,0,0,1,1,1,0,0,1]],"gridR":[[1,0,0,1,1,0,1,1,1,0,1,0,0,1,0,0,0,1,0,0],[1,0,1,0,1,1,1,1,0,1,0,1,1,0,0,0,1,1,0,1],[1,1,0,0,1,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1],[0,0,0,0,0,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1],[1,1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,1],[0,0,1,0,1,1,1,0,0,1,0,0,1,1,1,0,0,0,0,1],[0,0,1,1,0,0,1,1,0,0,0,0,1,1,1,0,1,1,0,1],[1,0,1,0,0,1,0,0,0,0,0,0,1,0,0,1,0,1,0,1],[0,1,0,0,0,1,0,1,1,1,1,1,0,1,1,1,1,0,0,0],[0,0,0,1,1,0,1,0,1,0,0,0,1,0,1,1,1,1,0,1],[0,1,0,1,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,0],[0,0,1,1,0,1,1,1,0,0,1,0,0,1,0,1,1,1,0,0],[0,0,0,1,0,1,1,0,0,1,1,1,1,0,0,0,0,1,0,1],[1,0,0,1,1,0,1,0,1,0,1,0,0,1,1,0,0,0,1,0],[0,1,0,1,0,0,1,0,1,1,1,0,1,0,0,0,0,1,1,0],[0,1,0,0,0,0,1,1,0,0,1,0,0,1,1,1,1,0,0,1],[0,0,1,1,1,0,1,1,0,0,0,1,1,0,1,1,1,0,0,1],[1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,1,0,1,0,0,1,1,1,1,0,1,0,1],[1,0,1,0,1,0,0,0,0,1,0,1,1,1,1,1,1,0,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":198049.04,"rt":2597.959999999992,"response":[{"id":0,"name":"Left","answer":21,"prompt":"Left","lastChangedTime":200151.06},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":901.2999999999884,"trial_type":"canvas-sliders-response","trial_index":56,"time_elapsed":200498,"internal_node_id":"0.0-13.0-0.10"},{"choiceTime":0.059999999997671694,"choice":2,"totalTime":2001.8800000000047,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.820000000007,"trial_type":"jspsych-jas-present-advice-choice","trial_index":57,"time_elapsed":202501,"internal_node_id":"0.0-13.0-1.10"},{"startTime":202650.28,"rt":1532.7799999999988,"response":[{"id":0,"name":"Left","answer":35,"prompt":"Left","lastChangedTime":203671.48},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":58,"time_elapsed":204034,"internal_node_id":"0.0-13.0-2.10"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":1,"typeName":"force","block":2,"advisorId":3,"choice":[],"answer":[0,0],"confidence":[0,13],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[205085.48],"stimulusOffTime":[900.5599999999977,null],"fixationDrawTime":[204585.86000000002],"id":19,"dotDifference":6,"grid":{"dotCountL":194,"dotCountR":206,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,0,1,1,1,0,1,0,0,0,0,0,0,0,1,1,0,0],[0,0,1,1,0,1,1,0,0,1,0,1,1,1,0,1,0,0,0,1],[0,1,0,1,0,1,1,1,1,1,1,0,1,1,1,0,1,1,1,1],[1,1,1,0,0,0,1,0,1,1,0,0,0,1,0,0,0,1,1,1],[1,1,0,1,0,1,0,0,0,1,0,0,1,1,0,1,0,0,1,1],[0,0,1,0,1,0,0,1,1,1,1,0,0,0,0,0,1,1,1,1],[0,0,1,0,0,0,0,0,0,1,1,1,0,0,1,0,1,1,1,1],[0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,0,0,0,1],[0,0,0,1,1,0,1,1,0,1,1,0,0,0,0,0,0,0,1,0],[0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1],[0,0,1,0,0,1,0,1,0,1,1,0,1,0,0,0,0,1,0,1],[0,0,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,1,0,0],[1,1,1,0,1,0,0,1,0,1,1,1,1,1,0,1,1,1,0,0],[0,1,1,1,1,0,0,1,1,0,0,0,1,1,1,0,1,1,0,0],[1,0,0,0,1,0,1,0,1,0,1,0,1,1,0,0,1,0,1,1],[0,1,1,1,1,0,0,1,0,1,1,1,0,0,0,1,0,0,0,1],[0,0,1,1,0,0,1,0,1,0,0,0,0,0,1,1,1,1,0,0],[0,0,1,1,1,1,0,1,1,0,0,1,0,0,1,0,0,1,1,0],[1,0,0,1,0,1,1,0,0,1,0,0,0,0,1,0,0,0,0,1],[1,1,0,0,1,0,1,1,1,1,1,0,0,1,1,0,1,1,1,0]],"gridR":[[1,0,1,1,1,1,0,1,1,1,0,0,0,0,0,0,0,1,0,1],[1,0,1,1,1,1,1,0,0,1,1,1,0,0,0,1,0,0,1,0],[1,1,1,0,1,0,1,1,1,0,0,1,0,1,0,0,0,0,0,0],[0,0,0,1,1,0,1,1,0,0,1,0,0,1,1,1,0,0,0,1],[1,1,1,1,0,1,1,1,0,1,0,1,0,1,0,0,1,0,0,1],[0,1,0,1,1,0,1,1,1,1,1,1,1,1,1,0,0,1,1,1],[1,0,0,0,1,1,0,0,0,0,1,0,0,1,1,0,1,1,1,0],[1,1,0,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1,1],[1,1,0,1,0,0,0,1,0,0,1,0,0,1,0,0,0,1,0,1],[1,0,1,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1,1,0],[1,0,1,0,1,1,0,1,1,1,0,0,1,0,0,1,0,0,0,1],[1,1,0,1,1,1,0,1,0,1,0,1,0,0,1,1,1,1,1,1],[1,1,1,1,0,0,1,1,0,0,0,1,0,1,1,0,0,0,0,1],[1,1,0,0,1,0,0,1,1,0,1,0,0,0,0,0,1,1,1,0],[0,1,1,1,1,1,1,1,0,0,1,0,1,1,0,0,0,1,0,0],[1,0,1,0,0,0,1,1,0,0,1,0,1,0,0,0,0,0,0,1],[0,1,0,1,1,1,0,0,0,0,1,0,0,1,0,0,1,0,1,0],[1,1,0,0,1,0,1,1,1,0,0,1,1,1,0,1,0,0,1,1],[0,1,0,1,0,0,1,1,0,0,1,1,1,0,1,0,0,0,1,0],[1,0,1,0,0,0,1,1,0,1,0,1,1,0,0,1,0,1,0,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":204385.30000000002,"rt":3525.8799999999756,"response":[{"id":0,"name":"Left","answer":0,"prompt":"Left","lastChangedTime":207327.26},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.5599999999977,"trial_type":"canvas-sliders-response","trial_index":59,"time_elapsed":207762,"internal_node_id":"0.0-13.0-0.11"},{"choiceTime":0,"choice":3,"totalTime":2001.5400000000081,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.5400000000081,"trial_type":"jspsych-jas-present-advice-choice","trial_index":60,"time_elapsed":209764,"internal_node_id":"0.0-13.0-1.11"},{"startTime":209913.72,"rt":1253.3999999999942,"response":[{"id":0,"name":"Left","answer":13,"prompt":"Left","lastChangedTime":210679.42},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":61,"time_elapsed":211018,"internal_node_id":"0.0-13.0-2.11"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/2/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":1,"typeName":"force","block":3,"advisorId":2,"choice":[],"answer":[1,1],"confidence":[31,48],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[213204.4],"stimulusOffTime":[900.9199999999837,null],"fixationDrawTime":[212704.80000000002],"id":20,"dotDifference":9,"grid":{"dotCountL":209,"dotCountR":191,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,0,0,0,0,1,1,0,1,1,0,1,1,0,0,1,1,0,0,1],[0,1,1,1,1,1,0,0,1,0,1,1,0,0,1,0,0,1,1,0],[0,1,0,0,0,0,0,1,1,1,1,1,1,1,1,0,1,0,1,1],[0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,1,1,1,0],[1,0,0,0,1,0,0,1,0,1,1,0,0,1,0,0,1,1,1,0],[0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1],[0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,0,0,0,1,1],[1,0,1,0,0,1,0,0,1,0,0,0,0,1,1,0,1,0,0,0],[1,0,1,0,1,0,0,1,0,0,1,1,0,1,0,0,1,1,0,1],[1,1,0,1,1,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,1,1,1],[1,1,0,0,0,1,1,1,1,0,1,0,1,1,1,1,1,1,1,0],[0,0,0,1,0,0,1,1,0,0,1,1,0,0,0,1,1,1,1,1],[0,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1],[1,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,1,0,1],[1,0,1,0,0,0,1,1,0,1,1,1,1,1,0,1,0,1,1,1],[1,0,0,1,0,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1],[0,0,1,1,0,0,1,0,1,0,1,1,1,0,1,1,1,1,0,0],[0,1,0,1,0,1,0,1,0,0,1,0,1,1,0,0,0,0,1,0],[0,1,1,0,1,1,1,0,0,0,1,1,1,0,0,1,0,0,0,1]],"gridR":[[0,0,0,1,0,1,0,1,0,0,1,1,0,1,1,1,0,1,1,0],[0,0,1,0,0,1,0,0,0,1,0,1,1,1,1,1,0,1,1,0],[0,1,1,0,0,1,0,1,1,0,0,0,1,0,1,0,0,0,0,1],[1,1,0,0,0,1,1,1,0,0,0,0,1,0,1,0,1,1,1,1],[0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],[0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,0,1,1,1,1],[1,1,0,1,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,1],[0,1,1,0,1,0,1,1,1,1,0,0,0,1,1,1,1,1,1,1],[0,0,1,1,0,1,1,1,0,1,1,1,0,0,0,0,0,0,1,0],[0,1,0,1,1,0,0,1,0,1,0,1,1,1,1,1,0,0,1,0],[1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0],[1,0,0,0,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1],[1,0,0,0,0,1,1,1,0,1,1,0,1,0,0,0,1,0,1,1],[0,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,1,1,0],[1,0,1,0,0,0,1,1,0,0,1,0,1,0,1,0,0,1,0,1],[1,0,1,1,1,0,0,0,1,0,1,1,0,1,1,1,1,0,1,0],[0,1,0,1,0,0,0,1,0,0,0,0,0,1,0,1,1,0,0,0],[1,0,1,0,1,0,0,0,0,0,0,1,1,0,1,0,0,1,0,0],[0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1],[1,0,0,1,1,1,0,0,0,0,0,1,0,0,1,0,1,0,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":212503.82,"rt":2127.359999999986,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"31","prompt":"Right","lastChangedTime":214159.30000000002}],"stimulusOffTime":900.9199999999837,"trial_type":"canvas-sliders-response","trial_index":63,"time_elapsed":214482,"internal_node_id":"0.0-15.0-0.0"},{"choiceTime":0,"choice":2,"totalTime":2001.039999999979,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.039999999979,"trial_type":"jspsych-jas-present-advice-choice","trial_index":64,"time_elapsed":216484,"internal_node_id":"0.0-15.0-1.0"},{"startTime":216633.38,"rt":1397.8999999999942,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"48","prompt":"Right","lastChangedTime":217503.56}],"trial_type":"canvas-sliders-response","trial_index":65,"time_elapsed":217882,"internal_node_id":"0.0-15.0-2.0"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/1/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":3,"advisorId":2,"choice":[],"answer":[1,1],"confidence":[74,87],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[218933.32],"stimulusOffTime":[900.5599999999977,null],"fixationDrawTime":[218432.76],"id":21,"dotDifference":12,"grid":{"dotCountL":212,"dotCountR":188,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,1,0,0,0,1,0,1,1,1,1,0,0,1,0,1,1,0],[1,1,1,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,0],[0,0,1,0,0,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1],[1,1,0,0,0,1,1,0,1,1,1,0,1,1,1,0,0,1,1,0],[0,1,0,1,0,0,1,1,1,1,0,0,0,0,1,0,1,1,0,0],[0,1,0,0,0,1,0,1,1,0,0,0,1,0,1,1,0,1,0,0],[0,1,0,0,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0],[1,0,1,1,1,0,0,0,0,1,0,0,0,1,1,1,1,1,1,1],[0,1,1,1,0,0,0,0,1,1,0,1,0,1,1,1,1,1,0,1],[1,1,0,1,1,0,1,1,0,0,0,0,1,0,0,1,1,1,1,0],[1,1,1,0,1,0,1,1,1,0,0,0,1,1,0,1,0,1,0,0],[1,1,1,1,1,0,1,0,0,1,0,1,0,0,0,1,1,1,1,1],[0,1,0,1,0,1,0,1,1,0,1,1,0,1,1,1,0,0,0,1],[0,0,0,1,1,0,0,1,1,0,1,1,1,1,1,0,1,1,0,0],[0,1,0,1,1,0,0,1,1,1,0,1,1,0,1,1,0,1,0,0],[0,1,1,1,1,0,1,0,0,0,1,0,1,0,1,0,1,1,1,0],[1,1,0,1,0,0,0,0,0,1,0,1,0,1,1,0,1,1,0,0],[1,0,0,1,1,1,0,0,1,0,1,1,0,1,1,0,0,1,1,1],[0,0,0,1,0,0,1,0,1,0,1,1,0,1,0,1,0,1,0,0],[1,0,1,1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,1]],"gridR":[[0,0,1,1,1,1,0,1,1,1,0,0,1,0,0,1,0,0,0,0],[1,0,1,1,0,1,1,0,1,0,1,0,0,0,1,0,0,1,1,0],[1,0,1,1,0,0,1,1,1,0,0,1,1,1,1,0,0,1,1,0],[0,0,0,1,0,1,1,0,0,0,1,1,0,1,1,1,0,0,1,0],[0,0,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,1,0,1,1,0,0,0,0,0,1,0,1,1,0,0,1,0,1,0],[1,0,0,1,0,0,0,1,1,1,1,0,1,0,0,1,1,1,0,1],[0,1,1,0,0,0,1,0,1,1,0,0,1,0,0,1,0,1,0,0],[0,1,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0],[1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,0,1,0,0,1],[1,1,0,0,1,0,1,1,0,1,1,0,0,0,1,0,1,1,1,0],[0,1,1,0,0,1,0,0,1,0,1,1,0,1,1,1,0,1,0,0],[0,1,0,1,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1],[1,0,0,0,0,0,0,1,1,0,0,1,1,1,1,1,1,0,1,0],[0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,1,0,0],[0,0,1,0,0,0,0,0,1,1,0,0,1,0,0,1,0,1,1,1],[0,1,0,1,1,0,1,1,0,0,1,0,0,0,1,0,1,1,1,1],[1,1,0,1,1,0,0,1,0,1,1,0,1,0,0,0,0,0,0,1],[0,0,1,1,0,1,0,0,1,0,0,1,0,0,1,1,0,1,0,0],[1,1,0,0,1,1,1,1,1,1,1,0,0,0,0,1,0,0,0,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":218232.06,"rt":2327.1199999999953,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"74","prompt":"Right","lastChangedTime":220039.58000000002}],"stimulusOffTime":900.5599999999977,"trial_type":"canvas-sliders-response","trial_index":66,"time_elapsed":220410,"internal_node_id":"0.0-15.0-0.1"},{"choiceTime":0.01999999998952262,"choice":2,"totalTime":2000.7799999999988,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2000.7600000000093,"trial_type":"jspsych-jas-present-advice-choice","trial_index":67,"time_elapsed":222412,"internal_node_id":"0.0-15.0-1.1"},{"startTime":222561.32,"rt":1309.7600000000093,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"87","prompt":"Right","lastChangedTime":223279.42}],"trial_type":"canvas-sliders-response","trial_index":68,"time_elapsed":223722,"internal_node_id":"0.0-15.0-2.1"}],"confidenceCategory":2,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/1/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":2,"typeName":"choice","block":3,"advisorId":2,"choice":[3,2],"answer":[1,1],"confidence":[8,20],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[224772.86000000002],"stimulusOffTime":[901.4400000000023,null],"fixationDrawTime":[224272.06],"id":22,"dotDifference":15,"grid":{"dotCountL":185,"dotCountR":215,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0],[1,0,0,0,1,0,1,1,1,0,0,0,1,1,1,0,1,0,1,0],[1,0,0,1,0,1,1,0,1,1,0,0,0,1,0,0,1,0,1,0],[0,0,0,1,0,1,0,0,0,1,0,0,0,1,0,0,1,1,0,0],[1,1,0,0,1,0,0,0,0,1,0,0,0,1,0,1,1,1,0,0],[1,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,1,1,1],[1,0,0,1,0,0,1,1,1,0,1,0,0,0,0,1,1,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0],[0,1,1,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0,0],[1,0,0,0,0,1,1,1,1,0,1,0,1,0,1,0,0,0,0,1],[0,1,1,0,1,1,0,0,0,1,1,0,1,1,1,1,0,0,0,0],[0,0,1,0,0,0,0,1,0,1,1,0,1,0,1,0,1,1,1,0],[0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,0,1,0,0,1],[0,1,0,0,0,0,1,0,1,0,1,0,0,0,1,1,1,1,0,0],[1,0,1,1,1,1,0,0,1,0,0,1,0,1,1,0,0,1,0,1],[1,0,1,1,1,1,0,0,1,0,0,0,0,0,1,0,0,1,1,0],[1,0,1,0,1,0,1,0,1,1,1,1,0,0,0,1,0,1,1,1],[0,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1],[1,0,0,0,0,1,0,1,1,0,0,0,1,0,0,0,0,0,0,0],[1,0,1,0,1,1,1,1,1,0,1,1,0,0,1,1,1,0,1,0]],"gridR":[[1,1,1,1,0,0,1,1,0,1,1,1,0,0,0,1,1,0,1,1],[1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,0,0,1,0,1],[0,0,1,1,1,1,1,1,0,0,0,1,0,1,0,1,1,1,1,1],[1,0,1,1,0,1,0,1,1,0,0,0,0,0,1,1,1,0,0,1],[0,0,0,0,0,1,0,1,0,1,0,0,1,1,1,1,0,0,1,0],[1,1,1,0,0,0,0,1,0,1,1,0,1,0,1,0,0,0,1,1],[1,0,1,1,0,0,0,1,0,1,1,0,0,0,0,0,1,1,1,0],[1,1,1,1,1,1,0,1,1,0,1,0,0,1,1,1,1,0,0,0],[0,0,0,1,1,1,0,0,1,0,1,0,0,1,1,0,1,0,0,1],[1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,0,0,0,0,1],[0,1,1,1,1,1,0,1,0,0,0,1,1,0,0,1,0,1,1,1],[1,1,0,0,1,1,1,1,1,1,0,0,0,0,1,1,0,1,1,1],[0,1,1,0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,0],[0,1,0,1,1,0,1,1,0,0,1,1,1,0,0,0,0,0,0,1],[1,1,1,0,1,1,0,1,0,0,1,1,1,1,0,0,0,1,1,0],[1,0,0,0,1,1,1,0,0,1,0,1,1,1,0,0,1,0,0,1],[1,1,1,0,0,1,1,1,0,1,0,1,0,1,0,0,1,1,0,0],[0,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1,0,1,0,0],[0,0,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,1,1,1],[1,0,0,0,1,1,0,1,0,1,0,0,1,0,0,0,1,0,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":224072.08000000002,"rt":2687.0999999999767,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"8","prompt":"Right","lastChangedTime":226207.30000000002}],"stimulusOffTime":901.4400000000023,"trial_type":"canvas-sliders-response","trial_index":69,"time_elapsed":226611,"internal_node_id":"0.0-15.0-0.2"},{"choiceTime":1567.6200000000244,"choice":2,"totalTime":3568.680000000022,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.0599999999977,"trial_type":"jspsych-jas-present-advice-choice","trial_index":70,"time_elapsed":230180,"internal_node_id":"0.0-15.0-1.2"},{"startTime":230329.74,"rt":1509.4400000000023,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"20","prompt":"Right","lastChangedTime":231214.98}],"trial_type":"canvas-sliders-response","trial_index":71,"time_elapsed":231690,"internal_node_id":"0.0-15.0-2.2"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":3,"advisorId":2,"choice":[],"answer":[0,0],"confidence":[7,18],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[232741.94],"stimulusOffTime":[901.179999999993,null],"fixationDrawTime":[232242.54],"id":23,"dotDifference":15,"grid":{"dotCountL":215,"dotCountR":185,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,1,0,1,0,1,1,0,1,0,1,0,1,0,0,1,0,1,0],[0,0,0,1,1,1,0,1,1,0,0,0,0,1,1,1,0,0,1,0],[1,1,0,0,1,1,0,1,1,1,1,0,0,0,0,1,0,1,0,1],[0,0,0,0,1,0,1,0,0,0,1,1,1,1,1,0,0,1,0,0],[1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,1,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1],[0,1,0,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0],[1,1,1,1,0,1,0,0,0,1,0,1,1,1,1,1,0,1,1,1],[1,0,0,0,1,1,1,1,0,1,0,1,0,1,1,0,0,0,1,1],[0,0,0,0,1,0,1,0,1,0,1,0,1,1,0,1,1,1,1,0],[0,1,1,0,1,0,1,1,0,1,0,0,0,1,1,1,1,0,1,1],[0,1,1,0,1,0,0,1,1,1,0,1,1,0,0,0,1,0,1,0],[0,1,0,0,0,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1],[1,1,0,0,1,1,1,0,1,0,1,1,0,0,1,0,0,0,0,0],[0,1,1,1,1,1,0,1,0,1,0,1,0,0,0,0,0,1,1,0],[1,0,1,0,1,1,0,0,1,0,1,0,0,0,0,1,1,1,1,1],[0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,1,0,1],[1,1,1,1,1,0,1,1,0,1,1,0,0,1,1,1,1,0,0,1],[1,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,1,0,1,0],[1,1,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,0,1,0]],"gridR":[[0,0,1,1,1,0,1,1,0,1,1,1,1,1,0,0,1,0,0,0],[0,1,1,0,0,0,0,0,1,0,1,0,1,0,0,0,1,1,1,1],[1,0,1,1,1,1,1,0,0,0,1,1,1,0,0,1,1,1,0,0],[1,0,0,1,0,1,0,0,1,0,0,0,0,1,1,0,1,0,1,0],[0,0,0,0,1,1,1,1,0,1,0,0,1,0,1,0,0,0,0,0],[1,0,0,1,1,1,1,0,0,1,1,0,1,1,0,1,1,0,0,0],[1,1,1,0,1,0,0,1,0,1,0,0,0,0,1,0,1,0,1,1],[0,0,1,1,0,0,1,0,1,0,0,0,0,1,0,0,1,0,1,1],[0,1,0,0,1,0,1,0,1,0,1,0,0,0,0,1,0,1,0,0],[0,1,1,0,0,0,1,1,1,0,0,0,1,0,0,0,0,0,0,1],[0,1,0,1,1,0,0,1,0,0,1,1,0,1,1,1,1,0,1,0],[1,1,1,1,0,1,1,1,0,0,0,1,0,1,1,0,1,1,1,1],[0,1,1,1,1,0,0,1,0,1,1,1,0,0,0,1,1,0,1,0],[1,0,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0],[1,1,1,0,0,1,1,1,1,0,0,1,1,0,0,0,1,0,0,1],[0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1,0,1,1],[0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,0,1,1,1],[0,0,0,1,1,1,1,1,0,1,0,0,0,0,1,0,1,1,0,1],[1,1,0,1,1,0,0,1,0,1,1,1,0,0,1,0,1,1,0,0],[1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":232041.1,"rt":4093.820000000007,"response":[{"id":0,"name":"Left","answer":7,"prompt":"Left","lastChangedTime":235615.68},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":901.179999999993,"trial_type":"canvas-sliders-response","trial_index":72,"time_elapsed":235986,"internal_node_id":"0.0-15.0-0.3"},{"choiceTime":0.02000000001862645,"choice":2,"totalTime":2001.320000000007,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.2999999999884,"trial_type":"jspsych-jas-present-advice-choice","trial_index":73,"time_elapsed":237988,"internal_node_id":"0.0-15.0-1.3"},{"startTime":238137.34,"rt":1717.5800000000163,"response":[{"id":0,"name":"Left","answer":18,"prompt":"Left","lastChangedTime":239279.28},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":74,"time_elapsed":239706,"internal_node_id":"0.0-15.0-2.3"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":1,"typeName":"force","block":3,"advisorId":3,"choice":[],"answer":[0,0],"confidence":[44,57],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[240756.98],"stimulusOffTime":[900.3800000000047,null],"fixationDrawTime":[240257.18],"id":24,"dotDifference":12,"grid":{"dotCountL":212,"dotCountR":188,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,0,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,0],[0,0,0,0,1,1,0,1,1,0,0,0,1,1,1,1,1,1,1,0],[0,0,0,0,1,0,0,1,0,1,0,0,0,1,1,1,1,0,1,0],[0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,1,1,0,1,0],[1,0,0,1,1,1,0,0,0,0,1,0,1,0,1,0,1,1,1,0],[1,1,1,0,0,1,1,1,1,1,1,1,0,0,1,1,1,0,0,1],[0,0,0,0,0,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1],[1,0,0,0,1,1,0,1,1,1,0,1,0,0,0,1,1,1,0,1],[1,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0,1,1,0,1],[1,0,1,1,0,0,0,0,1,0,0,1,0,1,0,1,1,1,1,1],[1,0,0,1,1,1,0,0,1,1,0,0,0,1,0,1,0,0,1,0],[0,0,1,1,0,1,1,0,0,0,1,0,1,0,0,0,0,0,0,1],[0,0,1,0,0,0,0,0,1,1,0,0,1,1,1,0,1,0,0,1],[0,1,1,1,0,1,1,0,0,0,0,0,1,1,0,1,1,1,0,0],[1,0,0,1,1,1,0,1,1,1,1,0,1,1,1,0,1,0,0,1],[1,1,0,1,1,0,1,0,0,0,0,1,0,1,1,1,1,0,0,1],[0,0,1,1,0,0,0,1,0,0,1,1,0,1,1,0,0,0,1,1],[0,1,0,1,0,1,0,1,0,1,1,0,1,0,1,0,1,0,0,0],[0,0,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1],[1,0,0,1,1,0,1,1,0,0,0,0,1,1,1,0,1,1,1,1]],"gridR":[[0,1,0,1,0,0,1,1,1,0,0,0,0,0,1,0,0,0,0,0],[1,0,0,1,0,0,1,0,0,1,0,1,0,1,1,0,1,1,0,0],[1,0,0,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1,0,1],[1,0,0,0,1,0,1,0,0,1,0,0,0,1,1,0,1,0,0,1],[1,0,1,0,0,1,1,1,0,0,0,1,0,0,0,1,1,1,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,1,1,0,0,1,1,0],[0,0,0,0,1,1,1,0,0,1,1,0,1,0,0,1,0,0,0,1],[0,1,0,1,1,1,0,1,0,1,1,0,1,1,0,1,1,0,1,1],[1,0,0,1,0,1,1,0,0,0,0,1,1,1,0,1,1,1,0,0],[0,0,0,1,1,0,0,0,0,1,0,0,1,1,1,1,1,1,1,0],[1,0,0,0,0,0,1,0,1,0,0,0,1,0,1,1,0,1,1,0],[1,0,0,1,0,0,0,1,0,1,1,1,0,1,1,1,0,1,0,0],[0,1,0,1,0,0,1,1,1,1,0,1,0,0,0,0,1,0,1,0],[0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,1,1,0,1,0],[0,0,1,1,1,0,1,0,0,0,0,1,1,0,0,0,0,1,0,0],[0,0,1,1,1,0,0,0,1,0,0,1,1,0,1,0,0,0,1,0],[1,1,1,0,1,1,0,1,0,0,1,0,0,0,0,1,0,1,1,0],[1,0,0,0,1,0,0,0,0,1,0,1,0,1,1,1,1,1,0,0],[1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,1,1,0,1],[0,1,0,1,0,0,0,1,0,0,1,1,1,1,1,1,0,1,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":240056.54,"rt":2750.6199999999953,"response":[{"id":0,"name":"Left","answer":44,"prompt":"Left","lastChangedTime":242095.38},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.3800000000047,"trial_type":"canvas-sliders-response","trial_index":75,"time_elapsed":242658,"internal_node_id":"0.0-15.0-0.4"},{"choiceTime":0,"choice":3,"totalTime":2001.5,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.5,"trial_type":"jspsych-jas-present-advice-choice","trial_index":76,"time_elapsed":244660,"internal_node_id":"0.0-15.0-1.4"},{"startTime":244809.82,"rt":1285.4400000000023,"response":[{"id":0,"name":"Left","answer":57,"prompt":"Left","lastChangedTime":245575.6},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":77,"time_elapsed":245947,"internal_node_id":"0.0-15.0-2.4"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":3,"advisorId":3,"choice":[3,2],"answer":[1,1],"confidence":[13,24],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[246996.80000000002],"stimulusOffTime":[901.5599999999977,null],"fixationDrawTime":[246497.82],"id":25,"dotDifference":9,"grid":{"dotCountL":191,"dotCountR":209,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,0,0,0,1,1,0,0,0,1,1,0,1,0,1,1,1,0,1,0],[1,0,0,0,1,1,0,1,1,1,1,0,0,0,1,0,1,1,0,0],[1,0,0,0,1,1,0,1,0,0,0,0,1,1,1,1,0,0,0,1],[1,1,1,0,1,0,1,0,1,0,1,1,1,1,0,1,0,0,1,1],[0,1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,0,0,1,0],[1,0,0,0,0,1,1,0,1,0,0,0,0,0,1,1,0,0,1,0],[0,0,0,1,0,0,0,1,1,0,1,1,0,1,1,0,1,0,1,1],[1,0,0,0,1,1,1,0,1,0,0,1,1,1,1,0,0,0,1,0],[0,0,0,0,0,1,1,1,1,1,0,1,0,0,0,1,0,0,1,1],[0,1,0,0,0,0,0,0,0,1,0,1,0,1,1,0,0,0,1,0],[1,1,1,1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1],[0,0,0,0,0,1,0,1,1,0,1,0,1,1,0,0,0,0,1,0],[0,1,1,1,1,0,1,1,1,1,1,0,1,0,0,1,0,0,1,0],[0,1,1,1,0,0,0,1,0,1,0,0,0,0,1,0,1,0,1,0],[0,1,0,0,1,1,0,0,1,0,0,1,0,1,0,0,0,1,1,1],[1,1,1,0,0,1,1,0,0,1,1,0,1,1,0,1,0,1,0,1],[0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,1,1],[1,0,0,0,1,1,1,0,0,1,0,0,1,1,0,0,1,0,1,1],[1,1,1,0,0,1,0,1,0,1,0,1,1,1,1,0,0,0,0,0],[0,1,1,0,1,0,0,1,1,1,0,0,1,1,0,0,0,0,1,1]],"gridR":[[0,1,0,1,0,0,1,0,1,0,1,0,1,1,1,0,0,0,0,1],[1,1,1,1,0,1,0,0,1,0,1,0,1,1,0,0,0,1,1,0],[1,1,1,1,0,0,0,1,1,1,1,1,0,0,0,0,1,0,0,1],[1,1,0,1,0,0,1,1,0,1,1,0,0,0,1,1,1,0,0,0],[0,0,1,0,1,0,1,1,0,0,1,1,1,1,0,0,0,0,1,1],[1,0,1,1,0,1,0,1,0,0,0,1,1,1,1,0,0,1,1,1],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,1,1,0,1,1,0],[0,1,1,0,1,1,1,1,1,1,0,0,0,0,1,0,1,0,1,0],[1,1,0,1,0,1,0,1,0,0,0,1,0,0,1,0,0,0,1,1],[0,1,0,0,0,0,1,0,1,0,1,0,0,1,1,1,0,1,0,1],[1,1,0,0,1,1,1,0,1,0,0,1,0,0,1,0,1,0,1,0],[1,0,0,0,0,1,0,1,0,1,1,0,1,1,1,0,0,0,1,1],[1,1,1,1,0,1,1,0,1,1,0,1,0,0,1,1,1,1,0,1],[1,1,1,1,0,1,1,0,0,1,0,0,0,1,1,1,1,0,0,1],[0,0,1,1,1,1,1,1,1,0,1,1,0,1,1,0,0,0,0,1],[1,0,0,1,1,1,1,0,1,1,1,1,1,0,0,1,0,0,0,0],[1,0,0,1,1,1,1,0,0,0,1,0,0,0,1,0,1,0,1,1],[1,1,0,0,0,1,0,0,0,1,0,0,1,1,0,0,0,1,0,0],[0,1,1,0,0,0,1,1,0,0,1,0,1,1,0,1,1,0,0,0],[0,1,0,1,0,1,0,1,1,1,1,0,1,0,1,0,1,1,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":246296.68,"rt":2454.8800000000047,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"13","prompt":"Right","lastChangedTime":248271.44}],"stimulusOffTime":901.5599999999977,"trial_type":"canvas-sliders-response","trial_index":78,"time_elapsed":248603,"internal_node_id":"0.0-15.0-0.5"},{"choiceTime":1151.1399999999849,"choice":3,"totalTime":3152.820000000007,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.6800000000221,"trial_type":"jspsych-jas-present-advice-choice","trial_index":79,"time_elapsed":251756,"internal_node_id":"0.0-15.0-1.5"},{"startTime":251905.72,"rt":1285.4800000000105,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"24","prompt":"Right","lastChangedTime":252575.4}],"trial_type":"canvas-sliders-response","trial_index":80,"time_elapsed":253042,"internal_node_id":"0.0-15.0-2.5"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":3,"advisorId":2,"choice":[],"answer":[1,1],"confidence":[36,53],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[254093.54],"stimulusOffTime":[901.1999999999825,null],"fixationDrawTime":[253593.56],"id":26,"dotDifference":6,"grid":{"dotCountL":206,"dotCountR":194,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,0,0,0,0,1,0,1,1,0,0,0,1,0,1,0,1,0,0,1],[0,0,0,0,1,1,0,0,0,1,1,1,1,0,1,0,1,1,1,0],[1,0,1,0,1,0,0,0,0,1,0,1,0,0,1,1,1,0,1,0],[1,1,1,0,0,0,1,0,1,1,1,0,1,1,0,0,0,0,1,1],[1,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0,1,0,1,1],[0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,1,1,1],[1,0,0,1,0,1,0,0,1,1,1,1,0,0,1,1,0,0,0,0],[1,0,1,0,1,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0],[1,1,0,0,0,0,0,1,0,1,1,0,1,0,1,0,1,0,1,1],[0,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,0],[0,0,0,0,1,0,0,0,1,0,0,1,0,0,1,0,1,0,0,1],[1,0,1,0,1,0,1,0,1,0,1,0,0,0,0,1,1,1,1,0],[0,0,0,0,0,0,1,1,0,1,1,1,0,1,0,0,0,1,1,1],[1,1,0,0,1,1,1,1,1,0,0,0,0,1,0,1,1,0,0,0],[1,0,0,1,0,1,1,0,0,0,1,0,0,1,1,1,1,1,0,1],[1,0,0,0,0,0,1,0,0,0,1,1,1,1,0,1,0,0,1,1],[1,1,0,0,0,0,1,0,1,1,0,1,1,1,1,0,1,1,1,1],[0,1,0,1,0,0,1,0,1,0,1,1,1,0,1,0,0,1,0,1],[1,1,0,1,1,0,1,1,1,1,1,0,0,0,0,1,1,0,1,1],[1,1,1,0,0,1,1,1,1,0,1,0,1,1,0,1,1,1,1,0]],"gridR":[[0,1,0,1,1,1,0,0,1,1,1,0,1,0,0,1,0,0,1,0],[1,1,1,1,1,1,0,1,0,1,1,0,0,1,0,1,0,0,1,0],[1,0,1,0,0,1,1,1,1,0,1,0,0,1,1,0,0,1,1,1],[0,1,0,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1],[0,1,0,1,0,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1],[1,0,1,1,1,0,0,0,0,1,0,0,0,1,0,1,0,1,0,0],[0,1,1,1,1,1,1,0,0,1,1,1,0,0,1,0,0,0,1,1],[0,0,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,0,1,0],[1,1,0,1,1,1,0,0,0,0,0,1,0,0,1,0,1,0,0,0],[0,0,1,0,0,1,1,0,0,0,1,0,1,1,1,1,1,1,1,0],[1,1,0,0,0,0,0,1,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,0,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0],[0,1,0,1,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0],[0,1,0,0,1,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,1,0,1,0,1,0,0,1,1,0,1,0,1,1,0,1],[0,1,1,1,0,1,1,0,1,0,1,0,1,1,1,0,0,1,1,0],[0,1,1,1,1,0,1,0,1,0,0,0,0,1,1,0,0,0,1,1],[0,0,1,0,1,1,1,0,1,1,1,1,1,0,0,0,0,0,1,1],[0,1,0,1,0,0,1,0,1,0,1,0,0,0,1,0,0,1,0,1],[0,0,0,0,0,1,0,0,1,0,0,1,0,1,0,0,0,1,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":253393.24000000002,"rt":2485.939999999973,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"36","prompt":"Right","lastChangedTime":255287.16}],"stimulusOffTime":901.1999999999825,"trial_type":"canvas-sliders-response","trial_index":81,"time_elapsed":255730,"internal_node_id":"0.0-15.0-0.6"},{"choiceTime":0,"choice":2,"totalTime":2001.0599999999977,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2001.0599999999977,"trial_type":"jspsych-jas-present-advice-choice","trial_index":82,"time_elapsed":257732,"internal_node_id":"0.0-15.0-1.6"},{"startTime":257881.30000000002,"rt":1597.7200000000012,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"53","prompt":"Right","lastChangedTime":258719.26}],"trial_type":"canvas-sliders-response","trial_index":83,"time_elapsed":259330,"internal_node_id":"0.0-15.0-2.6"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/1/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":2,"typeName":"choice","block":3,"advisorId":3,"choice":[2,3],"answer":[0,0],"confidence":[79,94],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[260381.62],"stimulusOffTime":[901.6000000000058,null],"fixationDrawTime":[259880.32],"id":27,"dotDifference":9,"grid":{"dotCountL":209,"dotCountR":191,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0],[1,0,1,0,0,1,1,1,0,0,1,0,0,0,0,1,0,1,0,1],[0,0,1,1,1,0,1,1,1,0,0,1,1,0,1,1,0,1,0,1],[1,1,1,1,0,0,0,0,1,0,0,0,0,1,1,0,0,1,0,1],[0,1,0,0,1,1,1,1,1,0,0,0,1,1,0,1,0,0,0,1],[0,1,1,0,1,0,1,0,0,0,1,1,0,1,1,0,1,0,0,1],[1,0,0,1,1,1,0,1,0,1,0,1,0,0,1,0,1,0,0,1],[1,0,0,1,1,0,0,0,0,1,0,1,1,0,0,0,1,1,0,1],[0,0,1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1,1],[1,1,0,0,1,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1],[0,1,1,1,1,0,1,1,1,1,0,1,0,0,0,1,0,0,1,0],[1,1,0,1,1,1,0,1,0,0,1,0,1,1,1,1,0,0,1,1],[0,1,1,1,1,1,1,1,0,1,0,1,1,0,0,0,0,1,1,1],[1,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,1,1,1,1],[1,0,1,1,1,1,1,0,0,1,0,0,1,1,1,1,1,1,0,1],[0,0,0,1,0,0,0,0,0,1,1,1,1,1,1,0,1,0,1,0],[1,1,1,0,1,0,0,1,0,0,1,1,1,0,1,0,1,0,1,1],[0,1,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1],[0,0,0,0,1,0,1,1,0,1,0,1,1,0,1,1,1,0,1,1],[1,1,1,1,1,0,0,0,0,1,0,1,1,1,0,0,1,0,1,0]],"gridR":[[0,0,0,1,1,1,1,0,1,1,0,0,1,1,1,0,0,1,0,1],[0,0,1,1,1,0,1,1,0,0,1,1,1,0,0,0,0,0,1,1],[0,1,0,1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,1,0],[1,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1],[1,1,0,0,0,0,0,1,0,0,1,1,0,0,1,1,1,0,1,0],[1,0,1,0,0,0,1,1,0,0,0,0,0,1,1,1,0,1,0,1],[0,0,1,1,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,0],[0,1,1,0,1,1,1,1,1,0,1,0,0,0,0,1,0,0,1,0],[1,1,1,0,0,0,1,0,1,1,1,0,0,1,0,0,0,0,1,1],[1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,1,0,1,1,1],[0,0,0,0,1,0,0,0,0,1,1,0,1,1,0,1,0,1,1,0],[1,1,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0],[1,1,0,0,1,0,1,0,1,0,1,1,0,0,1,1,1,0,1,0],[1,1,1,0,0,1,0,0,0,0,1,1,1,1,0,1,0,1,1,0],[1,1,0,0,1,0,0,1,1,0,1,1,1,0,1,1,1,0,1,0],[0,1,1,1,0,0,0,1,0,0,1,0,1,1,0,1,1,0,0,0],[1,0,0,1,0,0,0,0,1,1,0,0,0,1,1,0,1,0,0,0],[1,1,0,1,0,1,1,1,1,0,1,1,1,1,0,1,1,1,1,0],[1,1,1,0,1,1,0,0,1,0,1,0,1,0,1,0,1,0,0,1],[0,0,0,0,0,1,0,0,0,1,1,0,1,0,1,0,0,0,0,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":259680.04,"rt":3743.040000000008,"response":[{"id":0,"name":"Left","answer":79,"prompt":"Left","lastChangedTime":262719.02},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":901.6000000000058,"trial_type":"canvas-sliders-response","trial_index":84,"time_elapsed":263274,"internal_node_id":"0.0-15.0-0.7"},{"choiceTime":1431.7000000000116,"choice":3,"totalTime":3433.2600000000093,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.5599999999977,"trial_type":"jspsych-jas-present-advice-choice","trial_index":85,"time_elapsed":266708,"internal_node_id":"0.0-15.0-1.7"},{"startTime":266857.36,"rt":1637.7600000000093,"response":[{"id":0,"name":"Left","answer":94,"prompt":"Left","lastChangedTime":267631.26},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":86,"time_elapsed":268346,"internal_node_id":"0.0-15.0-2.7"}],"confidenceCategory":2,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/think_left.wav","string":"I think it was on the LEFT","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":3,"advisorId":3,"choice":[2,3],"answer":[0,1],"confidence":[6,0],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[269398.3],"stimulusOffTime":[901.1600000000326,null],"fixationDrawTime":[268897.08],"id":28,"dotDifference":9,"grid":{"dotCountL":191,"dotCountR":209,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,1,1,0,1,0,1,0,0,0,1,1,0,1,0,1,1,1],[1,1,1,1,1,0,1,1,1,1,0,0,1,0,0,1,1,0,1,0],[1,0,0,0,1,0,1,1,1,0,1,0,0,0,0,0,0,0,1,1],[0,0,0,1,0,1,0,1,0,0,0,0,0,0,1,0,1,1,0,0],[1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,1,0],[0,1,0,1,1,0,1,1,0,0,1,0,1,1,1,1,1,1,0,0],[1,0,0,0,1,0,0,0,0,0,1,1,1,0,1,1,0,0,0,1],[1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,1,0,0,0,1],[0,1,0,1,0,1,0,0,0,1,1,0,1,0,1,0,1,1,0,0],[1,1,0,1,1,0,1,0,0,1,0,0,1,0,0,0,0,0,1,0],[0,0,0,1,0,0,1,0,1,1,1,1,1,1,0,0,0,0,0,1],[1,1,0,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0],[0,0,1,1,0,1,1,1,0,0,1,0,1,0,1,1,0,1,1,0],[1,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,1],[0,0,0,1,1,1,1,1,0,0,0,1,1,1,0,1,0,1,0,1],[1,0,0,1,0,1,0,0,0,1,0,1,0,0,0,1,0,0,1,0],[0,1,1,1,1,0,0,1,1,0,1,1,0,1,0,1,1,1,0,0],[1,0,1,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,0,1],[1,1,0,0,0,0,1,0,1,1,1,0,1,0,0,1,1,0,1,1],[0,1,0,0,0,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0]],"gridR":[[1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,0,1,0,1],[1,0,1,0,1,1,0,0,1,0,0,1,0,0,1,0,1,1,1,0],[1,0,0,1,1,1,0,1,1,0,1,1,0,0,0,1,0,0,0,0],[0,0,0,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,0],[0,0,1,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,1,1],[0,0,1,1,0,1,0,1,1,1,0,0,0,0,1,0,1,1,1,0],[0,1,1,1,0,1,0,1,1,0,0,1,0,0,0,0,0,0,0,1],[0,0,0,1,0,0,0,1,1,1,1,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,1,1,0,1,0,1,1,0,0,0,1,0,1,1,0],[0,0,1,0,0,1,0,1,0,0,0,0,1,1,0,1,1,1,0,1],[0,1,0,0,1,1,1,0,1,0,0,1,0,0,1,0,0,1,1,0],[0,0,0,1,0,1,0,0,1,0,1,0,1,1,1,1,0,0,0,1],[1,1,1,1,1,0,1,0,0,0,1,0,0,1,0,1,1,0,0,0],[1,1,0,0,1,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1],[1,0,1,1,1,1,0,0,0,0,1,1,1,0,1,0,1,1,1,1],[1,1,1,1,0,0,1,0,0,0,1,1,1,1,1,1,1,0,0,0],[1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,1,0,0],[1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,0,1,0,1],[1,1,1,0,1,1,0,0,1,1,1,0,1,1,0,1,1,1,0,1],[1,0,1,0,1,1,0,0,1,1,1,0,1,1,1,0,1,0,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":268696.6,"rt":2534.560000000056,"response":[{"id":0,"name":"Left","answer":6,"prompt":"Left","lastChangedTime":270743.2},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":901.1600000000326,"trial_type":"canvas-sliders-response","trial_index":87,"time_elapsed":271082,"internal_node_id":"0.0-15.0-0.8"},{"choiceTime":1023.6199999999953,"choice":3,"totalTime":3025.0599999999977,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.4400000000023,"trial_type":"jspsych-jas-present-advice-choice","trial_index":88,"time_elapsed":274108,"internal_node_id":"0.0-15.0-1.8"},{"startTime":274257.1,"rt":2630.5,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"0","prompt":"Right","lastChangedTime":276351.1}],"trial_type":"canvas-sliders-response","trial_index":89,"time_elapsed":276739,"internal_node_id":"0.0-15.0-2.8"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":1,"typeName":"force","block":3,"advisorId":2,"choice":[],"answer":[0,0],"confidence":[57,74],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[277790.1],"stimulusOffTime":[900.9199999999837,null],"fixationDrawTime":[277290.5],"id":29,"dotDifference":12,"grid":{"dotCountL":212,"dotCountR":188,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,0,1,1,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0],[0,1,0,1,1,0,1,1,0,1,0,0,0,0,1,1,0,0,0,1],[0,0,0,1,0,0,0,0,1,0,0,1,0,0,1,0,0,0,1,0],[0,1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,0,1,0,0],[0,1,0,0,0,1,0,1,0,1,0,1,0,0,1,1,0,1,1,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,1,1,1,0,0,1,1],[1,1,1,1,0,1,1,0,1,0,1,1,0,0,0,1,1,1,0,1],[1,0,1,0,1,0,0,1,0,1,0,0,1,1,1,0,0,1,1,1],[0,1,1,1,0,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1],[1,0,0,1,1,0,0,1,1,0,1,1,1,1,1,1,0,1,1,1],[1,1,0,1,1,0,0,0,0,1,0,0,0,1,1,1,1,0,1,1],[1,1,0,0,1,1,0,1,0,0,1,0,1,1,1,0,0,0,1,0],[0,1,1,0,0,0,1,0,0,1,0,0,0,0,1,1,0,0,0,1],[0,1,0,1,0,0,1,1,0,0,1,1,0,0,0,1,1,0,1,1],[0,0,1,1,1,1,0,1,0,1,1,1,1,0,1,0,0,1,1,1],[1,1,1,0,0,1,0,1,1,1,0,1,1,1,0,1,0,1,1,1],[1,1,1,1,1,0,1,0,0,0,0,0,0,0,1,1,0,1,0,1],[1,0,1,0,0,1,1,1,0,1,1,1,0,1,1,1,0,0,0,0],[1,1,0,1,0,1,0,0,1,0,0,0,1,0,0,0,1,1,1,0],[0,1,0,1,0,1,0,0,0,1,0,0,0,1,0,1,1,0,0,0]],"gridR":[[0,1,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1],[0,1,1,1,0,0,0,0,0,0,0,1,1,0,0,1,1,0,1,1],[0,0,0,0,0,1,1,1,1,1,0,0,1,1,0,1,0,0,0,0],[1,1,1,1,1,1,0,1,0,1,0,0,1,0,0,1,0,0,1,1],[1,1,1,0,1,1,0,1,0,0,1,0,0,0,0,0,1,0,0,1],[0,0,1,0,0,0,1,1,0,1,0,1,0,1,0,1,1,1,0,1],[1,0,0,1,0,0,0,1,0,1,0,0,1,0,1,1,1,0,1,0],[1,1,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0,0,0,0],[0,1,0,1,1,0,1,0,1,1,1,1,0,1,0,0,1,0,0,1],[0,0,0,0,0,1,1,1,1,0,0,1,1,1,0,1,1,0,0,0],[0,0,0,0,1,0,1,1,1,0,0,1,1,1,1,1,0,0,0,0],[1,0,1,0,1,0,1,0,1,1,0,1,0,0,1,0,0,1,1,1],[1,0,1,1,1,0,1,1,0,0,0,0,0,1,0,0,0,1,1,1],[1,0,0,1,1,0,1,1,1,0,1,1,0,0,0,0,1,0,1,1],[1,0,0,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1],[0,1,1,1,0,1,1,1,0,1,1,0,1,1,0,0,1,1,0,1],[0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,1,0,1,0],[1,1,1,0,1,0,0,0,0,1,1,1,1,1,1,0,1,0,1,0],[1,0,1,1,0,0,1,1,0,0,0,0,0,1,0,0,1,1,0,1],[1,1,1,0,0,0,1,1,0,1,0,1,0,0,1,0,1,1,0,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":277089.66000000003,"rt":2429.5599999999977,"response":[{"id":0,"name":"Left","answer":57,"prompt":"Left","lastChangedTime":278959.4},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.9199999999837,"trial_type":"canvas-sliders-response","trial_index":90,"time_elapsed":279370,"internal_node_id":"0.0-15.0-0.9"},{"choiceTime":0.01999999996041879,"choice":2,"totalTime":2000.759999999951,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor4.jpg","adviceTime":2000.7399999999907,"trial_type":"jspsych-jas-present-advice-choice","trial_index":91,"time_elapsed":281372,"internal_node_id":"0.0-15.0-1.9"},{"startTime":281521.22000000003,"rt":1389.9400000000023,"response":[{"id":0,"name":"Left","answer":74,"prompt":"Left","lastChangedTime":282359.62},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":92,"time_elapsed":282762,"internal_node_id":"0.0-15.0-2.9"}],"confidenceCategory":1,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/1/left_think.wav","string":"It was on the LEFT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":0,"confidence":0}},{"type":2,"typeName":"choice","block":3,"advisorId":3,"choice":[2,3],"answer":[1,1],"confidence":[32,46],"whichSide":1,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[283814.46],"stimulusOffTime":[900.8600000000442,null],"fixationDrawTime":[283313.72000000003],"id":30,"dotDifference":12,"grid":{"dotCountL":188,"dotCountR":212,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[0,1,1,1,1,0,1,1,0,1,1,0,0,1,0,1,1,1,0,0],[1,1,0,1,1,0,0,1,0,1,1,1,1,1,0,0,1,0,0,1],[0,1,0,0,0,0,1,1,0,1,0,0,0,0,0,0,1,0,0,0],[0,0,0,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,1,1],[0,0,0,1,0,0,0,1,0,1,0,0,0,1,1,0,1,0,0,0],[1,0,1,1,0,1,1,0,0,0,1,1,0,1,0,1,1,1,1,1],[1,0,1,0,1,0,0,1,1,0,0,0,0,1,1,1,0,0,0,1],[1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,1,1,0,0],[0,0,1,1,0,1,1,0,0,1,0,0,0,0,1,1,0,0,1,1],[0,0,0,0,1,0,1,1,1,1,1,0,1,1,1,0,0,0,0,1],[0,0,1,1,1,0,0,0,1,1,0,1,0,1,0,1,0,1,0,1],[0,0,0,1,1,1,1,1,0,1,0,1,0,0,0,0,0,1,0,1],[1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,0,1,0,1,1],[0,0,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,1],[0,1,1,1,0,0,1,0,1,0,0,1,0,0,1,1,1,0,1,1],[1,1,0,0,1,1,1,1,1,1,1,0,1,0,1,1,0,0,1,0],[0,1,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,0,1],[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],[0,0,0,0,1,1,0,0,1,1,0,0,1,1,1,0,1,0,1,0],[0,0,1,1,1,1,0,1,0,0,0,1,0,1,1,0,1,1,1,0]],"gridR":[[0,0,0,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,0,0,0,1,0,1,1,1,0,0,1,1,0,0,1],[1,0,1,0,1,0,0,0,1,0,1,0,0,1,0,1,1,1,1,0],[1,1,0,0,0,1,0,0,1,0,1,1,0,1,0,0,0,1,1,0],[0,1,1,1,1,0,1,1,1,0,0,1,0,0,1,0,1,1,1,1],[1,0,1,1,1,0,1,1,0,0,0,1,0,1,1,0,1,1,0,0],[1,0,1,0,0,0,0,1,0,1,1,0,0,1,0,0,0,0,1,1],[0,0,1,0,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,0],[1,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0],[1,1,0,1,0,0,1,0,0,0,0,0,0,0,1,1,0,1,1,1],[0,1,0,0,1,1,0,1,1,1,1,1,0,1,1,0,0,0,1,1],[1,1,0,0,0,1,1,0,1,1,1,0,1,1,1,1,0,0,1,0],[1,0,0,1,1,0,0,1,1,0,0,1,0,0,0,1,0,0,1,0],[0,0,0,1,0,1,0,1,0,1,0,1,1,1,1,0,0,0,1,0],[0,1,0,0,1,0,0,1,1,1,1,0,1,0,1,0,0,0,0,0],[0,1,0,1,0,0,1,1,1,1,1,1,0,1,0,0,1,1,1,0],[1,1,1,1,1,1,0,1,1,0,1,0,0,0,1,1,0,0,0,1],[0,1,0,1,1,0,0,0,0,1,0,0,0,0,1,1,0,0,0,1],[0,1,1,1,0,1,1,0,1,1,0,0,0,0,0,1,1,1,1,0],[0,1,0,1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,0]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":283112.92,"rt":2366.2600000000093,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"32","prompt":"Right","lastChangedTime":284887.2}],"stimulusOffTime":900.8600000000442,"trial_type":"canvas-sliders-response","trial_index":93,"time_elapsed":285330,"internal_node_id":"0.0-15.0-0.10"},{"choiceTime":983.9000000000233,"choice":3,"totalTime":2985,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.0999999999767,"trial_type":"jspsych-jas-present-advice-choice","trial_index":94,"time_elapsed":288316,"internal_node_id":"0.0-15.0-1.10"},{"startTime":288465.22000000003,"rt":1645.9199999999837,"response":[{"id":0,"name":"Left","answer":50,"prompt":"Left","lastChangedTime":null},{"id":1,"name":"Right","answer":"46","prompt":"Right","lastChangedTime":289479.42}],"trial_type":"canvas-sliders-response","trial_index":95,"time_elapsed":289962,"internal_node_id":"0.0-15.0-2.10"}],"confidenceCategory":0,"advisorAgrees":true,"advice":{"filePath":"assets/audio/voices/2/right_think.wav","string":"It was on the RIGHT, I think","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}},{"type":2,"typeName":"choice","block":3,"advisorId":3,"choice":[3,2],"answer":[0,0],"confidence":[39,21],"whichSide":0,"practice":false,"feedback":false,"warnings":[],"stimulusDrawTime":[291013.64],"stimulusOffTime":[900.320000000007,null],"fixationDrawTime":[290513.46],"id":31,"dotDifference":9,"grid":{"dotCountL":209,"dotCountR":191,"gridWidth":20,"gridHeight":20,"dotWidth":2,"dotHeight":2,"paddingX":6,"paddingY":6,"gridL":[[1,1,0,1,1,1,1,1,0,1,0,1,0,1,0,1,0,0,0,0],[1,1,0,0,0,1,1,1,1,1,0,1,1,0,1,1,1,1,0,0],[1,0,0,0,0,1,1,1,1,0,1,1,1,1,1,0,1,0,0,1],[0,0,1,1,0,1,1,1,1,0,1,0,1,0,0,0,1,0,1,0],[0,0,1,0,0,1,1,1,0,0,1,1,0,1,1,1,0,1,0,0],[1,0,0,0,1,1,0,0,1,1,1,1,0,0,1,1,1,1,0,1],[1,0,0,1,0,0,0,0,0,1,0,1,1,1,1,1,0,1,1,1],[1,1,1,0,0,0,0,1,0,1,1,0,0,1,0,0,1,0,0,1],[1,1,0,1,0,0,1,1,0,1,1,1,1,1,0,0,1,1,0,0],[0,0,0,0,1,0,0,0,1,1,0,0,0,1,1,0,1,1,1,1],[0,1,0,0,0,1,0,1,1,0,1,0,1,0,1,1,1,1,1,1],[0,0,1,0,0,1,0,0,1,0,0,0,0,1,1,0,0,0,1,1],[0,1,0,1,1,0,1,0,1,1,1,0,0,0,0,1,1,1,1,0],[1,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,1,1,0,0],[1,0,1,1,1,1,1,1,1,0,1,0,0,0,1,0,1,1,0,0],[1,0,0,1,0,1,0,1,0,1,1,1,1,1,1,0,0,1,1,0],[1,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1,0,0,1,0],[1,1,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,1,1,1],[0,0,1,0,0,1,1,0,0,1,1,0,1,1,1,0,0,0,1,1],[1,1,0,0,1,0,1,1,0,1,1,1,1,0,1,0,1,0,0,1]],"gridR":[[0,0,1,0,0,0,1,0,1,1,1,1,0,1,0,0,0,1,0,1],[0,1,0,0,0,0,1,1,0,1,0,1,0,1,0,0,1,1,1,0],[1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,1,0,0,1,1],[1,0,0,1,0,1,1,1,0,1,1,1,0,0,1,1,0,1,0,1],[0,0,1,1,1,0,1,1,0,0,0,1,1,0,1,1,1,1,0,0],[1,1,0,0,1,0,0,1,0,0,1,1,1,0,1,1,1,1,1,0],[1,1,0,1,0,1,1,1,0,0,0,1,0,1,0,1,1,1,1,1],[0,0,1,0,1,1,0,1,1,1,1,1,1,0,1,0,1,1,0,0],[1,0,0,1,1,0,1,0,0,0,1,1,0,1,0,0,0,0,0,1],[0,1,0,0,0,0,1,0,1,1,1,1,0,1,1,1,1,0,1,1],[1,0,0,0,1,1,1,0,1,0,0,1,1,1,1,1,1,0,0,1],[1,1,1,1,1,0,0,0,0,0,1,0,1,1,1,1,0,0,0,1],[0,0,0,0,0,1,0,1,0,1,1,0,0,0,1,0,1,1,0,0],[0,1,0,1,0,1,1,1,0,1,0,1,0,0,0,1,0,0,0,1],[0,1,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0,0,1,1],[1,1,1,0,0,0,1,1,0,1,1,0,0,0,0,1,1,0,0,0],[0,0,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,0,0,0],[0,0,1,1,0,0,0,0,1,0,0,1,1,0,1,0,1,1,0,0],[0,0,0,1,1,0,1,0,0,0,1,1,1,0,0,0,0,0,1,1],[1,0,0,1,1,0,1,1,0,1,0,0,1,0,1,0,0,0,1,1]],"displayWidth":172,"displayHeight":172,"spacing":100,"style":{"gridBorderColor":"#ffffff","gridBorderWidth":"3","dotColor":"#ffffff","dotLineWidth":"1"}},"pluginResponse":[{"startTime":290313.04,"rt":2486.100000000035,"response":[{"id":0,"name":"Left","answer":39,"prompt":"Left","lastChangedTime":292287},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"stimulusOffTime":900.320000000007,"trial_type":"canvas-sliders-response","trial_index":96,"time_elapsed":292650,"internal_node_id":"0.0-15.0-0.11"},{"choiceTime":911.4799999999814,"choice":3,"totalTime":2913.3400000000256,"image":"http://localhost:8080/ExploringSocialMetacognition/assets/image/advisor2.jpg","adviceTime":2001.8600000000442,"trial_type":"jspsych-jas-present-advice-choice","trial_index":97,"time_elapsed":295564,"internal_node_id":"0.0-15.0-1.11"},{"startTime":295713.96,"rt":1588.7999999999884,"response":[{"id":0,"name":"Left","answer":21,"prompt":"Left","lastChangedTime":296687.98},{"id":1,"name":"Right","answer":"50","prompt":"Right","lastChangedTime":null}],"trial_type":"canvas-sliders-response","trial_index":98,"time_elapsed":297154,"internal_node_id":"0.0-15.0-2.11"}],"confidenceCategory":0,"advisorAgrees":false,"advice":{"filePath":"assets/audio/voices/2/think_right.wav","string":"I think it was on the RIGHT","loaded":true,"loading":true,"data":null,"buffer":{},"side":1,"confidence":0}}],"currentTrialIndex":31,"participantId":617618974,"lastQuestionnaireAdvisorId":2,"questionnaires":[{"startTime":40208.68,"responseStartTime":40209.38,"rt":70214.06,"response":[{"id":0,"name":"Ability","answer":"50","prompt":"","lastChangedTime":41896.04},{"id":1,"name":"Benevolence","answer":"51","prompt":"","lastChangedTime":42352.020000000004},{"id":2,"name":"Likeability","answer":"51","prompt":"","lastChangedTime":43063.58}],"stimulus_properties":null,"trial_type":"function-sliders-response","trial_index":21,"time_elapsed":110275,"internal_node_id":"0.0-8.0","afterTrial":6,"advisorId":1},{"startTime":119015.62,"responseStartTime":119015.88,"rt":3424.0999999999913,"response":[{"id":0,"name":"Ability","answer":"48","prompt":"","lastChangedTime":120415.02},{"id":1,"name":"Benevolence","answer":"50","prompt":"","lastChangedTime":120959.94},{"id":2,"name":"Likeability","answer":"51","prompt":"","lastChangedTime":121687.32}],"stimulus_properties":null,"trial_type":"function-sliders-response","trial_index":24,"time_elapsed":122291,"internal_node_id":"0.0-11.0","afterTrial":6,"advisorId":2},{"startTime":122440.8,"responseStartTime":122441.06,"rt":2206.1399999999994,"response":[{"id":0,"name":"Ability","answer":"50","prompt":"","lastChangedTime":123087.56},{"id":1,"name":"Benevolence","answer":"50","prompt":"","lastChangedTime":123599.74},{"id":2,"name":"Likeability","answer":"50","prompt":"","lastChangedTime":124151.46}],"stimulus_properties":null,"trial_type":"function-sliders-response","trial_index":25,"time_elapsed":124499,"internal_node_id":"0.0-12.0","afterTrial":6,"advisorId":3},{"startTime":297503.36,"responseStartTime":297503.66000000003,"rt":7791.539999999979,"response":[{"id":0,"name":"Ability","answer":"75","prompt":"","lastChangedTime":300079.24},{"id":1,"name":"Benevolence","answer":"77","prompt":"","lastChangedTime":301879.18},{"id":2,"name":"Likeability","answer":"69","prompt":"","lastChangedTime":304759.24}],"stimulus_properties":null,"trial_type":"function-sliders-response","trial_index":99,"time_elapsed":305147,"internal_node_id":"0.0-16.0","afterTrial":30,"advisorId":3},{"startTime":305295.76,"responseStartTime":305295.98,"rt":6343.280000000028,"response":[{"id":0,"name":"Ability","answer":"78","prompt":"","lastChangedTime":307311.38},{"id":1,"name":"Benevolence","answer":"78","prompt":"","lastChangedTime":309423.14},{"id":2,"name":"Likeability","answer":"80","prompt":"","lastChangedTime":310271.28}],"stimulus_properties":null,"trial_type":"function-sliders-response","trial_index":100,"time_elapsed":311491,"internal_node_id":"0.0-17.0","afterTrial":30,"advisorId":2}],"manipulationQuestion":"no clu","timeEnd":1520951356733}';
+    /**
+     * Return the maximum influence the advisor could have had on *trial* given the initial confidence
+     * @param {Trial} trial
+     * @returns {number}
+     */
+    static getMaxInfluence(trial) {
+        if (typeof trial.advisorId === null || typeof trial.advisorAgrees === null
+            || typeof trial.confidence === null || isNaN(trial.confidence[0]))
+            return 0;
+        // advisor agrees; max influence 100-confidence
+        if (trial.advisorAgrees)
+            return 100 - trial.confidence[0];
+        else // advisor disagrees; max influence is 100+confidence
+            return 100 + trial.confidence[0];
+    }
+
+    getTotalInfluence(trials, advisorId) {
+        let influence = [];
+        trials.forEach(function (trial){
+            if (trial.advisorId !== advisorId)
+                return;
+            influence.push(advisorChoice.getInfluence(trial));
+        });
+        if (!influence.length)
+            return NaN;
+        let sum = 0;
+        influence.forEach((x)=>{sum+=x});
+        return sum/influence.length;
+    }
+
+    /**
+     * Return the portion of good advice utilized by the judge. Can be >1 if the judge disagrees on incorrect
+     * advice trials (the 'max' simply ignores advice on incorrect trials).
+     *
+     * @param {Trial[]} trials - trial list
+     * @param {int} advisorId - advisor id
+     * @returns {number[]} - [influence/maxInfluence, influence, maxInfluence]
+     */
+    static strategicAdviceUsage(trials, advisorId) {
+        let goodAdviceTrials = getMatches(trials, function(trial) {
+            return trial.advisorId === advisorId && advisorChoice.isGoodAdvice(trial);
+        });
+        let badAdviceTrials = getMatches(trials, function(trial) {
+            return trial.advisorId === advisorId && !advisorChoice.isGoodAdvice(trial);
+        });
+        let maxInfluence = 0;
+        let influence = 0;
+        // Judge accrues points for heeding good advice
+        goodAdviceTrials.forEach(function (trial) {
+            maxInfluence += advisorChoice.getMaxInfluence(trial);
+            influence += advisorChoice.getInfluence(trial);
+        });
+        // Judge looses points for heeding bad advice
+        badAdviceTrials.forEach(function (trial) {
+            influence -= advisorChoice.getInfluence(trial);
+        });
+
+        return [influence/maxInfluence, influence, maxInfluence];
+    }
+
+    adviceAnswerChanges(trials, advisorId) {
+        let advisorChangedTrials = getMatches(trials, function (trial) {
+            if (trial.advisorId !== advisorId)
+                return false;
+            if (trial.answer[0] === trial.answer[1])
+                return false;
+            return trial.advisorAgrees;
+        });
+        if (advisorChangedTrials.length === 0)
+            return [NaN, 0, 0];
+        let hits = getMatches(advisorChangedTrials, function(trial) {
+            return trial.answer[1] === trial.whichSide;
+        }).length;
+        let misses = advisorChangedTrials.length - hits;
+        if (misses === 0)
+            return [NaN, hits, misses];
+        else
+            return [hits/misses, hits, misses];
+    }
+
+    /**
+     * Return the proportion of possible choices in which this advisor was chosen
+     * @param {Trial[]} trials - trial list
+     * @param {int} advisorId - id of the candidate advisor
+     * @returns {number[]}
+     */
+    advisorChoiceRate(trials, advisorId) {
+        let choiceTrials = getMatches(trials, function(trial) {
+            return trial.choice.length && trial.choice.indexOf(advisorId) !== -1;
+        });
+        if (!choiceTrials.length)
+            return [NaN];
+        let chosenTrials = getMatches(choiceTrials, function(trial) {
+            return trial.advisorId === advisorId;
+        });
+        return [chosenTrials.length/choiceTrials.length, chosenTrials.length, choiceTrials.length];
+    }
+
+    /**
+     * Show feedback based on a Governor object
+     * @param {Governor} g
+     */
+    showFeedback(g) {
+        let self = this;
+        let advisors = copyArray(g.advisors);
+        advisors.shift(); // drop the practice advisor
+        let body = document.querySelector('body');
+            // Nav
+        let nav = document.createElement('nav');
+        nav.innerHTML = "<ul><li><a href='#confidence'>confidence</a></li>" +
+            "<li><a href='#advisors'>advisors</a></li>" +
+            "<li><a href='#accuracy'>accuracy</a></li></ul>";
+        body.appendChild(nav);
+        // Thanks
+        let thanksSection = body.appendChild(document.createElement('section'));
+        let thanksDiv = document.createElement('div');
+        thanksDiv.id = 'thanks';
+        thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment you " +
+            "had two advisors, and were sometimes able to choose between them. Both of these advisors are " +
+            "equally accurate on the task, but one agreed with you more often when you are more confident, " +
+            "while the other agreed with you more often when you were unsure.</p>" +
+            "<p>We suspect that most people will prefer the advisor who agrees with them more when they are more " +
+            "confident. Let's have a look at how your results and see how you did on the task and whether your " +
+            "choices matched our prediction.</p>";
+        thanksSection.appendChild(thanksDiv);
+        let permalinkDiv = thanksDiv.appendChild(document.createElement('div'));
+        permalinkDiv.className = 'permalink-container';
+        let permalinkLabel = permalinkDiv.appendChild(document.createElement('div'));
+        permalinkLabel.className = 'permalink-label';
+        permalinkLabel.innerText = 'Permanent link:';
+        let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
+        permalinkLink.className = 'permalink-link';
+        permalinkLink.innerText = window.location.origin + '/' + window.location.pathname.split('/')[1] +
+            '/feedback.html?uid=' + g.participantId;
+        let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
+        permalinkCopy.className = 'permalink-copy';
+        permalinkCopy.onclick = function(){
+            let linkDiv = document.querySelector('div.permalink-link');
+            let range = document.createRange();
+            range.selectNodeContents(linkDiv);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+        };
+        // Accuracy
+        let accuracySection = body.appendChild(document.createElement('section'));
+        let accuracyDiv = document.createElement('div');
+        accuracyDiv.id = 'accuracy';
+        accuracySection.appendChild(accuracyDiv);
+        accuracyDiv.appendChild(document.createElement('h2')).innerHTML =
+            '<a href="#top" name="accuracy">Accuracy</a>';
+        let accuracyContainer = document.createElement('div');
+        accuracyContainer.id = 'accuracyContainer';
+        accuracyContainer.className = 'container';
+        accuracyDiv.appendChild(accuracyContainer);
+        let accuracyDescription = document.createElement('div');
+        accuracyDescription.id = 'accuracyDescription';
+        accuracyDescription.className = 'description';
+        let pre = this.accuracySummary(g.trials);
+        let post = round(pre.final[0]*100,1);
+        pre = round(pre.initial[0]*100,1);
+        accuracyDescription.innerHTML = "<p>The task difficulty changes based on your performance so that we " +
+            "can compare advice-taking properly. Your initial accuracy should be approximately 71%. " +
+            "We expect most people to have higher accuracy after advice than " +
+            "before advice. Your pre-advice accuracy was <strong>"+pre+
+            "%</strong>, and your post-advice accuracy " +
+            "was <strong>"+post+"%</strong>. The advisors are programmed to be equally accurate on average, and " +
+            "they should score around 70%.</p>";
+        accuracyContainer.appendChild(accuracyDescription);
+        let accuracyGraph = document.createElement('div');
+        accuracyGraph.id = 'accuracyGraph';
+        accuracyGraph.className = 'graph';
+        accuracyContainer.appendChild(accuracyGraph);
+        // Advisor choice
+        let advisorSection = body.appendChild(document.createElement('section'));
+        let advisorWrapper = document.createElement('div');
+        advisorWrapper.id = 'advisorWrapper';
+        advisorSection.appendChild(advisorWrapper);
+        advisorWrapper.appendChild(document.createElement('h2')).innerHTML =
+            '<a href="#top" name="advisors">Advisors</a>';
+        for(let aS=0; aS<advisors.length/2; aS++) {
+            let advisorContainer = document.createElement('div');
+            advisorContainer.id = 'advisorContainer' + aS.toString();
+            advisorContainer.className = 'advisor-container container';
+            advisorSection.appendChild(advisorContainer);
+            for(let a=aS*2; a<aS*2+2; a++) {
+                let advisor = advisors[a];
+                let i = advisor.id;
+                let advisorDiv = document.createElement('div');
+                advisorDiv.id = 'advisor'+i;
+                advisorDiv.className = 'advisor';
+                // stats (portrait + statistics)
+                let statsDiv = document.createElement('div');
+                statsDiv.id = 'advisor'+i+'statsWrapper';
+                statsDiv.className = 'advisor-stats-wrapper';
+                advisorDiv.appendChild(statsDiv);
+                // portrait
+                let portraitDiv = document.createElement('div');
+                portraitDiv.id = 'advisor'+i+'portrait';
+                portraitDiv.className = 'advisor-portrait';
+                portraitDiv.style.backgroundImage = "url('"+advisor.portraitSrc+"')";
+                statsDiv.appendChild(portraitDiv);
+                // stats
+                let statsContainer = document.createElement('div');
+                statsContainer.id = 'advisor'+i+'statsContainer';
+                statsContainer.className = 'advisor-stats-container';
+                let stats = document.createElement('div');
+                stats.id = 'advisor'+i+'stats';
+                stats.className = 'advisor-stats';
+                stats.appendChild(document.createElement('h3')).innerText = advisor.name;
+                let last = statsContainer.appendChild(document.createElement('p'));
+                last.innerHTML= "<em>Agrees when "+(advisor.adviceType===3? 'confident' : 'uncertain')+"</em>";
+                last.title = 'When your initial decision is correct, this advisor is '+
+                    (advisor.adviceType === 1? 'more' : 'less')+
+                    ' likely to agree with you if you are more confident ' +
+                    'in your initial decision.';
+                last = statsContainer.appendChild(document.createElement('p'));
+                last.innerHTML = "Chosen: <strong>"+
+                    round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,1).toString()+'%</strong>';
+                last.title = 'How many times did you select this advisor when you had a choice?';
+                last = statsContainer.appendChild(document.createElement('p'));
+                last.innerHTML = "Influence: <strong>"+
+                    round(self.getTotalInfluence(g.trials, advisor.id),1).toString()+'</strong>';
+                last.title = 'How much did you change your confidence after hearing this advisor\'s advice.';
+                let changedAnswers = self.adviceAnswerChanges(g.trials, advisor.id);
+                last = statsContainer.appendChild(document.createElement('p'));
+                last.innerHTML = "Mistakes avoided: <strong>"+changedAnswers[1]+'</strong>';
+                last.title = 'How many times did you get the initial decision wrong, '+
+                    'but correct it after hearing ' +
+                    'this advisor\'s advice?';
+                last = statsContainer.appendChild(document.createElement('p'));
+                last.innerHTML = "Mistakes caused: <strong>"+changedAnswers[2]+'</strong>';
+                last.title = 'How many times did you get the initial decision correct, ' +
+                    'but select the wrong answer ' +
+                    'after hearing this advisor\'s advice?';
+                stats.appendChild(statsContainer);
+                statsDiv.appendChild(stats);
+                // graphs (questionnaire answers over time)
+                let graphDiv = document.createElement('div');
+                graphDiv.id = 'advisor'+i+'graph';
+                graphDiv.className = 'advisor-graph graph';
+                advisorDiv.appendChild(graphDiv);
+                advisorContainer.appendChild(advisorDiv);
+            }
+        }
+
+        // confidence
+        let confidenceSection = body.appendChild(document.createElement('section'));
+        let confidenceDiv = document.createElement('div');
+        confidenceDiv.id = 'confidence';
+        confidenceSection.appendChild(confidenceDiv);
+        confidenceDiv.appendChild(document.createElement('h2')).innerHTML =
+            '<a href="#top" name="confidence">Confidence</a>';
+        let confidenceContainer = document.createElement('div');
+        confidenceContainer.id = 'confidenceContainer';
+        confidenceContainer.className = 'container';
+        confidenceDiv.appendChild(confidenceContainer);
+        let confidenceGraph = document.createElement('div');
+        confidenceGraph.id = 'confidenceGraph';
+        confidenceGraph.className = 'graph';
+        confidenceContainer.appendChild(confidenceGraph);
+        let confidenceDescription = document.createElement('div');
+        confidenceDescription.id = 'confidenceDescription';
+        confidenceDescription.className = 'description';
+        let preconf = this.accuracySummary(g.trials);
+        let postconf = round(preconf.final[0]*100,1);
+        pre = round(preconf.initial[0]*100,1);
+        confidenceDescription.innerHTML = "<p>Your confidence is presented here broken down by whether " +
+            "or not your final decision was correct. Most people show a pattern where they are more confident " +
+            "when they are correct than when they are mistaken. Additionally, most people are more confident " +
+            "after receiving advice than they were on their initial decision.</p>";
+        confidenceContainer.appendChild(confidenceDescription);
+
+        // apply 'feedback' class to all elements for styling purposes
+        body.className += ' feedback';
+        applyClassToChildren(body, 'feedback');
+        body.style.backgroundColor = 'ghostwhite';
+
+        // fill in graphs
+        this.getAccuracyGraph(g, accuracyGraph);
+        this.getConfidenceFeedback(g, confidenceGraph);
+        advisors.forEach(function (advisor) {
+            let graphDiv = document.querySelector('#advisor'+advisor.id+'graph');
+            self.getQuestionnaireGraph(g, advisor.id, graphDiv);
+        })
+    }
+
+    /**
+     * Display a graph of questionnaire responses for a given advisor. Uses google graph API.
+     * @param {Governor} input
+     * @param {int} advisorId - the advisor who is the subject of the graph
+     * @param {Element} div - div to draw the graph in
+     */
+    getQuestionnaireGraph(input, advisorId, div) {
+        // Create the data table.
+        let raw = [
+            ['Time', 'Likeable', 'Capable', 'Helping']
+        ];
+
+        let timepoint = 0;
+        let Qs = getMatches(input.questionnaires, function(questionnaire) {
+            return questionnaire.advisorId === advisorId;
+        });
+        for (let q=0; q<Qs.length; q++) {
+            let Q = Qs[q];
+            let likeable = "0";
+            let capable = "0";
+            let helping = "0";
+            for (let r=0; r<Q.response.length; r++) {
+                switch(Q.response[r].name) {
+                    case "Likeability":
+                        likeable = Q.response[r].answer;
+                        break;
+                    case "Ability":
+                        capable = Q.response[r].answer;
+                        break;
+                    case "Benevolence":
+                        helping = Q.response[r].answer;
+                        break;
+                }
+            }
+            raw.push([timepoint.toString(), parseInt(likeable), parseInt(capable), parseInt(helping)]);
+            timepoint++;
+        }
+        let data = google.visualization.arrayToDataTable(raw);
+
+        let options = {
+            width: div.parentElement.clientWidth,
+            height: div.clientHeight,
+            hAxis: {
+                title: 'Time'
+            },
+            vAxis: {
+                title: 'Your rating',
+                minValue: 0,
+                maxValue: 100
+            },
+            legend: {
+                position: 'top',
+                maxLines: 2,
+                alignment: 'end',
+            }
+        };
+
+        // Instantiate and draw our chart, passing in some options.
+        let chart = new google.visualization.LineChart(div);
+        chart.draw(data, options);
+    }
+
+    /**
+     * Display a graph of participant accuracy. Uses google graph API.
+     * @param {Governor} input
+     * @param {HTMLElement} div - div to draw the graph in
+     */
+    getAccuracyGraph(input, div) {
+        let advisors = [];
+        for (let a=1; a<input.advisors.length; a++) {
+            advisors.push(input.advisors[a]);
+        }
+        let judgeAcc = this.accuracySummary(input.trials);
+
+        // Create the data table.
+        let raw = [
+            ['Person', 'Accuracy', { role: 'style' }],
+            ['You (pre advice)', judgeAcc.initial[0]*100, 'blue'],
+            ['You (post advice)', judgeAcc.final[0]*100, 'cornflower']
+        ];
+
+        let col = ['silver', '#e5e4e2'];
+        let coli = 0;
+        advisors.forEach(function(advisor) {
+            raw.push([
+                advisor.name,
+                advisorChoice.advisorAccuracy(input.trials, advisor.id)[0]*100,
+                col[coli++]
+            ]);
+        });
+        let data = google.visualization.arrayToDataTable(raw);
+        let options = {
+            title: 'Dot-task accuracy',
+            width: div.clientWidth,
+            height: div.parentElement.clientHeight,
+            legend: {
+                position: 'none',
+            },
+            vAxis: {
+                title: '% correct',
+                minValue: 50,
+                maxValue: 100
+            }
+        };
+        // Instantiate and draw our chart, passing in some options.
+        let chart = new google.visualization.ColumnChart(div);
+        chart.draw(data, options);
+    }
+
+    /**
+     * Display a graph of participant confidence. Uses google graph API.
+     * @param {Governor} input
+     * @param {HTMLElement} div - div to draw the graph in
+     */
+    static getConfidenceGraph(input, div) {
+        let confReport = this.confidenceBreakdown(input.trials);
+
+        // Create the data table.
+        let raw = [
+            ['Contingency', 'Confidence', { role: 'style' }],
+            ['Correct (pre advice)', confReport.final.correct.initial[0], 'blue'],
+            ['Incorrect (pre advice)', confReport.final.incorrect.initial[0], 'pink'],
+            ['Correct (post advice)', confReport.final.correct.final[0], 'blue'],
+            ['Incorrect (post advice)', confReport.final.incorrect.final[0], 'pink']
+        ];
+
+        let data = google.visualization.arrayToDataTable(raw);
+        let options = {
+            title: 'Dot-task confidence',
+            width: div.clientWidth,
+            height: div.parentElement.clientHeight,
+            legend: {
+                position: 'none',
+            },
+            vAxis: {
+                title: 'mean confidence',
+                minValue: 0,
+                maxValue: 100
+            }
+        };
+        // Instantiate and draw our chart, passing in some options.
+        let chart = new google.visualization.ColumnChart(div);
+        chart.draw(data, options);
+    }
+
+    /**
+     * Show the confidence breakdown using positions on the sliders
+     * @param {Governor} input - data holder
+     * @param {HTMLElement} div - div to draw the output inside
+     */
+    getConfidenceFeedback(input, div) {
+        let confReport = this.confidenceBreakdown(input.trials);
+        // Draw a representation of the slider
+        let container = div.appendChild(document.createElement('div'));
+        container.className = 'feedback confidenceBarContainer';
+        let label = container.appendChild(document.createElement('h3'));
+        label.id = 'confidenceBarLabel';
+        label.className = 'confidenceLabel preAdvice feedback';
+        label.innerText = 'Before taking advice';
+        let bar = container.appendChild(document.createElement('div'));
+        bar.id = 'confidenceBarPre';
+        bar.className = 'feedback confidenceBar preAdvice';
+        // Add indicators for the various positions
+        let correctPre = bar.appendChild(document.createElement('div'));
+        correctPre.id = 'confidenceCorrectPre';
+        correctPre.className = 'confidenceMarker correct preAdvice feedback';
+        correctPre.style.left = confReport.final.correct.initial[0].toString()+'%';
+        let incorrectPre = bar.appendChild(document.createElement('div'));
+        incorrectPre.id = 'confidenceIncorrectPre';
+        incorrectPre.className = 'confidenceMarker incorrect preAdvice feedback';
+        incorrectPre.style.left = 'calc(-20px + '+confReport.final.incorrect.initial[0].toString()+'%)';
+        // Repeat the steps for post-advice
+        let containerPost = div.appendChild(document.createElement('div'));
+        containerPost.className = 'feedback confidenceBarContainer';
+        let barPost = containerPost.appendChild(document.createElement('div'));
+        barPost.id = 'confidenceBarPost';
+        barPost.className = 'feedback confidenceBar postAdvice';
+        let correctPost = barPost.appendChild(document.createElement('div'));
+        correctPost.id = 'confidenceCorrectPost';
+        correctPost.className = 'confidenceMarker correct postAdvice feedback';
+        correctPost.style.left = confReport.final.correct.final[0].toString()+'%';
+        let incorrectPost = barPost.appendChild(document.createElement('div'));
+        incorrectPost.id = 'confidenceIncorrectPost';
+        incorrectPost.className = 'confidenceMarker incorrect postAdvice feedback';
+        incorrectPost.style.left = 'calc(-20px + '+confReport.final.incorrect.final[0].toString()+'%)';
+        let labelPost = containerPost.appendChild(document.createElement('h3'));
+        labelPost.id = 'confidenceBarLabel';
+        labelPost.className = 'confidenceLabel postAdvice feedback';
+        labelPost.innerText = 'After taking advice';
+        // Add popups
+        let cpChild = correctPre.appendChild(document.createElement('div'));
+        cpChild.className = 'confidencePopup correct preAdvice feedback';
+        cpChild.innerHTML = 'Your average confidence before advice was <strong>'+
+            round(confReport.final.correct.initial[0],1).toString()+
+            '</strong> when you were correct.';
+        let ipChild = incorrectPre.appendChild(document.createElement('div'));
+        ipChild.className = 'confidencePopup incorrect preAdvice feedback';
+        ipChild.innerHTML = 'Your average confidence before advice was <strong>'+
+           round(confReport.final.incorrect.initial[0],1).toString()+
+            '</strong> when you were incorrect.';
+        let ctChild = correctPost.appendChild(document.createElement('div'));
+        ctChild.className = 'confidencePopup correct postAdvice feedback';
+        ctChild.innerHTML = 'Your average confidence after advice was <strong>'+
+            round(confReport.final.correct.final[0],1).toString()+
+            '</strong> when you were correct.';
+        let itChild = incorrectPost.appendChild(document.createElement('div'));
+        itChild.className = 'confidencePopup incorrect postAdvice feedback';
+        itChild.innerHTML = 'Your average confidence after advice was <strong>'+
+            round(confReport.final.incorrect.final[0],1).toString()+
+            '</strong> when you were incorrect.';
+    }
+}
+
+/**
+ * Return a subset of list where items within it return true when fed into matchFunc
+ * @param {Array} array - array to examine
+ * @param {function} matchFunc - function to examine items with
+ * @returns {Array} - array of items in *array* which pass *matchFunc*
+ */
+function getMatches (array, matchFunc) {
+    let out = [];
+    array.forEach(function (item) {
+        if (matchFunc(item))
+            out.push(item);
+    });
+    return out;
+}
+
+function applyClassToChildren (element, classname, recursive = true) {
+    for (let i=0; i<element.childElementCount; i++) {
+        let child = element.children[i];
+        child.className += ' '+classname;
+        if (recursive)
+            applyClassToChildren(child, classname, true);
+    }
+}
+
+/**
+ * Round x to a specified number of decimal places
+ * @param x {number} - number to round
+ * @param [{number} decimals=0] - number of decimal places to which to round x
+ * @return {number} - x rounded to *decimals* decimal places
+ */
+function round (x, decimals = 0) {
+    let y = Math.pow(10, decimals);
+    return Math.round(x * y) / y;
+}
+
+export {advisorChoice, getMatches, applyClassToChildren, round};

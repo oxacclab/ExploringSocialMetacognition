@@ -4,8 +4,6 @@
     <title>My experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <script src="src/exploringSocialMetacognition.js"></script>
-    <script src="src/analysis.js"></script>
 
     <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="style/confidenceSliders.css"/>
@@ -19,10 +17,12 @@
         properly the experiment requires a modern browser with javascript enabled.</p>
 </div>
 </body>
-<script type="text/javascript">
+<script type="module">
+    import {advisorChoice} from "./src/analysis.js";
+
     let uid = window.location.href.split('?uid=')[1];
     let ask = new XMLHttpRequest();
-    var gov = {};
+    let gov = {};
     ask.open('GET', 'http://localhost:3000/feedback/'+uid);
     ask.setRequestHeader('Content-Type', 'application/json');
     ask.send();
@@ -35,7 +35,7 @@
     };
     function feedback(data) {
         google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(function(){analysis.advisorChoice.showFeedback(data)});
+        google.charts.setOnLoadCallback(function(){new advisorChoice().showFeedback(data)});
     }
     function endExperiment() {
         // reset background colour
