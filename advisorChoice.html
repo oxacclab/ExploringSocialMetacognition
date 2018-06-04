@@ -78,8 +78,8 @@
 </head>
 <body>
 <div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
-    <h1>Loading...</h1>
-    <p>If you continue to see this message after a couple of seconds something has gone wrong. In order to run
+    <h1 id="initHeader">Loading...</h1>
+    <p id="initText">If you continue to see this message after a couple of seconds something has gone wrong. In order to run
         properly the experiment requires a modern browser with javascript enabled.</p>
 </div>
 </body>
@@ -1177,14 +1177,19 @@
 
 
     /* start the experiment */
-    jsPsych.init({
-        timeline: timeline,
-        on_finish: function(){drawDebriefForm(gov.debriefFormSubmit)}
-    });
-    /*x =JSON.parse(DATA_IN);
-    Object.keys(x).forEach(function (key) {gov[key] = x[key]});
-    gov.exportGovernor();
-    feedback(gov);*/
+    // browser check
+    if(bowser.a !== true) {
+        h1 = document.querySelector('#initHeader');
+        h1.innerText = 'Please update your browser to continue...';
+        document.querySelector('#initText').innerHTML = 'Your browser is an old version which does not meet the requirements for running this experiment. Please upgrade to the latest version of your browser.';
+       h1.parentElement.appendChild(document.createElement('p')).innerHTML = 'Instructions for how to do this can be found at <a href="https://browser-update.org/update.html">https://browser-update.org/update.html</a>.';
+    } else {
+        jsPsych.init({
+            timeline: timeline,
+            on_finish: function(){drawDebriefForm(gov.debriefFormSubmit)}
+        });
+    }
+
     function feedback(data) {
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(function(){analysis.advisorChoice.showFeedback(data)});
