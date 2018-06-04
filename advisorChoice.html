@@ -13,7 +13,7 @@
     <script src="saveData.js"></script>
     <script src="debriefForm.js"></script>
     <script src="jspsych-jas-present-advice-choice.js"></script>
-    <link rel="stylesheet" href="../jsPsych/css/jspsych.css"/>
+    <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="confidenceSliders.css"/>
     <link rel="stylesheet" href="feedbackStyle.css"/>
     <link rel="stylesheet" href="debriefForm.css"/>
@@ -523,16 +523,19 @@
     /**
      * Ensure the participant did the intro trial correctly
      * @param {Object} trial - jsPsych plugin response
+     *
+     * @return false if trial should be repeated or void if okay
      */
     function checkIntroResponse(trial) {
         switch(gov.currentTrialIndex) {
             case 0:
                 if(getAnswerFromResponse(trial.response) !== gov.currentTrial.whichSide) {
                     // redo the first trial
-
+                    // returning false tells jsPsych to repeat the trial
+                    return false;
                 } // else fallthrough
             default:
-                initialResponse(trial);
+                return initialResponse(trial);
         }
     }
 
