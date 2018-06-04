@@ -29,8 +29,23 @@ srv.createServer(function(request, response) {
                 response.end();
                 return;
             }
-
-            response.writeHead(200);
+            let type = filename.split('.');
+            type = type[type.length - 1];
+            switch(type) {
+                case "html":
+                case "htm":
+                    type = 'text/html';
+                    break;
+                case "css":
+                    type = 'text/css';
+                    break;
+                case "js":
+                    type = 'application/javascript';
+                    break;
+                default:
+                    type = 'text/plain';
+            }
+            response.writeHead(200, {'Content-Type': type});
             response.write(file, "binary");
             response.end();
         });

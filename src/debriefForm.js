@@ -1,4 +1,10 @@
-function drawDebriefForm(submitFunction) {
+"use strict";
+/**
+ * Draw the debrief form the participant will see at the end of the experiment.
+ *
+ * @param submitFunction {function} - function to be called when the submit button is pressed
+ */
+export default function drawDebriefForm(submitFunction) {
     // Create form
     let div = document.querySelector('.jspsych-content').appendChild(document.createElement('div'));
     div.id = 'debriefContainer';

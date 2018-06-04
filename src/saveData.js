@@ -1,4 +1,14 @@
-function processData(data) {
+/**
+ * Exploring Social Metacognition - data processing
+ * Matt Jaquiery, Feb 2018
+ *
+ */
+
+"use strict";
+
+import {Trial, Advisor} from "./exploringSocialMetacognition.js";
+
+export default function processData(data) {
     // Data about the participant
     let participantData = {
         id: data.participantId,
@@ -44,7 +54,7 @@ function processData(data) {
 }
 
 /** Return a trial squeezed into a format suitable for saving as .csv
- * @param {ESM.Trial} trial - trial object to squeeze
+ * @param {Trial} trial - trial object to squeeze
  * @param {int} id - id of the participant (inserted as first column)
  */
 function flattenTrialData(trial, id) {
@@ -93,14 +103,14 @@ function flattenTrialData(trial, id) {
             out.timeFinalResponse = trial.pluginResponse[2].startTime + trial.pluginResponse[2].rt;
         }
     }
-    out.adviceString = typeof trial.advice==='undefined'? "" : trial.advice.string;
+    out.adviceString = trial.advice === null? "" : trial.advice.string;
 
     return out;
 }
 
 /**
  * Extract the key variables from the advisor object
- * @param {ESM.Advisor} data - advisor object
+ * @param {Advisor} data - advisor object
  * @param {int} id - id of the participant (inserted as first column)
  * @returns {Object} - slim representation of advisor object
  */
@@ -116,7 +126,7 @@ function flattenAdvisorData(data, id) {
 }
 
 /**
- * Extract the key variables from the quesitonnaire object
+ * Extract the key variables from the questionnaire object
  * @param {Object[]} Q - questionnaire
  * @param {int} id - id of the participant (inserted as first column)
  * @returns {Object} - slim representation of advisor object
