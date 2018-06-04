@@ -3,10 +3,10 @@
 <head>
     <title>My experiment</title>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <script src="../jsPsych/jspsych.js"></script>
-    <script src="../jsPsych/plugins/jspsych-instructions.js"></script>
-    <script src="../jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
-    <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/jspsych.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/jsPsych/plugins/jspsych-instructions.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
     <script src="jspsych-function-sliders-response.js"></script>
     <script src="exploringSocialMetacognition.js"></script>
     <script src="analysis.js"></script>
@@ -521,12 +521,14 @@
     }
 
     /**
-     *
+     * Ensure the participant did the intro trial correctly
+     * @param {Object} trial - jsPsych plugin response
      */
     function checkIntroResponse(trial) {
         switch(gov.currentTrialIndex) {
             case 0:
                 if(getAnswerFromResponse(trial.response) !== gov.currentTrial.whichSide) {
+                    // redo the first trial
 
                 } // else fallthrough
             default:
