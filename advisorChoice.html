@@ -76,12 +76,14 @@
 
     </style>
 </head>
-<body>
-<div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
-    <h1 id="initHeader">Loading...</h1>
-    <p id="initText">If you continue to see this message after a couple of seconds something has gone wrong. In order to run
-        properly the experiment requires a modern browser with javascript enabled.</p>
-</div>
+<body class="jspsych-display-element" tabindex="0" style="margin: 0; height: 100%; width: 100%;">
+    <div class="jspsych-content-wrapper" style="height: 100vh;">
+        <div id="jspsych-content" class="jspsych-content">
+            <h1 id="initHeader">Loading...</h1>
+            <p id="initText">If you continue to see this message after a couple of seconds something has gone wrong. In order to run
+                properly the experiment requires a modern browser with javascript enabled.</p>
+        </div>
+    </div>
 </body>
 <script type="text/javascript">
     const trialTypes = {
@@ -1180,8 +1182,8 @@
     // browser check
     if(bowser.a !== true) {
         h1 = document.querySelector('#initHeader');
-        h1.innerText = 'Please update your browser to continue...';
-        document.querySelector('#initText').innerHTML = 'Your browser is an old version which does not meet the requirements for running this experiment. Please upgrade to the latest version of your browser.';
+        h1.innerText = 'Outdated Browser';
+        document.querySelector('#initText').innerHTML = 'Your browser is an old version which does not meet the requirements for participating in this study. Please upgrade to the latest version of your browser.';
        h1.parentElement.appendChild(document.createElement('p')).innerHTML = 'Instructions for how to do this can be found at <a href="https://browser-update.org/update.html">https://browser-update.org/update.html</a>.';
     } else {
         jsPsych.init({
