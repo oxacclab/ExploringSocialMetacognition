@@ -6,7 +6,7 @@
  */
 
 "use strict";
-import {Trial, copyArray} from "./exploringSocialMetacognition.js";
+import {Trial, utils} from "./exploringSocialMetacognition.js";
 
 /**
  * @class advisorChoice
@@ -27,7 +27,7 @@ class advisorChoice {
         let misses = 0;
         let i = firstResponse? 0 : 1;
         trials.forEach(function (trial) {
-            if (typeof trial.answer[i] === null || typeof trial.whichSide === null
+            if (trial.answer[i] === null || trial.whichSide === null
                 || isNaN(trial.answer[i]))
                 return;
             if (trial.answer[i] === trial.whichSide)
@@ -73,7 +73,7 @@ class advisorChoice {
         let count = 0;
         let i = firstResponse? 0 : 1;
         trials.forEach(function (trial) {
-            if (typeof trial.confidence[i] === null || isNaN(trial.confidence[i]))
+            if (trial.confidence[i] === null || isNaN(trial.confidence[i]))
                 return;
             sum += trial.confidence[i];
             count++;
@@ -106,16 +106,16 @@ class advisorChoice {
      */
     confidenceBreakdown(trials) {
         let self = this;
-        let initialCorrectTrials = getMatches(trials, function(trial) {
+        let initialCorrectTrials = utils.getMatches(trials, function(trial) {
             return self.accuracySummary([trial]).initial[0] === 1;
         });
-        let initialIncorrectTrials = getMatches(trials, function(trial) {
+        let initialIncorrectTrials = utils.getMatches(trials, function(trial) {
             return self.accuracySummary([trial]).initial[0] === 0;
         });
-        let finalCorrectTrials = getMatches(trials, function(trial) {
+        let finalCorrectTrials = utils.getMatches(trials, function(trial) {
             return self.accuracySummary([trial]).final[0] === 1;
         });
-        let finalIncorrectTrials = getMatches(trials, function(trial) {
+        let finalIncorrectTrials = utils.getMatches(trials, function(trial) {
             return self.accuracySummary([trial]).final[0] === 0;
         });
         let correct = this.confidenceSummary(initialCorrectTrials);
@@ -135,8 +135,8 @@ class advisorChoice {
      * @returns {boolean}
      */
     static isGoodAdvice(trial) {
-        if (typeof trial.advisorAgrees === null || typeof trial.whichSide === null
-            || typeof trial.answer === null || isNaN(trial.answer[0]))
+        if (trial.advisorAgrees === null || trial.whichSide === null
+            || trial.answer === null || isNaN(trial.answer[0]))
             return false;
         if (trial.answer[0] === trial.whichSide && trial.advisorAgrees)
             return true;
@@ -151,10 +151,10 @@ class advisorChoice {
      * @returns {number[]} - [mean accuracy, hits, misses]
      */
     static advisorAccuracy(trials, advisorId) {
-        let hits = getMatches(trials, function(trial) {
+        let hits = utils.getMatches(trials, function(trial) {
             return (trial.advisorId === advisorId && advisorChoice.isGoodAdvice(trial));
         }).length;
-        let misses = getMatches(trials, function(trial) {
+        let misses = utils.getMatches(trials, function(trial) {
             return (trial.advisorId === advisorId && !advisorChoice.isGoodAdvice(trial));
         }).length;
 
@@ -171,8 +171,8 @@ class advisorChoice {
      * @returns {number}
      */
     static getInfluence(trial) {
-        if (typeof trial.advisorId === null || typeof trial.advisorAgrees === null
-            || typeof trial.confidence === null || isNaN(trial.confidence[0]))
+        if (trial.advisorId === null || trial.advisorAgrees === null
+            || trial.confidence === null || isNaN(trial.confidence[0]))
             return 0;
         // advisor agrees; influence is the increase in confidence
         if (trial.advisorAgrees)
@@ -192,8 +192,8 @@ class advisorChoice {
      * @returns {number}
      */
     static getMaxInfluence(trial) {
-        if (typeof trial.advisorId === null || typeof trial.advisorAgrees === null
-            || typeof trial.confidence === null || isNaN(trial.confidence[0]))
+        if (trial.advisorId === null || trial.advisorAgrees === null
+            || trial.confidence === null || isNaN(trial.confidence[0]))
             return 0;
         // advisor agrees; max influence 100-confidence
         if (trial.advisorAgrees)
@@ -225,10 +225,10 @@ class advisorChoice {
      * @returns {number[]} - [influence/maxInfluence, influence, maxInfluence]
      */
     static strategicAdviceUsage(trials, advisorId) {
-        let goodAdviceTrials = getMatches(trials, function(trial) {
+        let goodAdviceTrials = utils.getMatches(trials, function(trial) {
             return trial.advisorId === advisorId && advisorChoice.isGoodAdvice(trial);
         });
-        let badAdviceTrials = getMatches(trials, function(trial) {
+        let badAdviceTrials = utils.getMatches(trials, function(trial) {
             return trial.advisorId === advisorId && !advisorChoice.isGoodAdvice(trial);
         });
         let maxInfluence = 0;
@@ -247,7 +247,7 @@ class advisorChoice {
     }
 
     adviceAnswerChanges(trials, advisorId) {
-        let advisorChangedTrials = getMatches(trials, function (trial) {
+        let advisorChangedTrials = utils.getMatches(trials, function (trial) {
             if (trial.advisorId !== advisorId)
                 return false;
             if (trial.answer[0] === trial.answer[1])
@@ -256,7 +256,7 @@ class advisorChoice {
         });
         if (advisorChangedTrials.length === 0)
             return [NaN, 0, 0];
-        let hits = getMatches(advisorChangedTrials, function(trial) {
+        let hits = utils.getMatches(advisorChangedTrials, function(trial) {
             return trial.answer[1] === trial.whichSide;
         }).length;
         let misses = advisorChangedTrials.length - hits;
@@ -273,12 +273,12 @@ class advisorChoice {
      * @returns {number[]}
      */
     advisorChoiceRate(trials, advisorId) {
-        let choiceTrials = getMatches(trials, function(trial) {
+        let choiceTrials = utils.getMatches(trials, function(trial) {
             return trial.choice.length && trial.choice.indexOf(advisorId) !== -1;
         });
         if (!choiceTrials.length)
             return [NaN];
-        let chosenTrials = getMatches(choiceTrials, function(trial) {
+        let chosenTrials = utils.getMatches(choiceTrials, function(trial) {
             return trial.advisorId === advisorId;
         });
         return [chosenTrials.length/choiceTrials.length, chosenTrials.length, choiceTrials.length];
@@ -286,11 +286,11 @@ class advisorChoice {
 
     /**
      * Show feedback based on a Governor object
-     * @param {Governor} g
+     * @param {AdvisorChoice} g
      */
     showFeedback(g) {
         let self = this;
-        let advisors = copyArray(g.advisors);
+        let advisors = utils.copyArray(g.advisors);
         advisors.shift(); // drop the practice advisor
         let body = document.querySelector('body');
             // Nav
@@ -345,8 +345,8 @@ class advisorChoice {
         accuracyDescription.id = 'accuracyDescription';
         accuracyDescription.className = 'description';
         let pre = this.accuracySummary(g.trials);
-        let post = round(pre.final[0]*100,1);
-        pre = round(pre.initial[0]*100,1);
+        let post = utils.round(pre.final[0]*100,1);
+        pre = utils.round(pre.initial[0]*100,1);
         accuracyDescription.innerHTML = "<p>The task difficulty changes based on your performance so that we " +
             "can compare advice-taking properly. Your initial accuracy should be approximately 71%. " +
             "We expect most people to have higher accuracy after advice than " +
@@ -404,11 +404,11 @@ class advisorChoice {
                     'in your initial decision.';
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Chosen: <strong>"+
-                    round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,1).toString()+'%</strong>';
+                    utils.round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,1).toString()+'%</strong>';
                 last.title = 'How many times did you select this advisor when you had a choice?';
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Influence: <strong>"+
-                    round(self.getTotalInfluence(g.trials, advisor.id),1).toString()+'</strong>';
+                    utils.round(self.getTotalInfluence(g.trials, advisor.id),1).toString()+'</strong>';
                 last.title = 'How much did you change your confidence after hearing this advisor\'s advice.';
                 let changedAnswers = self.adviceAnswerChanges(g.trials, advisor.id);
                 last = statsContainer.appendChild(document.createElement('p'));
@@ -451,8 +451,8 @@ class advisorChoice {
         confidenceDescription.id = 'confidenceDescription';
         confidenceDescription.className = 'description';
         let preconf = this.accuracySummary(g.trials);
-        let postconf = round(preconf.final[0]*100,1);
-        pre = round(preconf.initial[0]*100,1);
+        let postconf = utils.round(preconf.final[0]*100,1);
+        pre = utils.round(preconf.initial[0]*100,1);
         confidenceDescription.innerHTML = "<p>Your confidence is presented here broken down by whether " +
             "or not your final decision was correct. Most people show a pattern where they are more confident " +
             "when they are correct than when they are mistaken. Additionally, most people are more confident " +
@@ -461,7 +461,7 @@ class advisorChoice {
 
         // apply 'feedback' class to all elements for styling purposes
         body.className += ' feedback';
-        applyClassToChildren(body, 'feedback');
+        utils.applyClassToChildren(body, 'feedback');
         body.style.backgroundColor = 'ghostwhite';
 
         // fill in graphs
@@ -475,7 +475,7 @@ class advisorChoice {
 
     /**
      * Display a graph of questionnaire responses for a given advisor. Uses google graph API.
-     * @param {Governor} input
+     * @param {AdvisorChoice} input
      * @param {int} advisorId - the advisor who is the subject of the graph
      * @param {Element} div - div to draw the graph in
      */
@@ -486,7 +486,7 @@ class advisorChoice {
         ];
 
         let timepoint = 0;
-        let Qs = getMatches(input.questionnaires, function(questionnaire) {
+        let Qs = utils.getMatches(input.questionnaires, function(questionnaire) {
             return questionnaire.advisorId === advisorId;
         });
         for (let q=0; q<Qs.length; q++) {
@@ -537,7 +537,7 @@ class advisorChoice {
 
     /**
      * Display a graph of participant accuracy. Uses google graph API.
-     * @param {Governor} input
+     * @param {AdvisorChoice} input
      * @param {HTMLElement} div - div to draw the graph in
      */
     getAccuracyGraph(input, div) {
@@ -666,59 +666,24 @@ class advisorChoice {
         let cpChild = correctPre.appendChild(document.createElement('div'));
         cpChild.className = 'confidencePopup correct preAdvice feedback';
         cpChild.innerHTML = 'Your average confidence before advice was <strong>'+
-            round(confReport.final.correct.initial[0],1).toString()+
+            utils.round(confReport.final.correct.initial[0],1).toString()+
             '</strong> when you were correct.';
         let ipChild = incorrectPre.appendChild(document.createElement('div'));
         ipChild.className = 'confidencePopup incorrect preAdvice feedback';
         ipChild.innerHTML = 'Your average confidence before advice was <strong>'+
-           round(confReport.final.incorrect.initial[0],1).toString()+
+           utils.round(confReport.final.incorrect.initial[0],1).toString()+
             '</strong> when you were incorrect.';
         let ctChild = correctPost.appendChild(document.createElement('div'));
         ctChild.className = 'confidencePopup correct postAdvice feedback';
         ctChild.innerHTML = 'Your average confidence after advice was <strong>'+
-            round(confReport.final.correct.final[0],1).toString()+
+            utils.round(confReport.final.correct.final[0],1).toString()+
             '</strong> when you were correct.';
         let itChild = incorrectPost.appendChild(document.createElement('div'));
         itChild.className = 'confidencePopup incorrect postAdvice feedback';
         itChild.innerHTML = 'Your average confidence after advice was <strong>'+
-            round(confReport.final.incorrect.final[0],1).toString()+
+            utils.round(confReport.final.incorrect.final[0],1).toString()+
             '</strong> when you were incorrect.';
     }
 }
 
-/**
- * Return a subset of list where items within it return true when fed into matchFunc
- * @param {Array} array - array to examine
- * @param {function} matchFunc - function to examine items with
- * @returns {Array} - array of items in *array* which pass *matchFunc*
- */
-function getMatches (array, matchFunc) {
-    let out = [];
-    array.forEach(function (item) {
-        if (matchFunc(item))
-            out.push(item);
-    });
-    return out;
-}
-
-function applyClassToChildren (element, classname, recursive = true) {
-    for (let i=0; i<element.childElementCount; i++) {
-        let child = element.children[i];
-        child.className += ' '+classname;
-        if (recursive)
-            applyClassToChildren(child, classname, true);
-    }
-}
-
-/**
- * Round x to a specified number of decimal places
- * @param x {number} - number to round
- * @param [{number} decimals=0] - number of decimal places to which to round x
- * @return {number} - x rounded to *decimals* decimal places
- */
-function round (x, decimals = 0) {
-    let y = Math.pow(10, decimals);
-    return Math.round(x * y) / y;
-}
-
-export {advisorChoice, getMatches, applyClassToChildren, round};
+export {advisorChoice};

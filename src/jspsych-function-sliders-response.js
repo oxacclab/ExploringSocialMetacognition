@@ -435,8 +435,10 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                     let s = display_element.querySelector('#jspsych-function-sliders-response-slider'+i);
                     if (remove) {
                         s.removeEventListener('change', onSliderChange);
+                        s.removeEventListener('click', onSliderChange);
                     } else {
                         s.addEventListener('change', onSliderChange);
+                        s.addEventListener('click', onSliderChange);
                     }
                 }
             }

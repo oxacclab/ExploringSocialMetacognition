@@ -4,7 +4,8 @@
  *
  * @param submitFunction {function} - function to be called when the submit button is pressed
  */
-export default function drawDebriefForm(submitFunction) {
+export default function drawDebriefForm() {
+    let owner = this;
     // Create form
     let div = document.querySelector('.jspsych-content').appendChild(document.createElement('div'));
     div.id = 'debriefContainer';
@@ -42,6 +43,6 @@ export default function drawDebriefForm(submitFunction) {
     ok.className = 'debrief jspsych-btn';
     ok.onclick = function(e){
         e.preventDefault();
-        submitFunction(form)
+        owner.debriefFormSubmit(form);
     };
 }

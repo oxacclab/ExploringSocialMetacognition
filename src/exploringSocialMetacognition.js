@@ -5,7 +5,11 @@
  * Javascript library for running social metacognition studies.
  */
 
+
 "use strict";
+
+import processData from "./saveData.js";
+import * as utils from "./utils.js";
 
 /**
  * Defines a pair of boxes with dots which are drawn on a canvas.
@@ -534,171 +538,101 @@ class Governor {
      * @constructor
      *
      * @param {Object} [args={}] - properties to assign to the Governor
-     * @param {Advisor[]} [args.advisors=[]] - advisor list
      * @param {Trial[]} [args.trials=[]] - trial list
+     * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
      *
-     * @property {Advisor} currentAdvisor - advisor currently in focus
-     * @property {Trial} currentTrial - trial currently underway
      */
     constructor(args = {}) {
         for (let key in args) {
             if (args.hasOwnProperty(key))
                 this[key] = args[key];
         }
-        this.advisors = args.advisors || [];
-        this.trials = args.trials || [];
+        this.trials = typeof args.trials === 'undefined'? [] : args.trials;
+        this.miscTrials = typeof args.miscTrials === 'undefined'? [] : args.miscTrials;
         this.currentTrialIndex = args.currentTrialIndex || 0;
+        this.timeStart = (new Date).getTime();
     }
 
     get currentTrial() {return this.trials[this.currentTrialIndex];}
-    get currentAdvisor() {return this.advisors[this.getAdvisorIndex(this.currentTrial.advisorId)];}
 
-    getAdvisorIndex(id) {
-        for (let i=0; i<this.advisors.length; i++) {
-            if (this.advisors[i].id === id)
-                return i;
-        }
-        return null;
-    }
-}
-
-/**
- * https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
- */
-function shuffle(array) {
-    let counter = array.length;
-
-    // While there are elements in the array
-    while (counter > 0) {
-        // Pick a random index
-        let index = Math.floor(Math.random() * counter);
-
-        // Decrease counter by 1
-        counter--;
-
-        // And swap the last element with it
-        let temp = array[counter];
-        array[counter] = array[index];
-        array[index] = temp;
-    }
-
-    return array;
-}
-
-/**
- * Return a single array containing deckCount copies of deck shuffled together
- */
-function shuffleShoe(deck, deckCount=1) {
-    let shoe = [];
-    for (let d=0; d<deck.length; d++) {
-        let item = deck[d];
-        for (let i=0; i<deckCount; i++) {
-            shoe.push(item);
-        }
-    }
-    return shuffle(shoe);
-}
-
-/**
- * Return *array* ordered according to a second array containing the indices of the new order. If the order array
- * is shorter than the value array, the order array is repeated. A warning is issued if the length of the first
- * array is not neatly divisible by the length of the second.
- *
- * orderArray([11, 12, 13, 14, 15], [0, 2, 4, 1, 3]) -> [11, 13, 15, 12, 14]
- * orderArray([1, 2, 3, 4, 5, 6], [1, 0]) -> [2, 1, 4, 3, 6, 5]
- *
- * @param {Array} array - the array of values to reorder
- * @param {int[]} order - the array of indices specifying the order into which the value array should be placed
- * @returns {Array} - *array* ordered by *order*
- */
-function orderArray(array, order) {
-    let out = [];
-    let o = 0;
-    let pass = 0;
-    if (array.length % order)
-        console.warn('orderArray: length of array not a multiple of order list length. The array is reordered, but '+
-            'this might be due to providing the wrong values.');
-    for (let i=0; i<array.length; i++) {
-        out[i] = array[order[o]+pass*order.length];
-        if (o >= order.length-1) {
-            o = 0;
-            pass++;
-        } else
-            o++;
-    }
-    return out;
-}
-
-/**
- * Sum the contents of a list
- *
- * @param {number|number[]|Object|Object[]} list - list of numbers to be summed
- * @param {boolean} recursive - whether to call sumList on lists within list
- * @param {boolean} ignoreBadValues - whether to ignore non-finite values in *list*
- * @returns {number}
- */
-function sumList(list, recursive = true, ignoreBadValues = true) {
-    if(typeof list !== 'object')
-        return NaN;
-    let sum = 0;
-    for(let i=0; i<Object.keys(list).length; i++) {
-        let k = Object.keys(list)[i];
-        if(!isFinite(list[k])) {
-          if(typeof list[k] === 'object') {
-              let tmp = sumList(list[k], recursive, ignoreBadValues);
-              if(isNaN(tmp))
-                  return NaN;
-              else
-                  sum += tmp;
-          } else {
-              if(!ignoreBadValues)
-                  return NaN;
-          }
-        } else {
-            if(isFinite(list[k]))
-                sum += list[k]
-        }
-    }
-    return sum;
-}
-
-/**
- * Return a new copy of object
- *
- * @param {object} obj - object to copy
- * @param {boolean} [deep=true] - whether to recursively copy child objects
- * @returns {object} - copy of *obj*
- */
-function copyObject(obj, deep = true) {
-    let out = {};
-    for(let k=0; k<Object.keys(obj).length; k++) {
-        let key = Object.keys(obj)[k];
-        if (typeof obj[key] === 'object' && deep)
-            out[key] = copyObject(obj[key], deep);
+    /**
+     * Send all the data in the governor object to a backend which will save it to a file.
+     */
+    exportGovernor() {
+        let self = getGov(this);
+        let ask = new XMLHttpRequest();
+        if (window.location.href.indexOf('localhost') !== -1)
+            ask.open('POST', 'http://localhost:3000/server.js');
         else
-            out[key] = obj[key];
+            ask.open('POST', 'saveData.php');
+
+        ask.setRequestHeader('Content-Type', 'application/json');
+        ask.send(JSON.stringify({
+            rawData: JSON.stringify(self),
+            processedData: JSON.stringify(processData(self))
+        }));
+        ask.onreadystatechange = function() {
+            if (this.readyState===4 && this.status===200) {
+                console.log(this.responseText);
+            }
+        };
     }
-    return out;
+
+    /**
+     * Save the data sent from the plugin in the Trial object
+     *
+     * @param {Object} pluginData - response data sent by a jsPsych plugin
+     */
+    storePluginData(pluginData) {
+        let self = getGov(this);
+        if (Object.keys(self.currentTrial).indexOf('pluginResponse') === -1)
+            self.currentTrial.pluginResponse = [];
+        // Save this trial data (jspsych would do this for us, but we have access to a bunch of stuff it doesn't
+        self.currentTrial.pluginResponse.push(pluginData);
+    }
+
+    /**
+     * Storage function for any trial not otherwise handled (e.g. breaks, instructions) so we don't lose their timings.
+     */
+    storeMiscTrialData(trial) {
+        let self = getGov(this);
+        self.miscTrials.push(trial);
+    }
+
+    /**
+     * Draw a progress bar at the top of the screen
+     */
+    drawProgressBar() {
+        let self = getGov(this);
+        if (document.querySelector('#jspsych-progressbar-container') === null) {
+            let div = document.createElement('div');
+            div.id = 'jspsych-progressbar-container';
+            let outer = document.createElement('div');
+            outer.id = 'progressbar-outer';
+            div.appendChild(outer);
+            let inner = document.createElement('div');
+            inner.id = 'progressbar-inner';
+            outer.appendChild(inner);
+            let content = document.querySelector('.jspsych-content-wrapper');
+            content.parentElement.insertBefore(div, content);
+        }
+        let inner = document.querySelector('#progressbar-inner');
+        inner.style.width = ((self.trials.indexOf(self.currentTrial)/self.trials.length)*100).toString()+'%';
+        document.querySelector('body').style.backgroundColor = '';
+    }
 }
 
 /**
- * return a new copy of an array
- *
- * @param {Array} array - array to copy
- * @param {boolean} [recursive=true] - whether to create new copies of arrays within *array*
- * @returns {Array}
+ * Return a governor object
+ * @param {*} me - variable to test for Governor-ness
+ * @return {Governor} - *me* or *window.gov* as a fallback
  */
-function copyArray(array, recursive = true) {
-    let out = [];
-    for (let i=0; i<array.length; i++) {
-        if(Array.isArray(array[i]) && recursive)
-            out.push(copyArray(array[i]), true);
-        else
-            out.push(array[i]);
-    }
-    return out;
+function getGov(me) {
+    let self = me;
+    if(!(self instanceof Governor))
+        self = window.gov;
+    return self;
 }
 
-export {DoubleDotGrid, Advisor, Trial, Line, Voice, Governor,
-    shuffleShoe, copyArray, copyObject, sumList, orderArray, shuffle};
+export {DoubleDotGrid, Advisor, Trial, Line, Voice, Governor, utils, getGov};

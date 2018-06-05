@@ -1,0 +1,48 @@
+body {
+    background-color: #858585;
+}
+div.advisorChoice-marker {
+    width: 12px;
+    height: 40px;
+    position: absolute;
+    z-index: 1;
+    box-shadow: 0 0 5px 0 black;
+    border-radius: 3px;
+    background-color: yellow;
+}
+img.advisor-portrait {
+    border: 2px solid black;
+    padding: 5px;
+    background-color: black;
+    border-radius: 25px;
+}
+img.advisorChoice-choice {
+    max-height: 150px;
+    display: block;
+    margin: 20px auto;
+}
+img.advisorChoice-choice:hover {
+    cursor: pointer;
+    background-color: white;
+}
+.jspsych-content {
+    width: 100%;
+}
+#progressbar-outer {
+    width: 80%;
+    height: 15px;
+    background-color: #F1F1F1;
+    display: inline-block;
+    border-radius: 5px;
+}
+#progressbar-inner {
+    background-color: #2196F3;
+    height: 15px;
+    border-radius: 5px;
+}
+#jspsych-progressbar-container > span {
+    font-size: 0.8em;
+}
+#jspsych-content {
+    max-width: 600px;
+}
