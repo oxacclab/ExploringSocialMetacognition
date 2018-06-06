@@ -133,8 +133,8 @@
             "<p>Click 'next' to proceed.</p>"
         ],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar,
-        on_finish: gov.storeMiscTrialData
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
     const sliderInstructions = {
@@ -149,8 +149,8 @@
         "far <strong>left</strong> as it will go.</p>" +
         "<p>Try using the slider to indicate your confidence now.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar,
-        on_finish: gov.storeMiscTrialData
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
     const adviceInstructions = {
@@ -164,8 +164,8 @@
         "that you are more or less sure, and even to change which box you think had most dots.</p>" +
         "<p>Click 'next' to see how the advice works.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar,
-        on_finish: gov.storeMiscTrialData
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
     const practiceInstructions = {
@@ -177,8 +177,8 @@
         "The task is difficult at first, but you will get used to it.</p>" +
         "<p>To begin the practice, press 'next'.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar,
-        on_finish: gov.storeMiscTrialData
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
     const finalInstructions = {
@@ -189,22 +189,22 @@
         "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
         "ready to begin.</p>"],
         show_clickable_nav: true,
-        on_load: gov.drawProgressBar,
-        on_finish: gov.storeMiscTrialData
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
     const blockBreak = {
         type: 'instructions',
         pages: ["<h1>Break</h1><p>You may take a moment to rest here. Press 'next' when you are ready.</p>"],
         show_clickable_nav: true,
-        on_load: gov.blockFeedback,
-        on_finish: gov.storeMiscTrialData
+        on_load: ()=>gov.blockFeedback(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
     /* Initial response: present an initial stimulus and get a decision */
     const introInitialDecision = {
         type: "canvas-sliders-response",
-        stimulus: gov.drawDots,
+        stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: null,
         prompt: '<p>Which box has more dots?</p>',
         sliderCount: 2,
@@ -226,15 +226,15 @@
         require_change: [1, 1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
-        on_load: gov.setSliderClick,
-        on_finish: gov.checkIntroResponse,
+        on_load: ()=>gov.setSliderClick(),
+        on_finish: (trial)=>gov.checkIntroResponse(trial),
         post_trial_gap: gov.feedbackDuration
     };
 
     /* Initial response: present an initial stimulus and get a decision */
     const initialDecision = {
         type: "canvas-sliders-response",
-        stimulus: gov.drawDots,
+        stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
         prompt: '<p>Which box had more dots?</p>',
         sliderCount: 2,
@@ -256,14 +256,14 @@
         require_change: [1, 1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
-        on_load: gov.setSliderClick,
-        on_finish: gov.initialResponse
+        on_load: ()=>gov.setSliderClick(),
+        on_finish: (trial)=>gov.initialResponse(trial)
     };
 
     /* Advice: present advice to the judge */
     const advice = {
         type: "jspsych-jas-present-advice-choice",
-        choiceFunction: gov.getAdvisorChoice,
+        choiceFunction: (display_element, callback)=>gov.getAdvisorChoice(display_element, callback),
         displayImageFunction: function(choice, divId) {
             let div = document.querySelector('#' + divId);
             let a = gov.currentAdvisor;
@@ -279,13 +279,13 @@
             //gov.currentTrial.advice.play();
         },
         prompt: "",
-        on_finish: gov.storePluginData
+        on_finish: (pluginData)=>gov.storePluginData(pluginData)
     };
 
     /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
     const finalDecision = {
         type: "canvas-sliders-response",
-        stimulus: function(){},
+        stimulus: ()=>{},
         sliderCount: 2,
         labels: [
             ['Certain', 'Unsure'],
@@ -304,8 +304,8 @@
         exclusive_group: [1, 1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
-        on_load: gov.showAdvice,
-        on_finish: gov.finalResponse,
+        on_load: ()=>gov.showAdvice(),
+        on_finish: (trial)=>gov.finalResponse(trial),
         post_trial_gap: gov.feedbackDuration
     };
 
@@ -314,7 +314,7 @@
 
     const questionnaireProspective = {
         type: "function-sliders-response",
-        stimulus: gov.drawQuestionnaire,
+        stimulus: (display_element, callback)=>gov.drawQuestionnaire(display_element, callback),
         prompt: '<p>This advisor will be...</p>',
         sliderCount: 3,
         slider_name: utils.orderArray([
@@ -335,13 +335,13 @@
             '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
         ], order),
         max_warnings: 1,
-        on_load: gov.setSliderClick,
-        on_finish: gov.questionnaireResponse
+        on_load: ()=>gov.setSliderClick(),
+        on_finish: (trial)=>gov.questionnaireResponse(trial)
     };
 
     const questionnaire = {
         type: "function-sliders-response",
-        stimulus: gov.drawQuestionnaire,
+        stimulus: (display_element, callback)=>gov.drawQuestionnaire(display_element, callback),
         prompt: '<p>This advisor is...</p>',
         sliderCount: 3,
         slider_name: utils.orderArray([
@@ -362,8 +362,8 @@
             '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
         ], order),
         max_warnings: 1,
-        on_load: gov.setSliderClick,
-        on_finish: gov.questionnaireResponse
+        on_load: ()=>gov.setSliderClick(),
+        on_finish: (trial)=>gov.questionnaireResponse(trial)
     };
 
     const intro_procedure = {
@@ -434,7 +434,7 @@
     } else {
         jsPsych.init({
             timeline: timeline,
-            on_finish: function(){gov.drawDebriefForm()}
+            on_finish: ()=>gov.drawDebriefForm()
         });
     }
 

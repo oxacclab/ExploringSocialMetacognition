@@ -98,11 +98,25 @@ function orderArray(array, order) {
  * Round x to a specified number of decimal places
  * @param x {number} - number to round
  * @param {number} [decimals=0] - number of decimal places to which to round x
- * @return {number} - x rounded to *decimals* decimal places
+ * @param {boolean} [asPaddedString=false] - whether to return a string with zeros added to fill out truncated values
+ * @return {number|string} - x rounded to *decimals* decimal places
  */
-function round (x, decimals = 0) {
+function round (x, decimals = 0, asPaddedString=false) {
     let y = Math.pow(10, decimals);
-    return Math.round(x * y) / y;
+    let ans = Math.round(x * y) / y;
+    if(!asPaddedString || decimals <= 0)
+        return ans;
+    ans = ans.toString();
+    let d = 0;
+    if(ans.indexOf('.')===-1) {
+        d = decimals;
+        ans = ans + '.';
+    }
+    else
+        d = decimals - ans.split('.')[1].length;
+    for(let i=0;i<d;i++)
+        ans = ans + '0';
+    return ans;
 }
 /**
  * https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array

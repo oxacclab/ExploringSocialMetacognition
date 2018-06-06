@@ -95,23 +95,23 @@ class DotTask extends Governor {
      * @param {string} canvasId - id of the canvas on which to draw the dots (supplied by the trial)
      */
     drawDots(canvasId) {
-        let self = getGov(this);
-        self.currentTrial.dotDifference = self.dotDifference;
-        let low = self.dotCount - self.dotDifference;
-        let high = self.dotCount + self.dotDifference;
-        let dots = self.currentTrial.whichSide === 0 ? [high, low] : [low, high];
+        this.currentTrial.dotDifference = this.dotDifference;
+        let low = this.dotCount - this.dotDifference;
+        let high = this.dotCount + this.dotDifference;
+        let dots = this.currentTrial.whichSide === 0 ? [high, low] : [low, high];
         let grid = new DoubleDotGrid(dots[0], dots[1], {
             spacing: 100
         });
-        self.currentTrial.grid = grid;
+        this.currentTrial.grid = grid;
+        let self = this;
         setTimeout(function () {
             self.currentTrial.fixationDrawTime.push(performance.now());
             DotTask.drawFixation(canvasId);
-        }, self.preTrialInterval);
+        }, this.preTrialInterval);
         setTimeout(function(){
             self.currentTrial.stimulusDrawTime.push(performance.now());
             grid.draw(canvasId);
-        }, self.preTrialInterval+self.preStimulusInterval);
+        }, this.preTrialInterval+this.preStimulusInterval);
     }
 
     /**
@@ -119,7 +119,6 @@ class DotTask extends Governor {
      * @param {string} canvasId - id of the canvas on which to draw
      */
     static drawFixation(canvasId) {
-        let self = getGov(this);
         let ctx = document.querySelector('#'+canvasId).getContext('2d');
         let len = 5;
         ctx.strokeStyle = 'black';
@@ -170,34 +169,32 @@ class DotTask extends Governor {
 
     /**
      * Sets a click function on the sliders which makes them behave as if they are moved to 50 when they are focussed.
-     * self prevents users clicking on the slider, getting the visual feedback of the slider being activated and set,
+     * This prevents users clicking on the slider, getting the visual feedback of the slider being activated and set,
      * and then being told they have not moved the slider.
      */
     setSliderClick() {
-        let self = getGov(this);
         let sliders = document.querySelectorAll('.jspsych-sliders-response-slider');
         sliders.forEach(function (slider) {
             slider.addEventListener('click', function () {
-                if (typeof self.clickFunctionRun !== 'undefined')
+                if (typeof this.clickFunctionRun !== 'undefined')
                     return;
-                self.clickFunctionRun = true;
-                if (self.value !== "50")
+                this.clickFunctionRun = true;
+                if (this.value !== "50")
                     return;
                 // send a change event
                 let event = new Event('change');
-                self.dispatchEvent(event);
+                this.dispatchEvent(event);
             });
         });
-        self.drawProgressBar();
+        this.drawProgressBar();
     }
 
     /**
      * inject the proportion correct into the block feedback
      */
     blockFeedback(){
-        let self = getGov(this);
-        let block = self.currentTrial.block-1;
-        let trialList = utils.getMatches(self.trials, (trial)=>{
+        let block = this.currentTrial.block-1;
+        let trialList = utils.getMatches(this.trials, (trial)=>{
             return trial.block === block;
         });
         let hitList = utils.getMatches(trialList, (trial)=>{
@@ -208,13 +205,13 @@ class DotTask extends Governor {
         });
 
         let score = hitList.length / trialList.length * 100;
-        if (score < self.minimumBlockScore) {
-            self.terminateExperiment(score);
+        if (score < this.minimumBlockScore) {
+            this.terminateExperiment(score);
         }
         let div = document.querySelector('#jspsych-content');
         let p = div.insertBefore(document.createElement('p'), div.querySelector('p'));
         p.innerText = "Your score on the last block was " + (Math.round(score*100)/100).toString() + "%.";
-        self.drawProgressBar();
+        this.drawProgressBar();
     }
 
     /**
@@ -237,20 +234,19 @@ class DotTask extends Governor {
      * @param {boolean} [args.initialConfidence=true] - whether to count the initial (as opposed to final) confidence
      */
     getConfidenceCategory(trialId, args) {
-        let self = getGov(this);
         args = args || {};
-        args.nTrialsBack = args.nTrialsBack || self.trials.length;
+        args.nTrialsBack = args.nTrialsBack || this.trials.length;
         args.correctOnly = typeof args.correctOnly === 'undefined'? true : args.correctOnly;
         args.initialAnswerCorrect = typeof args.initialAnswerCorrect? true : args.initialAnswerCorrect;
         args.initialConfidence = typeof args.initialConfidence? true : args.initialConfidence;
-        let trialIndex = self.trials.indexOf(utils.getMatches(self.trials, function (trial) {
+        let trialIndex = this.trials.indexOf(utils.getMatches(this.trials, function (trial) {
             return trial.id === trialId;
         })[0]);
         if (trialIndex === -1) {
-            self.currentTrial.warnings.push('getConfidenceCategory: trial not found in self.trials');
+            this.currentTrial.warnings.push('getConfidenceCategory: trial not found in this.trials');
             return 1;
         }
-        let confidenceScore = self.trials[trialIndex].confidence[(args.initialConfidence? 0 : 1)];
+        let confidenceScore = this.trials[trialIndex].confidence[(args.initialConfidence? 0 : 1)];
 
         // collate valid trials
         let validTrials = [];
@@ -259,7 +255,7 @@ class DotTask extends Governor {
             if (i+1 === trialIndex) {
                 break;
             }
-            let trial = self.trials[trialIndex-(i+1)];
+            let trial = this.trials[trialIndex-(i+1)];
             // have to have provided a confidence
             if (isNaN(trial.confidence[(args.initialConfidence? 0 : 1)]))
                 continue;
@@ -284,7 +280,7 @@ class DotTask extends Governor {
 
         // Protect against too few trials
         if (typeof bounds.low === 'undefined' || typeof bounds.high === 'undefined') {
-            self.currentTrial.warnings.push('getConfidenceCategory: too few trials available to estimate confidence');
+            this.currentTrial.warnings.push('getConfidenceCategory: too few trials available to estimate confidence');
             return 1;
         }
 
@@ -296,7 +292,7 @@ class DotTask extends Governor {
             return 2;
 
         // Fallback
-        self.currentTrial.warnings.push('getConfidenceCategory: confidence score ('+confidenceScore+') fell through ' +
+        this.currentTrial.warnings.push('getConfidenceCategory: confidence score ('+confidenceScore+') fell through ' +
             'bounds ['+bounds.low+', '+bounds.high+']');
     }
 
@@ -309,13 +305,12 @@ class DotTask extends Governor {
      * @param {boolean} [args.initialConfidence=true] - whether to count the initial (as opposed to final) confidence
      */
     getLastConfidenceCategory(args) {
-        let self = getGov(this);
-        let last = utils.getMatches(self.trials, function (trial) {
+        let last = utils.getMatches(this.trials, function (trial) {
             return !isNaN(trial.answer[0]);
         }).length-1;
 
-        let cc = self.getConfidenceCategory(self.trials[last].id, args);
-        self.trials[last].confidenceCategory = cc;
+        let cc = this.getConfidenceCategory(this.trials[last].id, args);
+        this.trials[last].confidenceCategory = cc;
         return cc;
     }
 
@@ -324,42 +319,41 @@ class DotTask extends Governor {
      * @param {Object} trial - jsPsych plugin response
      */
     closeTrial(trial) {
-        let self = getGov(this);
         // Feedback
-        if (self.currentTrial.feedback) {
-            if (self.currentTrial.answer[1] === self.currentTrial.whichSide ||
-                (isNaN(self.currentTrial.answer[1]) && self.currentTrial.whichSide === self.currentTrial.answer[0]))
+        if (this.currentTrial.feedback) {
+            if (this.currentTrial.answer[1] === this.currentTrial.whichSide ||
+                (isNaN(this.currentTrial.answer[1]) && this.currentTrial.whichSide === this.currentTrial.answer[0]))
                 document.querySelector('body').style.backgroundColor = 'white';
             else
                 document.querySelector('body').style.backgroundColor = 'black';
         }
         // Staircasing stuff
         let warning = "";
-        if (self.currentTrialIndex > 1) {
+        if (this.currentTrialIndex > 1) {
             // two-down one-up staircase
-            let lastTrial = self.trials[self.currentTrialIndex-1];
-            if (!self.currentTrial.getCorrect(false)) {
+            let lastTrial = this.trials[this.currentTrialIndex-1];
+            if (!this.currentTrial.getCorrect(false)) {
                 // Wrong! Make it easier
-                self.dotDifference += self.difficultyStep;
-                if (self.dotDifference > self.dotCount-1) {
-                    self.dotDifference = self.dotCount-1;
+                this.dotDifference += this.difficultyStep;
+                if (this.dotDifference > this.dotCount-1) {
+                    this.dotDifference = this.dotCount-1;
                     warning = "Difficulty at minimum!";
                 }
-            } else if (lastTrial.getCorrect(false) && self.currentTrial.getCorrect(false)) {
+            } else if (lastTrial.getCorrect(false) && this.currentTrial.getCorrect(false)) {
                 // Two hits, impressive! Make it harder
-                self.dotDifference -= self.difficultyStep;
-                if (self.dotDifference < 1) {
-                    self.dotDifference = 1;
+                this.dotDifference -= this.difficultyStep;
+                if (this.dotDifference < 1) {
+                    this.dotDifference = 1;
                     warning = "Difficulty at maximum!";
                 }
             }
         }
-        if (warning.length > 0 && self.currentTrialIndex < self.trials.length) {
-            self.currentTrial.warnings.push(warning);
+        if (warning.length > 0 && this.currentTrialIndex < this.trials.length) {
+            this.currentTrial.warnings.push(warning);
             console.warn(warning);
         }
         // Move to next trial
-        self.currentTrialIndex++;
+        this.currentTrialIndex++;
     }
 }
 
@@ -410,14 +404,12 @@ class AdvisorChoice extends DotTask {
         this.drawDebriefForm = debriefForm; // why is this in a separate file?
     }
     get currentAdvisor() {
-        let self = getGov(this);
-        return self.advisors[self.getAdvisorIndex(self.currentTrial.advisorId)];
+        return this.advisors[this.getAdvisorIndex(this.currentTrial.advisorId)];
     }
 
     getAdvisorIndex(id) {
-        let self = getGov(this);
-        for (let i=0; i<self.advisors.length; i++) {
-            if (self.advisors[i].id === id)
+        for (let i=0; i<this.advisors.length; i++) {
+            if (this.advisors[i].id === id)
                 return i;
         }
         return null;
@@ -440,38 +432,37 @@ class AdvisorChoice extends DotTask {
      * timeline tweaking. This may just be more work to duplicate jsPsych's capabilities, though
      */
     getTrials() {
-        let self = getGov(this);
         let trials = [];
         let id = 0;
         let realId = 0;
-        let advisorSets = self.advisorLists.length;
-        let blockCount = self.blockStructure.length * advisorSets;
+        let advisorSets = this.advisorLists.length;
+        let blockCount = this.blockStructure.length * advisorSets;
         // Same for which side the correct answer appears on
-        let whichSideDeck = utils.shuffleShoe([0, 1], advisorSets*utils.sumList(self.blockStructure));
+        let whichSideDeck = utils.shuffleShoe([0, 1], advisorSets*utils.sumList(this.blockStructure));
         // Define trials
-        for (let b=1; b<=self.practiceBlockCount+blockCount; b++) {
+        for (let b=1; b<=this.practiceBlockCount+blockCount; b++) {
             let advisorSet = 0;
             let blockIndex = b;
             let advisorChoices = [];
             let advisorDeck = null;
-            if (b > self.practiceBlockCount) {
-                advisorSet = Math.floor((b-self.practiceBlockCount-1) / self.blockStructure.length);
-                blockIndex = (b-self.practiceBlockCount-1)%self.blockStructure.length;
-                advisorChoices = self.advisorLists[advisorSet];
+            if (b > this.practiceBlockCount) {
+                advisorSet = Math.floor((b-this.practiceBlockCount-1) / this.blockStructure.length);
+                blockIndex = (b-this.practiceBlockCount-1)%this.blockStructure.length;
+                advisorChoices = this.advisorLists[advisorSet];
                 // Shuffle advisors so they appear an equal number of times
                 advisorDeck = utils.shuffleShoe(advisorChoices,
-                    self.blockStructure[blockIndex][trialTypes.force]);
+                    this.blockStructure[blockIndex][trialTypes.force]);
             } else {
                 advisorSet = NaN;
             }
-            let blockLength = b<=self.practiceBlockCount? self.practiceBlockLength :
-                utils.sumList(self.blockStructure[blockIndex]);
+            let blockLength = b<=this.practiceBlockCount? this.practiceBlockLength :
+                utils.sumList(this.blockStructure[blockIndex]);
             // intro trials are a special case so the block length needs to be longer to accommodate them
             if (b === 1)
                 blockLength += 3;
             // Work out what type of trial to be
             let trialTypeDeck = [];
-            let structure = b<=self.practiceBlockCount? self.practiceBlockStructure : self.blockStructure[blockIndex];
+            let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
             if (b === 1)
                 structure = {0:0, 1:5, 2:0};
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
@@ -481,11 +472,11 @@ class AdvisorChoice extends DotTask {
             trialTypeDeck = utils.shuffle(trialTypeDeck);
             for (let i=1; i<=blockLength; i++) {
                 id++;
-                let isPractice = b<=self.practiceBlockCount;
+                let isPractice = b<=this.practiceBlockCount;
                 let trialType = trialTypeDeck.pop();
                 let advisorId = 0;
                 if (isPractice)
-                    advisorId = id<=2? 0 : self.practiceAdvisor.id;
+                    advisorId = id<=2? 0 : this.practiceAdvisor.id;
                 else
                     advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
                 let r = Math.random() < .5? 1 : 0;
@@ -522,9 +513,8 @@ class AdvisorChoice extends DotTask {
      * Show a ghost of the previous thumb placement to remind judges of their previous answer.
      */
     showMarker() {
-        let self = getGov(this);
         let slider = document.querySelector('#jspsych-canvas-sliders-response-slider'+
-            self.currentTrial.answer[0].toString());
+            this.currentTrial.answer[0].toString());
         let marker = document.createElement('div');
         marker.className = 'advisorChoice-marker';
         slider.parentElement.appendChild(marker);
@@ -535,24 +525,23 @@ class AdvisorChoice extends DotTask {
         marker.style.top = yOffset.toString() + 'px';
 
         let xOffset = 0;
-        if (self.currentTrial.answer[0] === 0) {
+        if (this.currentTrial.answer[0] === 0) {
             // Left bar is scored in reverse
-            xOffset = 100 - self.currentTrial.confidence[0];
+            xOffset = 100 - this.currentTrial.confidence[0];
         } else {
-            xOffset = self.currentTrial.confidence[0];
+            xOffset = this.currentTrial.confidence[0];
         }
         marker.style.left = (slider.getBoundingClientRect().left +
             xOffset * (slider.clientWidth-marker.clientWidth) / 100).toString() + 'px';
 
         // and call the slider-click function because we only get one on_load call
-        self.setSliderClick();
+        this.setSliderClick();
     }
 
     /**
      * Show advice over the stimulus presentation area
      */
     showAdvice(){
-        let self = getGov(this);
         // Hack an advisor display in here with a directional indicator
         let div = document.querySelector('canvas').parentElement;
         div.innerHTML = "";
@@ -560,14 +549,14 @@ class AdvisorChoice extends DotTask {
         picDiv.id = '#jspsych-jas-present-advice-choice-image';
         let textDiv = div.appendChild(document.createElement('div'));
         textDiv.id = '#jspsych-jas-present-advice-choice-prompt';
-        let a = self.currentAdvisor;
+        let a = this.currentAdvisor;
         picDiv.innerHTML = a.portrait.outerHTML;
-        textDiv.innerHTML = self.currentAdvisor.name.toUpperCase() + ": " + self.currentTrial.advice.string;
+        textDiv.innerHTML = this.currentAdvisor.name.toUpperCase() + ": " + this.currentTrial.advice.string;
         // Set the class of the slider the advisor endorsed
         let slider = document.querySelector('#jspsych-sliders-response-slider-col' +
-            self.currentTrial.advice.side);
+            this.currentTrial.advice.side);
         slider.className += ' advisor-endorsed';
-        self.showMarker();
+        this.showMarker();
     }
 
     /**
@@ -578,22 +567,22 @@ class AdvisorChoice extends DotTask {
      * @param {function} callback - function to call when a portrait is clicked. Called with the choice as an argument.
      */
     getAdvisorChoice(display_element, callback) {
-        let self = getGov(this);
-        let choices = self.currentTrial.choice;
+        let choices = this.currentTrial.choice;
         if (choices.length === 0) { // force and catch trials
-            if (typeof self.currentAdvisor === 'undefined') {
+            if (typeof this.currentAdvisor === 'undefined') {
                 callback(-1); // catch trials
                 return;
             } else {
-                self.findAdvisorFromContingency();
-                callback(self.currentAdvisor.id); // force trials
+                this.findAdvisorFromContingency();
+                callback(this.currentAdvisor.id); // force trials
                 return;
             }
         }
         // present choices
         let choiceImgs = [];
+        let self = this;
         for (let a=0; a<choices.length; a++) {
-            let advisor = self.advisors[self.getAdvisorIndex(choices[a])];
+            let advisor = this.advisors[this.getAdvisorIndex(choices[a])];
             let img = document.createElement('img');
             img.className = 'advisorChoice-choice advisor-portrait';
             img.id = 'advisorChoice-choice-' + a.toString();
@@ -620,17 +609,16 @@ class AdvisorChoice extends DotTask {
      * @return {Boolean|void} false if trial should be repeated or void if okay
      */
     checkIntroResponse(trial) {
-        let self = getGov(this);
-        switch(self.currentTrialIndex) {
+        switch(this.currentTrialIndex) {
             case 0: // First practice - have to get it right (it's very easy)
-                if(AdvisorChoice.getAnswerFromResponse(trial.response) !== self.currentTrial.whichSide) {
+                if(AdvisorChoice.getAnswerFromResponse(trial.response) !== this.currentTrial.whichSide) {
                     // redo the first trial
                     // returning false tells jsPsych to repeat the trial
                     return false;
                 } else
-                    return self.initialResponse(trial);
+                    return this.initialResponse(trial);
             default:
-                return self.initialResponse(trial);
+                return this.initialResponse(trial);
         }
     }
 
@@ -639,32 +627,31 @@ class AdvisorChoice extends DotTask {
      * @param {Object} trial - jsPsych plugin response
      */
     initialResponse(trial) {
-        let self = getGov(this);
-        self.storePluginData(trial);
-        self.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
+        this.storePluginData(trial);
+        this.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
         // trial is the complete trial object with its trial.response object
-        self.currentTrial.answer[0] = AdvisorChoice.getAnswerFromResponse(trial.response);
-        self.currentTrial.confidence[0]  = AdvisorChoice.getConfidenceFromResponse(trial.response, self.currentTrial.answer[0]);
+        this.currentTrial.answer[0] = AdvisorChoice.getAnswerFromResponse(trial.response);
+        this.currentTrial.confidence[0]  = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[0]);
 
-        if (typeof self.currentAdvisor === 'undefined' && self.currentTrial.choice.length === 0) {
-            self.closeTrial(trial);
-        } else if (self.currentTrial.choice.length === 0)
-            self.setAgreementVars();
+        if (typeof this.currentAdvisor === 'undefined' && this.currentTrial.choice.length === 0) {
+            this.closeTrial(trial);
+        } else if (this.currentTrial.choice.length === 0)
+            this.setAgreementVars();
     }
 
     /**
-     * Determine whether the advisor in self trial is to agree or disagree with the judge
+     * Determine whether the advisor in this trial is to agree or disagree with the judge
      */
     setAgreementVars() {
-        let self = getGov(this);
+        let self = this;
         // Check the answer and dis/agree as appropriate
-        if (self.currentAdvisor.agrees(self.currentTrial.getCorrect(false), self.getLastConfidenceCategory())) {
-            self.currentTrial.advice = self.currentAdvisor.voice.getLineByFunction(function (line) {
+        if (this.currentAdvisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory())) {
+            this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
                 self.currentTrial.advisorAgrees = true;
                 return line.side === self.currentTrial.whichSide;
             });
         } else {
-            self.currentTrial.advice = self.currentAdvisor.voice.getLineByFunction(function (line) {
+            this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
                 self.currentTrial.advisorAgrees = false;
                 let side = [1, 0][self.currentTrial.whichSide];
                 return line.side === side;
@@ -676,33 +663,31 @@ class AdvisorChoice extends DotTask {
      * determine the advisor this trial should have on the basis of the confidence of the trial
      */
     findAdvisorFromContingency() {
-        let self = getGov(this);
         // Only apply where advisor ID is specified already (i.e. force trials)
-        if (self.currentTrial.advisorId === 0 || self.currentTrial.practice)
+        if (this.currentTrial.advisorId === 0 || this.currentTrial.practice)
             return;
         // Determine confidence
-        let cc = self.getConfidenceCategory(self.currentTrial.id);
+        let cc = this.getConfidenceCategory(this.currentTrial.id);
         // Redraw advisor list if the answer was not valid
-        let a = self.contingentAdvisors[cc].pop();
-        if (typeof a === 'undefined' || self.advisorLists[self.currentTrial.advisorSet].indexOf(a) === -1) {
-            self.redrawContingency(cc);
-            self.findAdvisorFromContingency();
+        let a = this.contingentAdvisors[cc].pop();
+        if (typeof a === 'undefined' || this.advisorLists[this.currentTrial.advisorSet].indexOf(a) === -1) {
+            this.redrawContingency(cc);
+            this.findAdvisorFromContingency();
             return;
         }
         // Store advisor
-        self.currentTrial.advisorId = a.id;
+        this.currentTrial.advisorId = a.id;
     }
 
     /**
      * produce a shuffled list of advisors to be used for the specified confidence category
      */
     redrawContingency(confidenceCategory) {
-        let self = getGov(this);
-        let advisors = self.advisorLists[self.currentTrial.advisorSet];
-        let blockLength = utils.getMatches(self.trials, (trial)=>{
-            return trial.block === self.currentTrial.block;
+        let advisors = this.advisorLists[this.currentTrial.advisorSet];
+        let blockLength = utils.getMatches(this.trials, (trial)=>{
+            return trial.block === this.currentTrial.block;
         }).length;
-        self.contingentAdvisors[confidenceCategory] =
+        this.contingentAdvisors[confidenceCategory] =
             utils.shuffleShoe(advisors, Math.ceil(blockLength/advisors.length));
     }
 
@@ -711,18 +696,17 @@ class AdvisorChoice extends DotTask {
      * @param {Object} trial - jsPsych plugin response
      */
     finalResponse(trial) {
-        let self = getGov(this);
-        self.currentTrial.stimulusOffTime.push(trial.stimulusOffTime); // always undefined - no stimulus!
-        self.storePluginData(trial);
-        self.currentTrial.answer[1] = AdvisorChoice.getAnswerFromResponse(trial.response);
+        this.currentTrial.stimulusOffTime.push(trial.stimulusOffTime); // always undefined - no stimulus!
+        this.storePluginData(trial);
+        this.currentTrial.answer[1] = AdvisorChoice.getAnswerFromResponse(trial.response);
         // empty responses are allowed 2nd time through (copy intial response)
-        if (isNaN(self.currentTrial.answer[1])) {
-            self.currentTrial.answer[1] = self.currentTrial.answer[0];
-            self.currentTrial.confidence[1] = self.currentTrial.confidence[0];
+        if (isNaN(this.currentTrial.answer[1])) {
+            this.currentTrial.answer[1] = this.currentTrial.answer[0];
+            this.currentTrial.confidence[1] = this.currentTrial.confidence[0];
         } else {
-            self.currentTrial.confidence[1] = AdvisorChoice.getConfidenceFromResponse(trial.response, self.currentTrial.answer[1]);
+            this.currentTrial.confidence[1] = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[1]);
         }
-        self.closeTrial(trial);
+        this.closeTrial(trial);
     }
 
     /**
@@ -732,7 +716,6 @@ class AdvisorChoice extends DotTask {
      * @param {Function} callback - function to execute when drawing is complete. Called with the portrait src
      */
     drawQuestionnaire(display_element, callback) {
-        let self = getGov(this);
         // set some styling stuff
         let style = display_element.appendChild(document.createElement('style'));
         style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:30%} ' +
@@ -741,26 +724,37 @@ class AdvisorChoice extends DotTask {
             '#advisorChoice-choice-stimulus {max-width:100%; display:block; position:relative; ' +
             'top:60%; left:10%; margin-top:-50%;}';
 
-        let advisor = self.questionnaireStack.pop();
-        self.lastQuestionnaireAdvisorId = advisor.id;
+        let advisor = this.questionnaireStack.pop();
+        this.lastQuestionnaireAdvisorId = advisor.id;
         let img = document.createElement('img');
         img.className = 'advisor-portrait';
         img.id = 'advisorChoice-choice-stimulus';
         img.src = advisor.portrait.src;
         display_element.appendChild(img);
         callback(img.src);
+        this.changeQuestionnairePrompt(advisor);
+    }
+
+    /**
+     * Change the questionnaire prompt to replace 'This advisor' with the advisor's name
+     * @param {Advisor} advisor
+     */
+    changeQuestionnairePrompt(advisor) {
+        let p = document.querySelector('#jspsych-canvas-sliders-response-prompt > p');
+        let name = '<span class="advisor-name">' + advisor.name + '</span>';
+        p.innerHTML = p.textContent.replace('This advisor', name);
+        console.log('changed name to ' + advisor.name)
     }
 
     /**
      * Save the response to the questionnaire.
      */
     questionnaireResponse(trial) {
-        let self = getGov(this);
         if (Object.keys(gov).indexOf('questionnaires') === -1)
-            self.questionnaires = [];
-        trial.afterTrial = self.currentTrialIndex-1;
-        trial.advisorId = self.lastQuestionnaireAdvisorId;
-        self.questionnaires.push(trial);
+            this.questionnaires = [];
+        trial.afterTrial = this.currentTrialIndex-1;
+        trial.advisorId = this.lastQuestionnaireAdvisorId;
+        this.questionnaires.push(trial);
     }
 
     /**
@@ -768,18 +762,17 @@ class AdvisorChoice extends DotTask {
      *
      */
     debriefFormSubmit(form) {
-        let self = getGov(this);
         let txt = form.querySelector('#debriefManipulationAnswer');
         if (txt.value.length===0) {
             txt.style.border = '1px solid red';
             return;
         }
-        self.debrief = {
+        this.debrief = {
             manipulationQuestion: txt.value,
             comments: form.querySelector('#debriefCommentAnswer').value
         };
         document.querySelector('body').innerHTML = "";
-        self.endExperiment();
+        this.endExperiment();
     }
 
     feedback(data) {
@@ -788,12 +781,11 @@ class AdvisorChoice extends DotTask {
     }
 
     endExperiment() {
-        let self = getGov(this);
-        self.timeEnd = (new Date()).getTime();
+        this.timeEnd = (new Date()).getTime();
         // reset background colour
         document.querySelector('body').style.backgroundColor = '';
-        self.exportGovernor();
-        self.feedback(gov);
+        this.exportGovernor();
+        this.feedback(gov);
     }
 }
 

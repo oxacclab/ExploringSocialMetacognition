@@ -585,26 +585,23 @@ class Governor {
      * @param {Object} pluginData - response data sent by a jsPsych plugin
      */
     storePluginData(pluginData) {
-        let self = getGov(this);
-        if (Object.keys(self.currentTrial).indexOf('pluginResponse') === -1)
-            self.currentTrial.pluginResponse = [];
+        if (Object.keys(this.currentTrial).indexOf('pluginResponse') === -1)
+            this.currentTrial.pluginResponse = [];
         // Save this trial data (jspsych would do this for us, but we have access to a bunch of stuff it doesn't
-        self.currentTrial.pluginResponse.push(pluginData);
+        this.currentTrial.pluginResponse.push(pluginData);
     }
 
     /**
      * Storage function for any trial not otherwise handled (e.g. breaks, instructions) so we don't lose their timings.
      */
     storeMiscTrialData(trial) {
-        let self = getGov(this);
-        self.miscTrials.push(trial);
+        this.miscTrials.push(trial);
     }
 
     /**
      * Draw a progress bar at the top of the screen
      */
     drawProgressBar() {
-        let self = getGov(this);
         if (document.querySelector('#jspsych-progressbar-container') === null) {
             let div = document.createElement('div');
             div.id = 'jspsych-progressbar-container';
@@ -618,7 +615,7 @@ class Governor {
             content.parentElement.insertBefore(div, content);
         }
         let inner = document.querySelector('#progressbar-inner');
-        inner.style.width = ((self.trials.indexOf(self.currentTrial)/self.trials.length)*100).toString()+'%';
+        inner.style.width = ((this.trials.indexOf(this.currentTrial)/this.trials.length)*100).toString()+'%';
         document.querySelector('body').style.backgroundColor = '';
     }
 }

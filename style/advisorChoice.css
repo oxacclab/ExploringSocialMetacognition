@@ -16,6 +16,10 @@ img.advisor-portrait {
     background-color: black;
     border-radius: 25px;
 }
+span.advisor-name {
+    text-transform: uppercase;
+    font-weight: bold;
+}
 img.advisorChoice-choice {
     max-height: 150px;
     display: block;

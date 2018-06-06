@@ -666,22 +666,22 @@ class advisorChoice {
         let cpChild = correctPre.appendChild(document.createElement('div'));
         cpChild.className = 'confidencePopup correct preAdvice feedback';
         cpChild.innerHTML = 'Your average confidence before advice was <strong>'+
-            utils.round(confReport.final.correct.initial[0],1).toString()+
+            utils.round(confReport.final.correct.initial[0],1,true).toString()+
             '</strong> when you were correct.';
         let ipChild = incorrectPre.appendChild(document.createElement('div'));
         ipChild.className = 'confidencePopup incorrect preAdvice feedback';
         ipChild.innerHTML = 'Your average confidence before advice was <strong>'+
-           utils.round(confReport.final.incorrect.initial[0],1).toString()+
+           utils.round(confReport.final.incorrect.initial[0],1,true).toString()+
             '</strong> when you were incorrect.';
         let ctChild = correctPost.appendChild(document.createElement('div'));
         ctChild.className = 'confidencePopup correct postAdvice feedback';
         ctChild.innerHTML = 'Your average confidence after advice was <strong>'+
-            utils.round(confReport.final.correct.final[0],1).toString()+
+            utils.round(confReport.final.correct.final[0],1,true).toString()+
             '</strong> when you were correct.';
         let itChild = incorrectPost.appendChild(document.createElement('div'));
         itChild.className = 'confidencePopup incorrect postAdvice feedback';
         itChild.innerHTML = 'Your average confidence after advice was <strong>'+
-            utils.round(confReport.final.incorrect.final[0],1).toString()+
+            utils.round(confReport.final.incorrect.final[0],1,true).toString()+
             '</strong> when you were incorrect.';
     }
 }
