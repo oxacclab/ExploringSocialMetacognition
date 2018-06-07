@@ -162,7 +162,7 @@ class Line {
             return;
         this.loading = true;
         let self = this;
-        console.log("Preloading "+self.filePath);
+        //console.log("Preloading "+self.filePath);
         let xhr = new XMLHttpRequest();
         xhr.open('GET', this.filePath);
         xhr.responseType = 'arraybuffer';
@@ -237,12 +237,15 @@ class Voice {
      * @constructor
      *
      * @param {int|null} voiceId - id of the voice
+     * @param {boolean} skipAudioPreload - if false, audio files are preloaded where available
      */
-    constructor(voiceId) {
+    constructor(voiceId, skipAudioPreload = false) {
         this.basePath = "";
         this.id = voiceId;
         this.name = Voice.getName(this.id);
-        this.lines = Voice.getLines(this.id);
+        this.nameHTML = '<span class="advisor-name">' + this.name + '</span>';
+        this.skipAudioPreload = skipAudioPreload;
+        this.lines = this.getLines();
     }
 
     /**
@@ -283,31 +286,31 @@ class Voice {
     /**
      * Register and load audio files for this voice
      *
-     * @param {int} id - voice identifier
-     * @param {boolean} [skipPreload=false] - skip preloading the audio file
      * @returns {{think_left: Line, think_right: Line, left_think: Line, right_think: Line}}
      */
-    static getLines(id, skipPreload = false) {
-        if(id===null)
+    getLines() {
+        if(this.id===null || !Voice.hasFullAudio(this.id))
             return {
                 think_left: new Line(null, "I think it was on the LEFT", 0, 0, true),
                 think_right: new Line(null, "I think it was on the RIGHT", 1, 0, true),
                 left_think: new Line(null, "It was on the LEFT, I think", 0, 0, true),
                 right_think: new Line(null, "It was on the RIGHT, I think", 1, 0, true),
-                intro: new Line(null, "Hello, my name is "+this.name.toUpperCase(), null, null, true)
+                intro: new Line(null, "Hello, my name is "+this.nameHTML, null, null, true)
             };
-        let pth = this.basePath + "assets/audio/voices/";
+        let pth = this.basePath + "assets/audio/voices/" + this.id.toString() + '/';
+        if(!this.skipAudioPreload)
+            console.log('Preloading voice audio from ' + pth);
         return {
-            think_left: new Line(pth + id.toString() + '/think_left.wav', "I think it was on the LEFT",
-                0, 0, skipPreload),
-            think_right: new Line(pth + id.toString() + '/think_right.wav', "I think it was on the RIGHT",
-                1, 0, skipPreload),
-            left_think: new Line(pth + id.toString() + '/left_think.wav', "It was on the LEFT, I think",
-                0, 0, skipPreload),
-            right_think: new Line(pth + id.toString() + '/right_think.wav', "It was on the RIGHT, I think",
-                1, 0, skipPreload),
-            intro: new Line(pth + id.toString() + '/intro.wav',
-                "Hello, my name is "+this.name.toUpperCase(), null, null, skipPreload)
+            think_left: new Line(pth + 'think_left.wav', "I think it was on the LEFT",
+                0, 0, this.skipAudioPreload),
+            think_right: new Line(pth + 'think_right.wav', "I think it was on the RIGHT",
+                1, 0, this.skipAudioPreload),
+            left_think: new Line(pth + 'left_think.wav', "It was on the LEFT, I think",
+                0, 0, this.skipAudioPreload),
+            right_think: new Line(pth + 'right_think.wav', "It was on the RIGHT, I think",
+                1, 0, this.skipAudioPreload),
+            intro: new Line(pth + 'intro.wav', "Hello, my name is "+this.nameHTML,
+                null, null, this.skipAudioPreload)
         };
     }
 
@@ -327,6 +330,21 @@ class Voice {
         }
         return options[Math.floor(Math.random()*options.length)];
     }
+
+    /**
+     * Return **true** if the specified voice id has full audio capabilities
+     * @param {*} id - id number, or type cooercible to a number via parseInt(id.toString())
+     * @return {boolean} - **true** if the specified voice id has full audio, otherwise **false**
+     */
+    static hasFullAudio(id) {
+        if(id !== 'undefined' && id !== null){
+            if(typeof id !== 'number')
+                id = parseInt(id.toString());
+            if(id >= 1 && id <= 3)
+                return true;
+        }
+        return false;
+    }
 }
 
 /**
@@ -341,14 +359,16 @@ class Advisor {
      *  2=agree-in-uncertainty
      * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an into to pass
      *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
-     * @param {int|string} [portrait=0] - identfier for the portrait image. If 0, *id* is used instead.
+     * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
+     * @param {Object} [args] - optional arguments
+     * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
      */
-    constructor(id, adviceType, voice = null, portrait = 0) {
+    constructor(id, adviceType, voice = null, portrait = 0, args = {}) {
         this.id = id;
         this.adviceType = adviceType;
-        // Set agreement function
-        this.getAgreementProbability = Advisor.getAgreementFunction(this.id);
         // Fetch the voice
+        if(typeof args.skipAudioPreload !== 'boolean')
+            args.skipAudioPreload = false;
         if (voice !== null && typeof voice === 'object') {
             if (!(voice instanceof Voice))
                 throw("Cannot create advisor: supplied argument 'voice' not a Voice object.");
@@ -356,12 +376,10 @@ class Advisor {
                 this.voice = voice;
         } else {
             if (voice !== null)
-                this.voice = new Voice(voice);
+                this.voice = new Voice(voice, args.skipAudioPreload);
             else
-                this.voice = new Voice(null);
+                this.voice = new Voice(null, args.skipAudioPreload);
         }
-        // Hoist the name for ease-of-access
-        this.name = this.voice.name;
         // Fetch the portrait
         let portraitId = portrait;
         if (portrait === 0)
@@ -373,13 +391,18 @@ class Advisor {
         this.portraitSrc = this.portrait.src;
     }
 
+    /** Hoist the name for ease-of-access */
+    get name() {return this.voice.name;}
+
+    /** Access to the name with a classed span for styling */
+    get nameHTML() {return this.voice.nameHTML;}
+
     /**
-     * Agreement functions for the advisors
-     * @param {int} adviceType - advice profile for the advisor
+     * Agreement function for the advisor
      * @returns {Function} - function producing a probability of agreement given judge's correctness and confidence
      */
-    static getAgreementFunction(adviceType) {
-        switch(adviceType) {
+    get agreementFunction() {
+        switch(this.adviceType) {
             case 1: // Agree in Confidence
                 return function(judgeCorrect, judgeConfidenceCategory) {
                     if (judgeCorrect !== true)
@@ -468,7 +491,7 @@ class Advisor {
      * @returns {boolean} - whether Advisor agrees with judge
      */
     agrees(judgeCorrect, judgeConfidenceCategory) {
-        return Math.random() < this.getAgreementProbability(judgeCorrect, judgeConfidenceCategory);
+        return Math.random() < this.agreementFunction(judgeCorrect, judgeConfidenceCategory);
     }
 }
 
@@ -560,7 +583,6 @@ class Governor {
      * Send all the data in the governor object to a backend which will save it to a file.
      */
     exportGovernor() {
-        let self = getGov(this);
         let ask = new XMLHttpRequest();
         if (window.location.href.indexOf('localhost') !== -1)
             ask.open('POST', 'http://localhost:3000/server.js');
@@ -620,16 +642,4 @@ class Governor {
     }
 }
 
-/**
- * Return a governor object
- * @param {*} me - variable to test for Governor-ness
- * @return {Governor} - *me* or *window.gov* as a fallback
- */
-function getGov(me) {
-    let self = me;
-    if(!(self instanceof Governor))
-        self = window.gov;
-    return self;
-}
-
-export {DoubleDotGrid, Advisor, Trial, Line, Voice, Governor, utils, getGov};
+export {DoubleDotGrid, Advisor, Trial, Line, Voice, Governor, utils};

@@ -36,16 +36,18 @@
     import {AdvisorChoice, trialTypes} from "./src/advisorChoiceDefs.js";
 
     let adviceTypes = [0,3,4,3,4];
-    let advisorIdDeck = utils.shuffle([1, 2, 3, 4, 5]);
-    let advisorPicDeck = utils.shuffle([1, 2, 3, 4, 5]);
-    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0], null, advisorPicDeck[0]);
+    let advisorIdDeck = utils.shuffle(utils.getSequence(1,5));
+    let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
+    let advisorPicDeck = utils.shuffle(utils.getSequence(1,5));
+    let args = {skipAudioPreload: true};
+    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0], advisorVoiceDeck[0], advisorPicDeck[0], args);
     let advisorListA = [
-        new Advisor(advisorIdDeck[1], adviceTypes[1], null, advisorPicDeck[1]),
-        new Advisor(advisorIdDeck[2], adviceTypes[2], null, advisorPicDeck[2])
+        new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1], args),
+        new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2], args)
     ];
     let advisorListB = [
-        new Advisor(advisorIdDeck[3], adviceTypes[3], null, advisorPicDeck[3]),
-        new Advisor(advisorIdDeck[4], adviceTypes[4], null, advisorPicDeck[4])
+        new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3], args),
+        new Advisor(advisorIdDeck[4], adviceTypes[4], advisorVoiceDeck[4], advisorPicDeck[4], args)
     ];
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];
@@ -275,7 +277,7 @@
         trial_duration: 1000,
         playAudioFunction: function () {
             let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
-            div.innerHTML = gov.currentAdvisor.name.toUpperCase() + ": " + gov.currentTrial.advice.string;
+            div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.currentTrial.advice.string;
             //gov.currentTrial.advice.play();
         },
         prompt: "",

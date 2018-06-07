@@ -65,6 +65,24 @@ function getMatches (array, matchFunc) {
 }
 
 /**
+ * Return a list of every **by**th number from start to end (inclusive)
+ * @param {Number} start - starting number
+ * @param {Number} end - number to end on
+ * @param {Number} by - difference between successive numbers in the list
+ * @return {Number[]}
+ */
+function getSequence(start, end, by=1) {
+    let seq = [];
+    if(start > end) // go backwards
+        for(let i=start; i>=end; i-=by)
+            seq.push(i);
+    else
+        for(let i=start; i<=end; i+=by)
+            seq.push(i);
+    return seq;
+}
+
+/**
  * Return *array* ordered according to a second array containing the indices of the new order. If the order array
  * is shorter than the value array, the order array is repeated. A warning is issued if the length of the first
  * array is not neatly divisible by the length of the second.
@@ -118,6 +136,7 @@ function round (x, decimals = 0, asPaddedString=false) {
         ans = ans + '0';
     return ans;
 }
+
 /**
  * https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
  */
@@ -188,4 +207,5 @@ function sumList(list, recursive = true, ignoreBadValues = true) {
     return sum;
 }
 
-export {shuffle, shuffleShoe, sumList, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round}
+export {shuffle, shuffleShoe, sumList, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round,
+    getSequence}

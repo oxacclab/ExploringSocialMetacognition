@@ -4,7 +4,7 @@
  */
 "use strict";
 
-import {DoubleDotGrid, Trial, Governor, utils, getGov} from './exploringSocialMetacognition.js';
+import {DoubleDotGrid, Trial, Governor, utils} from './exploringSocialMetacognition.js';
 import {advisorChoice} from "./analysis.js";
 import debriefForm from "./debriefForm.js";
 
@@ -551,7 +551,7 @@ class AdvisorChoice extends DotTask {
         textDiv.id = '#jspsych-jas-present-advice-choice-prompt';
         let a = this.currentAdvisor;
         picDiv.innerHTML = a.portrait.outerHTML;
-        textDiv.innerHTML = this.currentAdvisor.name.toUpperCase() + ": " + this.currentTrial.advice.string;
+        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.currentTrial.advice.string;
         // Set the class of the slider the advisor endorsed
         let slider = document.querySelector('#jspsych-sliders-response-slider-col' +
             this.currentTrial.advice.side);
@@ -741,9 +741,7 @@ class AdvisorChoice extends DotTask {
      */
     changeQuestionnairePrompt(advisor) {
         let p = document.querySelector('#jspsych-canvas-sliders-response-prompt > p');
-        let name = '<span class="advisor-name">' + advisor.name + '</span>';
-        p.innerHTML = p.textContent.replace('This advisor', name);
-        console.log('changed name to ' + advisor.name)
+        p.innerHTML = p.textContent.replace('This advisor', advisor.nameHTML);
     }
 
     /**
