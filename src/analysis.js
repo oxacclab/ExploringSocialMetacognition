@@ -318,7 +318,7 @@ class advisorChoice {
         let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
         permalinkLink.className = 'permalink-link';
         permalinkLink.innerText = window.location.origin + '/' + window.location.pathname.split('/')[1] +
-            '/feedback.html?uid=' + g.participantId;
+            '/feedback.php?id=' + g.participantId;
         let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
         permalinkCopy.className = 'permalink-copy';
         permalinkCopy.onclick = function(){

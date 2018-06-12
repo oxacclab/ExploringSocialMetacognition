@@ -8,16 +8,58 @@
  * Fetch JSON data from the filesystem and return it to the requester.
  */
 $id = $_GET["id"];
-if(!is_numeric($id))
-    die(json_encode(array("error" => "Invalid ID provided '$id'")));
+$err = "";
 
-$path = "../data_raw/$id.JSON";
+if(!is_numeric($id))
+    $err = "ID '$id' not found.";
+
+$path = "data/raw/".strval(round(abs($id))).".JSON";
+
 if(!is_file($path))
-    die(json_encode(array("error" => "Could not find data for ID '$id'")));
+    $err = "Could not find results for ID '$id'.";
 
 if($file = fopen($path, 'r') == false)
-    die(json_encode(array("error" => "Could not open file for ID '$id'")));
+    $err = "Could not retrieve results for ID '$id'.";
 
-echo file_get_contents($file);
+if($err == "")
+    $json = file_get_contents($file);
 
 fclose($file);
+
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback: Advisor Choice</title>
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
+    <link rel="stylesheet" href="../style/confidenceSliders.css"/>
+    <link rel="stylesheet" href="../style/feedbackStyle.css"/>
+    <link rel="stylesheet" href="../style/debriefForm.css"/>
+</head>
+<body>
+<div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
+    <?php
+    if($err != "") {
+        ?>
+        <h1>Error!</h1>
+        <p><?php echo $err; ?></p>
+</div>
+</body>
+</html>
+        <?php
+        die();
+    }
+    ?>
+    <h1>Loading...</h1>
+    <p>If you continue to see this message after a couple of seconds something has gone wrong. Results display best in a modern browser with javascript enabled, and may not display on older browsers or if javascript is disabled.</p>
+</div>
+</body>
+<script type="module">
+    import {AdvisorChoice} from "../src/advisorChoiceDefs.js";
+    let gov = AdvisorChoice(<?php echo $json; ?>);
+    gov.endExperiment();
+</script>
+</html>

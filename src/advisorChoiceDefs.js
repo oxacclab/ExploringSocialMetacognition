@@ -781,12 +781,14 @@ class AdvisorChoice extends DotTask {
         google.charts.setOnLoadCallback(function(){advisorChoice.showFeedback(data)});
     }
 
-    endExperiment() {
+    endExperiment(clearScreen = true) {
         this.timeEnd = (new Date()).getTime();
-        // reset background colour
-        document.querySelector('body').style.backgroundColor = '';
         this.exportGovernor();
-        //this.feedback();
+        // reset background colour
+        if(clearScreen === true) {
+            document.querySelector('body').style.backgroundColor = '';
+            document.body.innerHTML = "<div id='jspsych-content'></div>";
+        }
         this.feedback(this);
     }
 }
