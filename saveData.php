@@ -8,22 +8,23 @@
  */
 $raw = $_POST["rawData"];
 $pro = $_POST["processedData"];
-$obj = json_decode($pro);
+$id = json_decode($pro);
+$id = $id['id'];
 
 $out = array(
     "error" => "",
     "code" => 200,
-    "content" => $obj['participantId']
+    "content" => $id['participantId']
 );
 
-if (!is_numeric($obj['participantId'])) {
+if (!is_numeric($id)) {
     $out['error'] = 'Refused';
     $out['code'] = 403;
-    $out['content'] = '';
+    $out['content'] = "Invalid ID specified \'$id\'";
     die(json_encode($out));
 }
 
-$fname = '../raw_data/'.strval(intval($obj['participantId'])).'.JSON';
+$fname = '../raw_data/'.strval(intval($id)).'.JSON';
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;
@@ -39,7 +40,7 @@ if ($file = fopen($fname, 'w') == false) {
 fwrite($file, $raw);
 fclose($file);
 
-$fname = '../processed_data/'.strval(intval($obj['participantId'])).'.JSON';
+$fname = '../processed_data/'.strval(intval($id)).'.JSON';
 // A file exists check is unlikely to trigger given the cleanup script which tarballs and compresses everything daily
 if ($file = fopen($fname, 'w') == false) {
     $out['error'] = 'Unable to store processed data';
