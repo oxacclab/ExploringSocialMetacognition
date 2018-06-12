@@ -5,16 +5,15 @@
  * Date: 06/03/2018
  * Time: 10:28
  *
- * TODO: support placing files with sensitive info somewhere else with proxy scripts
  */
 $raw = $_POST["rawData"];
 $pro = $_POST["processedData"];
 $obj = json_decode($pro);
 
 $out = array(
-    error => "",
-    code => 200,
-    content => $obj['participantId']
+    "error" => "",
+    "code" => 200,
+    "content" => $obj['participantId']
 );
 
 if (!is_numeric($obj['participantId'])) {
@@ -24,7 +23,7 @@ if (!is_numeric($obj['participantId'])) {
     die(json_encode($out));
 }
 
-$fname = 'data/raw/'.strval(intval($obj['participantId'])).'.JSON';
+$fname = 'data/'.strval(intval($obj['participantId'])).'.JSON';
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;
@@ -40,7 +39,8 @@ if ($file = fopen($fname, 'w') == false) {
 fwrite($file, $raw);
 fclose($file);
 
-$fname = 'data/processed/'.strval(intval($obj['participantId'])).'.JSON';
+$fname = '../processed_data/'.strval(intval($obj['participantId'])).'.JSON';
+// A file exists check is unlikely to trigger given the cleanup script which tarballs and compresses everything daily
 if ($file = fopen($fname, 'w') == false) {
     $out['error'] = 'Unable to store processed data';
     $out['code'] = 500;
@@ -51,5 +51,3 @@ fwrite($file, $pro);
 fclose($file);
 
 echo json_encode($out);
-
-?>

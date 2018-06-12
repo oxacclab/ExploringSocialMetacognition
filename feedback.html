@@ -23,7 +23,7 @@
     let uid = window.location.href.split('?uid=')[1];
     let ask = new XMLHttpRequest();
     let gov = {};
-    ask.open('GET', 'http://localhost:3000/feedback/'+uid);
+    ask.open('GET', 'feedback.php?id='+uid);
     ask.setRequestHeader('Content-Type', 'application/json');
     ask.send();
     ask.onreadystatechange = function() {

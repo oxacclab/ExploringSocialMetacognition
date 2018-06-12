@@ -56,6 +56,7 @@ export default function processData(data) {
 /** Return a trial squeezed into a format suitable for saving as .csv
  * @param {Trial} trial - trial object to squeeze
  * @param {int} id - id of the participant (inserted as first column)
+ * @returns {Object} - slim representation of trial object
  */
 function flattenTrialData(trial, id) {
     let out = {};
@@ -129,7 +130,7 @@ function flattenAdvisorData(data, id) {
  * Extract the key variables from the questionnaire object
  * @param {Object[]} Q - questionnaire
  * @param {int} id - id of the participant (inserted as first column)
- * @returns {Object} - slim representation of advisor object
+ * @returns {Object} - slim representation of questionnare object
  */
 function flattenQuestionnaireData(Q, id) {
     let out = {};

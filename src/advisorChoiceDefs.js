@@ -7,6 +7,7 @@
 import {DoubleDotGrid, Trial, Governor, utils} from './exploringSocialMetacognition.js';
 import {advisorChoice} from "./analysis.js";
 import debriefForm from "./debriefForm.js";
+import processData from "./saveData";
 
 /**
  * Trial type identifiers
@@ -732,14 +733,14 @@ class AdvisorChoice extends DotTask {
         img.src = advisor.portrait.src;
         display_element.appendChild(img);
         callback(img.src);
-        this.changeQuestionnairePrompt(advisor);
+        AdvisorChoice.changeQuestionnairePrompt(advisor);
     }
 
     /**
      * Change the questionnaire prompt to replace 'This advisor' with the advisor's name
      * @param {Advisor} advisor
      */
-    changeQuestionnairePrompt(advisor) {
+    static changeQuestionnairePrompt(advisor) {
         let p = document.querySelector('#jspsych-canvas-sliders-response-prompt > p');
         p.innerHTML = p.textContent.replace('This advisor', advisor.nameHTML);
     }
@@ -774,8 +775,10 @@ class AdvisorChoice extends DotTask {
     }
 
     feedback(data) {
+        if(typeof data === 'undefined')
+            data = this;
         google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(function(){new advisorChoice().showFeedback(data)});
+        google.charts.setOnLoadCallback(function(){advisorChoice.showFeedback(data)});
     }
 
     endExperiment() {
@@ -783,7 +786,8 @@ class AdvisorChoice extends DotTask {
         // reset background colour
         document.querySelector('body').style.backgroundColor = '';
         this.exportGovernor();
-        this.feedback(gov);
+        //this.feedback();
+        this.feedback(processData(this));
     }
 }
 

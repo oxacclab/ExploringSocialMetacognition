@@ -22,7 +22,7 @@ class advisorChoice {
      * @param {boolean} returnArray - whether to return an array with proportion hits, hits, and misses
      * @returns {number[]|number} - proportion of hits / total [, hits, misses]
      */
-    overallAccuracy(trials, returnArray = false, firstResponse = true) {
+    static overallAccuracy(trials, returnArray = false, firstResponse = true) {
         let hits = 0;
         let misses = 0;
         let i = firstResponse? 0 : 1;
@@ -51,9 +51,9 @@ class advisorChoice {
      * @param {Trial[]} trials - trial list
      * @returns {{initial: number[], final: number[], combined: number[]}}
      */
-    accuracySummary(trials) {
-        let initial = this.overallAccuracy(trials, true, true);
-        let final = this.overallAccuracy(trials, true, false);
+    static accuracySummary(trials) {
+        let initial = advisorChoice.overallAccuracy(trials, true, true);
+        let final = advisorChoice.overallAccuracy(trials, true, false);
         let combined = [
             (initial[1]+final[1]) / (initial[1]+initial[2]+final[1]+final[2]),
             (initial[1]+final[1]),
@@ -68,7 +68,7 @@ class advisorChoice {
      * @param {boolean} firstResponse - whether to extract the initial vs final response
      * @returns {number|number[]} - [mean, sum, count] or NaN if no trials are found
      */
-    meanConfidence(trials, firstResponse = true) {
+    static meanConfidence(trials, firstResponse = true) {
         let sum = 0;
         let count = 0;
         let i = firstResponse? 0 : 1;
@@ -88,9 +88,9 @@ class advisorChoice {
      * @param {Trial[]} trials - trial list
      * @returns {{initial: number[], final: number[], combined: number[]}}
      */
-    confidenceSummary(trials) {
-          let initial = this.meanConfidence(trials, true);
-          let final = this.meanConfidence(trials, false);
+    static confidenceSummary(trials) {
+          let initial = advisorChoice.meanConfidence(trials, true);
+          let final = advisorChoice.meanConfidence(trials, false);
           let combined = [
               (initial[1]+final[1] / (initial[1]+initial[2]+final[1]+final[2])),
               (initial[1]+final[1]),
@@ -104,24 +104,23 @@ class advisorChoice {
      * @param trials
      * @returns {{initial: {correct: *|{initial: number[], final: number[], combined: number[]}, incorrect: *|{initial: number[], final: number[], combined: number[]}}, final: {correct: *|{initial: number[], final: number[], combined: number[]}, incorrect: *|{initial: number[], final: number[], combined: number[]}}}}
      */
-    confidenceBreakdown(trials) {
-        let self = this;
+    static confidenceBreakdown(trials) {
         let initialCorrectTrials = utils.getMatches(trials, function(trial) {
-            return self.accuracySummary([trial]).initial[0] === 1;
+            return advisorChoice.accuracySummary([trial]).initial[0] === 1;
         });
         let initialIncorrectTrials = utils.getMatches(trials, function(trial) {
-            return self.accuracySummary([trial]).initial[0] === 0;
+            return advisorChoice.accuracySummary([trial]).initial[0] === 0;
         });
         let finalCorrectTrials = utils.getMatches(trials, function(trial) {
-            return self.accuracySummary([trial]).final[0] === 1;
+            return advisorChoice.accuracySummary([trial]).final[0] === 1;
         });
         let finalIncorrectTrials = utils.getMatches(trials, function(trial) {
-            return self.accuracySummary([trial]).final[0] === 0;
+            return advisorChoice.accuracySummary([trial]).final[0] === 0;
         });
-        let correct = this.confidenceSummary(initialCorrectTrials);
-        let incorrect = this.confidenceSummary(initialIncorrectTrials);
-        let correctFinal = this.confidenceSummary(finalCorrectTrials);
-        let incorrectFinal = this.confidenceSummary(finalIncorrectTrials);
+        let correct = advisorChoice.confidenceSummary(initialCorrectTrials);
+        let incorrect = advisorChoice.confidenceSummary(initialIncorrectTrials);
+        let correctFinal = advisorChoice.confidenceSummary(finalCorrectTrials);
+        let incorrectFinal = advisorChoice.confidenceSummary(finalIncorrectTrials);
 
         return {
             initial: {correct, incorrect},
@@ -202,7 +201,7 @@ class advisorChoice {
             return 100 + trial.confidence[0];
     }
 
-    getTotalInfluence(trials, advisorId) {
+    static getTotalInfluence(trials, advisorId) {
         let influence = [];
         trials.forEach(function (trial){
             if (trial.advisorId !== advisorId)
@@ -246,7 +245,7 @@ class advisorChoice {
         return [influence/maxInfluence, influence, maxInfluence];
     }
 
-    adviceAnswerChanges(trials, advisorId) {
+    static adviceAnswerChanges(trials, advisorId) {
         let advisorChangedTrials = utils.getMatches(trials, function (trial) {
             if (trial.advisorId !== advisorId)
                 return false;
@@ -272,7 +271,7 @@ class advisorChoice {
      * @param {int} advisorId - id of the candidate advisor
      * @returns {number[]}
      */
-    advisorChoiceRate(trials, advisorId) {
+    static advisorChoiceRate(trials, advisorId) {
         let choiceTrials = utils.getMatches(trials, function(trial) {
             return trial.choice.length && trial.choice.indexOf(advisorId) !== -1;
         });
@@ -287,9 +286,9 @@ class advisorChoice {
     /**
      * Show feedback based on a Governor object
      * @param {AdvisorChoice} g
+     *
      */
-    showFeedback(g) {
-        let self = this;
+    static showFeedback(g) {
         let advisors = utils.copyArray(g.advisors);
         advisors.shift(); // drop the practice advisor
         let body = document.querySelector('body');
@@ -344,7 +343,7 @@ class advisorChoice {
         let accuracyDescription = document.createElement('div');
         accuracyDescription.id = 'accuracyDescription';
         accuracyDescription.className = 'description';
-        let pre = this.accuracySummary(g.trials);
+        let pre = advisorChoice.accuracySummary(g.trials);
         let post = utils.round(pre.final[0]*100,1);
         pre = utils.round(pre.initial[0]*100,1);
         accuracyDescription.innerHTML = "<p>The task difficulty changes based on your performance so that we " +
@@ -404,13 +403,13 @@ class advisorChoice {
                     'in your initial decision.';
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Chosen: <strong>"+
-                    utils.round(self.advisorChoiceRate(g.trials, advisor.id)[0]*100,1).toString()+'%</strong>';
+                    utils.round(advisorChoice.advisorChoiceRate(g.trials, advisor.id)[0]*100,1).toString()+'%</strong>';
                 last.title = 'How many times did you select this advisor when you had a choice?';
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Influence: <strong>"+
-                    utils.round(self.getTotalInfluence(g.trials, advisor.id),1).toString()+'</strong>';
+                    utils.round(advisorChoice.getTotalInfluence(g.trials, advisor.id),1).toString()+'</strong>';
                 last.title = 'How much did you change your confidence after hearing this advisor\'s advice.';
-                let changedAnswers = self.adviceAnswerChanges(g.trials, advisor.id);
+                let changedAnswers = advisorChoice.adviceAnswerChanges(g.trials, advisor.id);
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Mistakes avoided: <strong>"+changedAnswers[1]+'</strong>';
                 last.title = 'How many times did you get the initial decision wrong, '+
@@ -450,7 +449,7 @@ class advisorChoice {
         let confidenceDescription = document.createElement('div');
         confidenceDescription.id = 'confidenceDescription';
         confidenceDescription.className = 'description';
-        let preconf = this.accuracySummary(g.trials);
+        let preconf = advisorChoice.accuracySummary(g.trials);
         let postconf = utils.round(preconf.final[0]*100,1);
         pre = utils.round(preconf.initial[0]*100,1);
         confidenceDescription.innerHTML = "<p>Your confidence is presented here broken down by whether " +
@@ -465,11 +464,11 @@ class advisorChoice {
         body.style.backgroundColor = 'ghostwhite';
 
         // fill in graphs
-        this.getAccuracyGraph(g, accuracyGraph);
-        this.getConfidenceFeedback(g, confidenceGraph);
+        advisorChoice.getAccuracyGraph(g, accuracyGraph);
+        advisorChoice.getConfidenceFeedback(g, confidenceGraph);
         advisors.forEach(function (advisor) {
             let graphDiv = document.querySelector('#advisor'+advisor.id+'graph');
-            self.getQuestionnaireGraph(g, advisor.id, graphDiv);
+            advisorChoice.getQuestionnaireGraph(g, advisor.id, graphDiv);
         })
     }
 
@@ -479,7 +478,7 @@ class advisorChoice {
      * @param {int} advisorId - the advisor who is the subject of the graph
      * @param {Element} div - div to draw the graph in
      */
-    getQuestionnaireGraph(input, advisorId, div) {
+    static getQuestionnaireGraph(input, advisorId, div) {
         // Create the data table.
         let raw = [
             ['Time', 'Likeable', 'Capable', 'Helping']
@@ -540,12 +539,12 @@ class advisorChoice {
      * @param {AdvisorChoice} input
      * @param {HTMLElement} div - div to draw the graph in
      */
-    getAccuracyGraph(input, div) {
+    static getAccuracyGraph(input, div) {
         let advisors = [];
         for (let a=1; a<input.advisors.length; a++) {
             advisors.push(input.advisors[a]);
         }
-        let judgeAcc = this.accuracySummary(input.trials);
+        let judgeAcc = advisorChoice.accuracySummary(input.trials);
 
         // Create the data table.
         let raw = [
@@ -588,7 +587,7 @@ class advisorChoice {
      * @param {HTMLElement} div - div to draw the graph in
      */
     static getConfidenceGraph(input, div) {
-        let confReport = this.confidenceBreakdown(input.trials);
+        let confReport = advisorChoice.confidenceBreakdown(input.trials);
 
         // Create the data table.
         let raw = [
@@ -623,8 +622,8 @@ class advisorChoice {
      * @param {Governor} input - data holder
      * @param {HTMLElement} div - div to draw the output inside
      */
-    getConfidenceFeedback(input, div) {
-        let confReport = this.confidenceBreakdown(input.trials);
+    static getConfidenceFeedback(input, div) {
+        let confReport = advisorChoice.confidenceBreakdown(input.trials);
         // Draw a representation of the slider
         let container = div.appendChild(document.createElement('div'));
         container.className = 'feedback confidenceBarContainer';

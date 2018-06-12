@@ -584,15 +584,12 @@ class Governor {
      */
     exportGovernor() {
         let ask = new XMLHttpRequest();
-        if (window.location.href.indexOf('localhost') !== -1)
-            ask.open('POST', 'http://localhost:3000/server.js');
-        else
-            ask.open('POST', 'saveData.php');
+        ask.open('POST', 'saveData.php');
 
         ask.setRequestHeader('Content-Type', 'application/json');
         ask.send(JSON.stringify({
-            rawData: JSON.stringify(self),
-            processedData: JSON.stringify(processData(self))
+            rawData: JSON.stringify(this),
+            processedData: JSON.stringify(processData(this))
         }));
         ask.onreadystatechange = function() {
             if (this.readyState===4 && this.status===200) {
