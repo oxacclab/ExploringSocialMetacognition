@@ -17,7 +17,7 @@ $out = array(
     "content" => $id['participantId']
 );
 
-$out['debug'] = "ID = $id";
+$out['debug'] = $_POST;
 
 if (!is_numeric($id)) {
     $out['error'] = 'Refused';
