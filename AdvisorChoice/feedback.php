@@ -18,7 +18,8 @@ $path = "data/raw/".strval(round(abs($id))).".JSON";
 if(!is_file($path))
     $err = "Could not find results for ID '$id'.";
 
-if($file = fopen($path, 'r') == false)
+$file = fopen($path, 'r');
+if(gettype($file) != 'resource')
     $err = "Could not retrieve results for ID '$id'.";
 
 if($err == "")
