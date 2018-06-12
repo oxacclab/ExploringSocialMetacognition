@@ -17,10 +17,12 @@ $out = array(
     "content" => $id['participantId']
 );
 
+$out['debug'] = "ID = $id";
+
 if (!is_numeric($id)) {
     $out['error'] = 'Refused';
     $out['code'] = 403;
-    $out['content'] = "Invalid ID specified \'$id\'";
+    $out['content'] = "Invalid ID specified '$id'";
     die(json_encode($out));
 }
 
