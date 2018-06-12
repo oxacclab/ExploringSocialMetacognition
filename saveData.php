@@ -6,15 +6,15 @@
  * Time: 10:28
  *
  */
-$raw = $_POST["rawData"];
-$pro = $_POST["processedData"];
-$id = json_decode($pro);
-$id = $id['id'];
+$raw = $_POST;//["rawData"];
+//$pro = $_POST["processedData"];
+$id = json_decode($raw);
+$id = $id['participantId'];
 
 $out = array(
     "error" => "",
     "code" => 200,
-    "content" => $id['participantId']
+    "content" => $id
 );
 
 $out['debug'] = $_POST;
@@ -41,7 +41,7 @@ if ($file = fopen($fname, 'w') == false) {
 }
 fwrite($file, $raw);
 fclose($file);
-
+/*
 $fname = '../processed_data/'.strval(intval($id)).'.JSON';
 // A file exists check is unlikely to trigger given the cleanup script which tarballs and compresses everything daily
 if ($file = fopen($fname, 'w') == false) {
@@ -51,6 +51,6 @@ if ($file = fopen($fname, 'w') == false) {
     die(json_encode($out));
 }
 fwrite($file, $pro);
-fclose($file);
+fclose($file);*/
 
 echo json_encode($out);

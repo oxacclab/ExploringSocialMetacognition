@@ -587,10 +587,11 @@ class Governor {
         ask.open('POST', 'saveData.php');
 
         ask.setRequestHeader('Content-Type', 'application/json');
-        ask.send(JSON.stringify({
+        /*ask.send(JSON.stringify({
             rawData: JSON.stringify(this),
             processedData: JSON.stringify(processData(this))
-        }));
+        }));*/
+        ask.send(JSON.stringify(this));
         ask.onreadystatechange = function() {
             if (this.readyState===4 && this.status===200) {
                 console.log(this.responseText);
