@@ -787,7 +787,7 @@ class AdvisorChoice extends DotTask {
         document.querySelector('body').style.backgroundColor = '';
         this.exportGovernor();
         //this.feedback();
-        this.feedback(processData(this));
+        this.feedback(this);
     }
 }
 

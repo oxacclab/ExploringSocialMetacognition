@@ -6,7 +6,7 @@
 function applyClassToChildren (element, classname, recursive = true) {
     for (let i=0; i<element.childElementCount; i++) {
         let child = element.children[i];
-        child.className += ' '+classname;
+        child.classList.add(classname);
         if (recursive)
             applyClassToChildren(child, classname, true);
     }

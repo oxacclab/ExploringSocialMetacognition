@@ -23,7 +23,7 @@ if (!is_numeric($obj['participantId'])) {
     die(json_encode($out));
 }
 
-$fname = 'data/'.strval(intval($obj['participantId'])).'.JSON';
+$fname = '../raw_data/'.strval(intval($obj['participantId'])).'.JSON';
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;

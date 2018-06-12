@@ -30,7 +30,9 @@ export default function processData(data) {
         feedbackDuration: data.feedbackDuration,
         timeStart: data.timeStart,
         timeEnd: data.timeEnd,
-        experimentDuration: data.timeEnd - data.timeStart
+        experimentDuration: data.timeEnd - data.timeStart,
+        manipulationQuestion: data.debrief.manipulationQuestion,
+        debriefComments: data.debrief.comments
     };
 
     // Advisor data

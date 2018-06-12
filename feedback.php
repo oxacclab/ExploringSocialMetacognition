@@ -11,7 +11,7 @@ $id = $_GET["id"];
 if(!is_numeric($id))
     die(json_encode(array("error" => "Invalid ID provided \'$id\'")));
 
-$path = "data/$id.JSON";
+$path = "../raw_data/$id.JSON";
 if(!is_file($path))
     die(json_encode(array("error" => "Could not find data for ID \'$id\'")));
 
