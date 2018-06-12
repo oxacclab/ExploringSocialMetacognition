@@ -7,7 +7,7 @@
 import {DoubleDotGrid, Trial, Governor, utils} from './exploringSocialMetacognition.js';
 import {advisorChoice} from "./analysis.js";
 import debriefForm from "./debriefForm.js";
-import processData from "./saveData";
+//import processData from "./saveData.js";
 
 /**
  * Trial type identifiers

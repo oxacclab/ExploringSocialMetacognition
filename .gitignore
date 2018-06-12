@@ -1,4 +1,4 @@
 .idea/
 *.pdnBak
 chicago face database
-node_modules
+AdvisorChoice/data/*

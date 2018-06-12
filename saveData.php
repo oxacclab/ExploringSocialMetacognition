@@ -6,10 +6,16 @@
  * Time: 10:28
  *
  */
-$raw = $_POST;//["rawData"];
-//$pro = $_POST["processedData"];
-$id = json_decode($raw);
-$id = $id['participantId'];
+
+$json = $_POST["data"];
+$data = json_decode($json);
+$raw = json_decode($data->rawData);
+$processed = json_decode($data->processedData);
+$id = $raw->participantId;
+
+$experimentName = basename($_SERVER['HTTP_REFERER']);
+// Whitelist for experiment names:
+$experimentNames = array("AdvisorChoice");
 
 $out = array(
     "error" => "",
@@ -17,40 +23,42 @@ $out = array(
     "content" => $id
 );
 
-$out['debug'] = $_POST;
+//$out['debug'] = basename($_SERVER['HTTP_REFERER']);
 
-if (!is_numeric($id)) {
+if (!is_numeric($id) || !in_array($experimentName, $experimentNames, true)) {
     $out['error'] = 'Refused';
     $out['code'] = 403;
     $out['content'] = "Invalid ID specified '$id'";
     die(json_encode($out));
 }
 
-$fname = '../raw_data/'.strval(intval($id)).'.JSON';
+$fname = "$experimentName/data/raw/".strval(round(abs($id))).".JSON";
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;
     $out['content'] = '';
     die(json_encode($out));
 }
-if ($file = fopen($fname, 'w') == false) {
+$file = fopen($fname, 'w');
+if (gettype($file) !== 'resource') {
     $out['error'] = 'Unable to create file';
     $out['code'] = 500;
     $out['content'] = '';
     die(json_encode($out));
 }
-fwrite($file, $raw);
+fwrite($file, json_encode($raw));
 fclose($file);
-/*
-$fname = '../processed_data/'.strval(intval($id)).'.JSON';
+
+$fname = "$experimentName/data/processed/".strval(round(abs($id))).".JSON";
 // A file exists check is unlikely to trigger given the cleanup script which tarballs and compresses everything daily
-if ($file = fopen($fname, 'w') == false) {
+$file = fopen($fname, 'w');
+if (gettype($file) !== 'resource') {
     $out['error'] = 'Unable to store processed data';
     $out['code'] = 500;
     $out['content'] = '';
     die(json_encode($out));
 }
-fwrite($file, $pro);
-fclose($file);*/
+fwrite($file, json_encode($processed));
+fclose($file);
 
 echo json_encode($out);

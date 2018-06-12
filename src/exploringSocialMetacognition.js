@@ -584,19 +584,28 @@ class Governor {
      */
     exportGovernor() {
         let ask = new XMLHttpRequest();
-        ask.open('POST', 'saveData.php');
+        ask.open('POST', '../saveData.php', true);
 
-        ask.setRequestHeader('Content-Type', 'application/json');
-        /*ask.send(JSON.stringify({
-            rawData: JSON.stringify(this),
-            processedData: JSON.stringify(processData(this))
-        }));*/
-        ask.send(JSON.stringify(this));
         ask.onreadystatechange = function() {
             if (this.readyState===4 && this.status===200) {
-                console.log(this.responseText);
+                let text = "";
+                try {
+                    text = JSON.parse(this.responseText);
+                } catch {
+                    text = this.responseText;
+                }
+                console.log(text);
             }
         };
+        ask.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        this.debrief = {manipulationQuestion: false, debriefComments: false}
+        let info = encodeURI('data='+JSON.stringify({
+            rawData: JSON.stringify(this),
+            processedData: JSON.stringify(processData(this, true))
+        }));
+        ask.send(info);
+        /*
+        ask.send();*/
     }
 
     /**

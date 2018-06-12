@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My experiment</title>
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
+    <link rel="stylesheet" href="../style/confidenceSliders.css"/>
+    <link rel="stylesheet" href="../style/feedbackStyle.css"/>
+    <link rel="stylesheet" href="../style/debriefForm.css"/>
+</head>
+<body>
+<div style="max-width:50vw; text-align:center; margin:auto; top:45vh; position:relative;">
+    <h1>Loading...</h1>
+    <p>If you continue to see this message after a couple of seconds something has gone wrong. In order to run
+        properly the experiment requires a modern browser with javascript enabled.</p>
+</div>
+</body>
+<script type="module">
+    import {advisorChoice} from "../src/analysis.js";
+
+    let uid = window.location.href.split('?uid=')[1];
+    let ask = new XMLHttpRequest();
+    let gov = {};
+    ask.open('GET', 'feedback.php?id='+uid);
+    ask.setRequestHeader('Content-Type', 'application/json');
+    ask.send();
+    ask.onreadystatechange = function() {
+        if (this.readyState===4 && this.status===200) {
+            gov = JSON.parse(this.responseText);
+            document.body.innerHTML = "<div id='jspsych-content'></div>";
+            endExperiment();
+        }
+    };
+    function feedback(data) {
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(function(){new advisorChoice().showFeedback(data)});
+    }
+    function endExperiment() {
+        // reset background colour
+        document.querySelector('body').style.backgroundColor = '';
+        feedback(gov);
+    }
+
+</script>
+</html>

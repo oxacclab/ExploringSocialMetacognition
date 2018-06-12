@@ -8,7 +8,7 @@
 
 import {Trial, Advisor} from "./exploringSocialMetacognition.js";
 
-export default function processData(data) {
+export default function processData(data, test = false) {
     // Data about the participant
     let participantData = {
         id: data.participantId,
@@ -34,6 +34,9 @@ export default function processData(data) {
         manipulationQuestion: data.debrief.manipulationQuestion,
         debriefComments: data.debrief.comments
     };
+
+    if(test)
+        return participantData;
 
     // Advisor data
     let advisorData = [];
