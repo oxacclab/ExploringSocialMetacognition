@@ -23,12 +23,12 @@ $path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR.strval(round(abs($i
 if(!is_readable($path))
     $err = "Could not find results for ID '$id'.";
 
-$file = fopen($path, 'r');
+/*$file = fopen($path, 'r');
 if(gettype($file) != 'resource')
-    $err = "Could not retrieve results for ID '$id'.";
+    $err = "Could not retrieve results for ID '$id'.";*/
 
 if($err == "")
-    $stuff = file($file); // use file() because file_get_contents() fails and I don't know why
+    $stuff = file($path); // use file() because file_get_contents() fails and I don't know why
 
 if($stuff == false)
     $err = "Failed to read results for ID '$id'.";
