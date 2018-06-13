@@ -355,16 +355,22 @@ class Advisor {
      * @constructor
      *
      * @param {int|Object} id - identification number for this advisor, or a deparsed Advisor object to be regenerated
-     * @param {int} adviceType - advice profile for this advisor. 0=default, 1=agree-in-confidence;
+     * @param {int} [adviceType] - advice profile for this advisor. 0=default, 1=agree-in-confidence;
      *  2=agree-in-uncertainty
      * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an int to pass
      *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
      * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
      * @param {Object} [args] - optional arguments
      * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
+     * @param {int} [args.id]
+     * @param {int} [args.adviceType]
+     * @param {int} [args.voice.id] - the voice ID (nothing else needed to regenerate the voice)
+     * @param {int} [args.portraitId] - the portrait ID
+     * @param {string} [args.portraitSrc] - the portrait img src (nothing else needed to regenerate portrait)
      */
     constructor(id, adviceType, voice = null, portrait = 0, args = {}) {
         if(typeof id !== 'object') {
+            // Create a new advisor
             this.id = id;
             this.adviceType = adviceType;
             // Fetch the voice
@@ -384,17 +390,24 @@ class Advisor {
             // Fetch the portrait
             let portraitId = portrait;
             if (portrait === 0)
-                portraitId = this.id;
-            this.portrait = new Image();
-            this.portrait.src = "assets/image/advisor" + portraitId + ".jpg";
-            this.portrait.className = 'advisor-portrait';
-            this.portrait.id = 'advisor-portrait-' + portraitId;
-            this.portraitSrc = this.portrait.src;
+                this.portraitId = this.id;
+            this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
         } else {
+            // Regenerate an old advisor for feedback
+            // default preloading audio to false
+            let skipAudioPreload = typeof args.skipAudioPreload === 'boolean'? args.skipAudioPreload : false;
             args = id;
             console.log(args);
             this.id = args.id;
+            this.adviceType = args.adviceType;
+            this.voice = new Voice(args.voice.id, skipAudioPreload);
+            this.portraitId = args.portraitId;
+            this.portraitSrc = args.portraitSrc;
         }
+        this.portrait = new Image();
+        this.portrait.src = this.portraitSrc;
+        this.portrait.className = 'advisor-portrait';
+        this.portrait.id = 'advisor-portrait-' + this.portraitId;
     }
 
     /** Hoist the name for ease-of-access */
@@ -594,7 +607,7 @@ class Governor {
             if(trials[0].constructor.name === "Trial")
                 out[i] = trials[0];
             else
-                out[i] = new Trial(trials[i]);
+                out[i] = new Trial(trials[i].id, trials[i]);
         }
         return out;
     }

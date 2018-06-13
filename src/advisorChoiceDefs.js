@@ -806,9 +806,10 @@ class AdvisorChoice extends DotTask {
         google.charts.setOnLoadCallback(function(){advisorChoice.showFeedback(data)});
     }
 
-    endExperiment(clearScreen = true) {
+    endExperiment(saveData = true, clearScreen = true) {
         this.timeEnd = (new Date()).getTime();
-        this.exportGovernor();
+        if(saveData === true)
+            this.exportGovernor();
         // reset background colour
         if(clearScreen === true) {
             document.querySelector('body').style.backgroundColor = '';

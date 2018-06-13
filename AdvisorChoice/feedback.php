@@ -58,6 +58,6 @@ if($json == false)
 <script type="module">
     import {AdvisorChoice} from "../src/advisorChoiceDefs.js";
     window.gov = new AdvisorChoice(<?php echo $json; ?>);
-    window.gov.endExperiment();
+    window.gov.endExperiment(false);
 </script>
 </html>
