@@ -26,6 +26,7 @@ if($err == "")
     $json = file_get_contents($file);
 
 if($json == false)
+    $json = $path;
     $err = "Failed to read results for ID '$id'.'";
 
 fclose($file);
