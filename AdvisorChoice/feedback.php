@@ -11,7 +11,6 @@
  *
  * Fetch JSON data from the filesystem and return it to the requester.
  */
-error_reporting(E_ALL);
 $id = $_GET["id"];
 $err = "";
 
@@ -23,18 +22,11 @@ $path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR.strval(round(abs($i
 if(!is_readable($path))
     $err = "Could not find results for ID '$id'.";
 
-/*$file = fopen($path, 'r');
-if(gettype($file) != 'resource')
-    $err = "Could not retrieve results for ID '$id'.";*/
-
 if($err == "")
-    $stuff = file($path); // use file() because file_get_contents() fails and I don't know why
+    $json = file_get_contents($path);
 
-if($stuff == false)
+if($json == false)
     $err = "Failed to read results for ID '$id'.";
-else
-    $json = $stuff[0];
-fclose($file);
 
 ?>
 
