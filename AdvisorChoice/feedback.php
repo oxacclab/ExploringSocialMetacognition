@@ -1,4 +1,8 @@
-<?php
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback: Advisor Choice</title>
+    <?php
 /**
  * Created by PhpStorm.
  * User: Matt Jaquiery
@@ -14,7 +18,7 @@ $err = "";
 if(!is_numeric($id))
     $err = "ID '$id' not found.";
 
-$path = "data/raw/".strval(round(abs($id))).".JSON";
+$path = realpath("data/raw/".strval(round(abs($id))).".JSON");
 
 if(!is_readable($path))
     $err = "Could not find results for ID '$id'.";
@@ -32,10 +36,6 @@ if($json == false)
 fclose($file);
 
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Feedback: Advisor Choice</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
 
