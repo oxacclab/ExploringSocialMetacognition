@@ -397,17 +397,42 @@ class AdvisorChoice extends DotTask {
     constructor(args = {}) {
         super(args);
 
-        this.advisors = typeof args.advisors === 'undefined'? null : args.advisors;
+        this.advisors = typeof args.advisors === 'undefined'? null : AdvisorChoice.addAdvisors(args.advisors);
         this.practiceAdvisor = typeof args.practiceAdvisor === 'undefined'? null : args.practiceAdvisor;
         this.advisorLists = typeof args.advisorLists === 'undefined'? null : args.advisorLists;
         this.contingentAdvisors = typeof args.contingentAdvisors === 'undefined'? null : args.contingentAdvisors;
         this.questionnaireStack = typeof args.questionnaireStack === 'undefined'? null : args.questionnaireStack;
         this.drawDebriefForm = debriefForm; // why is this in a separate file?
     }
+
+    /**
+     * Upgrade stored advisor details to genuine advisors
+     * @param {Object[]} advisors - advisors stored as JSON-compressed objects
+     * @return {Advisor[]} - advisors expanded to be Advisor objects
+     */
+    static addAdvisors(advisors) {
+        let out = [];
+        for(let i=0; i<advisors.length; i++) {
+            if(advisors[0].constructor.name === "Advisor")
+                out[i] = advisors[0];
+            else
+                out[i] = new Advisor(advisors[i]);
+        }
+        return out;
+    }
+
+    /**
+     * @return {Advisor} - The advisor registered for the current trial
+     */
     get currentAdvisor() {
         return this.advisors[this.getAdvisorIndex(this.currentTrial.advisorId)];
     }
 
+    /**
+     * Return the index of an advisor in the advisors list
+     * @param {int} id - id of the advisor whose index is required
+     * @return {int} - index of the advisor in the advisors list
+     */
     getAdvisorIndex(id) {
         for (let i=0; i<this.advisors.length; i++) {
             if (this.advisors[i].id === id)

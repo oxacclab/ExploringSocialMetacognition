@@ -571,12 +571,31 @@ class Governor {
             if (args.hasOwnProperty(key))
                 this[key] = args[key];
         }
-        this.trials = typeof args.trials === 'undefined'? [] : args.trials;
+        this.trials = typeof args.trials === 'undefined'? [] : Governor.addTrials(args.trials);
         this.miscTrials = typeof args.miscTrials === 'undefined'? [] : args.miscTrials;
         this.currentTrialIndex = args.currentTrialIndex || 0;
         this.timeStart = (new Date).getTime();
     }
 
+    /**
+     * Upgrade stored trial details to genuine trials
+     * @param {Object[]} trials - trials stored as JSON-compressed objects
+     * @return {Trial[]} - trials expanded to be Trial objects
+     */
+    static addTrials(trials) {
+        let out = [];
+        for(let i=0; i<trials.length; i++) {
+            if(trials[0].constructor.name === "Trial")
+                out[i] = trials[0];
+            else
+                out[i] = new Trial(trials[i]);
+        }
+        return out;
+    }
+
+    /**
+     * @return {Trial} - the current trial
+     */
     get currentTrial() {return this.trials[this.currentTrialIndex];}
 
     /**
