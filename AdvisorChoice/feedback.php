@@ -16,7 +16,7 @@ if(!is_numeric($id))
 
 $path = "data/raw/".strval(round(abs($id))).".JSON";
 
-if(!is_file($path))
+if(!is_readable($path))
     $err = "Could not find results for ID '$id'.";
 
 $file = fopen($path, 'r');
@@ -27,7 +27,7 @@ if($err == "")
     $json = file_get_contents($file);
 
 if($json == false)
-    $err = "Failed to read results for ID '$id'.'";
+    $err = "Failed to read results for ID '$id'.";
 
 fclose($file);
 
