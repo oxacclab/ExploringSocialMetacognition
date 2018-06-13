@@ -50,7 +50,7 @@ fclose($file);
     if($err != "") {
         ?>
         <h1>Error!</h1>
-        <p><?php echo $err.$path; ?></p>
+        <p><?php echo $err."|".$path."|".filesize($file); ?></p>
 </div>
 </body>
 </html>
