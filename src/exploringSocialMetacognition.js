@@ -354,41 +354,47 @@ class Advisor {
     /**
      * @constructor
      *
-     * @param {int} id - identification number for this advisor
+     * @param {int|Object} id - identification number for this advisor, or a deparsed Advisor object to be regenerated
      * @param {int} adviceType - advice profile for this advisor. 0=default, 1=agree-in-confidence;
      *  2=agree-in-uncertainty
-     * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an into to pass
+     * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an int to pass
      *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
      * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
      * @param {Object} [args] - optional arguments
      * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
      */
     constructor(id, adviceType, voice = null, portrait = 0, args = {}) {
-        this.id = id;
-        this.adviceType = adviceType;
-        // Fetch the voice
-        if(typeof args.skipAudioPreload !== 'boolean')
-            args.skipAudioPreload = false;
-        if (voice !== null && typeof voice === 'object') {
-            if (!(voice instanceof Voice))
-                throw("Cannot create advisor: supplied argument 'voice' not a Voice object.");
-            else
-                this.voice = voice;
+        if(typeof id !== 'object') {
+            this.id = id;
+            this.adviceType = adviceType;
+            // Fetch the voice
+            if(typeof args.skipAudioPreload !== 'boolean')
+                args.skipAudioPreload = false;
+            if (voice !== null && typeof voice === 'object') {
+                if (!(voice instanceof Voice))
+                    throw("Cannot create advisor: supplied argument 'voice' not a Voice object.");
+                else
+                    this.voice = voice;
+            } else {
+                if (voice !== null)
+                    this.voice = new Voice(voice, args.skipAudioPreload);
+                else
+                    this.voice = new Voice(null, args.skipAudioPreload);
+            }
+            // Fetch the portrait
+            let portraitId = portrait;
+            if (portrait === 0)
+                portraitId = this.id;
+            this.portrait = new Image();
+            this.portrait.src = "assets/image/advisor" + portraitId + ".jpg";
+            this.portrait.className = 'advisor-portrait';
+            this.portrait.id = 'advisor-portrait-' + portraitId;
+            this.portraitSrc = this.portrait.src;
         } else {
-            if (voice !== null)
-                this.voice = new Voice(voice, args.skipAudioPreload);
-            else
-                this.voice = new Voice(null, args.skipAudioPreload);
+            args = id;
+            console.log(args);
+            this.id = args.id;
         }
-        // Fetch the portrait
-        let portraitId = portrait;
-        if (portrait === 0)
-            portraitId = this.id;
-        this.portrait = new Image();
-        this.portrait.src = "assets/image/advisor" + portraitId + ".jpg";
-        this.portrait.className = 'advisor-portrait';
-        this.portrait.id = 'advisor-portrait-' + portraitId;
-        this.portraitSrc = this.portrait.src;
     }
 
     /** Hoist the name for ease-of-access */
