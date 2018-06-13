@@ -28,11 +28,12 @@ if(gettype($file) != 'resource')
     $err = "Could not retrieve results for ID '$id'.";
 
 if($err == "")
-    $json = file_get_contents($file);
+    $stuff = file($file); // use file() because file_get_contents() fails and I don't know why
 
-if($json == false)
+if($stuff == false)
     $err = "Failed to read results for ID '$id'.";
-
+else
+    $json = $stuff[0];
 fclose($file);
 
 ?>
