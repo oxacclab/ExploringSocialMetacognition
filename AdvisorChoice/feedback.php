@@ -7,6 +7,7 @@
  *
  * Fetch JSON data from the filesystem and return it to the requester.
  */
+error_reporting(E_ALL);
 $id = $_GET["id"];
 $err = "";
 
@@ -26,7 +27,6 @@ if($err == "")
     $json = file_get_contents($file);
 
 if($json == false)
-    $json = $path;
     $err = "Failed to read results for ID '$id'.'";
 
 fclose($file);
@@ -50,7 +50,7 @@ fclose($file);
     if($err != "") {
         ?>
         <h1>Error!</h1>
-        <p><?php echo $err; ?></p>
+        <p><?php echo $err.$path; ?></p>
 </div>
 </body>
 </html>
