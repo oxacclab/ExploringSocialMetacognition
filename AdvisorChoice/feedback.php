@@ -18,7 +18,7 @@ $err = "";
 if(!is_numeric($id))
     $err = "ID '$id' not found.";
 
-$path = realpath("data/raw/".strval(round(abs($id))).".JSON");
+$path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR.strval(round(abs($id))).".JSON";
 
 if(!is_readable($path))
     $err = "Could not find results for ID '$id'.";
@@ -51,7 +51,7 @@ fclose($file);
     if($err != "") {
         ?>
         <h1>Error!</h1>
-        <p><?php echo $err."|".$path."|".filesize($file); ?></p>
+        <p><?php echo $err."<br/>".realpath($path)."<br/>".filesize($file)." bytes"; ?></p>
 </div>
 </body>
 </html>
@@ -65,7 +65,7 @@ fclose($file);
 </body>
 <script type="module">
     import {AdvisorChoice} from "../src/advisorChoiceDefs.js";
-    let gov = AdvisorChoice(<?php echo $json; ?>);
-    gov.endExperiment();
+    window.gov = new AdvisorChoice(<?php echo $json; ?>);
+    window.gov.endExperiment();
 </script>
 </html>
