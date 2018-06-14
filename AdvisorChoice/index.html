@@ -2,6 +2,12 @@
 <html>
 <head>
     <title>Advisor Choice Experiment</title>
+    <script type="text/javascript">
+        // redirect if we don't have consent for participation
+        let consent = window.location.search.search("consent=true");
+        if(consent === -1)
+            window.location.replace("../consent.html?study=AdvisorChoice"); // simulate redirect (no history)
+    </script>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="https://mjaquiery.github.io/jsPsych/jspsych.js"></script>

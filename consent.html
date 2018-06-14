@@ -19,15 +19,20 @@
         #subtitle {font-size: 1.5em;}
         #lastupdate {font-size: 1em;}
         #window {background-color: white; text-align: left; padding-left: 1em; padding-right: 1em;}
-        #foot {min-height: 2em;}
+        #foot {min-height: 2em; border-top: 1px dotted #002147; padding: 1em;}
         #oxLogo {}
         #epLogo {}
         section {}
-        span.lead {font-weight: bold; font-size: 1.2em;}
-        a {font-family: serif}
+        span.lead {font-weight: bold;}
+        a {font-family: serif; text-decoration: none; color: #002147; font-weight: bold;}
+        a:hover {text-decoration: underline;}
         a.link {}
         a.mailto {}
+        div.missing {background-color: #002147; color: white; font-weight: bold;}
+        div.required {margin: 0.5em;}
         img.logo {height: 6em;}
+        input.big {min-height: 2em; min-width: 2em; vertical-align: middle;}
+        input.submit {}
         .right .logo {max-width: 45%;}
     </style>
 </head>
@@ -54,31 +59,41 @@
                 <p><span class="lead">Welcome</span>. Below you will find information that will help you to decide whether to take part in this study. If you have questions about anything, please feel free to contact us.</p>
             </section>
             <section id="purpose">
-                <p><span class="lead">This study aims to</span> discover how your knowledge of your own thoughts affects your social world, and how your social world affects your thoughts. This will help us understand how social networks are constructed, how information flows within them, and how they affect people's lives.</p>
+                <p><span class="lead">This study</span> aims to discover how your knowledge of your own thoughts affects your social world, and how your social world affects your thoughts. This will help us understand how social networks are constructed, how information flows within them, and how they affect people's lives.</p>
             </section>
             <section id="procedure">
                 <p><span class="lead">In the study</span> you will perform computer-based tasks in which you have to make decisions and use different types of advice. At various points in the study you will be asked to fill in questionnaires about yourself or your advisors. The study will take approximately 1 hour.</p>
             </section>
             <section id="withdraw">
-                <p><span class="lead">You are free to withdraw</span> from the study at any point. There will be no penalty for doing so. If you wish to have your results excluded from analysis, please contact us. We will do our best to remove your data, or explain to you why this was not possible.</p>
+                <p><span class="lead">You are free</span> to withdraw from the study at any point. There will be no penalty for doing so. If you wish to have your results excluded from analysis, please contact us. We will do our best to remove your data, or explain to you why this was not possible.</p>
+            </section>
             <section id="oversight">
                 <p><span class="lead">Ethical approval</span> for this study has been granted by the Oxford Central University Research Ethics Committee (CUREC), reference R55382_RE001. There are no significant risks or benefits to you, although the data will contribute to scientific discovery.</p>
             </section>
             <section id="payment">
-                <p><span class="lead">Payment</span> rates and conditions, where applicable, will have been made clear previously. If you are unsure about payment, please contact us.</p>
+                <p><span class="lead">Payment rates</span> and conditions, where applicable, will have been made clear previously. If you are unsure about payment, please contact us.</p>
             </section>
             <section id="privacy">
-                <p><span class="lead">No personal data are collected in this study</span>. Upon completion of the study you will be given feedback on your performance, and provided with a link to retrieve this feedback. You may share this link at your discretion. <strong>We do not record any information which could identify you</strong>. Results from the study will form part of a doctoral thesis and made accessible to the wider scientific community, and may be published in peer-reviewed scientific journals and presented at scientific conferences.</p>
+                <p><span class="lead">No personal data</span> are collected in this study. Upon completion of the study you will be given feedback on your performance, and provided with a link to retrieve this feedback. You may share this link at your discretion. <strong>We do not record any information which could identify you</strong>. Results from the study will form part of a doctoral thesis and made accessible to the wider scientific community, and may be published in peer-reviewed scientific journals and presented at scientific conferences.</p>
             </section>
+            <!--section id="cookies">
+                <p><span class="lead">We use cookies</span> to help track participation (so we don't have to record things our end). For more information about cookies, see <a class="link" href="https://ico.org.uk/your-data-matters/online/cookies/" target="_blank">ico.org.uk <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
+            </section-->
             <section id="contact">
                 <p><span class="lead">If you have concerns</span> or questions, you may contact <a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk?subject=Advisor choice study query">Matt Jaquiery [matt.jaquiery@psy.ox.ac.uk]</a>. You may also contact the project supervisor, <a class="mailto" href="mailto:nicholas.yeung@psy.ox.ac.uk&subject=Advisor choice experiment query">Prof Nick Yeung [nicholas.yeung@psy.ox.ac.uk]</a>.</p>
             </section>
             <section id="funding">
-                <p><span class="lead">The study is funded</span> by the <a class="link" href="https://www.oxacclab.org/" target="_blank">Attention and Cognitive Control Laboratory <i class="fas fa-external-link-alt"></i></a> at Oxford University, and by grant #661552 from the <a class="link" href="https://mrc.ukri.org/" target="_blank">Medical Research Council <i class="fas fa-external-link-alt"></i></a>.</p>
+                <p><span class="lead">The study is funded</span> by the <a class="link" href="https://www.oxacclab.org/" target="_blank">Attention and Cognitive Control Laboratory <i class="fas fa-external-link-alt fa-xs"></i></a> at Oxford University, and by grant #661552 from the <a class="link" href="https://mrc.ukri.org/" target="_blank">Medical Research Council <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
             </section>
         </div>
         <div id="foot">
-            <form>Here's some stuff including a checkbox: <input type="checkbox"/></form>
+            <form onsubmit="checkForm();return false"><div class="required">
+                I have read the above information and understand that I can cease participation at any time <input class="big mandatory" type="checkbox"/>
+                </div>
+                <div>
+                    <input class="big submit" type="submit" value="I am willing to participate"/>
+                </div>
+            </form>
         </div>
     </div>
 </body>
@@ -90,6 +105,39 @@
     for(let i=0; i<ps.length; i++) {
         let p = ps[i];
         p.innerHTML = p.innerHTML.replace("contact us", '<a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk&subject=Advisor Choice Query">contact us</a>');
+    }
+
+    function checkForm() {
+        let boxes = document.querySelectorAll('input.mandatory');
+        // Check requirements
+        let okay = true;
+        for(let i=0; i<boxes.length; i++) {
+            if(!boxes[i].checked) {
+                okay = false;
+                break;
+            }
+        }
+        // Highlight missing options
+        if(!okay) {
+            let divs = document.querySelectorAll('div.required');
+            for(let i=0; i<divs.length; i++)
+                divs[i].classList.add('missing');
+            return;
+        }
+        // Proceed with the study
+        // Navigate to the appropriate place
+        let study = "";
+        let query = window.location.search.split('&');
+        query[0] = query[0].substr(1,query[0].length-1);
+        for(let i=0; i<query.length; i++) {
+            let pair = query[i].split('=');
+            if(pair[0]=='study') {
+                study = pair[1];
+                break;
+            }
+        }
+        if(study !== "")
+            window.location.href = study + "/?consent=true"; // forward as if user clicked a link
     }
 </script>
 </html>
