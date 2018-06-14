@@ -7,6 +7,14 @@
  *
  */
 
+/** https://stackoverflow.com/questions/2982059/testing-if-string-is-sha1-in-php
+ * @param {string} $str - string to test
+ * @return bool - true if $str is a viable sha1 string
+ */
+function is_sha1($str) {
+    return (bool) preg_match('/^[0-9a-f]{40}$/i', $str);
+}
+
 $json = $_POST["data"];
 $data = json_decode($json);
 $raw = json_decode($data->rawData);
@@ -25,14 +33,14 @@ $out = array(
 
 //$out['debug'] = basename($_SERVER['HTTP_REFERER']);
 
-if (!is_numeric($id) || !in_array($experimentName, $experimentNames, true)) {
+if (!is_sha1($id) || !in_array($experimentName, $experimentNames, true)) {
     $out['error'] = 'Refused';
     $out['code'] = 403;
     $out['content'] = "Invalid ID specified '$id'";
     die(json_encode($out));
 }
 
-$fname = "$experimentName/data/raw/".strval(round(abs($id))).".JSON";
+$fname = "$experimentName/data/raw/".$id.".JSON";
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;

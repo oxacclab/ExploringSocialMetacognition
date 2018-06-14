@@ -11,13 +11,23 @@
  *
  * Fetch JSON data from the filesystem and return it to the requester.
  */
+
+
+/** https://stackoverflow.com/questions/2982059/testing-if-string-is-sha1-in-php
+ * @param {string} $str - string to test
+ * @return bool - true if $str is a viable sha1 string
+ */
+function is_sha1($str) {
+    return (bool) preg_match('/^[0-9a-f]{40}$/i', $str);
+}
+
 $id = $_GET["id"];
 $err = "";
 
-if(!is_numeric($id))
+if(!is_sha1($id))
     $err = "ID '$id' not found.";
 
-$path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR.strval(round(abs($id))).".JSON";
+$path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR.$id.".JSON";
 
 if(!is_readable($path))
     $err = "Could not find results for ID '$id'.";

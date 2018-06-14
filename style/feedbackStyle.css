@@ -602,3 +602,5 @@ div.confidencePopup.incorrect {
         border-color: red;
     }
 }
+
+.terminated {color: darkred; font-weight: bold;}

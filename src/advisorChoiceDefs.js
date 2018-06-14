@@ -208,6 +208,7 @@ class DotTask extends Governor {
         let score = hitList.length / trialList.length * 100;
         if (score < this.minimumBlockScore) {
             this.terminateExperiment(score);
+            return;
         }
         let div = document.querySelector('#jspsych-content');
         let p = div.insertBefore(document.createElement('p'), div.querySelector('p'));
@@ -221,7 +222,11 @@ class DotTask extends Governor {
      * @param {number} score - score obtained on previous block
      */
     terminateExperiment(score = 0.0) {
-
+        let div = document.querySelector('#jspsych-content');
+        div.innerHTML = "<p>Your score on the last block was " + (Math.round(score*100)/100).toString() + "%.</p>" +
+        "<p>This is below the score required to continue with the study, so your participation has been ended prematurely.</p>";
+        div.classList.add('terminated');
+        this.drawProgressBar();
     }
 
     /**
