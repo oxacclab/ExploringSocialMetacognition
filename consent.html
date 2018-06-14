@@ -80,7 +80,7 @@
                 <p><span class="lead">We use cookies</span> to help track participation (so we don't have to record things our end). For more information about cookies, see <a class="link" href="https://ico.org.uk/your-data-matters/online/cookies/" target="_blank">ico.org.uk <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
             </section-->
             <section id="contact">
-                <p><span class="lead">If you have concerns</span> or questions, you may contact <a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk?subject=Advisor choice study query">Matt Jaquiery [matt.jaquiery@psy.ox.ac.uk]</a>. You may also contact the project supervisor, <a class="mailto" href="mailto:nicholas.yeung@psy.ox.ac.uk&subject=Advisor choice experiment query">Prof Nick Yeung [nicholas.yeung@psy.ox.ac.uk]</a>.</p>
+                <p><span class="lead">If you have concerns</span> or questions, you may contact <a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk?subject=Exploring Social Metacognition query">Matt Jaquiery [matt.jaquiery@psy.ox.ac.uk]</a>. You may also contact the project supervisor, <a class="mailto" href="mailto:nicholas.yeung@psy.ox.ac.uk&subject=Exploring Social Metacognition query">Prof Nick Yeung [nicholas.yeung@psy.ox.ac.uk]</a>.</p>
             </section>
             <section id="funding">
                 <p><span class="lead">The study is funded</span> by the <a class="link" href="https://www.oxacclab.org/" target="_blank">Attention and Cognitive Control Laboratory <i class="fas fa-external-link-alt fa-xs"></i></a> at Oxford University, and by grant #661552 from the <a class="link" href="https://mrc.ukri.org/" target="_blank">Medical Research Council <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
@@ -98,13 +98,24 @@
     </div>
 </body>
 <script type="text/javascript">
+    // Work out where we're supposed to be going afterwards
+    let study = "";
+    let query = window.location.search.split('&');
+    query[0] = query[0].substr(1,query[0].length-1);
+    for(let i=0; i<query.length; i++) {
+        let pair = query[i].split('=');
+        if(pair[0]=='study') {
+            study = pair[1];
+            break;
+        }
+    }
     /**
      * Replace all instances of 'contact us' with an appropriate link wrapper
      */
     let ps = document.querySelectorAll('p');
     for(let i=0; i<ps.length; i++) {
         let p = ps[i];
-        p.innerHTML = p.innerHTML.replace("contact us", '<a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk&subject=Advisor Choice Query">contact us</a>');
+        p.innerHTML = p.innerHTML.replace("contact us", '<a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk&subject=' + study + ' Query">contact us</a>');
     }
 
     function checkForm() {
@@ -126,16 +137,6 @@
         }
         // Proceed with the study
         // Navigate to the appropriate place
-        let study = "";
-        let query = window.location.search.split('&');
-        query[0] = query[0].substr(1,query[0].length-1);
-        for(let i=0; i<query.length; i++) {
-            let pair = query[i].split('=');
-            if(pair[0]=='study') {
-                study = pair[1];
-                break;
-            }
-        }
         if(study !== "")
             window.location.href = study + "/?consent=true"; // forward as if user clicked a link
     }
