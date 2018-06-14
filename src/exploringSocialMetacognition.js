@@ -388,16 +388,15 @@ class Advisor {
                     this.voice = new Voice(null, args.skipAudioPreload);
             }
             // Fetch the portrait
-            let portraitId = portrait;
+            this.portraitId = portrait;
             if (portrait === 0)
                 this.portraitId = this.id;
             this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
         } else {
             // Regenerate an old advisor for feedback
+            args = id;
             // default preloading audio to false
             let skipAudioPreload = typeof args.skipAudioPreload === 'boolean'? args.skipAudioPreload : false;
-            args = id;
-            console.log(args);
             this.id = args.id;
             this.adviceType = args.adviceType;
             this.voice = new Voice(args.voice.id, skipAudioPreload);
