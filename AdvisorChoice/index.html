@@ -122,7 +122,7 @@
     // hoist gov to allow functions access
     window.gov = gov;
 
-    gov.participantId = sha1.sha1((gov.timeStart - 1520333415000).toString());
+    gov.participantId = sha1.sha1((gov.timeStart).toString() + Math.random().toString());
     gov.practiceBlockLength = utils.sumList(gov.practiceBlockStructure);
     gov.trials = gov.getTrials();
 

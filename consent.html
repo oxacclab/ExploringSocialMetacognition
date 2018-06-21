@@ -65,30 +65,34 @@
                 <p><span class="lead">In the study</span> you will perform computer-based tasks in which you have to make decisions and use different types of advice. At various points in the study you will be asked to fill in questionnaires about yourself or your advisors. The study will take approximately 1 hour.</p>
             </section>
             <section id="withdraw">
-                <p><span class="lead">You are free</span> to withdraw from the study at any point. There will be no penalty for doing so. If you wish to have your results excluded from analysis, please contact us. We will do our best to remove your data, or explain to you why this was not possible.</p>
-            </section>
-            <section id="oversight">
-                <p><span class="lead">Ethical approval</span> for this study has been granted by the Oxford Central University Research Ethics Committee (CUREC), reference R55382_RE001. There are no significant risks or benefits to you, although the data will contribute to scientific discovery.</p>
-            </section>
-            <section id="payment">
-                <p><span class="lead">Payment rates</span> and conditions, where applicable, will have been made clear previously. If you are unsure about payment, please contact us.</p>
+                <p><span class="lead">You are free</span> to withdraw from the study at any point. To do so, simply close your browser tab. There will be no penalty for doing so. Data will not be stored until the study is complete. Once the study is complete, we are unlikely to be able to remove data from analysis.</p>
             </section>
             <section id="privacy">
-                <p><span class="lead">No personal data</span> are collected in this study. Upon completion of the study you will be given feedback on your performance, and provided with a link to retrieve this feedback. You may share this link at your discretion. <strong>We do not record any information which could identify you</strong>. Results from the study will form part of a doctoral thesis and made accessible to the wider scientific community, and may be published in peer-reviewed scientific journals and presented at scientific conferences.</p>
+                <p><span class="lead">No personal data</span> are collected in this study. Upon completion of the study you will be given feedback on your performance, and provided with a link to retrieve this feedback. You may share this link at your discretion. <strong>We do not record any information which could identify you</strong>. Anonymised data and results from the study will form part of a doctoral thesis, will be made accessible to the wider scientific community, and may be published in peer-reviewed scientific journals and presented at scientific conferences.</p>
             </section>
             <!--section id="cookies">
                 <p><span class="lead">We use cookies</span> to help track participation (so we don't have to record things our end). For more information about cookies, see <a class="link" href="https://ico.org.uk/your-data-matters/online/cookies/" target="_blank">ico.org.uk <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
             </section-->
+            <section id="payment">
+                <p><span class="lead">Payment rates</span> and conditions, where applicable, will have been made clear previously. If you are unsure about payment, please contact us.</p>
+            </section>
+            <section id="oversight">
+                <p><span class="lead">Ethical approval</span> for this study has been granted by the Oxford Central University Research Ethics Committee (CUREC), reference R55382_RE001. There are no significant risks or benefits to you, although the data will contribute to scientific discovery.</p>
+            </section>
             <section id="contact">
-                <p><span class="lead">If you have concerns</span> or questions, you may contact <a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk?subject=Exploring Social Metacognition query">Matt Jaquiery [matt.jaquiery@psy.ox.ac.uk]</a>. You may also contact the project supervisor, <a class="mailto" href="mailto:nicholas.yeung@psy.ox.ac.uk&subject=Exploring Social Metacognition query">Prof Nick Yeung [nicholas.yeung@psy.ox.ac.uk]</a>.</p>
+                <p><span class="lead">If you have concerns</span> or questions, you may contact <a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk?subject=Exploring Social Metacognition query">Matt Jaquiery [matt.jaquiery@psy.ox.ac.uk]</a>. You may also contact the project supervisor, <a class="mailto" href="mailto:nicholas.yeung@psy.ox.ac.uk?subject=Exploring Social Metacognition query">Prof Nick Yeung [nicholas.yeung@psy.ox.ac.uk]</a>, or the <a class="mailto" href="mailto:ethics@medsci.ox.ac.uk">ethics committee chair [ethics@medsci.ox.ac.uk]</a>.</p>
             </section>
             <section id="funding">
                 <p><span class="lead">The study is funded</span> by the <a class="link" href="https://www.oxacclab.org/" target="_blank">Attention and Cognitive Control Laboratory <i class="fas fa-external-link-alt fa-xs"></i></a> at Oxford University, and by grant #661552 from the <a class="link" href="https://mrc.ukri.org/" target="_blank">Medical Research Council <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
             </section>
         </div>
         <div id="foot">
-            <form onsubmit="checkForm();return false"><div class="required">
-                I have read the above information and understand that I can cease participation at any time <input class="big mandatory" type="checkbox"/>
+            <form onsubmit="checkForm();return false">
+                <div class="required">
+                    I have read the above information and understand that I can cease participation at any time <input class="big mandatory" type="checkbox"/>
+                </div>
+                <div class="required">
+                    I am 18 years old or older <input class="big mandatory" type="checkbox"/>
                 </div>
                 <div>
                     <input class="big submit" type="submit" value="I am willing to participate"/>
@@ -115,7 +119,7 @@
     let ps = document.querySelectorAll('p');
     for(let i=0; i<ps.length; i++) {
         let p = ps[i];
-        p.innerHTML = p.innerHTML.replace("contact us", '<a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk&subject=' + study + ' Query">contact us</a>');
+        p.innerHTML = p.innerHTML.replace("contact us", '<a class="mailto" href="mailto:matt.jaquiery@psy.ox.ac.uk?subject=' + study + ' Query">contact us</a>');
     }
 
     function checkForm() {
@@ -130,9 +134,14 @@
         }
         // Highlight missing options
         if(!okay) {
-            let divs = document.querySelectorAll('div.required');
-            for(let i=0; i<divs.length; i++)
-                divs[i].classList.add('missing');
+            let inputs = document.querySelectorAll('input.mandatory');
+            for(let i=0; i<inputs.length; i++) {
+                let div = inputs[i].parentElement;
+                if(inputs[i].checked == false)
+                    div.classList.add('missing');
+                else
+                    div.classList.remove('missing');
+            }
             return;
         }
         // Proceed with the study
