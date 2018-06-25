@@ -21,7 +21,8 @@ $raw = json_decode($data->rawData);
 $processed = json_decode($data->processedData);
 $id = $raw->participantId;
 
-$experimentName = basename($_SERVER['HTTP_REFERER']);
+// Experiment name is the last directory
+$experimentName = basename(pathinfo($_SERVER['HTTP_REFERER'], PATHINFO_DIRNAME));
 // Whitelist for experiment names:
 $experimentNames = array("AdvisorChoice");
 

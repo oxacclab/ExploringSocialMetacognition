@@ -572,7 +572,7 @@ class Trial {
 
 /**
  * A Governor manages the overarching structure of the experiment. It should be assigned to a wide scope (e.g.
- *  gov = new Governor()) so that its properties can be accessed by functions in plugins.
+ *  window.gov = new Governor()) so that its properties can be accessed by functions in plugins.
  */
 class Governor {
     /**
