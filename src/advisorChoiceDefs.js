@@ -418,8 +418,8 @@ class AdvisorChoice extends DotTask {
     static addAdvisors(advisors) {
         let out = [];
         for(let i=0; i<advisors.length; i++) {
-            if(advisors[0].constructor.name === "Advisor")
-                out[i] = advisors[0];
+            if(advisors[i].constructor.name === "Advisor")
+                out[i] = advisors[i];
             else
                 out[i] = new Advisor(advisors[i]);
         }
