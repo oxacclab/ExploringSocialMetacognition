@@ -15,6 +15,8 @@ img.advisor-portrait {
     padding: 5px;
     background-color: black;
     border-radius: 25px;
+    max-width: 550px;
+    max-height: 200px;
 }
 span.advisor-name {
     text-transform: uppercase;
@@ -31,6 +33,9 @@ img.advisorChoice-choice:hover {
 }
 .jspsych-content {
     width: 100%;
+}
+.pad-bottom {
+    padding-bottom: 151px; /* don't like the hardcoded value here */
 }
 #progressbar-outer {
     width: 80%;
@@ -49,4 +54,14 @@ img.advisorChoice-choice:hover {
 }
 #jspsych-content {
     max-width: 600px;
+}
+
+#jspsych-sliders-response-container {
+    height: 7em;
+    margin-top: 1em;
+}
+
+#jspsych-jas-present-advice-choice-prompt {
+    font-size: 1.3em;
+    padding: 0.5em;
 }

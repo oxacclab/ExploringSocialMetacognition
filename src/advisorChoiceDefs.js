@@ -577,9 +577,9 @@ class AdvisorChoice extends DotTask {
         let div = document.querySelector('canvas').parentElement;
         div.innerHTML = "";
         let picDiv = div.appendChild(document.createElement('div'));
-        picDiv.id = '#jspsych-jas-present-advice-choice-image';
+        picDiv.id = 'jspsych-jas-present-advice-choice-image';
         let textDiv = div.appendChild(document.createElement('div'));
-        textDiv.id = '#jspsych-jas-present-advice-choice-prompt';
+        textDiv.id = 'jspsych-jas-present-advice-choice-prompt';
         let a = this.currentAdvisor;
         picDiv.innerHTML = a.portrait.outerHTML;
         textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.currentTrial.advice.string;
