@@ -41,7 +41,7 @@ if (!is_sha1($id) || !in_array($experimentName, $experimentNames, true)) {
     die(json_encode($out));
 }
 
-$fname = "$experimentName/data/raw/".$id.".JSON";
+$fname = "$experimentName/data/raw/$id.JSON";
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;
@@ -58,7 +58,7 @@ if (gettype($file) !== 'resource') {
 fwrite($file, json_encode($raw));
 fclose($file);
 
-$fname = "$experimentName/data/processed/".strval(round(abs($id))).".JSON";
+$fname = "$experimentName/data/processed/$id.JSON";
 // A file exists check is unlikely to trigger given the cleanup script which tarballs and compresses everything daily
 $file = fopen($fname, 'w');
 if (gettype($file) !== 'resource') {
