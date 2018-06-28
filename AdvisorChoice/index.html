@@ -163,6 +163,19 @@
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
+    const quickStimInstructions = {
+        type: 'instructions',
+        pages: ["<p>Good.</p>" +
+        "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
+        "concentrating or you will miss them. " +
+        "The task is difficult at first, but you will get used to it.</p>" +
+        "It helps to keep your eyes fixed where the cross appears in the middle of the screen.</p>" +
+        "<p>To try this, press 'next'.</p>"],
+        show_clickable_nav: true,
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+    };
+
     const adviceInstructions = {
         type: 'instructions',
         pages: ["<p>Most of the time you will get <strong>advice</strong> from an advisor to help you make your " +
@@ -182,9 +195,6 @@
         type: 'instructions',
         pages: ["<p>Good.</p>" +
         "<p>The main experiment will start after you have had a bit of practice with the task.</p>" +
-        "<p>From now on, <strong>the boxes will appear very briefly</strong>, so make sure you are " +
-        "concentrating or you will miss them. " +
-        "The task is difficult at first, but you will get used to it.</p>" +
         "<p>To begin the practice, press 'next'.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -239,6 +249,35 @@
         on_load: ()=>gov.setSliderClick(),
         on_finish: (trial)=>gov.checkIntroResponse(trial),
         post_trial_gap: gov.feedbackDuration
+    };
+
+    /* Initial response: ensure advisor will always give correct answer */
+    const advisorIntroInitialDecision = {
+        type: "canvas-sliders-response",
+        stimulus: (canvasId)=>gov.drawDots(canvasId),
+        stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        prompt: '<p>Which box had more dots?</p>',
+        sliderCount: 2,
+        labels: [
+            ['Certain', 'Unsure'],
+            ['Unsure', 'Certain']
+        ],
+        slider_prompt: [
+            'LEFT',
+            'RIGHT'
+        ],
+        slider_name: [
+            'Left',
+            'Right'
+        ],
+        reversed: [true, false],
+        slider_col_spacing: [40],
+        exclusive_group: [1, 1],
+        require_change: [1, 1],
+        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        on_load: ()=>gov.setSliderClick(),
+        on_finish: (trial)=>gov.initialResponse(trial, {advisorAlwaysCorrect: true})
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -383,7 +422,7 @@
     };
 
     const intro_procedure = {
-        timeline: [introInitialDecision, advice, finalDecision],
+        timeline: [advisorIntroInitialDecision, advice, finalDecision],
         randomize_order: false,
         repetitions: 0
     };
@@ -403,10 +442,10 @@
     // intro and practice
     timeline.push(welcome);
     timeline.push(introInitialDecision);
-    gov.trials[1].advisorId = gov.practiceAdvisor.id
-    timeline.push(practice_procedure)
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
+    timeline.push(quickStimInstructions);
+    timeline.push(initialDecision);
     timeline.push(adviceInstructions);
     timeline.push(intro_procedure);
     timeline.push(practiceInstructions);

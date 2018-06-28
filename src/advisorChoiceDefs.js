@@ -490,7 +490,7 @@ class AdvisorChoice extends DotTask {
                 utils.sumList(this.blockStructure[blockIndex]);
             // intro trials are a special case so the block length needs to be longer to accommodate them
             if (b === 1)
-                blockLength += 3;
+                blockLength += 4;
             // Work out what type of trial to be
             let trialTypeDeck = [];
             let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
@@ -507,7 +507,7 @@ class AdvisorChoice extends DotTask {
                 let trialType = trialTypeDeck.pop();
                 let advisorId = 0;
                 if (isPractice)
-                    advisorId = id<=2? 0 : this.practiceAdvisor.id;
+                    advisorId = id<=3? 0 : this.practiceAdvisor.id;
                 else
                     advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
                 let r = Math.random() < .5? 1 : 0;
@@ -655,9 +655,11 @@ class AdvisorChoice extends DotTask {
 
     /**
      * Process the judge's initial response
-     * @param {Object} trial - jsPsych plugin response
+     * @param {Trial} trial - jsPsych plugin response
+     * @param {Object} [args={}] - assorted arguments to customize behaviour
+     * @param {boolean} [args.advisorAlwaysCorrect - whether to override advisor's behaviour and force them to advice the correct response
      */
-    initialResponse(trial) {
+    initialResponse(trial, args={}) {
         this.storePluginData(trial);
         this.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
         // trial is the complete trial object with its trial.response object
@@ -667,16 +669,25 @@ class AdvisorChoice extends DotTask {
         if (typeof this.currentAdvisor === 'undefined' && this.currentTrial.choice.length === 0) {
             this.closeTrial(trial);
         } else if (this.currentTrial.choice.length === 0)
-            this.setAgreementVars();
+            if(typeof args.advisorAlwaysCorrect !== "undefined" && args.advisorAlwaysCorrect === true)
+                this.setAgreementVars(true);
+            else
+                this.setAgreementVars();
     }
 
     /**
      * Determine whether the advisor in this trial is to agree or disagree with the judge
+     * @param [alwaysCorrect=false] - whether the advisor is always correct
      */
-    setAgreementVars() {
+    setAgreementVars(alwaysCorrect = false) {
         let self = this;
+        let agree = false;
+        if(alwaysCorrect === true)
+            agree = this.currentTrial.getCorrect(false);
+        else
+            agree = this.currentAdvisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory());
         // Check the answer and dis/agree as appropriate
-        if (this.currentAdvisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory())) {
+        if (agree) {
             this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
                 self.currentTrial.advisorAgrees = true;
                 return line.side === self.currentTrial.whichSide;
