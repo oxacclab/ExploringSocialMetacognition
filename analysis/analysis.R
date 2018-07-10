@@ -5,13 +5,14 @@
 #   i) Libraries
 #   ii) Functions
 #   iii) Globals
-# 1) Load data
+# 1) Load data 
 # 2) Demographics
-# 3) Is the agree-in-confidence advisor selected more often?
-# 4) ANOVA investigating influence
-# 5) Trust questionnaire answers
+# 3) Manipulation checks
+# 4) Is the agree-in-confidence advisor selected more often?
+# 5) ANOVA investigating influence
+# 6) Trust questionnaire answers
 #   i) Trust for each advisor
-# 6) Do participants simply prefer agreement?
+# 7) Do participants simply prefer agreement?
 #
 
 ## 0) Support
@@ -82,7 +83,6 @@ getConfidenceShift <- function (t, forceRecalculate = FALSE) {
     else
       out[i] <- t$finalConfidence[i]+t$initialConfidence[i] # switched sliders, so went to 0 on the first one
     }
-    
   }
   return(out)
 }
@@ -136,7 +136,7 @@ adviceTypes <- list(neutral=0, AiC=1, AiU=2)
 trialTypes <- list(catch=0, force=1, choice=2)
 confidenceCategories <- list(low=0, medium=1, high=2)
 
-## 1) Load data
+## 1) Load data ####
 print('## 1) Load Data ##################################################################')
 if(exists('trials'))
   rm(trials)
@@ -146,7 +146,7 @@ if(exists('advisors'))
   rm(advisors)
 if(exists('questionnaires'))
   rm(questionnaires)
-folderName <- 'F:/www/vhosts/localhost/ExploringSocialMetacognition/data/processed/'
+folderName <- 'F:/www/vhosts/localhost/ExploringSocialMetacognition/data/raw/'
 files <- list.files(folderName)
 for (i in seq(length(files))) {
   fileName <- paste(folderName, files[[i]], sep='/')
@@ -202,12 +202,17 @@ all.advisors <- advisors
 advisors <- advisors[which(advisors$adviceType!=0),]
 
 
-## 2) Demographics
+## 2) Demographics ####
 print('## 2) Demographics ###############################################################')
 print('Skipping while we await demographic data collection framework')
 
-## 3) Is the agree-in-confidence advisor selected more often?
-print('## 3) TEST Preferential selection for agree-in-confidence advisor? ###############')
+
+## 3) Manipulation checks ####
+print('## 3) Manipulation checks ########################################################')
+
+
+## 4) Is the agree-in-confidence advisor selected more often? ####
+print('## 4) TEST Preferential selection for agree-in-confidence advisor? ###############')
 
 #We want to know whether the advisor who agrees with the participant when the
 #participant expresses higher confidence is selected more often by the
@@ -282,8 +287,8 @@ selection.70.test.b <- ttestBF(selection.70$AiC.proportion, mu = 0.5)
 print(selection.70.test.b)
 print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(selection.70.test.b@bayesFactor$bf),3)))
 
-## 4) ANOVA investigating influence
-print('## 4) ANOVA investigating influence ##############################################')
+## 5) ANOVA investigating influence ####
+print('## 5) ANOVA investigating influence ##############################################')
 
 #Influence is defined as the extent to which the judge's (participant's) final
 #decision has moved from their initial decision in the direction of the advice
@@ -321,8 +326,8 @@ anova.AdviceTypexTrialTypexAgreement.70 <- aov(formula = influence ~
 print('>>(anova.AdviceTypexTrialTypexAgreement.70) Looking at only trials where intial decision was correct and made with middle confidence:')
 print(summary(anova.AdviceTypexTrialTypexAgreement.70))
 
-## 5) Trust questionnaire answers #################################################################
-print('## 5) Trust questionnaire answers ##########################################################')
+## 6) Trust questionnaire answers ####
+print('## 6) Trust questionnaire answers ##########################################################')
 #   i. Trust for each advisor
 
 # Questions:
@@ -381,7 +386,8 @@ print(trust.test.last.b)
 print(paste0('Evidence strength for higher AiC trust: BF=', round(exp(trust.test.last.b@bayesFactor$bf),3)))
 
 
-## 6) Do participants simply prefer agreement? ####################################################
+## 7) Do participants simply prefer agreement? ####
+print('## 7) Do participants simply prefer agreement? ###################################')
 
 # If so, we should see that participants preferentially pick agree-in-confidence
 # advisor when their initial confidence is high, and agreee-in-uncertainty when

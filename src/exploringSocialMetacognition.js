@@ -617,6 +617,18 @@ class Governor {
     get currentTrial() {return this.trials[this.currentTrialIndex];}
 
     /**
+     * Compile the data in this governor ready for sending, including a processed form
+     * @return {Object} a JSON object with JSON strings containing rawData and processedData
+     */
+    compileSelf() {
+        return {
+            rawData: JSON.stringify(this),
+            processedData: JSON.stringify(processData(this))
+        }
+    }
+
+
+    /**
      * Send all the data in the governor object to a backend which will save it to a file.
      */
     exportGovernor() {
@@ -635,11 +647,7 @@ class Governor {
             }
         };
         ask.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        this.debrief = {manipulationQuestion: false, debriefComments: false}
-        let info = encodeURI('data='+JSON.stringify({
-            rawData: JSON.stringify(this),
-            processedData: JSON.stringify(processData(this, true))
-        }));
+        let info = encodeURI('data='+JSON.stringify(this.compileSelf()));
         ask.send(info);
         /*
         ask.send();*/
