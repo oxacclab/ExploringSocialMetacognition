@@ -43,6 +43,10 @@ body.feedback > section:nth-of-type(odd) {
     background-color: ghostwhite;
 }
 
+body.feedback > section:last-of-type {
+    padding-bottom: 2em;
+}
+
 h1.feedback:first-of-type {
     margin-top: 0;
 }
