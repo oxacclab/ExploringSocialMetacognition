@@ -3,10 +3,18 @@
 <head>
     <title>Advisor Choice Experiment</title>
     <script type="text/javascript">
+        let prolificID = window.location.search.match('[?&]PROLIFIC_PID=\\w+');
+        if(prolificID !== null)
+            prolificID = prolificID[0].substring(14);
         // redirect if we don't have consent for participation
-        let consent = window.location.search.search("consent=true");
-        if(consent === -1)
-            window.location.replace("../consent.html?study=AdvisorChoice"); // simulate redirect (no history)
+        let consent = window.location.search.match("[?&]consent=true");
+        if(consent === null) {
+            redirectURL = "../consent.html?study=AdvisorChoice";
+            if(prolificID !== null)
+                redirectURL += "&PROLIFIC_PID=" + prolificID;
+            window.location.replace(redirectURL); // simulate redirect (no history)
+        }
+
     </script>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -117,12 +125,14 @@
         ],
         stimulusDuration: 200,
         feedbackDuration: 200,
+        completionURL: 'https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4'
     });
 
     // hoist gov to allow functions access
     window.gov = gov;
 
-    gov.participantId = sha1.sha1((gov.timeStart).toString() + Math.random().toString());
+    gov.participantId = prolificID===null?
+        sha1.sha1((gov.timeStart).toString() + Math.random().toString()) : sha1.sha1(prolificID);
     gov.practiceBlockLength = utils.sumList(gov.practiceBlockStructure);
     gov.trials = gov.getTrials();
 

@@ -42,6 +42,7 @@ class DotTask extends Governor {
      * @param {Trial[]} [args.trials=[]] - trial list
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
+     * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
      *
      * @param {int} [args.dotCount] - number of dots in a box
      * @param {int} [args.dotDifference] - half the difference between the dot counts in the two boxes; the difficulty
@@ -376,6 +377,7 @@ class AdvisorChoice extends DotTask {
      * @param {Trial[]} [args.trials=[]] - trial list
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
+     * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
      *
      * @param {int} [args.dotCount] - number of dots in a box
      * @param {int} [args.dotDifference] - half the difference between the dot counts in the two boxes; the difficulty
@@ -815,11 +817,11 @@ class AdvisorChoice extends DotTask {
         this.endExperiment();
     }
 
-    feedback(data) {
+    feedback(data, includePayment = false) {
         if(typeof data === 'undefined')
             data = this;
         google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(function(){advisorChoice.showFeedback(data)});
+        google.charts.setOnLoadCallback(function(){advisorChoice.showFeedback(data, includePayment)});
     }
 
     endExperiment(saveData = true, clearScreen = true) {
@@ -831,7 +833,7 @@ class AdvisorChoice extends DotTask {
             document.querySelector('body').style.backgroundColor = '';
             document.body.innerHTML = "<div id='jspsych-content'></div>";
         }
-        this.feedback(this);
+        this.feedback(this, (saveData && this.completionURL !== ''));
     }
 }
 

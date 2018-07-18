@@ -34,7 +34,7 @@
 #   7.iii) Adjusted influence, medium-confidence trials
 #   7.iv) Raw influence, all trials
 # 8) Trust questionnaire answers
-#   8.i) Multivariate hierachical multiple regression
+#   8.i) Mixed hierachical multiple regression
 #     8.i.a) Control model
 #     8.i.b) Advice type
 #   8.ii) Graph: Pro/retrospective assessments by advice type and dimension
@@ -68,6 +68,11 @@ if(!require(reshape2)) {
   library(reshape2)
 }
 
+if(!require(lme4)) {
+  install.packages('lme4')
+  library(lme4)
+}
+
 #   0.ii) Functions ####
 
 # Print the results of a t-test as we would like to see them reported in a paper
@@ -77,14 +82,7 @@ prettyPrint <- function(results) {
                round(results$conf.int[[1]],2), ', ', round(results$conf.int[[2]],2),'],',
                ' p=',round(results$p.value,3)))
 }
-# Return the id of the advisor with adviceType for participant
-getAdvisorIdByType <- function(pid, type, advisor.data.frame) {
-  rows <- advisor.data.frame[which(advisor.data.frame$participantId==pid),] 
-  row <- rows[which(rows$adviceType==type),]
-  if (length(row) > 0)
-    return(row$id)
-  return(NA)
-}
+
 # Return the advice type of an advisor for participant with row number=pid
 getAdviceTypeById <- function(aid, pid, advisor.data.frame) {
   type <- advisor.data.frame[which(advisor.data.frame$participantId==pid),]
@@ -110,6 +108,7 @@ getAdviceType <- function (t, participant.data.frame, advisor.data.frame, forceR
   }
   return(out)
 }
+
 #' Find the confidence shift in a given trial
 #' @param t trial list
 #' @param rawShift whether to report the confidence shift without adjusting for the assymetric scale
@@ -134,6 +133,7 @@ getConfidenceShift <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
   }
   return(out)
 }
+
 # Return a vector of influence for trial list t
 #' @param t trial list
 #' @param rawShift whether to report the influence without adjusting for the assymetric scale
@@ -154,35 +154,17 @@ getInfluence <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
         else
           out[i] <- -1 * getConfidenceShift(t[i,], rawShift, forceRecalculate) # agrees but answer switches
       } else {
-        if(t$initialAnswer[i]==t$finalAnswer[i]) 
+        if(t$initialAnswer[i]==t$finalAnswer[i])
           out[i] <- -1 * getConfidenceShift(t[i,], rawShift, forceRecalculate) # disagrees but answer stays the same
         else
-          out[i] <- getConfidenceShift(t[i,], rawShift, forceRecalculate) # disagrees and answer switches    
+          out[i] <- getConfidenceShift(t[i,], rawShift, forceRecalculate) # disagrees and answer switches
       }
     }
   }
   return(out)
 }
-# Find the proportion A/B while allowing for A and B to be 0
-findProportion <- function (A, B) {
-  out <- vector(length = length(A))
-  for (i in 1:length(A)) {
-    if (B[i] == 0) {
-      if (A[i] == 0) # both 0
-        out[i] <- NaN
-      else
-        out[i] <- 1 # x/0 = 1. It's official
-    } else {
-      if (A[i] == 0)
-        out[i] <- 0 # 0/x = 0. Also official now
-      else
-        out[i] <- A[i]/B[i]
-    }
-  }
-  return(out)
-}
 
-#' Get the name of the advice type 
+#' Get the name of the advice type
 #' @param adviceType the advice type to fetch the name for
 #' @param long whether to return the long name
 #' @return string of the advice type, or NA by default
@@ -208,6 +190,15 @@ questionnaireDimensions <- list(accurate=1,
                                 like=2,
                                 trust=3,
                                 influence=4)
+
+# The Advisor portraits have properties which might affect ratings, so we should investigate these:
+portraitDetails <- data.frame(
+  portraitId = 1:5,
+  category = factor(c('w', 'b', 'w', 'b', 'w')),
+  blackProp = c(0, .99, 0, .99, .01),
+  age = c(28.7, 24.9, 23.3, 24.6, 23.7)
+)
+
 # styling for ggplots
 style <- theme_light() +
   theme(panel.grid.minor = element_blank(),
@@ -251,7 +242,7 @@ for (i in seq(length(files))) {
 rm(jsonData, files, fileName, folderName, json)
   
 #   1.ii) Calculate utility variables ####
-print('> calculate utility variables')
+print('Calculate utility variables')
 trials$adviceType <- getAdviceType(trials, participants, advisors) # adviceType > trials table
 trials$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
 trials$confidenceShiftRaw <- getConfidenceShift(trials,T,T) # as above, without symmetry adjustment
@@ -265,8 +256,10 @@ trials$initialConfSpan <- ifelse(trials$initialAnswer==0,trials$initialConfidenc
 trials$finalConfSpan <- ifelse(trials$finalAnswer==0,trials$finalConfidence*-1,trials$finalConfidence)
 # For convenience the long participant Id is shortened to a simple number:
 participants$pid <- which(as.character(participants$id) == participants$id)
-trials$pid <- sapply(trials$participantId, function(x)participants$pid[which(participants$id == x)])
-questionnaires$pid <- sapply(questionnaires$participantId, function(x)participants$pid[which(participants$id == x)])
+tmp <- function(x) participants$pid[which(participants$id == x)]
+trials$pid <- sapply(trials$participantId, tmp)
+questionnaires$pid <- sapply(questionnaires$participantId, tmp)
+advisors$pid <- sapply(advisors$participantId, tmp)
 # adviceType > questionnaire table
 aT <- vector(length = dim(questionnaires)[1]) 
 timepoint <- aT
@@ -280,6 +273,19 @@ for (i in 1:dim(questionnaires)[1]) {
 }
 questionnaires$adviceType <- aT
 questionnaires$timepoint <- timepoint
+# Stick the name and portrait data into the questionnaires table
+questionnaires$advisorName <- factor(sapply(1:nrow(questionnaires), function(i) 
+  advisors$name[advisors$pid==questionnaires$pid[i]
+                & advisors$id == questionnaires$advisorId[i]]))
+questionnaires$advisorPortrait <- sapply(1:nrow(questionnaires), function(i) {
+  x <- advisors$portraitSrc[advisors$pid==questionnaires$pid[i]
+                            & advisors$id == questionnaires$advisorId[i]]
+  x <- sub('assets/image/advisor', '', x, fixed = T)
+  as.factor(sub('.jpg', '', x, fixed = T))
+})
+# Add on the source data
+questionnaires$advisorAge <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$age[i])
+questionnaires$advisorCategory <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$category[i])
 
 #   1.iii) Split off real trials ####
 all.trials <- trials
@@ -307,10 +313,11 @@ print('## Manipulation checks ##################################################
 # ANOVA, and plugging in confidence, correctness, and advice type as predictors.
 # We should see no main effect of advice type, but an interaction between
 # confidence and advice type. Correctness should have a strong main effect.
+print('Overall agreement by contingency')
 tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, data = trials, FUN = mean)
 tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
              Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
-summary(tmp.aov)
+print(summary(tmp.aov))
 
 #   3.ii) Graph: overall agreement by contingency ####
 
@@ -756,14 +763,24 @@ print(summary(anova.AdviceTypexTrialTypexAgreement))
 
 # 8) Trust questionnaire answers ####
 
-#   8.i) Multivariate hierachical multiple regression ####
+#   8.i) Mixed hierachical multiple regression ####
 
 #     8.i.a) Control model ####
 #MISSING!!!!####
 
+
+tmp.null <- lmer(ability ~ timepoint + 
+                         (1+advisorAge|pid),# +advisorName|pid),
+                       data = questionnaires)
+summary(tmp.null)
 #     8.i.b) Advice type ####
 #MISSING!!!!####
 
+tmp.lm <- lmer(ability ~ adviceType * timepoint + 
+                       (1+advisorCategory+advisorAge|pid),# + (advisorName|pid),
+                 data = questionnaires)
+summary(tmp.lm)
+anova(tmp.lm, tmp.null)
 #   8.ii) Graph: Pro/retrospective assessments by advice type and dimension ####
 
 # TODO ####
@@ -801,7 +818,43 @@ ttestBF(tmp$adviceType[tmp$confidenceCategory==confidenceCategories$low],
 # 10) Subjective-objective correlation ####
 
 #   10.i) Questionnaire-influence correlation ####
-#MISSING!!!!####
+
+# Participants rate advisors on three factors: ability, benevolence, and
+# likeability. We can investigate these ratings for correlations with the
+# objective influence measure. We would expect ability to show the strongest
+# correlation because it relates to expertise in the literature and should be
+# the primary dimension of variation in appraisal (indeed our theoretical model
+# only considers ability assessments). Benevolence is unlikely to change much,
+# though some participants may use benevolence to compensate for advisors they
+# believe to be high in ability and yet still not very influential (because
+# they're deliberately giving bad advice). Likeability, reasoning from the
+# results of our previous study, is likely to be largely orthogonal to advice.
+ 
+tmp <- aggregate(cbind(likeability, ability, benevolence) ~ adviceType + timepoint + pid,
+                 data = questionnaires, FUN = mean)
+# calculate difference scores
+for(i in 1:nrow(tmp))
+  if(tmp$timepoint[i]==2)
+    tmp[i,4:6] <- tmp[i, 4:6] - tmp[tmp$timepoint==1 
+                                   & tmp$pid == tmp$pid[i]
+                                   & tmp$adviceType == tmp$adviceType[i], 4:6]
+
+tmp.2 <- aggregate(influence ~ adviceType + pid + hasChoice, 
+                   data = trials, FUN = mean)
+tmp$influence <- sapply(1:nrow(tmp), function(i){tmp.2$influence[tmp.2$hasChoice 
+                                                                 & tmp.2$pid == tmp$pid[i]
+                                                                 & tmp.2$adviceType == tmp$adviceType[i]]})
+
+# The test is a regression with the change in subjective variables as predictors
+summary(lm(influence ~ ability + benevolence + likeability, data = tmp))
 
 #   10.ii) Graph: Questionnaire-influence correlation ####
-#MISSING!!!!####
+# TODO ####
+# De-uglify this graph
+tmp <- melt(tmp[tmp$timepoint==2, ], id.vars = c('adviceType', 'pid', 'timepoint', measure.vars = c('influence')), 
+            variable.name = 'trust dimension', value.name = 'trust')
+ggplot(tmp, aes(x = trust, y = influence, colour = factor(adviceType))) +
+  geom_point(alpha = 0.33) +
+  geom_smooth(method = 'lm') +
+  facet_grid(`trust dimension`~.) +
+  style

@@ -147,8 +147,16 @@
         }
         // Proceed with the study
         // Navigate to the appropriate place
-        if(study !== "")
-            window.location.href = study + "/?consent=true"; // forward as if user clicked a link
+        let prolificID = window.location.search.match('[?&]PROLIFIC_PID=\\w+');
+        if(prolificID !== null)
+            prolificID = prolificID[0].substring(14);
+        if(study !== "") {
+            redirectURL = study + "/?consent=true";
+            if(prolificID !== null)
+                redirectURL += "&PROLIFIC_PID=" + prolificID;
+            window.location.href =  redirectURL; // forward as if user clicked a link
+        }
+
     }
 </script>
 </html>

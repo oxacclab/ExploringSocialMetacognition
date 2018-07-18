@@ -582,6 +582,7 @@ class Governor {
      * @param {Trial[]} [args.trials=[]] - trial list
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
+     * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
      *
      */
     constructor(args = {}) {
@@ -592,6 +593,7 @@ class Governor {
         this.trials = typeof args.trials === 'undefined'? [] : Governor.addTrials(args.trials);
         this.miscTrials = typeof args.miscTrials === 'undefined'? [] : args.miscTrials;
         this.currentTrialIndex = args.currentTrialIndex || 0;
+        this.completionURL = typeof args.completionURL === 'undefined'? '' : args.completionURL;
         this.timeStart = (new Date).getTime();
     }
 

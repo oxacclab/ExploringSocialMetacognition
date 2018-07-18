@@ -288,16 +288,28 @@ class advisorChoice {
      * @param {AdvisorChoice} g
      *
      */
-    static showFeedback(g) {
+    static showFeedback(g, includePayment = false) {
         let advisors = utils.copyArray(g.advisors);
         advisors.shift(); // drop the practice advisor
         let body = document.querySelector('body');
-            // Nav
+        // Nav
         let nav = document.createElement('nav');
         nav.innerHTML = "<ul><li><a href='#confidence'>confidence</a></li>" +
             "<li><a href='#advisors'>advisors</a></li>" +
             "<li><a href='#accuracy'>accuracy</a></li></ul>";
         body.appendChild(nav);
+        // Reward link
+        g.completionURL = 'https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4'
+        if(g.completionURL !== '') {
+            let paymentSection = body.appendChild(document.createElement('section'));
+            let paymentDiv = document.createElement('div');
+            paymentDiv.id = 'thanks';
+            paymentDiv.innerHTML = "<h1>Complete!</h1><p>Completion URL:</p>" +
+                "<p><a class='feedback payment-link' href='" + g.completionURL +
+                "' target='_blank'>" + g.completionURL + "</a></p>" +
+                "<p>You will not be notified of this URL again, so please click it now!</p>";
+            paymentSection.appendChild(paymentDiv);
+        }
         // Thanks
         let thanksSection = body.appendChild(document.createElement('section'));
         let thanksDiv = document.createElement('div');

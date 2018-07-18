@@ -92,6 +92,15 @@ a.feedback {
     text-decoration: none;
 }
 
+a.feedback.payment-link {
+    padding: 1em;
+    border-radius: 3em;
+    background-color: #50bfff;
+    color: white;
+    font-weight: bold;
+    font-family: BlinkMacSystemFont,-apple-system,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,Helvetica,Arial,sans-serif;
+}
+
 li.feedback a.feedback:hover {
     background-color: #ddd;
 }
