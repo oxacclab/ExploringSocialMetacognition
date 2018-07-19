@@ -22,7 +22,6 @@
     <script src="https://mjaquiery.github.io/jsPsych/jspsych.js"></script>
     <script src="https://mjaquiery.github.io/jsPsych/plugins/jspsych-instructions.js"></script>
     <script src="https://mjaquiery.github.io/jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
-    <script src="https://mjaquiery.github.io/jsPsych/plugins/jspsych-canvas-sliders-response.js"></script>
     <!--local dev versions of jsPsych-->
     <!--script src="../jsPsych/jspsych.js"></script>
     <script src="../jsPsych/plugins/jspsych-instructions.js"></script>
@@ -31,6 +30,7 @@
     <script src="../src/bowser.min.js"></script>
     <script src="../src/jspsych-function-sliders-response.js"></script>
     <script src="../src/jspsych-jas-present-advice-choice.js"></script>
+    <script src="../src/jspsych-canvas-sliders-response.js"></script>
 
     <link rel="stylesheet" href="../style/advisorChoice.css"/>
     <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
@@ -236,27 +236,26 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: null,
-        prompt: '<p>Which box has more dots?</p>',
-        sliderCount: 2,
+        prompt: '',
+        sliderCount: 1,
         labels: [
-            ['Certain', 'Unsure'],
-            ['Unsure', 'Certain']
+            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
         ],
         slider_prompt: [
-            'LEFT',
-            'RIGHT'
+            'Which box has more dots?'
         ],
         slider_name: [
-            'Left',
-            'Right'
+            'answer'
         ],
-        reversed: [true, false],
-        slider_col_spacing: [40],
-        exclusive_group: [1, 1],
-        require_change: [1, 1],
+        reversed: [false],
+        slider_full_width: [true],
+        slider_col_spacing: [0],
+        exclusive_group: [1],
+        require_change: [1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: ()=>gov.setSliderClick(),
+        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.checkIntroResponse(trial),
         post_trial_gap: gov.feedbackDuration
     };
@@ -266,27 +265,26 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
-        prompt: '<p>Which box had more dots?</p>',
-        sliderCount: 2,
+        prompt: '',
+        sliderCount: 1,
         labels: [
-            ['Certain', 'Unsure'],
-            ['Unsure', 'Certain']
+            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
         ],
         slider_prompt: [
-            'LEFT',
-            'RIGHT'
+            'Which box has more dots?'
         ],
         slider_name: [
-            'Left',
-            'Right'
+            'answer'
         ],
-        reversed: [true, false],
-        slider_col_spacing: [40],
-        exclusive_group: [1, 1],
-        require_change: [1, 1],
+        reversed: [false],
+        slider_full_width: [true],
+        slider_col_spacing: [0],
+        exclusive_group: [1],
+        require_change: [1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: ()=>gov.setSliderClick(),
+        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.initialResponse(trial, {advisorAlwaysCorrect: true})
     };
 
@@ -295,27 +293,26 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
-        prompt: '<p>Which box had more dots?</p>',
-        sliderCount: 2,
+        prompt: '',
+        sliderCount: 1,
         labels: [
-            ['Certain', 'Unsure'],
-            ['Unsure', 'Certain']
+            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
         ],
         slider_prompt: [
-            'LEFT',
-            'RIGHT'
+            'Which box has more dots?'
         ],
         slider_name: [
-            'Left',
-            'Right'
+            'answer'
         ],
-        reversed: [true, false],
-        slider_col_spacing: [40],
-        exclusive_group: [1, 1],
-        require_change: [1, 1],
+        reversed: [false],
+        slider_full_width: [true],
+        slider_col_spacing: [0],
+        exclusive_group: [1],
+        require_change: [1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: ()=>gov.setSliderClick(),
+        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.initialResponse(trial)
     };
 
@@ -351,25 +348,26 @@
     const finalDecision = {
         type: "canvas-sliders-response",
         stimulus: ()=>{},
-        sliderCount: 2,
+        prompt: '',
+        sliderCount: 1,
         labels: [
-            ['Certain', 'Unsure'],
-            ['Unsure', 'Certain']
+            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
         ],
         slider_prompt: [
-            'LEFT',
-            'RIGHT'
+            'Which box had more dots?'
         ],
         slider_name: [
-            'Left',
-            'Right'
+            'answer'
         ],
-        reversed: [true, false],
-        slider_col_spacing: [40],
-        exclusive_group: [1, 1],
+        reversed: [false],
+        slider_full_width: [true],
+        slider_col_spacing: [0],
+        exclusive_group: [1],
+        require_change: [1],
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: ()=>gov.showAdvice(),
+        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.finalResponse(trial),
         post_trial_gap: gov.feedbackDuration
     };

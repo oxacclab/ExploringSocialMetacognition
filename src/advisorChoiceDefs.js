@@ -139,34 +139,33 @@ class DotTask extends Governor {
     }
 
     /**
-     * Extract the answer from the plugin's response. The plugin provides indices of the last time a slider was
-     * moved; the answer is simply the slider which was moved last.
+     * Extract the answer from the plugin's response. The plugin provides a value from 1-100,
+     * values 0-49 indicate 'left', 50-100 indicate 'right'.
      *
      * @param {Object} response - response field provided by the jspsych-canvas-sliders-response plugin
+     *
+     * @return {int} 1 for a rightward response, 0 for a leftward response
      */
     static getAnswerFromResponse(response) {
-        // Which slider was moved last?
-        let L = response[0].lastChangedTime;
-        let R = response[1].lastChangedTime;
-        if (isNaN(L) && isNaN(R))
+        let ans = parseInt(response[0].answer);
+        if(ans === 50)
             return NaN;
-        if (isNaN(R))
-            return 0;
-        if (isNaN(L))
-            return 1;
-        return R > L ? 1 : 0;
+        return ans > 50 ? 1 : 0;
     }
 
     /**
      * Return the confidence score associated with a given slider.
      *
      * @param {Object} response - response field provided by jspsych-canvas-sliders-response plugin
-     * @param {int} answer - which slider's value to extract
+     * @param {int} side - which side the answer was on (1 = right, 0 = left)
+     *
+     * @return {int} Confidence of the response from 1-50
      */
-    static getConfidenceFromResponse(response, answer) {
-        if (isNaN(response[answer].answer))
+    static getConfidenceFromResponse(response, side) {
+        let ans = parseInt(response[0].answer);
+        if (isNaN(ans))
             return NaN;
-        return parseInt(response[answer].answer);
+        return parseInt(ans) - (51 * side) + 1;
     }
 
     /**
@@ -187,6 +186,17 @@ class DotTask extends Governor {
                 let event = new Event('change');
                 this.dispatchEvent(event);
             });
+            // Add a visual indicator to the middle of the slider to show the excluded zone
+            let parent = slider.parentElement;
+            let marker = document.createElement('div');
+            marker.className = 'advisorChoice-middleBar advisorChoice-marker';
+            parent.appendChild(marker);
+
+            let yOffset = slider.clientHeight + 7;
+            marker.style.top = -yOffset.toString() + 'px';
+
+            let xOffset = slider.clientWidth/2 - marker.clientWidth/2;
+            marker.style.left = xOffset.toString() + 'px';
         });
         this.drawProgressBar();
     }
@@ -546,29 +556,36 @@ class AdvisorChoice extends DotTask {
      * Show a ghost of the previous thumb placement to remind judges of their previous answer.
      */
     showMarker() {
-        let slider = document.querySelector('#jspsych-canvas-sliders-response-slider'+
-            this.currentTrial.answer[0].toString());
+        let slider = document.querySelector('#jspsych-canvas-sliders-response-slider0');
         let marker = document.createElement('div');
-        marker.className = 'advisorChoice-marker';
+        marker.className = 'advisorChoice-marker advisorChoice-prevAnswer';
         slider.parentElement.appendChild(marker);
 
-        let yOffset = slider.getBoundingClientRect().top;
-        yOffset -= (marker.clientHeight - slider.clientHeight) / 2;
+        let yOffset = -marker.clientHeight;
         yOffset += 1; // compensate for box shadow on the slider making things look off
         marker.style.top = yOffset.toString() + 'px';
 
-        let xOffset = 0;
-        if (this.currentTrial.answer[0] === 0) {
-            // Left bar is scored in reverse
-            xOffset = 100 - this.currentTrial.confidence[0];
-        } else {
-            xOffset = this.currentTrial.confidence[0];
-        }
-        marker.style.left = (slider.getBoundingClientRect().left +
-            xOffset * (slider.clientWidth-marker.clientWidth) / 100).toString() + 'px';
+        let xOffset = this.currentTrial.answer[0] === 1? slider.clientWidth/2 : 0;
+        xOffset -= marker.clientWidth/2;
+        marker.style.left = (xOffset + this.currentTrial.confidence[0] * (slider.clientWidth-marker.clientWidth)
+            / 100).toString() + 'px';
 
         // and call the slider-click function because we only get one on_load call
         this.setSliderClick();
+    }
+
+    /* Check the initial response to ensure that the participant hasn't selected neither answer.
+     * @param {Object} trialresponse - potential response from the plugin
+     * @return true to allow the response through, false to prevent it
+     */
+    checkResponse(trialresponse) {
+        let okay = trialresponse.response[0].answer!=="50";
+        if(okay)
+            return true;
+        // Add a warning and reject response
+        document.querySelector('#jspsych-canvas-sliders-response-warnings').innerHTML =
+            "<span style='color: red'>Please choose one side or the other.</span>";
+        return false;
     }
 
     /**
@@ -586,9 +603,10 @@ class AdvisorChoice extends DotTask {
         picDiv.innerHTML = a.portrait.outerHTML;
         textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.currentTrial.advice.string;
         // Set the class of the slider the advisor endorsed
-        let slider = document.querySelector('#jspsych-sliders-response-slider-col' +
-            this.currentTrial.advice.side);
-        slider.className += ' advisor-endorsed';
+        let labelID = this.currentTrial.advice.side === 0? 0 : 2;
+        let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
+            labelID);
+        sliderLabel.classList.add('advisor-endorsed');
         this.showMarker();
     }
 

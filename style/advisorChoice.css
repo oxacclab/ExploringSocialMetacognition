@@ -2,10 +2,20 @@ body {
     background-color: #858585;
 }
 div.advisorChoice-marker {
+    position: relative;
+}
+div.advisorChoice-middleBar {
+    width: 12px;
+    height: 22px;
+    margin-bottom: -30px;
+    background-color: white;
+    z-index: 10;
+}
+div.advisorChoice-prevAnswer {
+    z-index: 1;
     width: 12px;
     height: 40px;
-    position: absolute;
-    z-index: 1;
+    margin-bottom: -40px;
     box-shadow: 0 0 5px 0 black;
     border-radius: 3px;
     background-color: yellow;
@@ -64,4 +74,12 @@ img.advisorChoice-choice:hover {
 #jspsych-jas-present-advice-choice-prompt {
     font-size: 1.3em;
     padding: 0.5em;
+}
+
+tr.jspsych-sliders-response-labels td:first-of-type {
+    text-align: left;
+}
+
+tr.jspsych-sliders-response-labels td:last-of-type {
+    text-align: right;
 }

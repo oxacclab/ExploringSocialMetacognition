@@ -300,7 +300,7 @@ class advisorChoice {
         body.appendChild(nav);
         // Reward link
         g.completionURL = 'https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4'
-        if(g.completionURL !== '') {
+        if(includePayment !== false) {
             let paymentSection = body.appendChild(document.createElement('section'));
             let paymentDiv = document.createElement('div');
             paymentDiv.id = 'thanks';

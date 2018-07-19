@@ -194,9 +194,8 @@ input.jspsych-sliders-response-slider-untouched::-ms-fill-upper {
     border: 0.2px solid #010101;
 }
 
-div.jspsych-sliders-col.advisor-endorsed {
-    background-color: white;
-    border: 3px solid black;
-    border-radius: 1em;
-    margin-bottom: 1em;
+.advisor-endorsed {
+    color: white;
+    font-weight: bold;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
 }

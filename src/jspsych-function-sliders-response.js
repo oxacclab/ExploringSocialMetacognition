@@ -172,6 +172,15 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 description: 'Whether changing one slider resets the other sliders '+
                 'in this group to their starting values. Group 0 are not exclusive'
             },
+            slider_full_width: {
+                type: jsPsych.plugins.parameterType.BOOL,
+                pretty_name: 'Slider occupies full label width',
+                array: true,
+                default: [false],
+                description: 'Whether the slider occupies the full width allowed (true) or ' +
+                'is truncated so that the labels are centered on the ends of the slider (false).' +
+                ' Padded with final value.'
+            },
             slider_class_touched: {
                 type: jsPsych.plugins.parameterType.STRING,
                 pretty_name: 'Slider class (touched)',
@@ -193,6 +202,13 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 default: 0,
                 description: 'Maximum require_change_warnings to display at any one time. Prioritises ' +
                     'require_change_warning sliders with lower numbers.'
+            },
+            check_response: {
+                type: jsPsych.plugins.parameterType.FUNCTION,
+                pretty_name: 'Check response',
+                default: undefined,
+                description: 'This function is called with the candidate response data. '+
+                'It should return true to allow the submission or false to prevent it.'
             },
             button_label: {
                 type: jsPsych.plugins.parameterType.STRING,
@@ -279,6 +295,9 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                     exclusive_group: (trial.exclusive_group.length > i)?
                         trial.exclusive_group[i] :
                         trial.exclusive_group[trial.exclusive_group.length-1],
+                    slider_full_width: (trial.slider_full_width.length > i)?
+                        trial.slider_full_width[i] :
+                        trial.slider_full_width[trial.slider_full_width.length-1],
                     name: (typeof trial.slider_name[i] === 'undefined')?
                         null : trial.slider_name[i]
                 });
@@ -339,9 +358,11 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                             '" class="jspsych-sliders-prompt">'+
                             slider.prompt+'</td></tr>';
                         // slider
-                        let spacer = (colCount===2)? '' : '<td class="jspsych-sliders-spacer" style="width: '+
-                            tdWidth.toString()+'%;"></td>';
-                        let colSpan = colCount===2? 2 : colCount/2;
+                        let spacer = (colCount===2 || slider.slider_full_width===true)?
+                            '' :
+                            '<td class="jspsych-sliders-spacer" style="width: '+tdWidth.toString()+
+                            '%;"></td>';
+                        let colSpan = (colCount===2 || slider.slider_full_width===true)? 2 : colCount/2;
                         html += '<tr class="jspsych-sliders-slider">'+
                             spacer+
                             '<td colspan="'+(colSpan).toString()+'" style="width: '+(tdWidth*colSpan).toString()+'%;" '+
@@ -520,8 +541,6 @@ jsPsych.plugins['function-sliders-response'] = (function() {
 
         function end_trial(){
 
-            jsPsych.pluginAPI.clearAllTimeouts();
-
             // save data
             let trialdata = {
                 "startTime": response.startTime,
@@ -530,6 +549,17 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 "response": response.response,
                 "stimulus_properties": response.stimulus_properties
             };
+
+            let okay = false;
+            if(typeof trial.check_response === 'undefined')
+                okay = true;
+            else
+                okay = trial.check_response(trialdata);
+
+            if(okay === false)
+                return;
+
+            jsPsych.pluginAPI.clearAllTimeouts();
 
             if(trial.stimulus_duration !== null)
                 trialdata.stimulusOffTime = response.stimulusOffTime;

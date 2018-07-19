@@ -34,9 +34,8 @@
 #   7.iii) Adjusted influence, medium-confidence trials
 #   7.iv) Raw influence, all trials
 # 8) Trust questionnaire answers
-#   8.i) Mixed hierachical multiple regression
-#     8.i.a) Control model
-#     8.i.b) Advice type
+#   8.i) Bayesian no-difference tests for advisor properties 
+#   8.ii) 2x2 AdviceType x Timepoint MANOVA 
 #   8.ii) Graph: Pro/retrospective assessments by advice type and dimension
 # 9) Do participants simply prefer agreement?
 #   9.i) Pick rate in low- vs high-confidence trials
@@ -209,7 +208,7 @@ style <- theme_light() +
 
 #   1.i) Load data ####
 
-print('## Load Data ##################################################################')
+print('Load data')
 if(exists('trials'))
   rm(trials)
 if(exists('participants'))
@@ -254,6 +253,9 @@ trials$finalCorrect <- trials$finalAnswer == trials$correctAnswer # whether the 
 # Sometimes it helps to see confidence arranged from sure left to sure right (-100 to 100)
 trials$initialConfSpan <- ifelse(trials$initialAnswer==0,trials$initialConfidence*-1,trials$initialConfidence)
 trials$finalConfSpan <- ifelse(trials$finalAnswer==0,trials$finalConfidence*-1,trials$finalConfidence)
+# Convert times to seconds since the 70 epoch
+participants$timeStart <- sapply(participants$timeStart, function(x)x[[1]]/1000)
+participants$timeEnd <- sapply(participants$timeEnd, function(x)x[[1]]/1000)
 # For convenience the long participant Id is shortened to a simple number:
 participants$pid <- which(as.character(participants$id) == participants$id)
 tmp <- function(x) participants$pid[which(participants$id == x)]
@@ -288,6 +290,7 @@ questionnaires$advisorAge <- sapply(questionnaires$advisorPortrait, function(i) 
 questionnaires$advisorCategory <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$category[i])
 
 #   1.iii) Split off real trials ####
+print('Separate real trials from practice')
 all.trials <- trials
 trials <- trials[which(!trials$practice),]
 all.questionnaires <- questionnaires
@@ -297,13 +300,12 @@ advisors <- advisors[which(advisors$adviceType!=0),]
 
 # 2) Demographics ####
 
-#MISSING!!!!####
-print('## Demographics ###############################################################')
-print('Skipping while we await demographic data collection framework')
+print('Demographics')
+print('Demographic data are not collected and therefore not analysed')
 
 # 3) Manipulation checks ####
 
-print('## Manipulation checks ########################################################')
+print('Manipulation checks')
 
 #   3.i) Overall agreement by contingency ####
 
@@ -313,16 +315,16 @@ print('## Manipulation checks ##################################################
 # ANOVA, and plugging in confidence, correctness, and advice type as predictors.
 # We should see no main effect of advice type, but an interaction between
 # confidence and advice type. Correctness should have a strong main effect.
-print('Overall agreement by contingency')
+print('3.i Overall agreement by contingency')
 tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, data = trials, FUN = mean)
-tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
+aov.iii.i <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
              Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
-print(summary(tmp.aov))
+print(summary(aov.iii.i))
 
 #   3.ii) Graph: overall agreement by contingency ####
-
+print('3.ii Graph of overall agreement by contingency')
 w <- 0.8
-ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
+gg.iii.ii <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
   stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
   stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
   geom_point(alpha = 0.5, position = position_dodge(w)) +
@@ -332,9 +334,10 @@ ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = a
   scale_y_continuous(name = 'Advisor Agreement') +
   labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness') +
   style
+gg.iii.ii
 
 #   3.iii) Initial block agreement by contingency ####
-
+print('3.iii Initial block agreement by contingency')
 # Initial block is forced trials
 tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, 
                  data = trials[trials$type==trialTypes$force, ], FUN = mean)
@@ -343,8 +346,8 @@ tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect 
 summary(tmp.aov)
 
 #   3.iv) Graph: initial block agreement by contingency ####
-
-ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
+print('3.iv Graph of intial block agreement by contingency')
+gg.iii.iv <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
   stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
   stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
   geom_point(alpha = 0.5, position = position_dodge(w)) +
@@ -354,18 +357,20 @@ ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = a
   scale_y_continuous(name = 'Advisor Agreement') +
   labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness\n on forced trials') +
   style
+gg.iii.iv
 
 #   3.v) Trial count by contingency ####
-
+print('3.v Trial count by contingency')
 # Let's also check we got appropriate numbers of trials in each of the bins for
 # each participant
-tmp <- aggregate(practice ~ 
+df.iii.v <- aggregate(practice ~ 
                    pid + confidenceCategory + adviceType + initialCorrect + advisorAgrees, 
                  data = trials, FUN = length)
+print(df.iii.v)
 
 #   3.vi) Graph: trial count by contingency ####
-
-ggplot(tmp, aes(y = practice, x = as.factor(confidenceCategory), 
+print('3.vi Graph of trial count by contingency')
+gg.iii.vi <- ggplot(tmp, aes(y = practice, x = as.factor(confidenceCategory), 
                 colour = as.factor(adviceType), shape = as.factor(advisorAgrees))) +
   stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
   stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
@@ -377,10 +382,11 @@ ggplot(tmp, aes(y = practice, x = as.factor(confidenceCategory),
   scale_shape_discrete(name = 'Advisor Agreement', labels = c('Disagree', 'Agree')) +
   labs(title = 'Observed trial count for dis/agreement from each advisor by initial decision confidence\n and correctness') +
   style
+gg.iii.vi
 
 # 4) Exclusions ####
 
-print('## Running exclusions #########################################################')
+print('Running exclusions')
 # Exclusion rules:
 # Proportion of correct initial judgements must be (.60 < cor1/n < .90) 
 #NB:practice trials are INCLUDED in this since they are used in part for
@@ -418,10 +424,15 @@ trials <- trials[trials$pid %in% participants$pid, ]
 advisors <- advisors[advisors$pid %in% participants$pid, ]
 questionnaires <- questionnaires[questionnaires$pid %in% participants$pid, ]
 
-# 5) Descriptives ####
+df.iv <- aggregate(pid ~ excluded, data = all.participants, FUN = length)
+names(df.iv) <- c('exclusionReason', 'count')
+print(df.iv)
 
+# 5) Descriptives ####
+print('Descriptive statistics')
 #   5.i) Proportion correct ####
-tmp <- NULL
+print('5.i Proportion correct')
+df.v.i <- NULL
 for(col in c('initial', 'final')) {
   for(aT in adviceTypes) {
     colName <- paste0(col,'Correct')
@@ -432,7 +443,7 @@ for(col in c('initial', 'final')) {
     cl <- mean_cl_normal <- mean_cl_normal(x)
     rn <- range(aggregate(trials[trials$adviceType %in% aT, c(colName,'pid','adviceType')], by = list(trials$pid[trials$adviceType %in% aT]), 
                           FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
-    tmp <- rbind(tmp, data.frame(decision = col,
+    df.v.i <- rbind(df.v.i, data.frame(decision = col,
                                  adviceType = ifelse(length(aT)>1,'Total',getAdviceTypeName(aT)), # hack to label total
                                  target = ifelse(col=='initial',.71,NA),
                                  meanCorrect = m,
@@ -442,20 +453,20 @@ for(col in c('initial', 'final')) {
                                  rangeMax = rn[2]))
   }
 }
-tmp[,-(1:2)] <- round(tmp[,-(1:2)],2)
-print('Descriptives: judgement correctness')
-tmp
+df.v.i[,-(1:2)] <- round(df.v.i[,-(1:2)],2)
+print(df.v.i)
 
 
 #   5.ii) Agreement rate ####
-tmp <- NULL
+print('5.ii Agreement rate')
+df.v.ii <- NULL
 for(aT in adviceTypes) {
   if(aT==adviceTypes$neutral)
     next()
   ts <- trials[trials$adviceType==aT, ]
   for(i in 1:(length(confidenceCategories)+3)) {
     if(i <= length(confidenceCategories)) {
-      x <- ts[ts$confidenceCategory==confidenceCategories[i], ]
+      x <- ts[ts$confidenceCategory==confidenceCategories[i] & ts$initialCorrect==T, ]
       name <- names(confidenceCategories[i])
     } else {
       i <- i - length(confidenceCategories)
@@ -474,7 +485,7 @@ for(aT in adviceTypes) {
     cl <- mean_cl_normal <- mean_cl_normal(as.numeric(x$advisorAgrees))
     rn <- range(aggregate(advisorAgrees ~ pid, data = x,
                           FUN = function(x){sum(as.numeric(x))/length(x)})$advisorAgrees)
-    tmp <- rbind(tmp, data.frame(adviceType = getAdviceTypeName(aT), # hack to label totalname,
+    df.v.ii <- rbind(df.v.ii, data.frame(adviceType = getAdviceTypeName(aT), # hack to label totalname,
                                  name,
                                  probAgree = m,
                                  cl95Min = cl$ymin,
@@ -483,12 +494,12 @@ for(aT in adviceTypes) {
                                  rangeMax = rn[2]))
   }
 }
-tmp[,-(1:2)] <- round(tmp[,-(1:2)],2)
-print('Descriptives: agreement rates')
-tmp
+df.v.ii[,-(1:2)] <- round(df.v.ii[,-(1:2)],2)
+print(df.v.ii)
 
 #   5.iii) Mean confidence ####
-tmp <- NULL
+print('5.iii Mean confidence')
+df.v.iii <- NULL
 for(col in c('initial', 'final')) {
   for(correct in list(T,F,c(T,F))) {
     colName <- paste0(col,'Confidence')
@@ -498,7 +509,7 @@ for(col in c('initial', 'final')) {
     rn <- range(aggregate(trials[trials[,paste0(col,'Correct')] %in% correct, c(colName,'pid','adviceType')], 
                           by = list(trials$pid[trials[,paste0(col,'Correct')] %in% correct]), 
                           FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
-    tmp <- rbind(tmp, data.frame(decision = col,
+    df.v.iii <- rbind(df.v.iii, data.frame(decision = col,
                                  correct = ifelse(length(correct)>1,'Both',correct), # hack to label total
                                  meanCorrect = m,
                                  cl95Min = cl$ymin,
@@ -507,12 +518,11 @@ for(col in c('initial', 'final')) {
                                  rangeMax = rn[2]))
   }
 }
-tmp[,-(1:2)] <- round(tmp[,-(1:2)],2)
-print('Descriptives: decision confidence')
-tmp
+df.v.iii[,-(1:2)] <- round(df.v.iii[,-(1:2)],2)
+print(df.v.iii)
 
 # As above by dis/agreement and advice type
-tmp <- NULL
+df.v.iii.2 <- NULL
 for(agree in c(T,F)) {
   for(aT in adviceTypes) {
     if(aT==adviceTypes$neutral)
@@ -522,7 +532,7 @@ for(agree in c(T,F)) {
     cl <- mean_cl_normal <- mean_cl_normal(x$finalConfidence)
     rn <- range(aggregate(finalConfidence ~ pid, data = x,
                           FUN = function(x){sum(as.numeric(x))/length(x)})$finalConfidence)
-    tmp <- rbind(tmp, data.frame(agree,
+    df.v.iii.2 <- rbind(df.v.iii.2, data.frame(agree,
                                  advisor = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
                                  meanCorrect = m,
                                  cl95Min = cl$ymin,
@@ -531,12 +541,12 @@ for(agree in c(T,F)) {
                                  rangeMax = rn[2]))
   }
 }
-tmp[,-(1:2)] <- round(tmp[,-(1:2)],2)
+df.v.iii.2[,-(1:2)] <- round(df.v.iii.2[,-(1:2)],2)
 print('Descriptives: final decision confidence')
-tmp
+df.v.iii.2
 
 #   5.iv) Graph: Initial vs Final confidence ####
-
+print('5.iv Graph of initial vs final confidence')
 # Influence of the advisors is evident in the deviation from the dashed y=x
 # line. Points lying below the line indicate a more leftward response from
 # initial to final judgement. Points above the line indicate a more rightward
@@ -553,7 +563,7 @@ df.poly1 <- data.frame(    # These polygon points define a parellelogram marking
   y=c(-100, -100, 100)
 )
 df.poly2 <- df.poly1 * -1
-ggplot(trials, aes(x = initialConfSpan, y = finalConfSpan)) +
+gg.v.iv <- ggplot(trials, aes(x = initialConfSpan, y = finalConfSpan)) +
   geom_polygon(data = df.poly1, aes(x,y), fill = 'grey', alpha = 0.2) +
   geom_polygon(data = df.poly2, aes(x,y), fill = 'grey', alpha = 0.2) +
   geom_point(alpha = 0.2, aes(color = factor(finalCorrect))) +
@@ -570,9 +580,11 @@ ggplot(trials, aes(x = initialConfSpan, y = finalConfSpan)) +
   style + 
   theme(panel.spacing = unit(1.5, 'lines'),
         plot.margin = unit(c(0,1,0,0.5), 'lines'))
+gg.v.iv
 
 #   5.v) Questionnaire responses ####
-tmp <- NULL
+print('5.v Questionnaire responses')
+df.v.v <- NULL
 for(tp in unique(questionnaires$timepoint)) {
   for(colName in c('likeability', 'ability', 'benevolence')) {
     for(aT in adviceTypes) {
@@ -585,26 +597,26 @@ for(tp in unique(questionnaires$timepoint)) {
                             by = list(questionnaires$pid[questionnaires$adviceType==aT 
                                                          & questionnaires$timepoint==tp]), 
                             FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
-      tmp <- rbind(tmp, data.frame(question = colName,
-                                   adviceType = getAdviceTypeName(aT),
-                                   meanCorrect = m,
-                                   cl95Min = cl$ymin,
-                                   cl95Max = cl$ymax,
-                                   rangeMin = rn[1],
-                                   rangeMax = rn[2]))
+      df.v.v <- rbind(df.v.v, data.frame(timepoint = tp,
+                                         question = colName,
+                                         adviceType = getAdviceTypeName(aT),
+                                         meanCorrect = m,
+                                         cl95Min = cl$ymin,
+                                         cl95Max = cl$ymax,
+                                         rangeMin = rn[1],
+                                         rangeMax = rn[2]))
     }
   }
 }
-tmp[,-(1:2)] <- round(tmp[,-(1:2)],2)
-print('Descriptives: questionnaire responses')
-tmp
+df.v.v[,-(1:3)] <- round(df.v.v[,-(1:3)],2)
+print(df.v.v)
 
 # 6) Is the AiC advisor selected more often? ####
 
-print('## TEST Preferential selection for agree-in-confidence advisor? ###############')
+print('Preferential selection for agree-in-confidence advisor')
 
 #   6.i) Overall ####
-
+print('6.i Overall preference')
 # We want to know whether the advisor who agrees with the participant when the
 # participant expresses higher confidence is selected more often by the
 # participant when a choice is offered.
@@ -617,33 +629,33 @@ print('## TEST Preferential selection for agree-in-confidence advisor? #########
 tmp <- aggregate(adviceType ~ pid, 
                  data = trials[trials$type==trialTypes$choice, ],
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
-selection.test <- t.test(tmp$adviceType, mu=0.5)
-selection.test.b <- ttestBF(tmp$adviceType, mu = 0.5)
+t.vi.i <- t.test(tmp$adviceType, mu=0.5)
+tB.vi.i <- ttestBF(tmp$adviceType, mu = 0.5)
 
-print('>>(selection.test) choice proportion Agree-in-confidence vs. chance level (.5)')
-prettyPrint(selection.test)
-print('>>(selection.test.b) bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
-print(selection.test.b)
-print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(selection.test.b@bayesFactor$bf),3)))
+print('Choice proportion Agree-in-confidence vs. chance level (.5)')
+prettyPrint(t.vi.i)
+print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
+print(tB.vi.i)
+print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.vi.i@bayesFactor$bf),3)))
 
 #   6.ii) Medium-confidence trials ####
-
+print('6.ii Medium-confidence trials')
 # And the same with mid-confidence trials only:
 tmp <- aggregate(adviceType ~ pid, 
                  data = trials[trials$type==trialTypes$choice 
                                & trials$confidenceCategory==confidenceCategories$medium, ],
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
-selection.med.test <- t.test(tmp$adviceType, mu=0.5)
-selection.med.test.b <- ttestBF(tmp$adviceType, mu = 0.5)
+t.vi.ii <- t.test(tmp$adviceType, mu=0.5)
+tB.vi.ii <- ttestBF(tmp$adviceType, mu = 0.5)
 
-print('>>(selection.med.test) choice proportion Agree-in-confidence vs. chance level (.5)')
-prettyPrint(selection.med.test)
-print('>>(selection.med.test.b) bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
-print(selection.med.test.b)
-print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(selection.med.test.b@bayesFactor$bf),3)))
+print('Choice proportion Agree-in-confidence vs. chance level (.5) for mid-confidence trials')
+prettyPrint(t.vi.ii)
+print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
+print(tB.vi.ii)
+print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.vi.ii@bayesFactor$bf),3)))
 
 #   6.iii) Graph: Advisor preference by confidence category ####
-
+print('6.iii Graph of advisor preference')
 # Proportion of the time each participant picked the agree-in-confidence
 # advisor. Connected points of a colour indicate data from a single participant,
 # while the diamond indicates the mean proportion across all participants. The
@@ -654,8 +666,8 @@ tmp <- aggregate(adviceType ~ pid + confidenceCategory,
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
 tmp.2 <- aggregate(adviceType ~ pid,
                    data = trials[trials$type == trialTypes$choice, ],
-                   FUN = function(x)sum(x==adviceTypes$AiC)/length(x) )
-ggplot(tmp, aes(x = factor(confidenceCategory), y = adviceType)) +
+                   FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
+gg.vi.iii <- ggplot(tmp, aes(x = factor(confidenceCategory), y = adviceType)) +
   geom_hline(linetype = "dashed", color = "black", yintercept = .5, size = 1) +
   geom_point(aes(color = factor(pid))) +
   geom_line(aes(group = factor(pid), color = factor(pid))) +
@@ -677,13 +689,14 @@ ggplot(tmp, aes(x = factor(confidenceCategory), y = adviceType)) +
        x = "Confidence",
        y = "P(Agree-in-confidence advisor is chosen)") +
   style
+gg.vi.iii
 
 # 7) ANOVA investigating influence ####
 
-print('## ANOVA investigating influence ##############################################')
+print('ANOVAs investigating influence')
 
 #   7.i) Adjusted influence, all trials ####
-
+print('7.i Adjusted influence on all trials')
 #Influence is defined as the extent to which the judge's (participant's) final
 #decision has moved from their initial decision in the direction of the advice
 #received.
@@ -696,20 +709,20 @@ print('## ANOVA investigating influence ########################################
 # (dis/agree) on influence. These are all within-subjects manipulations.
 tmp <- aggregate(influence ~ adviceType + hasChoice + advisorAgrees + pid, data = trials, FUN = mean)
 print('Running ANOVAs')
-anova.AdviceTypexTrialTypexAgreement <- aov(influence ~ adviceType * hasChoice * advisorAgrees + 
+aov.vii.i <- aov(influence ~ adviceType * hasChoice * advisorAgrees + 
                                               Error(pid / (adviceType + hasChoice + advisorAgrees)), 
                                             data=tmp)
-print('>>(anova.AdviceTypexTrialTypexAgreement)')
-print(summary(anova.AdviceTypexTrialTypexAgreement))
+print('2x2x2 Mixed ANOVA of advisor type x choice x agreement')
+print(summary(aov.vii.i))
 
 
 #   7.ii) Graph: Adjusted Advice influence, all trials ####
-
+print('7.ii Graph of adjusted influence on all trials')
 # Influence of advice under varied conditions. Points indicate mean values for a
 # participant, while diamonds indicate the mean of participant means, with error
 # bars specifying 95% confidence intervals.
 tmp$adviceType <- factor(tmp$adviceType)
-ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill = adviceType)) +
+gg.vii.ii <- ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill = adviceType)) +
   geom_point(position = position_jitter(w=0.1, h=0)) +
   stat_summary(geom = "errorbar",
                fun.data = "mean_cl_boot",
@@ -727,8 +740,10 @@ ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill = adviceType)
        legend = NULL,
        y = "Influence of the advice") +
   style
-#   7.iii) Adjusted influence, medium-confidence trials ####
+gg.vii.ii
 
+#   7.iii) Adjusted influence, medium-confidence trials ####
+print('7.iii Adjusted influence on medium-confidence trials')
 # The bias-sharing advisor and anti-bias advisors differ in their frequency with
 # which they agree with the participant as a  function of participant confidence
 # (by design). To control for background effects where people are influenced
@@ -742,65 +757,121 @@ tmp <- aggregate(influence ~ adviceType + hasChoice + advisorAgrees + pid,
                  data = trials[trials$confidenceCategory==confidenceCategories$medium
                                & trials$finalAnswer==trials$correctAnswer, ], 
                  FUN = mean)
-anova.AdviceTypexTrialTypexAgreement.70 <- aov(influence ~ adviceType * hasChoice * advisorAgrees + 
+aov.vii.iii <- aov(influence ~ adviceType * hasChoice * advisorAgrees + 
                                                  Error(pid / (adviceType + hasChoice + advisorAgrees)), 
                                                data=tmp)
-print('>>(anova.AdviceTypexTrialTypexAgreement.70) Looking at only trials where intial decision was correct and made with middle confidence:')
-print(summary(anova.AdviceTypexTrialTypexAgreement.70))
+print('As above, looking at only trials where intial decision was correct and made with middle confidence:')
+print(summary(aov.vii.iii))
 
 #   7.iv) Raw influence, all trials ####
-
+print('7.iv Raw influence on all trials')
 # 2x2x2 ANOVA investigating effects of advisor type
 # (agree-in-confidence/uncertainty), choice (un/forced), and agreement
 # (dis/agree) on influence. These are all within-subjects manipulations.
 tmp <- aggregate(rawInfluence ~ adviceType + hasChoice + advisorAgrees + pid, data = trials, FUN = mean)
 print('Running ANOVAs')
-anova.AdviceTypexTrialTypexAgreement <- aov(rawInfluence ~ adviceType * hasChoice * advisorAgrees + 
+aov.vii.iv <- aov(rawInfluence ~ adviceType * hasChoice * advisorAgrees + 
                                               Error(pid / (adviceType + hasChoice + advisorAgrees)), 
                                             data=tmp)
-print('>>(anova.AdviceTypexTrialTypexAgreement)')
-print(summary(anova.AdviceTypexTrialTypexAgreement))
+print('Original mixed ANOVA using raw influence scores')
+print(summary(aov.vii.iv))
 
 # 8) Trust questionnaire answers ####
+print('Analysis of trust questionnaires')
+#   8.i) Bayesian no-difference tests for advisor properties ####
+print('Bayesian tests investigating advisor properties')
+# We want to show that the randomly assigned advisor race/age/portrait/name had
+# no effect. We will do this by showing that they did not differ between
+# timepoints.
 
-#   8.i) Mixed hierachical multiple regression ####
+#     8.i.i) Race
+print('8.i.i Race')
+df.viii.i.i <- NULL
+for(v in c('likeability', 'ability', 'benevolence')) {
+  x <- questionnaires[questionnaires$advisorCategory=='b',v]
+  y <- questionnaires[questionnaires$advisorCategory=='w',v]
+  bf <- ttestBF(x,y)
+  df.viii.i.i <- rbind(df.viii.i.i, data.frame(variable = v,
+                                               BF = exp(bf@bayesFactor$bf),
+                                               mu1 = mean(x),
+                                               mu2 = mean(y)))
+}
+print(df.viii.i.i)
 
-#     8.i.a) Control model ####
-#MISSING!!!!####
+#     8.i.ii) Age
+# TODO ####
+# Find a Bayesian version of this to demonstrate sensitive nullness
+print('8.i.ii Age')
+df.viii.i.ii <- NULL
+for(v in c('likeability', 'ability', 'benevolence')) {
+  tmp <- cor.test(questionnaires[,v], questionnaires[,'advisorAge'])
+  df.viii.i.ii <- rbind(df.viii.i.ii, data.frame(variable = v,
+                                                 corellation = tmp$statistic,
+                                                 p.value = tmp$p.value,
+                                                 method = tmp$method))
+}
+print(df.viii.i.ii)
 
+#     8.i.iii) Portrait
+print('8.i.iii Portrait')
+tmp <- questionnaires
+tmp$pid <- as.factor(tmp$pid)
+df.viii.i.iii <- NULL
+for(v in c('likeability', 'ability', 'benevolence')) {
+  tmp$v <- tmp[,v]
+  tmp.aov <- anovaBF(v ~ advisorPortrait + pid, data = tmp, whichRandom = 'pid', progress = F)
+  df.viii.i.iii <- rbind(df.viii.i.iii, data.frame(variable = v,
+                                                 BF = exp(tmp.aov@bayesFactor$bf)))
+}
+print(df.viii.i.iii)
 
-tmp.null <- lmer(ability ~ timepoint + 
-                         (1+advisorAge|pid),# +advisorName|pid),
-                       data = questionnaires)
-summary(tmp.null)
-#     8.i.b) Advice type ####
-#MISSING!!!!####
+#     8.i.iv) Name
+print('8.i.iv Name')
+tmp <- questionnaires
+tmp$pid <- as.factor(tmp$pid)
+df.viii.i.iv <- NULL
+for(v in c('likeability', 'ability', 'benevolence')) {
+  tmp$v <- tmp[,v]
+  tmp.aov <- anovaBF(v ~ advisorName + pid, data = tmp, whichRandom = 'pid', progress = F)
+  df.viii.i.iv <- rbind(df.viii.i.iv, data.frame(variable = v,
+                                                 BF = exp(tmp.aov@bayesFactor$bf)))
+}
+print(df.viii.i.iv)
 
-tmp.lm <- lmer(ability ~ adviceType * timepoint + 
-                       (1+advisorCategory+advisorAge|pid),# + (advisorName|pid),
-                 data = questionnaires)
-summary(tmp.lm)
-anova(tmp.lm, tmp.null)
-#   8.ii) Graph: Pro/retrospective assessments by advice type and dimension ####
+# If any of the above do show significant differences then we'll have to show
+# that the factors which differ are not systematically linked to the advice type
+# in order to demonstrate that they're not responsible for any advice type
+# effects we observe
 
+#   8.ii) 2x2 AdviceType x Timepoint MANOVA ####
+# TODO ####
+# Check this MANOVA actually accounts for multiple observations per participant
+print('8.ii AdviceType x Timepoint MANOVA')
+aov.viii.ii <- manova(cbind(ability, likeability, benevolence) ~ adviceType * timepoint,
+                      data = questionnaires)
+print(summary(aov.viii.ii))
+
+#   8.iii) Graph: Pro/retrospective assessments by advice type and dimension ####
+print('8.iii Graph of questionnaire responses')
 # TODO ####
 # tidy the hell out of this graph. Should allow easy discrimination
 # between advice type assessment changes over time.
 tmp <- aggregate(cbind(likeability, ability, benevolence) ~ adviceType + timepoint + pid, 
                  data = questionnaires, FUN = mean)
 tmp <- melt(tmp, id.vars = c('adviceType', 'timepoint', 'pid'))
-ggplot(tmp, aes(x = variable, y = value, colour = as.factor(timepoint))) +
+gg.viii.iii <- ggplot(tmp, aes(x = variable, y = value, colour = as.factor(timepoint))) +
   geom_boxplot() +
   scale_y_continuous(limits = c(0,100)) +
   facet_grid(~ adviceType) + 
   style
+gg.viii.iii
 
 # 9) Do participants simply prefer agreement? ####
 
-print('## Do participants simply prefer agreement? ###################################')
+print('Do participants simply prefer agreement?')
 
 #   9.i) Pick rate in low- vs high-confidence trials ####
-
+print('9.i Pick rate in low- vs high-confidence trials')
 # If so, we should see that participants preferentially pick agree-in-confidence
 # advisor when their initial confidence is high, and agreee-in-uncertainty when
 # their initial confidence is low. We can t-test aic pick proportion in
@@ -808,17 +879,22 @@ print('## Do participants simply prefer agreement? #############################
 tmp <- aggregate(adviceType ~ pid + confidenceCategory,
                  data = trials[trials$type==trialTypes$choice, ],
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
-t.test(tmp$adviceType[tmp$confidenceCategory==confidenceCategories$low],
+t.ix.i <- t.test(tmp$adviceType[tmp$confidenceCategory==confidenceCategories$low],
        tmp$adviceType[tmp$confidenceCategory==confidenceCategories$high],
        paired = T)
-ttestBF(tmp$adviceType[tmp$confidenceCategory==confidenceCategories$low],
+tB.ix.i <- ttestBF(tmp$adviceType[tmp$confidenceCategory==confidenceCategories$low],
         tmp$adviceType[tmp$confidenceCategory==confidenceCategories$high],
         paired = T)
+print('Choice proportion Agree-in-confidence in low- vs high-confidence trials')
+prettyPrint(t.ix.i)
+print('Bayesian examination of above (prior = mean diff of 0, sd as empirically observed)')
+print(tB.ix.i)
+print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.ix.i@bayesFactor$bf),3)))
 
 # 10) Subjective-objective correlation ####
-
+print('Subjective-objective measure correlation')
 #   10.i) Questionnaire-influence correlation ####
-
+print('10.i Questionnaire-influence correlation')
 # Participants rate advisors on three factors: ability, benevolence, and
 # likeability. We can investigate these ratings for correlations with the
 # objective influence measure. We would expect ability to show the strongest
@@ -846,15 +922,18 @@ tmp$influence <- sapply(1:nrow(tmp), function(i){tmp.2$influence[tmp.2$hasChoice
                                                                  & tmp.2$adviceType == tmp$adviceType[i]]})
 
 # The test is a regression with the change in subjective variables as predictors
-summary(lm(influence ~ ability + benevolence + likeability, data = tmp))
+lm.x.i <- lm(influence ~ ability + benevolence + likeability, data = tmp)
+print(summary(lm.x.i))
 
 #   10.ii) Graph: Questionnaire-influence correlation ####
+print('10.ii Graph of questionnaire-influence correlation')
 # TODO ####
 # De-uglify this graph
 tmp <- melt(tmp[tmp$timepoint==2, ], id.vars = c('adviceType', 'pid', 'timepoint', measure.vars = c('influence')), 
             variable.name = 'trust dimension', value.name = 'trust')
-ggplot(tmp, aes(x = trust, y = influence, colour = factor(adviceType))) +
+gg.x.ii <- ggplot(tmp, aes(x = trust, y = influence, colour = factor(adviceType))) +
   geom_point(alpha = 0.33) +
   geom_smooth(method = 'lm') +
   facet_grid(`trust dimension`~.) +
   style
+gg.x.ii
