@@ -49,15 +49,20 @@ img.advisorChoice-choice:hover {
 }
 #progressbar-outer {
     width: 80%;
-    height: 15px;
+    height: 25px;
     background-color: #F1F1F1;
     display: inline-block;
     border-radius: 5px;
 }
 #progressbar-inner {
     background-color: #2196F3;
-    height: 15px;
+    height: 25px;
     border-radius: 5px;
+}
+#progressbar-number {
+    position: relative;
+    margin-top: -21px;
+    font-family: "Courier New", monospace;
 }
 #jspsych-progressbar-container > span {
     font-size: 0.8em;

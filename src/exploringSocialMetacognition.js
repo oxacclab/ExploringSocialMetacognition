@@ -689,9 +689,14 @@ class Governor {
             outer.appendChild(inner);
             let content = document.querySelector('.jspsych-content-wrapper');
             content.parentElement.insertBefore(div, content);
+            let numDiv = document.createElement('div');
+            numDiv.id = 'progressbar-number';
+            outer.appendChild(numDiv);
         }
         let inner = document.querySelector('#progressbar-inner');
         inner.style.width = ((this.trials.indexOf(this.currentTrial)/this.trials.length)*100).toString()+'%';
+        let numDiv = document.querySelector('#progressbar-number');
+        numDiv.innerHTML = this.currentTrialIndex + ' / ' + this.trials.length;
         document.querySelector('body').style.backgroundColor = '';
     }
 }
