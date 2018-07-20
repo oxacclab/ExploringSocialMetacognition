@@ -172,8 +172,10 @@ class DotTask extends Governor {
      * Sets a click function on the sliders which makes them behave as if they are moved to 50 when they are focussed.
      * This prevents users clicking on the slider, getting the visual feedback of the slider being activated and set,
      * and then being told they have not moved the slider.
+     *
+     * @param {bool} drawMiddleBar - whether to draw the middle bar on the questionnaire
      */
-    setSliderClick() {
+    setSliderClick(drawMiddleBar = true) {
         let sliders = document.querySelectorAll('.jspsych-sliders-response-slider');
         sliders.forEach(function (slider) {
             slider.addEventListener('click', function () {
@@ -186,17 +188,19 @@ class DotTask extends Governor {
                 let event = new Event('change');
                 this.dispatchEvent(event);
             });
-            // Add a visual indicator to the middle of the slider to show the excluded zone
-            let parent = slider.parentElement;
-            let marker = document.createElement('div');
-            marker.className = 'advisorChoice-middleBar advisorChoice-marker';
-            parent.appendChild(marker);
+            if(drawMiddleBar === true) {
+                // Add a visual indicator to the middle of the slider to show the excluded zone
+                let parent = slider.parentElement;
+                let marker = document.createElement('div');
+                marker.className = 'advisorChoice-middleBar advisorChoice-marker';
+                parent.appendChild(marker);
 
-            let yOffset = slider.clientHeight + 7;
-            marker.style.top = -yOffset.toString() + 'px';
+                let yOffset = slider.clientHeight + 7;
+                marker.style.top = -yOffset.toString() + 'px';
 
-            let xOffset = slider.clientWidth/2 - marker.clientWidth/2;
-            marker.style.left = xOffset.toString() + 'px';
+                let xOffset = slider.clientWidth/2 - marker.clientWidth/2;
+                marker.style.left = xOffset.toString() + 'px';
+            }
         });
         this.drawProgressBar();
     }
@@ -780,11 +784,12 @@ class AdvisorChoice extends DotTask {
     drawQuestionnaire(display_element, callback) {
         // set some styling stuff
         let style = display_element.appendChild(document.createElement('style'));
-        style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:30%} ' +
+        style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:40vw} ' +
+            '.jspsych-sliders-response-wrapper {max-width:60vw} ' +
             '.jspsych-sliders-response-container {max-width:100%} ' +
             '#jspsych-content {max-width: 1000px !important; display:flex; margin:auto;}' +
-            '#advisorChoice-choice-stimulus {max-width:100%; display:block; position:relative; ' +
-            'top:60%; left:10%; margin-top:-50%;}';
+            '#advisorChoice-choice-stimulus {max-width:30vw; display:block; position:relative; ' +
+            'top:60%; left:10%; margin-top:-40%; margin-right: 5vw}';
 
         let advisor = this.questionnaireStack.pop();
         this.lastQuestionnaireAdvisorId = advisor.id;
@@ -802,7 +807,7 @@ class AdvisorChoice extends DotTask {
      * @param {Advisor} advisor
      */
     static changeQuestionnairePrompt(advisor) {
-        let p = document.querySelector('#jspsych-canvas-sliders-response-prompt > p');
+        let p = document.querySelector('#jspsych-sliders-response-prompt > p');
         p.innerHTML = p.textContent.replace('This advisor', advisor.nameHTML);
     }
 

@@ -275,7 +275,7 @@ jsPsych.plugins['canvas-sliders-response'] = (function() {
         html += '<div id="jspsych-canvas-sliders-response-stimulus">'+canvas+'</div>';
         // Prompt text
         if (trial.prompt !== null) {
-            html += '<div id="jspsych-canvas-sliders-response-prompt">'+trial.prompt+'</div>';
+            html += '<div id="jspsych-sliders-response-prompt">'+trial.prompt+'</div>';
         }
 
         // Sliders

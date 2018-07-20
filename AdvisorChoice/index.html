@@ -390,6 +390,7 @@
             ['Incompetent', 'Competent'],
             ['Not trying to help', 'Trying to help']
         ], order),
+        slider_full_width: [true],
         slider_arrangement: [0, 1, 2],
         require_change: [0, 1, 2],
         require_change_warning: utils.orderArray([
@@ -398,7 +399,7 @@
             '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
         ], order),
         max_warnings: 1,
-        on_load: ()=>gov.setSliderClick(),
+        on_load: ()=>gov.setSliderClick(false),
         on_finish: (trial)=>gov.questionnaireResponse(trial)
     };
 
@@ -417,6 +418,7 @@
             ['Incompetent', 'Competent'],
             ['Not trying to help', 'Trying to help']
         ], order),
+        slider_full_width: [true],
         slider_arrangement: [0, 1, 2],
         require_change: [1, 2, 3],
         require_change_warning: utils.orderArray([
@@ -425,7 +427,7 @@
             '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
         ], order),
         max_warnings: 1,
-        on_load: ()=>gov.setSliderClick(),
+        on_load: ()=>gov.setSliderClick(false),
         on_finish: (trial)=>gov.questionnaireResponse(trial)
     };
 

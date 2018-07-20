@@ -30,13 +30,13 @@ jsPsych.plugins['function-sliders-response'] = (function() {
     plugin.info = {
         name: 'function-sliders-response',
         description: 'Collect multiple slider responses to stimuli '+
-        'drawn on an HTML canvas',
+        'drawn using a function',
         parameters: {
             stimulus: {
                 type: jsPsych.plugins.parameterType.FUNCTION,
                 pretty_name: 'Stimulus',
                 default: undefined,
-                description: 'The function to be called with the canvas ID. '+
+                description: 'The function to be called to produce the stimulus. '+
                 'This should handle drawing operations.'
             },
             prompt: {
@@ -206,7 +206,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
             check_response: {
                 type: jsPsych.plugins.parameterType.FUNCTION,
                 pretty_name: 'Check response',
-                default: undefined,
+                default: null,
                 description: 'This function is called with the candidate response data. '+
                 'It should return true to allow the submission or false to prevent it.'
             },
@@ -266,7 +266,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
             let html = '<div id="jspsych-function-sliders-response-wrapper" class="jspsych-sliders-response-wrapper">';
             // Prompt text
             if (trial.prompt !== null) {
-                html += '<div id="jspsych-canvas-sliders-response-prompt">'+trial.prompt+'</div>';
+                html += '<div id="jspsych-sliders-response-prompt">'+trial.prompt+'</div>';
             }
             // Sliders
             // Define the sliders
@@ -341,7 +341,8 @@ jsPsych.plugins['function-sliders-response'] = (function() {
             // Loop the rows of sliders
             for (let i=0; i<row_count; i++) {
                 let col = 0;
-                html += '<div id="jspsych-sliders-response-slider-row'+i+'" class="jspsych-sliders-row">';
+                html += '<div id="jspsych-sliders-response-slider-row'+i+'" class="'+
+                    'jspsych-sliders-row">';
                 for(let s=0; s<sliders.length; s++) {
                     let slider = sliders[s];
                     if (max_slider_row === null || slider.arrangement === i) {
@@ -358,11 +359,15 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                             '" class="jspsych-sliders-prompt">'+
                             slider.prompt+'</td></tr>';
                         // slider
-                        let spacer = (colCount===2 || slider.slider_full_width===true)?
-                            '' :
-                            '<td class="jspsych-sliders-spacer" style="width: '+tdWidth.toString()+
-                            '%;"></td>';
-                        let colSpan = (colCount===2 || slider.slider_full_width===true)? 2 : colCount/2;
+                        let spacer = '';
+                        if(colCount!==2 && slider.slider_full_width === false)
+                            spacer = '<td class="jspsych-sliders-spacer" style="width: '+tdWidth.toString()+
+                                '%;"></td>';
+                        let colSpan = colCount/2;
+                        if(colCount===2)
+                            colSpan = 2;
+                        else if(slider.slider_full_width === true)
+                            colSpan = colCount;
                         html += '<tr class="jspsych-sliders-slider">'+
                             spacer+
                             '<td colspan="'+(colSpan).toString()+'" style="width: '+(tdWidth*colSpan).toString()+'%;" '+
@@ -551,7 +556,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
             };
 
             let okay = false;
-            if(typeof trial.check_response === 'undefined')
+            if(trial.check_response === null)
                 okay = true;
             else
                 okay = trial.check_response(trialdata);
