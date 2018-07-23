@@ -3,7 +3,7 @@
 <head>
     <title>Advisor Choice Experiment</title>
     <script type="text/javascript">
-        let prolificID = window.location.search.match('[?&]PROLIFIC_PID=\\w+');
+        window.prolificID = window.location.search.match('[?&]PROLIFIC_PID=\\w+');
         if(prolificID !== null)
             prolificID = prolificID[0].substring(14);
         // redirect if we don't have consent for participation
@@ -46,7 +46,6 @@
                 properly the experiment requires a modern browser with javascript enabled.</p>
         </div>
     </div>
-</body>
 <script type="module">
     import {DoubleDotGrid, Advisor, utils} from '../src/exploringSocialMetacognition.js';
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
@@ -214,6 +213,7 @@
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
+        "<p>The screen will no longer change colour to inidicate whether or not your response was correct.</p>" +
         "<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
         "two advisors and you will click one to hear their advice.</p>" +
         "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
@@ -506,4 +506,5 @@
     }
 
 </script>
+</body>
 </html>
