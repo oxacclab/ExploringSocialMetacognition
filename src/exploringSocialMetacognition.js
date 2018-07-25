@@ -642,7 +642,7 @@ class Governor {
                 let text = "";
                 try {
                     text = JSON.parse(this.responseText);
-                } catch {
+                } catch(e) {
                     text = this.responseText;
                 }
                 console.log(text);
