@@ -88,3 +88,7 @@ tr.jspsych-sliders-response-labels td:first-of-type {
 tr.jspsych-sliders-response-labels td:last-of-type {
     text-align: right;
 }
+
+div.jspsych-sliders-row.genTrustQ:hover {
+    background-color: #dddddd;
+}

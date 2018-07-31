@@ -426,6 +426,8 @@ class AdvisorChoice extends DotTask {
         this.advisorLists = typeof args.advisorLists === 'undefined'? null : args.advisorLists;
         this.contingentAdvisors = typeof args.contingentAdvisors === 'undefined'? null : args.contingentAdvisors;
         this.questionnaireStack = typeof args.questionnaireStack === 'undefined'? null : args.questionnaireStack;
+        this.generalisedTrustQuestionnaire = typeof args.generalisedTrustQuestionnaire === 'undefined'?
+            null : args.generalisedTrustQuestionnaire;
         this.drawDebriefForm = debriefForm; // why is this in a separate file?
     }
 
@@ -821,11 +823,18 @@ class AdvisorChoice extends DotTask {
      * Save the response to the questionnaire.
      */
     questionnaireResponse(trial) {
-        if (Object.keys(gov).indexOf('questionnaires') === -1)
+        if (Object.keys(this).indexOf('questionnaires') === -1)
             this.questionnaires = [];
         trial.afterTrial = this.currentTrialIndex-1;
         trial.advisorId = this.lastQuestionnaireAdvisorId;
         this.questionnaires.push(trial);
+    }
+
+    /**
+     * Save the response to the generalised trust questionnaire
+     */
+    genTrustQuestionnaireResponse(trial) {
+        this.generalisedTrustQuestionnaire = trial;
     }
 
     /**

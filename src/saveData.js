@@ -55,6 +55,10 @@ export default function processData(data, test = false) {
     for (let t=0; t<data.trials.length; t++)
         trialData.push(flattenTrialData(data.trials[t], participantData.id));
     participantData.trials = trialData;
+
+    // Generalized trust questionnaire
+    participantData.generalisedTrustQuestionnaire = flattenGTQ(data.generalisedTrustQuestionnaire, participantData.id);
+
     return participantData;
 }
 
@@ -158,6 +162,28 @@ function flattenQuestionnaireData(Q, id) {
                 out.ability = parseInt(Q.response[r].answer);
                 break;
         }
+    }
+    return out;
+}
+
+/**
+ * Extract the key variables from the trust questionnaire object
+ * @param {Object[]} Q - trust questionnaire
+ * @param {int} id - id of the participant (inserted as first column)
+ * @returns {Object} - slim representation of trust questionnare object
+ */
+function flattenGTQ(Q, id) {
+    let out = {};
+    out.participantId = id;
+    out.timeStart = Q.startTime;
+    out.timeResponseStart = Q.responseStartTime;
+    out.timeEnd = Q.time_elapsed;
+    out.duration = Q.rt;
+    for(let r=0; r < Q.response.length; r++) {
+        out[Q.response[r].name+"_order"] = Q.response[r].id;
+        out[Q.response[r].name+"_answer"] = Q.response[r].answer;
+        out[Q.response[r].name+"_prompt"] = Q.response[r].prompt;
+        out[Q.response[r].name+"_lastChangedTime"] = Q.response[r].lastChangedTime;
     }
     return out;
 }

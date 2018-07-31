@@ -398,6 +398,7 @@
             '<p style="color: red;">Please answer the <em>competence</em> question.</p>',
             '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
         ], order),
+        special_class_names: ['questionnaire'],
         max_warnings: 1,
         on_load: ()=>gov.setSliderClick(false),
         on_finish: (trial)=>gov.questionnaireResponse(trial)
@@ -426,9 +427,55 @@
             '<p style="color: red;">Please answer the <em>competence</em> question.</p>',
             '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
         ], order),
+        special_class_names: ['questionnaire'],
         max_warnings: 1,
         on_load: ()=>gov.setSliderClick(false),
         on_finish: (trial)=>gov.questionnaireResponse(trial)
+    };
+
+    const genTrustQuestionnaire = {
+        type: "function-sliders-response",
+        stimulus: (display_element, callback)=>{callback()},
+        sliderCount: 6,
+        slider_name: [
+            "caution",
+            "limits_of_knowledge",
+            "counted_on",
+            "cooperative_working",
+            "experiences_and_abilities",
+            "personal_questions"
+        ],
+        slider_prompt: [
+            "When working with other people",
+            "When talking about the limits of their knowledge most other people",
+            "Most other people",
+            "When there is a choice, one should",
+            "When describing their experiences and abilities",
+            "Most people answer personal questions"
+        ],
+        labels: [
+            ["I have to be cautious", "I do not have to cautious"],
+            ["Tell the truth", "Lie"],
+            ["Can be counted on", "Can't be counted on"],
+            ["Work with other people", "Work alone"],
+            ["Most people tell the truth", "Most people lie"],
+            ["Honestly", "Dishonestly"]
+        ],
+        slider_full_width: [true],
+        slider_arrangement: [0,1,2,3,4,5,6],
+        require_change: [1,2,3,4,5,6,7],
+        require_change_warning: [
+            '<p style="color: red;">Please answer the <em>working with other people</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>knowledge limits</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>reliability</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>cooperative working preference</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>experiences and abilities</em> question.</p>',
+            '<p style="color: red;">Please answer the <em>personal questions</em> question.</p>',
+        ],
+        special_class_names: ['genTrustQ'],
+        max_warnings: 1,
+        on_load: ()=>gov.setSliderClick(false),
+        on_finish: (trial)=>gov.genTrustQuestionnaireResponse(trial)
     };
 
     const intro_procedure = {
@@ -489,6 +536,9 @@
     }
 
     timeline.pop();
+    
+    // Trust questionnaire
+    timeline.push(genTrustQuestionnaire);
 
 
     /* start the experiment */
