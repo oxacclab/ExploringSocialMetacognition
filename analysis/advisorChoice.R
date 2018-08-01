@@ -386,7 +386,7 @@ print(df.iii.v)
 
 #   3.vi) Graph: trial count by contingency ####
 print('3.vi Graph of trial count by contingency')
-gg.iii.vi <- ggplot(tmp, aes(y = practice, x = as.factor(confidenceCategory), 
+gg.iii.vi <- ggplot(df.iii.v, aes(y = practice, x = as.factor(confidenceCategory), 
                 colour = as.factor(adviceType), shape = as.factor(advisorAgrees))) +
   stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
   stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
@@ -412,7 +412,7 @@ participants$excluded <- sapply(participants$pid, function(pid){
   # overall accuracy of initial decisions
   v <- all.trials$initialAnswer[ts] == all.trials$correctAnswer[ts]
   m <- mean(as.numeric(v), na.rm = T)
-  if(m < .6 | m > .9)
+  if(m < .6 | m > .85)
     return('Accuracy')
   # varied use of confidence scale
   ts <- which(trials$pid == pid)
@@ -420,17 +420,10 @@ participants$excluded <- sapply(participants$pid, function(pid){
   # All confidence categories must be used
   if(nrow(cCs) < 3)
     return ('Confidence')
-  return(F)
-  # TODO ####
   # Clarify the numbers on the rules below
-  # Between 30 and 50% of trials must be medium confidence
-  if(cCs$pid[cCs$confidenceCategory==confidenceCategories$medium] < length(ts)*.3 
-     | cCs$pid[cCs$confidenceCategory==confidenceCategories$medium] > length(ts)*.5)
-    return('Confidence.med')
-  # Other categories must contain between 20 and 40% of trials
-  cCs[cCs$confidenceCategory==confidenceCategories$medium, ] <- NULL
-  if(any(cCs$pid < length(ts)*.2) | any(cCs$pid > length(ts)*.4))
-    return('Confidence.hiLow')
+  # All confidence categories must have at least 5% of the number of trials
+  if(any(cCs$pid < length(ts)*.05))
+    return('Confidence.cat')
   return(F)
   })
 all.participants <- participants
@@ -815,16 +808,12 @@ for(v in c('likeability', 'ability', 'benevolence')) {
 print(df.viii.i.i)
 
 #     8.i.ii) Age
-# TODO ####
-# Find a Bayesian version of this to demonstrate sensitive nullness
 print('8.i.ii Age')
 df.viii.i.ii <- NULL
 for(v in c('likeability', 'ability', 'benevolence')) {
-  tmp <- cor.test(questionnaires[,v], questionnaires[,'advisorAge'])
+  tmp <- correlationBF(questionnaires[,v], questionnaires[,'advisorAge'])
   df.viii.i.ii <- rbind(df.viii.i.ii, data.frame(variable = v,
-                                                 corellation = tmp$statistic,
-                                                 p.value = tmp$p.value,
-                                                 method = tmp$method))
+                                                 corellation = exp(tmp@bayesFactor$bf)))
 }
 print(df.viii.i.ii)
 
@@ -863,7 +852,7 @@ print(df.viii.i.iv)
 # TODO ####
 # Check this MANOVA actually accounts for multiple observations per participant
 print('8.ii AdviceType x Timepoint MANOVA')
-aov.viii.ii <- manova(cbind(ability, likeability, benevolence) ~ adviceType * timepoint,
+aov.viii.ii <- manova(cbind(ability, likeability, benevolence) ~ adviceType * timepoint,# + Error(pid),
                       data = questionnaires)
 print(summary(aov.viii.ii))
 
@@ -943,14 +932,18 @@ print(summary(lm.x.i))
 
 #   10.ii) Graph: Questionnaire-influence correlation ####
 print('10.ii Graph of questionnaire-influence correlation')
-# TODO ####
-# De-uglify this graph
-tmp <- melt(tmp[tmp$timepoint==2, ], id.vars = c('adviceType', 'pid', 'timepoint', measure.vars = c('influence')), 
-            variable.name = 'trust dimension', value.name = 'trust')
+tmp <- melt(tmp[tmp$timepoint==2, ], id.vars = c('adviceType', 'pid', 'timepoint', 'influence'), 
+            measure.vars = c('likeability', 'ability', 'benevolence'), 
+            variable.name = 'trustDimension', value.name = 'trust')
 gg.x.ii <- ggplot(tmp, aes(x = trust, y = influence, colour = factor(adviceType))) +
   geom_point(alpha = 0.33) +
-  geom_smooth(method = 'lm') +
-  facet_grid(`trust dimension`~.) +
+  geom_smooth(method = 'lm', aes(fill = factor(adviceType)), alpha = 0.1) +
+  facet_wrap(trustDimension ~ .) +
+  coord_fixed(ratio = 10, expand = F) +
+  scale_x_continuous(name = 'Trust change') +
+  scale_y_continuous(name = 'Influence') + 
+  scale_color_discrete(name = 'Advice type', labels = c('Agree in Confidence', 'Agree in Uncertainty')) +
+  scale_fill_discrete(name = 'Advice type', labels = c('Agree in Confidence', 'Agree in Uncertainty')) +
   style
 gg.x.ii
 
@@ -963,16 +956,28 @@ tmp <- aggregate(cbind(likeability, ability, benevolence) ~ adviceType + pid,
                   data = questionnaires[questionnaires$timepoint==1,],
                   FUN = mean)
 tmp$genTrust <- sapply(tmp$pid, function(x) genTrustQ$answer[genTrustQ$pid==x & genTrustQ$order==0])
-c.xi.i.like <- cor.test(tmp$likeability, tmp$genTrust)
-c.xi.i.able <- cor.test(tmp$ability, tmp$genTrust)
-c.xi.i.bene <- cor.test(tmp$benevolence, tmp$genTrust)
+df.xi.i <- NULL
+for(v in c('likeability', 'ability', 'benevolence')) {
+  tmp.2 <- cor.test(tmp[,v], tmp[,'genTrust'])
+  df.xi.i <- rbind(df.xi.i, data.frame(variable = v,
+                                       corellation = tmp$statistic,
+                                       p.value = tmp$p.value,
+                                       method = tmp$method))
+}
 
-#   11.ii) Generalised Trust and influence
+#   11.ii) Generalised Trust and influence ####
 
 # Generalised trust should also correlate with influence given that influence is
 # supposedly a manifestation of trust
-tmp <- aggregate(influence ~ pid,
+tmp <- aggregate(cbind(influence, rawInfluence) ~ pid,
                  data = trials,
                  FUN = mean)
 tmp$genTrust <- sapply(tmp$pid, function(x) genTrustQ$answer[genTrustQ$pid==x & genTrustQ$order==0])
-c.xi.ii <- cor.test(tmp$influence, tmp$genTrust)
+df.xi.ii <- NULL
+for(v in c('rawInfluence', 'influence')) {
+  tmp.2 <- cor.test(tmp[,v], tmp[,'genTrust'])
+  df.xi.ii <- rbind(df.xi.ii, data.frame(variable = v,
+                                         corellation = tmp$statistic,
+                                         p.value = tmp$p.value,
+                                         method = tmp$method))
+}

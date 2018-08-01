@@ -259,7 +259,9 @@ class DotTask extends Governor {
      */
     getConfidenceCategory(trialId, args) {
         args = args || {};
-        args.nTrialsBack = args.nTrialsBack || this.trials.length;
+        args.nTrialsBack = typeof args.nTrialsBack === 'undefined'? args.nTrialsBack : this.trials.length;
+        if(args.nTrialsBack === null)
+            args.nTrialsBack = this.trials.length;
         args.correctOnly = typeof args.correctOnly === 'undefined'? true : args.correctOnly;
         args.initialAnswerCorrect = typeof args.initialAnswerCorrect? true : args.initialAnswerCorrect;
         args.initialConfidence = typeof args.initialConfidence? true : args.initialConfidence;
@@ -272,8 +274,8 @@ class DotTask extends Governor {
         }
         let confidenceScore = this.trials[trialIndex].confidence[(args.initialConfidence? 0 : 1)];
 
-        // collate valid trials
-        let validTrials = [];
+        // collate valid trials and get confidence
+        let confidenceList = [];
         for (let i=0; i<args.nTrialsBack; i++) {
             // stop if we run out of trials
             if (i+1 === trialIndex) {
@@ -286,15 +288,10 @@ class DotTask extends Governor {
             // have to be correct if we want only correct trials
             if (args.correctOnly && trial.answer[(args.initialAnswerCorrect? 0 : 1)] !== trial.whichSide)
                 continue;
-            validTrials.push(trial);
+            confidenceList.push(trial.confidence[(args.initialConfidence? 0 : 1)]);
         }
 
-        // Get confidence list
-        let confidenceList = [];
-        validTrials.forEach(function (trial) {
-            confidenceList.push(trial.confidence[(args.initialConfidence? 0 : 1)]);
-        });
-        // Put it in order
+        // Put confidence list in order
         confidenceList.sort();
         // Find the markers at 30% and 70%
         let bounds = {

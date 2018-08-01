@@ -29,15 +29,17 @@ if(exists('prolificIds')) {
     if(length(proId)>0)
       tmp <- rbind(tmp, data.frame(pid,
                                    prolificId = proId,
-                                   brieravg = scores$brieravg[i]))
+                                   brieravg = scores$brieravg[i],
+                                   excluded = participants$excluded[participants$pid==pid]))
     else
       print(paste('PID',pid,'has no prolific hash associated'))
   }
-  markers <- quantile(tmp$brieravg)
+  markers <- quantile(tmp$brieravg[tmp$excluded==F])
   for(i in 1:nrow(tmp)) {
     tmp$quantile[i] <- which(markers >= tmp$brieravg[i])[1]
     tmp$reward[i] <- round(2 - 2/(length(markers)-1)*(tmp$quantile[i]-1),2)
   }
+  tmp$reward[tmp$excluded!=F] <- 0 # no bonus for excluded participants
   print(tmp[,c('prolificId','reward')])
   prolificIds[!(prolificIds %in% tmp$prolificId)]
 }
