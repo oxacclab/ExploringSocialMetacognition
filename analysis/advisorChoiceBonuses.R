@@ -38,6 +38,6 @@ if(exists('prolificIds')) {
     tmp$quantile[i] <- which(markers >= tmp$brieravg[i])[1]
     tmp$reward[i] <- round(2 - 2/(length(markers)-1)*(tmp$quantile[i]-1),2)
   }
-  tmp[,c('prolificId','reward')]
+  print(tmp[,c('prolificId','reward')])
+  prolificIds[!(prolificIds %in% tmp$prolificId)]
 }
-prolificIds[!(prolificIds %in% tmp$prolificId)]

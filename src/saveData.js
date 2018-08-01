@@ -173,17 +173,19 @@ function flattenQuestionnaireData(Q, id) {
  * @returns {Object} - slim representation of trust questionnare object
  */
 function flattenGTQ(Q, id) {
-    let out = {};
-    out.participantId = id;
-    out.timeStart = Q.startTime;
-    out.timeResponseStart = Q.responseStartTime;
-    out.timeEnd = Q.time_elapsed;
-    out.duration = Q.rt;
+    let out = [];
     for(let r=0; r < Q.response.length; r++) {
-        out[Q.response[r].name+"_order"] = Q.response[r].id;
-        out[Q.response[r].name+"_answer"] = Q.response[r].answer;
-        out[Q.response[r].name+"_prompt"] = Q.response[r].prompt;
-        out[Q.response[r].name+"_lastChangedTime"] = Q.response[r].lastChangedTime;
+        out[r] = {
+            participantId: id,
+            timeStart: Q.startTime,
+            timeResponseStart: Q.responseStartTime,
+            timeEnd: Q.time_elapsed,
+            duration: Q.rt
+        };
+        out[r].order = Q.response[r].id;
+        out[r].answer = Q.response[r].answer;
+        out[r].prompt = Q.response[r].prompt;
+        out[r].lastChangedTime = Q.response[r].lastChangedTime;
     }
     return out;
 }

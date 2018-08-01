@@ -42,6 +42,9 @@
 # 10) Subjective-objective correlation
 #   10.i) Questionnaire-influence correlation
 #   10.ii) Graph: Questionnaire-influence correlation
+# 11) Generalised Trust 
+#   11.i) Generalised Trust and subjective assessments
+#   11.ii) Generalised Trust and influence
 
 # 0) Support ####
 
@@ -217,12 +220,15 @@ if(exists('advisors'))
   rm(advisors)
 if(exists('questionnaires'))
   rm(questionnaires)
+if(exists('genTrustQ'))
+  rm(genTrustQ)
 folderName <- '../AdvisorChoice/data/processed/'
 files <- list.files(folderName)
 participants <- NULL
 trials <- NULL
 advisors <- NULL
 questionnaires <- NULL
+genTrustQ <- NULL
 for (i in seq(length(files))) {
   fileName <- paste(folderName, files[[i]], sep='/')
   json <- readChar(fileName, file.info(fileName)$size)
@@ -232,11 +238,17 @@ for (i in seq(length(files))) {
   # Patch for missing data in practice
   if(!('debriefComments' %in% names(jsonData)))
     jsonData <- c(list(debriefComments = 'NA'), jsonData)
-  participants <- rbind(participants, as.data.frame(t(jsonData[1:(length(names(jsonData))-3)])))
+  participants <- rbind(participants, 
+                        as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors', 
+                                                                         'questionnaires', 
+                                                                         'trials',
+                                                                         'generalisedTrustQuestionnaire')])))
   # store the trials in the trials table
   trials <- rbind(trials, jsonData$trials)
   advisors <- rbind(advisors, jsonData$advisors)
   questionnaires <- rbind(questionnaires, jsonData$questionnaires)
+  if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
+    genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
 }
 rm(jsonData, files, fileName, folderName, json)
   
@@ -262,6 +274,7 @@ tmp <- function(x) participants$pid[which(participants$id == x)]
 trials$pid <- sapply(trials$participantId, tmp)
 questionnaires$pid <- sapply(questionnaires$participantId, tmp)
 advisors$pid <- sapply(advisors$participantId, tmp)
+genTrustQ$pid <- sapply(genTrustQ$participantId, tmp)
 # adviceType > questionnaire table
 aT <- vector(length = dim(questionnaires)[1]) 
 timepoint <- aT
@@ -288,6 +301,9 @@ questionnaires$advisorPortrait <- sapply(1:nrow(questionnaires), function(i) {
 # Add on the source data
 questionnaires$advisorAge <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$age[i])
 questionnaires$advisorCategory <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$category[i])
+# The first general trust question is reverse coded
+genTrustQ$answer <- as.numeric(genTrustQ$answer)
+genTrustQ$answer[genTrustQ$order==0] <- 100 - genTrustQ$answer[genTrustQ$order==0]
 
 #   1.iii) Split off real trials ####
 print('Separate real trials from practice')
@@ -937,3 +953,26 @@ gg.x.ii <- ggplot(tmp, aes(x = trust, y = influence, colour = factor(adviceType)
   facet_grid(`trust dimension`~.) +
   style
 gg.x.ii
+
+# 11) Generalised Trust ####
+#   11.i) Generalised Trust and subjective assessments ####
+
+# Generalised Trust is a measure of the propensity to trust, so we expect it to
+# correlate with the initial scores for the advisor questionnaires
+tmp <- aggregate(cbind(likeability, ability, benevolence) ~ adviceType + pid,
+                  data = questionnaires[questionnaires$timepoint==1,],
+                  FUN = mean)
+tmp$genTrust <- sapply(tmp$pid, function(x) genTrustQ$answer[genTrustQ$pid==x & genTrustQ$order==0])
+c.xi.i.like <- cor.test(tmp$likeability, tmp$genTrust)
+c.xi.i.able <- cor.test(tmp$ability, tmp$genTrust)
+c.xi.i.bene <- cor.test(tmp$benevolence, tmp$genTrust)
+
+#   11.ii) Generalised Trust and influence
+
+# Generalised trust should also correlate with influence given that influence is
+# supposedly a manifestation of trust
+tmp <- aggregate(influence ~ pid,
+                 data = trials,
+                 FUN = mean)
+tmp$genTrust <- sapply(tmp$pid, function(x) genTrustQ$answer[genTrustQ$pid==x & genTrustQ$order==0])
+c.xi.ii <- cor.test(tmp$influence, tmp$genTrust)
