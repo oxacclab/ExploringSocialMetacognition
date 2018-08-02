@@ -121,7 +121,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
             require_change_warning: {
                 type: jsPsych.plugins.parameterType.HTML_STRING,
                 pretty_name: 'Require change warning',
-                default: ['<p class="jspsych-function-solders-response" style="color: red;">'+
+                default: ['<p class="jspsych-function-sliders-response" style="color: red;">'+
                 'At least one of the bars must have been moved to continue.'
                 +'</p>'],
                 array: true,
@@ -264,6 +264,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
         }
         let div = document.createElement('div');
         div.id = 'jspsych-function-sliders-response-stimulus';
+        div.classList.add('jspsych-function-sliders-response');
         display_element.appendChild(div);
         trial.stimulus(div, do_trial);
 
@@ -273,10 +274,10 @@ jsPsych.plugins['function-sliders-response'] = (function() {
             response.responseStartTime = performance.now();
 
             let html = '<div id="jspsych-function-sliders-response-wrapper"' +
-                'class="jspsych-function-solders-response jspsych-sliders-response-wrapper">';
+                'class="jspsych-function-sliders-response jspsych-sliders-response-wrapper">';
             // Prompt text
             if (trial.prompt !== null) {
-                html += '<div id="jspsych-sliders-response-prompt" class="jspsych-function-solders-response"'+
+                html += '<div id="jspsych-sliders-response-prompt" class="jspsych-function-sliders-response"'+
                     +'>'+trial.prompt+'</div>';
             }
             // Sliders
@@ -348,12 +349,12 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 sliders.push(slider)
             }
             let row_count = (max_slider_row === null)? 1 : max_slider_row+1;
-            html += '<div class="jspsych-function-solders-response jspsych-sliders-response-container">';
+            html += '<div class="jspsych-function-sliders-response jspsych-sliders-response-container">';
             // Loop the rows of sliders
             for (let i=0; i<row_count; i++) {
                 let col = 0;
                 html += '<div id="jspsych-sliders-response-slider-row'+i+'" class="'+
-                    'jspsych-function-solders-response jspsych-sliders-row">';
+                    'jspsych-function-sliders-response jspsych-sliders-row">';
                 for(let s=0; s<sliders.length; s++) {
                     let slider = sliders[s];
                     if (max_slider_row === null || slider.arrangement === i) {
@@ -361,20 +362,20 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                         let colCount = slider.labels.length * 2;
                         let tdWidth = 100/colCount;
                         html += '<div id="jspsych-sliders-response-slider-col'+
-                            col+'" class="jspsych-function-solders-response jspsych-sliders-col">';
+                            col+'" class="jspsych-function-sliders-response jspsych-sliders-col">';
                         // Draw sliders in tables because rigid formatting is important here
                         html += '<table id="jspsych-sliders-response-table'+s+
-                            '" class="jspsych-function-solders-response jspsych-sliders-table">';
+                            '" class="jspsych-function-sliders-response jspsych-sliders-table">';
                         // prompt
-                        html += '<tr class="jspsych-function-solders-response jspsych-sliders-prompt">'+
+                        html += '<tr class="jspsych-function-sliders-response jspsych-sliders-prompt">'+
                             '<td colspan="'+colCount+
                             '" style="width: 100%;" id="jspsych-sliders-response-slider-prompt'+s+
-                            '" class="jspsych-function-solders-response jspsych-sliders-prompt">'+
+                            '" class="jspsych-function-sliders-response jspsych-sliders-prompt">'+
                             slider.prompt+'</td></tr>';
                         // slider
                         let spacer = '';
                         if(colCount!==2 && slider.slider_full_width === false)
-                            spacer = '<td class="jspsych-function-solders-response jspsych-sliders-spacer"' +
+                            spacer = '<td class="jspsych-function-sliders-response jspsych-sliders-spacer"' +
                             'style="width: '+tdWidth.toString()+
                                 '%;"></td>';
                         let colSpan = colCount/2;
@@ -382,30 +383,30 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                             colSpan = 2;
                         else if(slider.slider_full_width === true)
                             colSpan = colCount;
-                        html += '<tr class="jspsych-function-solders-response jspsych-sliders-slider">'+
+                        html += '<tr class="jspsych-function-sliders-response jspsych-sliders-slider">'+
                             spacer+
                             '<td colspan="'+(colSpan).toString()+'" style="width: '+(tdWidth*colSpan).toString()+'%;" '+
-                            'class="jspsych-function-solders-response jspsych-sliders-slider"' +
+                            'class="jspsych-function-sliders-response jspsych-sliders-slider"' +
                             ' id="jspsych-function-sliders-response-sliderCell'+s+'"'+
                             ' ><input type="range" value="'+slider.start+
                             '" min="'+slider.min+'" max="'+slider.max+
                             '" step="'+slider.step+'" '+
                             'id="jspsych-function-sliders-response-slider'+s+'" '+
-                            'class="jspsych-function-solders-response jspsych-sliders-response-slider"/></td>'+
+                            'class="jspsych-function-sliders-response jspsych-sliders-response-slider"/></td>'+
                             spacer+
                             '</tr>';
                         // labels
                         html += '<tr id="jspsych-function-sliders-response-labels'+s
-                            +'" class="jspsych-function-solders-response jspsych-sliders-response-labels">';
+                            +'" class="jspsych-function-sliders-response jspsych-sliders-response-labels">';
                         for(let j=0; j < slider.labels.length; j++){
                             let width = 100/slider.labels.length;
                             let left_offset = j * width;
                             let widthStr = (j === slider.labels.length-1)?
                                 "" : 'width: '+(100/slider.labels.length).toString()+'%;';
                             html += '<td colspan="2" style="width: '+(tdWidth*2).toString()+
-                                '%;" class="jspsych-function-solders-response jspsych-sliders-response-label"'+
+                                '%;" class="jspsych-function-sliders-response jspsych-sliders-response-label"'+
                                 ' id="jspsych-function-sliders-response-labelS'+s+'L'+j+'">';
-                            html += '<span class="jspsych-function-solders-response jspsych-sliders-response-label">'+
+                            html += '<span class="jspsych-function-sliders-response jspsych-sliders-response-label">'+
                                 slider.labels[j]+'</span>';
                             html += '</td>'
                         }
@@ -417,17 +418,17 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 }
                 html += '</div>';
                 html += '<div id="jspsych-function-sliders-row-divider-'+i
-                    +'" class="jspsych-function-solders-response jspsych-sliders-row-divider"></div>';
+                    +'" class="jspsych-function-sliders-response jspsych-sliders-row-divider"></div>';
             }
             html += '</div>';
 
             // warning area if sliders are missed
             html += '<div id="jspsych-function-sliders-response-warnings" ' +
-                'class="jspsych-function-solders-response"></div>';
+                'class="jspsych-function-sliders-response"></div>';
 
             // add submit button
             html += '<button id="jspsych-function-sliders-response-next" ' +
-                'class="jspsych-function-solders-response jspsych-btn">'+trial.button_label+'</button>';
+                'class="jspsych-function-sliders-response jspsych-btn">'+trial.button_label+'</button>';
 
             // basic styling
             html += '<style type="text/css">table.jspsych-sliders-table {width: 100%}'+
@@ -438,7 +439,7 @@ jsPsych.plugins['function-sliders-response'] = (function() {
 
             // Add the custom class to the elements created by this plugin
             if(trial.special_class_names !== []) {
-                document.querySelectorAll('.jspsych-function-solders-response').forEach(
+                document.querySelectorAll('.jspsych-function-sliders-response').forEach(
                     (elm)=>{trial.special_class_names.forEach(
                         (myClass)=>{elm.classList.add(myClass)}
                     )}

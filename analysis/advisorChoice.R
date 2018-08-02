@@ -117,6 +117,7 @@ getAdviceType <- function (t, participant.data.frame, advisor.data.frame, forceR
 #' @param forceRecalulate if true, simply return the appropriate column from t if it exists already
 #' @return a vector of confidence shifts for trial list t
 getConfidenceShift <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
+  scaleMaximum <- 50
   # shortcut if we already calculated this
   if('confidenceShift' %in% colnames(t) && !forceRecalculate)
     return(t$confidenceShift)
@@ -125,11 +126,11 @@ getConfidenceShift <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
     if (is.na(t$finalConfidence[i])) { # no advisor
       out[i] <- NA
     } else {
-      max.shift <- 100 - t$initialConfidence[i]
+      max.shift <- scaleMaximum - t$initialConfidence[i]
       if(t$initialAnswer[i]==t$finalAnswer[i])
         out[i] <- t$finalConfidence[i]-t$initialConfidence[i] # same side
       else
-        out[i] <- t$finalConfidence[i]+t$initialConfidence[i] # switched sliders, so went to 0 on the first one
+        out[i] <- -1 * (t$finalConfidence[i]+t$initialConfidence[i]) # switched sliders, so went to 0 on the first one
       out[i] <- ifelse(abs(out[i] > max.shift), max.shift*sign(out[i]), out[i])
     }
   }
@@ -568,8 +569,8 @@ print('5.iv Graph of initial vs final confidence')
 # meet the grey area.
 
 df.poly1 <- data.frame(    # These polygon points define a parellelogram marking the limits for the capped influence
-  x=c(-100, 0, 0),
-  y=c(-100, -100, 100)
+  x=c(-50, 0, 0),
+  y=c(-50, -50, 50)
 )
 df.poly2 <- df.poly1 * -1
 gg.v.iv <- ggplot(trials, aes(x = initialConfSpan, y = finalConfSpan)) +
@@ -578,8 +579,8 @@ gg.v.iv <- ggplot(trials, aes(x = initialConfSpan, y = finalConfSpan)) +
   geom_point(alpha = 0.2, aes(color = factor(finalCorrect))) +
   geom_abline(slope = 1, intercept = 0, linetype = 'dashed', size = 1, color = 'black') +
   scale_color_discrete(name = 'Final judgement', labels = c('Incorrect', 'Correct')) +
-  scale_x_continuous(limits = c(-100,100), expand = c(0,0)) +
-  scale_y_continuous(limits = c(-100,100), expand = c(0,0)) +
+  scale_x_continuous(limits = c(-50,50), expand = c(0,0)) +
+  scale_y_continuous(limits = c(-50,50), expand = c(0,0)) +
   facet_grid(~advisorAgrees, labeller = as_labeller(c('FALSE'='Disagree', 'TRUE'='Agree'))) +
   labs(title = "Initial vs final confidence",
        legend = NULL,
@@ -774,6 +775,9 @@ print(summary(aov.vii.iii))
 
 #   7.iv) Raw influence, all trials ####
 print('7.iv Raw influence on all trials')
+
+# N.B. This is not a core analysis!
+
 # 2x2x2 ANOVA investigating effects of advisor type
 # (agree-in-confidence/uncertainty), choice (un/forced), and agreement
 # (dis/agree) on influence. These are all within-subjects manipulations.
