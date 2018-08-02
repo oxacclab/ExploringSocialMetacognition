@@ -16,7 +16,7 @@ citation('digest')
 # We use the Brier score
 tmp <- all.trials[,c('initialCorrect', 'initialConfidence', 'pid')]
 tmp$initialCorrect <- as.numeric(tmp$initialCorrect)
-tmp$initialConfidence <- tmp$initialConfidence/100
+tmp$initialConfidence <- tmp$initialConfidence/50
 scores <- brierscore(initialCorrect ~ initialConfidence, data = tmp, group = 'pid')
 scores$brieravg
 
@@ -30,7 +30,8 @@ if(exists('prolificIds')) {
       tmp <- rbind(tmp, data.frame(pid,
                                    prolificId = proId,
                                    brieravg = scores$brieravg[i],
-                                   excluded = participants$excluded[participants$pid==pid]))
+                                   excluded = participants$excluded[participants$pid==pid],
+                                   extra = participants$debriefComments[participants$pid==pid]))
     else
       print(paste('PID',pid,'has no prolific hash associated'))
   }
@@ -40,6 +41,7 @@ if(exists('prolificIds')) {
     tmp$reward[i] <- round(2 - 2/(length(markers)-1)*(tmp$quantile[i]-1),2)
   }
   tmp$reward[tmp$excluded!=F] <- 0 # no bonus for excluded participants
-  print(tmp[,c('prolificId','reward')])
+  for(r in 1:nrow(tmp))
+    print(paste0(tmp$prolificId[r], ', ', tmp$reward[r]))
   prolificIds[!(prolificIds %in% tmp$prolificId)]
 }

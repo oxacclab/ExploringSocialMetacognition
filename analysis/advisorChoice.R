@@ -151,17 +151,10 @@ getInfluence <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
     if (t$advisorId[i] == 0) { # no advisor
       out[i] <- NA
     } else {
-      if (t$advisorAgrees[i]){
-        if(t$initialAnswer[i]==t$finalAnswer[i])
-          out[i] <- getConfidenceShift(t[i,], rawShift, forceRecalculate) # agrees and answer stays the same
-        else
-          out[i] <- -1 * getConfidenceShift(t[i,], rawShift, forceRecalculate) # agrees but answer switches
-      } else {
-        if(t$initialAnswer[i]==t$finalAnswer[i])
-          out[i] <- -1 * getConfidenceShift(t[i,], rawShift, forceRecalculate) # disagrees but answer stays the same
-        else
-          out[i] <- getConfidenceShift(t[i,], rawShift, forceRecalculate) # disagrees and answer switches
-      }
+      if (t$advisorAgrees[i])
+        out[i] <- getConfidenceShift(t[i,], rawShift, forceRecalculate) # amount confidence increased
+      else
+        out[i] <- -1 * getConfidenceShift(t[i,], rawShift, forceRecalculate) # -1 * amount confidence increased
     }
   }
   return(out)

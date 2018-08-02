@@ -259,7 +259,7 @@ class DotTask extends Governor {
      */
     getConfidenceCategory(trialId, args) {
         args = args || {};
-        args.nTrialsBack = typeof args.nTrialsBack === 'undefined'? args.nTrialsBack : this.trials.length;
+        args.nTrialsBack = typeof args.nTrialsBack === 'undefined'? this.trials.length : args.nTrialsBack;
         if(args.nTrialsBack === null)
             args.nTrialsBack = this.trials.length;
         args.correctOnly = typeof args.correctOnly === 'undefined'? true : args.correctOnly;
