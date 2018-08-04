@@ -957,10 +957,11 @@ df.xi.i <- NULL
 for(v in c('likeability', 'ability', 'benevolence')) {
   tmp.2 <- cor.test(tmp[,v], tmp[,'genTrust'])
   df.xi.i <- rbind(df.xi.i, data.frame(variable = v,
-                                       corellation = tmp$statistic,
-                                       p.value = tmp$p.value,
-                                       method = tmp$method))
+                                       corellation = tmp.2$statistic,
+                                       p.value = tmp.2$p.value,
+                                       method = tmp.2$method))
 }
+print(df.xi.i)
 
 #   11.ii) Generalised Trust and influence ####
 
@@ -974,7 +975,8 @@ df.xi.ii <- NULL
 for(v in c('rawInfluence', 'influence')) {
   tmp.2 <- cor.test(tmp[,v], tmp[,'genTrust'])
   df.xi.ii <- rbind(df.xi.ii, data.frame(variable = v,
-                                         corellation = tmp$statistic,
-                                         p.value = tmp$p.value,
-                                         method = tmp$method))
+                                         corellation = tmp.2$statistic,
+                                         p.value = tmp.2$p.value,
+                                         method = tmp.2$method))
 }
+print(df.xi.ii)
