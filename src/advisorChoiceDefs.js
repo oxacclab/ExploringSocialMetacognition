@@ -165,7 +165,14 @@ class DotTask extends Governor {
         let ans = parseInt(response[0].answer);
         if (isNaN(ans))
             return NaN;
-        return parseInt(ans) - (51 * side) + 1;
+        switch(side) {
+            case 0: // left response
+                return 50 - ans;
+            case 1: // right response
+                return ans - 50;
+            default:
+                return NaN;
+        }
     }
 
     /**
