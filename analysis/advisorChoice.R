@@ -514,7 +514,7 @@ for(col in c('initial', 'final')) {
                           FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
     df.v.iii <- rbind(df.v.iii, data.frame(decision = col,
                                  correct = ifelse(length(correct)>1,'Both',correct), # hack to label total
-                                 meanCorrect = m,
+                                 meanConfidence = m,
                                  cl95Min = cl$ymin,
                                  cl95Max = cl$ymax,
                                  rangeMin = rn[1],
@@ -810,7 +810,7 @@ df.viii.i.ii <- NULL
 for(v in c('likeability', 'ability', 'benevolence')) {
   tmp <- correlationBF(questionnaires[,v], questionnaires[,'advisorAge'])
   df.viii.i.ii <- rbind(df.viii.i.ii, data.frame(variable = v,
-                                                 corellation = exp(tmp@bayesFactor$bf)))
+                                                 corellationBF = exp(tmp@bayesFactor$bf)))
 }
 print(df.viii.i.ii)
 
@@ -891,7 +891,8 @@ print('Choice proportion Agree-in-confidence in low- vs high-confidence trials')
 prettyPrint(t.ix.i)
 print('Bayesian examination of above (prior = mean diff of 0, sd as empirically observed)')
 print(tB.ix.i)
-print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.ix.i@bayesFactor$bf),3)))
+print(paste0('Evidence strength for differential high/low confidence picking strategy: BF=', 
+             round(exp(tB.ix.i@bayesFactor$bf),3)))
 
 # 10) Subjective-objective correlation ####
 print('Subjective-objective measure correlation')
@@ -936,7 +937,7 @@ gg.x.ii <- ggplot(tmp, aes(x = trust, y = influence, colour = factor(adviceType)
   geom_point(alpha = 0.33) +
   geom_smooth(method = 'lm', aes(fill = factor(adviceType)), alpha = 0.1) +
   facet_wrap(trustDimension ~ .) +
-  coord_fixed(ratio = 10, expand = F) +
+  coord_fixed(ratio = 3, expand = F) +
   scale_x_continuous(name = 'Trust change') +
   scale_y_continuous(name = 'Influence') + 
   scale_color_discrete(name = 'Advice type', labels = c('Agree in Confidence', 'Agree in Uncertainty')) +
@@ -949,7 +950,7 @@ gg.x.ii
 
 # Generalised Trust is a measure of the propensity to trust, so we expect it to
 # correlate with the initial scores for the advisor questionnaires
-tmp <- aggregate(cbind(likeability, ability, benevolence) ~ adviceType + pid,
+tmp <- aggregate(cbind(likeability, ability, benevolence) ~ pid,
                   data = questionnaires[questionnaires$timepoint==1,],
                   FUN = mean)
 tmp$genTrust <- sapply(tmp$pid, function(x) genTrustQ$answer[genTrustQ$pid==x & genTrustQ$order==0])
@@ -962,6 +963,16 @@ for(v in c('likeability', 'ability', 'benevolence')) {
                                        method = tmp.2$method))
 }
 print(df.xi.i)
+
+# Graph result
+tmp.2 <- melt(tmp, id.vars = c('pid'), measure.vars = c('likeability', 'ability', 'benevolence'))
+tmp.2$genTrust <- sapply(tmp.2$pid, function(x) tmp$genTrust[tmp$pid==x][1])
+gg.xi.i <- ggplot(tmp.2, aes(x = genTrust, y = value)) +
+  geom_smooth(method = 'lm') +
+  geom_vline(aes(xintercept = genTrust, colour = as.factor(pid))) +
+  facet_grid(variable ~ .) + 
+  style
+gg.xi.i
 
 #   11.ii) Generalised Trust and influence ####
 
@@ -980,3 +991,9 @@ for(v in c('rawInfluence', 'influence')) {
                                          method = tmp.2$method))
 }
 print(df.xi.ii)
+
+gg.xi.ii <- ggplot(tmp, aes(x = genTrust, y = influence)) +
+  geom_smooth(method = 'lm') + 
+  geom_point(aes(colour = as.factor(pid))) +
+  style
+gg.xi.ii
