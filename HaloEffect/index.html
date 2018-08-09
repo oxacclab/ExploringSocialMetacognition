@@ -9,7 +9,7 @@
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null) {
-            redirectURL = "../consent.html?study=AdvisorChoice";
+            redirectURL = "../consent.html?study=Halo";
             if(prolificID !== null)
                 redirectURL += "&PROLIFIC_PID=" + prolificID;
             window.location.replace(redirectURL); // simulate redirect (no history)
@@ -48,7 +48,7 @@
     </div>
 <script type="module">
     import {DoubleDotGrid, Advisor, utils} from '../src/exploringSocialMetacognition.js';
-    import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
+    import {AdvisorChoice, HaloEffect, trialTypes, gkTask} from "../src/advisorChoiceDefs.js";
 
     let adviceTypes = [0,3,4,3,4];
     let advisorIdDeck = utils.shuffle(utils.getSequence(1,5));
@@ -60,14 +60,8 @@
         new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1], args),
         new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2], args)
     ];
-    let advisorListB = [
-        new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3], args),
-        new Advisor(advisorIdDeck[4], adviceTypes[4], advisorVoiceDeck[4], advisorPicDeck[4], args)
-    ];
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];
-    if (Math.random() < .5)
-        advisorListB = [advisorListB[1], advisorListB[0]];
 
     /**
      * The governor contains the properties which the experiment functions need to access from everywhere.
@@ -76,22 +70,19 @@
      * required to run the experiment (e.g. advisors, trials); and it holds miscellaneous temporary
      * variables which are required for things such as staircasing.
      */
-    let gov = new AdvisorChoice({
+    let gov = new HaloEffect({
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: 3,
         minimumBlockScore: 0.10,
         practiceAdvisor,
         advisorLists: [
-            advisorListA,
-            advisorListB
+            advisorListA
         ],
         advisors: [
             practiceAdvisor,
             advisorListA[0],
-            advisorListA[1],
-            advisorListB[0],
-            advisorListB[1]
+            advisorListA[1]
         ],
         contingentAdvisors: [[], [], []],
         blockCount: 2,
@@ -116,8 +107,6 @@
         preTrialInterval: 200,
         preStimulusInterval: 500,
         questionnaireStack: [
-            advisorListB[0], advisorListB[1],
-            advisorListB[1], advisorListB[0],
             advisorListA[0], advisorListA[1],
             advisorListA[1], advisorListA[0],
             practiceAdvisor
@@ -334,7 +323,6 @@
         playAudioFunction: function () {
             let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
             div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.adviceString;
-            //gov.currentTrial.advice.play();
         },
         prompt: "",
         on_finish: (pluginData)=>{
@@ -370,6 +358,37 @@
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.finalResponse(trial),
         post_trial_gap: gov.feedbackDuration
+    };
+
+    /* General knowledge task */
+    const gkInitialDecision = {
+        type: "function-sliders-response",
+        stimulus: (display_element, callback)=>gov.generalKnowledge(display_element,callback),
+        sliderCount: 1,
+        slider_name: ['answer'],
+        labels: [
+            ['FALSE', 'TRUE']
+        ],
+        slider_full_width: [true],
+        require_change: [0],
+        special_class_names: ['general-knowledge', 'general-knowledge-initial'],
+        on_load: ()=>gov.generalKnowledgeOnLoad(),
+        on_finish: (trial)=>gov.generalKnowledgeResponse(trial)
+    };
+
+    const gkFinalDecision = {
+        type: "function-sliders-response",
+        stimulus: (display_element, callback)=>gov.generalKnowledge(display_element,callback),
+        sliderCount: 1,
+        slider_name: ['answer'],
+        labels: [
+            ['FALSE', 'TRUE']
+        ],
+        slider_full_width: [true],
+        require_change: [0],
+        special_class_names: ['general-knowledge', 'general-knowledge-final'],
+        on_load: ()=>gov.generalKnowledgeOnLoad(true),
+        on_finish: (trial)=>gov.generalKnowledgeFinalResponse(trial)
     };
 
     /* Questionnaires to ask about how the judge feels about the advisors */
@@ -496,8 +515,15 @@
         repetitions: utils.sumList(gov.blockStructure)/2
     };
 
+    const gk_procedure = {
+        timeline: [gkInitialDecision, advice, gkFinalDecision],
+        randomize_order: false,
+        repetitions: 1
+    };
+
     // intro and practice
     timeline.push(welcome);
+    timeline.push(gk_procedure); gov.trials[0] = new gkTask(0, gov.trials[10]); gov.trials[0].question = 'How true?'; gov.trials[0].answerOptions = ['So true', 'So so true'];
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
