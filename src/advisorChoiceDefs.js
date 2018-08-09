@@ -582,8 +582,10 @@ class AdvisorChoice extends DotTask {
         marker.style.top = yOffset.toString() + 'px';
 
         let xOffset = this.currentTrial.answer[0] === 1? slider.clientWidth/2 : 0;
+        let xDistance = this.currentTrial.answer[0] === 1?
+            this.currentTrial.confidence[0] : 51 - this.currentTrial.confidence[0];
         xOffset -= marker.clientWidth/2;
-        marker.style.left = (xOffset + this.currentTrial.confidence[0] * (slider.clientWidth-marker.clientWidth)
+        marker.style.left = (xOffset + xDistance * (slider.clientWidth-marker.clientWidth)
             / 100).toString() + 'px';
 
         // and call the slider-click function because we only get one on_load call
