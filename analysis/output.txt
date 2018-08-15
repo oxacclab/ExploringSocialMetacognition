@@ -1,0 +1,465 @@
+> source('F:/www/vhosts/localhost/ExploringSocialMetacognition/analysis/advisorChoice.R')
+[1] "Load data"
+[1] "Calculate utility variables"
+[1] "Separate real trials from practice"
+[1] "Demographics"
+[1] "Demographic data are not collected and therefore not analysed"
+[1] "Manipulation checks"
+[1] "3.i Overall agreement by contingency"
+
+Error: pid
+                   Df  Sum Sq Mean Sq
+confidenceCategory  1 0.01609 0.01609
+
+Error: pid:confidenceCategory
+                   Df  Sum Sq Mean Sq
+confidenceCategory  1 0.05006 0.05006
+
+Error: pid:adviceType
+                   Df  Sum Sq Mean Sq
+confidenceCategory  1 0.07818 0.07818
+
+Error: pid:initialCorrect
+           Df Sum Sq Mean Sq
+adviceType  1  20.14   20.14
+
+Error: Within
+                                              Df Sum Sq Mean Sq F value   Pr(>F)    
+confidenceCategory                             1  0.001   0.001   0.071    0.790    
+adviceType                                     1  0.005   0.005   0.298    0.586    
+initialCorrect                                 1  6.098   6.098 330.726  < 2e-16 ***
+confidenceCategory:adviceType                  1  2.198   2.198 119.224  < 2e-16 ***
+confidenceCategory:initialCorrect              1  0.012   0.012   0.655    0.419    
+adviceType:initialCorrect                      1  0.035   0.035   1.889    0.170    
+confidenceCategory:adviceType:initialCorrect   1  0.916   0.916  49.680 4.67e-12 ***
+Residuals                                    645 11.892   0.018                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+[1] "3.ii Graph of overall agreement by contingency"
+[1] "3.iii Initial block agreement by contingency"
+[1] "3.iv Graph of intial block agreement by contingency"
+[1] "3.v Trial count by contingency"
+     pid confidenceCategory adviceType initialCorrect advisorAgrees practice
+1      1                  0          3          FALSE         FALSE       16
+2      2                  0          3          FALSE         FALSE       11
+3      3                  0          3          FALSE         FALSE       15
+4      4                  0          3          FALSE         FALSE        8
+5      5                  0          3          FALSE         FALSE       12
+6      6                  0          3          FALSE         FALSE       19
+7      7                  0          3          FALSE         FALSE       13
+8      8                  0          3          FALSE         FALSE       15
+9      9                  0          3          FALSE         FALSE       18
+10    10                  0          3          FALSE         FALSE        7
+11    11                  0          3          FALSE         FALSE       21
+12    12                  0          3          FALSE         FALSE       22
+13    13                  0          3          FALSE         FALSE       11
+14    14                  0          3          FALSE         FALSE       17
+15    15                  0          3          FALSE         FALSE       17
+16    16                  0          3          FALSE         FALSE       15
+17    17                  0          3          FALSE         FALSE       14
+18    18                  0          3          FALSE         FALSE       24
+19    19                  0          3          FALSE         FALSE        9
+20    20                  0          3          FALSE         FALSE        5
+21    21                  0          3          FALSE         FALSE       25
+22    22                  0          3          FALSE         FALSE       26
+23    23                  0          3          FALSE         FALSE       15
+24    24                  0          3          FALSE         FALSE       16
+25    25                  0          3          FALSE         FALSE       23
+26    26                  0          3          FALSE         FALSE        8
+27    27                  0          3          FALSE         FALSE       16
+28    28                  0          3          FALSE         FALSE       13
+29    29                  0          3          FALSE         FALSE       11
+30    30                  0          3          FALSE         FALSE       14
+31    31                  0          3          FALSE         FALSE       11
+32    32                  0          3          FALSE         FALSE       28
+33    33                  0          3          FALSE         FALSE       12
+34    34                  0          3          FALSE         FALSE       14
+35    35                  0          3          FALSE         FALSE       10
+36    36                  0          3          FALSE         FALSE       13
+37    37                  0          3          FALSE         FALSE       19
+38    38                  0          3          FALSE         FALSE       14
+39    39                  0          3          FALSE         FALSE        7
+40    40                  0          3          FALSE         FALSE       12
+41    41                  0          3          FALSE         FALSE        8
+42    42                  0          3          FALSE         FALSE       18
+43    43                  0          3          FALSE         FALSE        7
+44    44                  0          3          FALSE         FALSE       16
+45    45                  0          3          FALSE         FALSE       12
+46    46                  0          3          FALSE         FALSE       15
+47    47                  0          3          FALSE         FALSE       21
+48    48                  0          3          FALSE         FALSE       10
+49    49                  0          3          FALSE         FALSE       23
+50    50                  0          3          FALSE         FALSE       16
+51    51                  0          3          FALSE         FALSE       14
+52    52                  0          3          FALSE         FALSE       34
+53    53                  0          3          FALSE         FALSE        6
+54    54                  0          3          FALSE         FALSE       20
+55    55                  0          3          FALSE         FALSE       11
+56    56                  0          3          FALSE         FALSE        8
+57    57                  0          3          FALSE         FALSE       12
+58     1                  1          3          FALSE         FALSE        9
+59     2                  1          3          FALSE         FALSE        8
+60     3                  1          3          FALSE         FALSE        3
+61     4                  1          3          FALSE         FALSE        6
+62     5                  1          3          FALSE         FALSE       11
+63     7                  1          3          FALSE         FALSE        6
+64     8                  1          3          FALSE         FALSE        8
+65     9                  1          3          FALSE         FALSE        4
+66    10                  1          3          FALSE         FALSE       10
+67    11                  1          3          FALSE         FALSE        3
+68    12                  1          3          FALSE         FALSE        2
+69    13                  1          3          FALSE         FALSE       17
+70    14                  1          3          FALSE         FALSE       13
+71    15                  1          3          FALSE         FALSE        3
+72    16                  1          3          FALSE         FALSE        8
+73    17                  1          3          FALSE         FALSE        8
+74    18                  1          3          FALSE         FALSE        8
+75    19                  1          3          FALSE         FALSE       16
+76    20                  1          3          FALSE         FALSE        6
+77    21                  1          3          FALSE         FALSE        5
+78    22                  1          3          FALSE         FALSE       10
+79    23                  1          3          FALSE         FALSE        7
+80    24                  1          3          FALSE         FALSE        8
+81    25                  1          3          FALSE         FALSE       10
+82    26                  1          3          FALSE         FALSE       27
+83    27                  1          3          FALSE         FALSE        4
+84    28                  1          3          FALSE         FALSE       18
+85    29                  1          3          FALSE         FALSE        7
+86    30                  1          3          FALSE         FALSE        8
+87    31                  1          3          FALSE         FALSE        9
+88    32                  1          3          FALSE         FALSE        1
+89    33                  1          3          FALSE         FALSE        8
+90    34                  1          3          FALSE         FALSE        7
+91    35                  1          3          FALSE         FALSE        9
+92    36                  1          3          FALSE         FALSE        9
+93    37                  1          3          FALSE         FALSE        7
+94    38                  1          3          FALSE         FALSE        8
+95    39                  1          3          FALSE         FALSE       10
+96    40                  1          3          FALSE         FALSE       19
+97    41                  1          3          FALSE         FALSE       10
+98    43                  1          3          FALSE         FALSE        9
+99    44                  1          3          FALSE         FALSE       14
+100   45                  1          3          FALSE         FALSE       11
+101   46                  1          3          FALSE         FALSE        8
+102   48                  1          3          FALSE         FALSE       14
+103   49                  1          3          FALSE         FALSE       12
+104   50                  1          3          FALSE         FALSE        4
+105   51                  1          3          FALSE         FALSE       10
+106   53                  1          3          FALSE         FALSE       13
+107   55                  1          3          FALSE         FALSE        8
+108   56                  1          3          FALSE         FALSE        7
+109   57                  1          3          FALSE         FALSE        4
+110    1                  2          3          FALSE         FALSE        1
+111    3                  2          3          FALSE         FALSE        2
+112    4                  2          3          FALSE         FALSE       12
+113    5                  2          3          FALSE         FALSE        3
+114    6                  2          3          FALSE         FALSE        2
+115    7                  2          3          FALSE         FALSE        1
+116    8                  2          3          FALSE         FALSE        2
+117    9                  2          3          FALSE         FALSE        4
+118   10                  2          3          FALSE         FALSE       17
+119   11                  2          3          FALSE         FALSE        4
+120   12                  2          3          FALSE         FALSE        1
+121   13                  2          3          FALSE         FALSE        6
+122   14                  2          3          FALSE         FALSE        1
+123   15                  2          3          FALSE         FALSE        8
+124   16                  2          3          FALSE         FALSE        5
+125   17                  2          3          FALSE         FALSE        6
+126   18                  2          3          FALSE         FALSE        9
+127   19                  2          3          FALSE         FALSE        9
+128   20                  2          3          FALSE         FALSE        9
+129   23                  2          3          FALSE         FALSE       12
+130   24                  2          3          FALSE         FALSE        1
+131   26                  2          3          FALSE         FALSE        9
+132   27                  2          3          FALSE         FALSE        4
+133   28                  2          3          FALSE         FALSE       12
+134   29                  2          3          FALSE         FALSE        9
+135   30                  2          3          FALSE         FALSE        2
+136   31                  2          3          FALSE         FALSE        3
+137   32                  2          3          FALSE         FALSE        4
+138   33                  2          3          FALSE         FALSE        1
+139   34                  2          3          FALSE         FALSE        3
+140   35                  2          3          FALSE         FALSE        9
+141   36                  2          3          FALSE         FALSE       12
+142   38                  2          3          FALSE         FALSE        7
+143   39                  2          3          FALSE         FALSE        7
+144   40                  2          3          FALSE         FALSE       12
+145   41                  2          3          FALSE         FALSE        2
+146   42                  2          3          FALSE         FALSE        7
+147   43                  2          3          FALSE         FALSE       10
+148   44                  2          3          FALSE         FALSE        4
+149   45                  2          3          FALSE         FALSE        5
+150   46                  2          3          FALSE         FALSE        2
+151   48                  2          3          FALSE         FALSE        4
+152   49                  2          3          FALSE         FALSE        1
+153   50                  2          3          FALSE         FALSE       13
+154   51                  2          3          FALSE         FALSE        5
+155   53                  2          3          FALSE         FALSE        6
+156   54                  2          3          FALSE         FALSE        1
+157   56                  2          3          FALSE         FALSE       20
+158   57                  2          3          FALSE         FALSE        7
+159    1                  0          4          FALSE         FALSE       18
+160    2                  0          4          FALSE         FALSE       19
+161    3                  0          4          FALSE         FALSE       17
+162    4                  0          4          FALSE         FALSE        8
+163    5                  0          4          FALSE         FALSE       17
+164    6                  0          4          FALSE         FALSE       27
+165    7                  0          4          FALSE         FALSE       31
+166    8                  0          4          FALSE         FALSE       21
+ [ reached getOption("max.print") -- omitted 1107 rows ]
+[1] "3.vi Graph of trial count by contingency"
+[1] "Running exclusions"
+  exclusionReason count
+1      Confidence     2
+2  Confidence.cat     5
+3           FALSE    50
+[1] "Descriptive statistics"
+[1] "5.i Proportion correct"
+  decision adviceType target meanCorrect cl95Min cl95Max rangeMin rangeMax
+1  initial      Total   0.71        0.65    0.65    0.66     0.60     0.70
+2  initial        AiC   0.71        0.65    0.64    0.66     0.56     0.73
+3  initial        AiU   0.71        0.66    0.64    0.67     0.55     0.73
+4    final      Total     NA        0.64    0.64    0.65     0.56     0.71
+5    final        AiC     NA        0.64    0.62    0.65     0.47     0.73
+6    final        AiU     NA        0.65    0.64    0.66     0.52     0.72
+[1] "5.ii Agreement rate"
+   adviceType       name probAgree cl95Min cl95Max rangeMin rangeMax
+1         AiC        low      0.60    0.58    0.63     0.31     0.92
+2         AiC     medium      0.69    0.67    0.72     0.42     1.00
+3         AiC       high      0.82    0.79    0.84     0.58     1.00
+4         AiC allCorrect      0.69    0.67    0.70     0.58     0.81
+5         AiC   allWrong      0.31    0.29    0.33     0.17     0.47
+6         AiC        All      0.56    0.54    0.57     0.45     0.66
+7         AiU        low      0.80    0.78    0.82     0.60     1.00
+8         AiU     medium      0.70    0.67    0.72     0.50     1.00
+9         AiU       high      0.56    0.54    0.59     0.25     1.00
+10        AiU allCorrect      0.71    0.69    0.72     0.55     0.87
+11        AiU   allWrong      0.30    0.28    0.32     0.16     0.50
+12        AiU        All      0.57    0.55    0.58     0.43     0.66
+[1] "5.iii Mean confidence"
+  decision correct meanConfidence cl95Min cl95Max rangeMin rangeMax
+1  initial    TRUE          26.38   26.11   26.66     8.15    47.13
+2  initial   FALSE          24.12   23.76   24.48     6.24    45.61
+3  initial    Both          25.60   25.38   25.82     7.46    46.59
+4    final    TRUE          28.84   28.53   29.15    10.56    49.89
+5    final   FALSE          25.89   25.47   26.31     7.56    49.76
+6    final    Both          27.79   27.54   28.04     9.45    49.84
+[1] "Descriptives: final decision confidence"
+[1] "5.iv Graph of initial vs final confidence"
+[1] "5.v Questionnaire responses"
+   timepoint    question adviceType meanCorrect cl95Min cl95Max rangeMin rangeMax
+1          1 likeability        AiC       58.07   53.58   62.56      4.5      100
+2          1 likeability        AiU       63.21   58.91   67.51      3.5      100
+3          1     ability        AiC       61.49   57.21   65.77     26.5      100
+4          1     ability        AiU       59.94   55.85   64.03     26.0      100
+5          1 benevolence        AiC       60.98   56.78   65.18     13.5      100
+6          1 benevolence        AiU       64.21   60.17   68.25     39.0      100
+7          2 likeability        AiC       64.54   60.44   68.64     20.5      100
+8          2 likeability        AiU       65.44   61.15   69.73     31.5      100
+9          2     ability        AiC       61.61   57.40   65.82     27.5       96
+10         2     ability        AiU       61.97   57.67   66.27     20.5       92
+11         2 benevolence        AiC       65.39   60.81   69.97     26.0      100
+12         2 benevolence        AiU       66.88   62.28   71.48     27.0      100
+[1] "Preferential selection for agree-in-confidence advisor"
+[1] "6.i Overall preference"
+[1] "Choice proportion Agree-in-confidence vs. chance level (.5)"
+[1] "t(49)=-0.46 [95%CI: 0.45, 0.53], p=0.65"
+[1] "Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)"
+Bayes factor analysis
+--------------
+[1] Alt., r=0.707 : 0.169848 ±0%
+
+Against denominator:
+  Null, mu = 0.5 
+---
+Bayes factor type: BFoneSample, JZS
+
+[1] "Evidence strength for preferential AiC picking: BF=0.17"
+[1] "6.ii Medium-confidence trials"
+[1] "Choice proportion Agree-in-confidence vs. chance level (.5) for mid-confidence trials"
+[1] "t(49)=-0.32 [95%CI: 0.45, 0.54], p=0.748"
+[1] "Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)"
+Bayes factor analysis
+--------------
+[1] Alt., r=0.707 : 0.1616614 ±0%
+
+Against denominator:
+  Null, mu = 0.5 
+---
+Bayes factor type: BFoneSample, JZS
+
+[1] "Evidence strength for preferential AiC picking: BF=0.162"
+[1] "6.iii Graph of advisor preference"
+[1] "ANOVAs investigating influence"
+[1] "7.i Adjusted influence on all trials"
+[1] "Running ANOVAs"
+[1] "2x2x2 Mixed ANOVA of advisor type x choice x agreement"
+
+Error: pid
+           Df Sum Sq Mean Sq
+adviceType  1  79.95   79.95
+
+Error: pid:adviceType
+           Df Sum Sq Mean Sq
+adviceType  1  13.26   13.26
+
+Error: pid:hasChoice
+           Df Sum Sq Mean Sq
+adviceType  1  5.093   5.093
+
+Error: pid:advisorAgrees
+           Df Sum Sq Mean Sq
+adviceType  1  205.4   205.4
+
+Error: Within
+                                    Df Sum Sq Mean Sq F value Pr(>F)  
+adviceType                           1      0    0.03   0.001 0.9741  
+hasChoice                            1      7    6.66   0.218 0.6408  
+advisorAgrees                        1    149  148.99   4.877 0.0278 *
+adviceType:hasChoice                 1      7    7.45   0.244 0.6217  
+adviceType:advisorAgrees             1     49   49.25   1.612 0.2050  
+hasChoice:advisorAgrees              1    136  136.10   4.455 0.0354 *
+adviceType:hasChoice:advisorAgrees   1      4    3.57   0.117 0.7328  
+Residuals                          387  11824   30.55                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+[1] "7.ii Graph of adjusted influence on all trials"
+[1] "7.iii Adjusted influence on medium-confidence trials"
+[1] "As above, looking at only trials where intial decision was correct and made with middle confidence:"
+
+Error: pid
+           Df Sum Sq Mean Sq
+adviceType  1  17.42   17.42
+
+Error: pid:adviceType
+           Df Sum Sq Mean Sq
+adviceType  1 0.2453  0.2453
+
+Error: pid:hasChoice
+           Df Sum Sq Mean Sq
+adviceType  1     33      33
+
+Error: pid:advisorAgrees
+           Df Sum Sq Mean Sq
+adviceType  1  842.6   842.6
+
+Error: Within
+                                    Df Sum Sq Mean Sq F value Pr(>F)  
+adviceType                           1      6    5.68   0.124 0.7244  
+hasChoice                            1      1    0.68   0.015 0.9029  
+advisorAgrees                        1     46   45.89   1.005 0.3167  
+adviceType:hasChoice                 1    141  141.09   3.090 0.0796 .
+adviceType:advisorAgrees             1     15   15.38   0.337 0.5620  
+hasChoice:advisorAgrees              1     65   64.76   1.418 0.2344  
+adviceType:hasChoice:advisorAgrees   1     79   78.58   1.721 0.1904  
+Residuals                          365  16664   45.65                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+[1] "7.iv Raw influence on all trials"
+[1] "Running ANOVAs"
+[1] "Original mixed ANOVA using raw influence scores"
+
+Error: pid
+           Df Sum Sq Mean Sq
+adviceType  1  79.95   79.95
+
+Error: pid:adviceType
+           Df Sum Sq Mean Sq
+adviceType  1  13.26   13.26
+
+Error: pid:hasChoice
+           Df Sum Sq Mean Sq
+adviceType  1  5.093   5.093
+
+Error: pid:advisorAgrees
+           Df Sum Sq Mean Sq
+adviceType  1  205.4   205.4
+
+Error: Within
+                                    Df Sum Sq Mean Sq F value Pr(>F)  
+adviceType                           1      0    0.03   0.001 0.9741  
+hasChoice                            1      7    6.66   0.218 0.6408  
+advisorAgrees                        1    149  148.99   4.877 0.0278 *
+adviceType:hasChoice                 1      7    7.45   0.244 0.6217  
+adviceType:advisorAgrees             1     49   49.25   1.612 0.2050  
+hasChoice:advisorAgrees              1    136  136.10   4.455 0.0354 *
+adviceType:hasChoice:advisorAgrees   1      4    3.57   0.117 0.7328  
+Residuals                          387  11824   30.55                 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+[1] "Analysis of trust questionnaires"
+[1] "Bayesian tests investigating advisor properties"
+[1] "8.i.i Race"
+     variable        BF      mu1      mu2
+1 likeability 0.1379039 61.97619 63.42241
+2     ability 0.1238904 60.68452 61.66379
+3 benevolence 0.1121281 64.33333 64.38793
+[1] "8.i.ii Age"
+     variable corellationBF
+1 likeability     0.1185135
+2     ability     0.1579957
+3 benevolence     0.1330349
+[1] "8.i.iii Portrait"
+     variable        BF
+1 likeability 1.2493517
+2     ability 2.0610114
+3 benevolence 0.4675882
+[1] "8.i.iv Name"
+     variable          BF
+1 likeability 0.006254154
+2     ability 0.792491613
+3 benevolence 0.030647884
+[1] "8.ii AdviceType x Timepoint MANOVA"
+                      Df    Pillai approx F num Df den Df Pr(>F)
+adviceType             1 0.0116800  1.55210      3    394 0.2006
+timepoint              1 0.0134233  1.78691      3    394 0.1491
+adviceType:timepoint   1 0.0064277  0.84963      3    394 0.4674
+Residuals            396                                        
+[1] "8.iii Graph of questionnaire responses"
+[1] "Do participants simply prefer agreement?"
+[1] "9.i Pick rate in low- vs high-confidence trials"
+[1] "Choice proportion Agree-in-confidence in low- vs high-confidence trials"
+[1] "t(49)=0.48 [95%CI: -0.04, 0.07], p=0.633"
+[1] "Bayesian examination of above (prior = mean diff of 0, sd as empirically observed)"
+Bayes factor analysis
+--------------
+[1] Alt., r=0.707 : 0.1716595 ±0%
+
+Against denominator:
+  Null, mu = 0 
+---
+Bayes factor type: BFoneSample, JZS
+
+[1] "Evidence strength for differential high/low confidence picking strategy: BF=0.172"
+[1] "Subjective-objective measure correlation"
+[1] "10.i Questionnaire-influence correlation"
+
+Call:
+lm(formula = influence ~ ability + benevolence + likeability, 
+    data = tmp)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-5.2638 -1.5836 -0.4143  1.3048  7.1624 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  1.713226   0.217115   7.891 2.07e-13 ***
+ability     -0.004206   0.011590  -0.363    0.717    
+benevolence  0.004045   0.012812   0.316    0.753    
+likeability  0.004928   0.010616   0.464    0.643    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2.181 on 196 degrees of freedom
+Multiple R-squared:  0.006699,	Adjusted R-squared:  -0.008505 
+F-statistic: 0.4406 on 3 and 196 DF,  p-value: 0.7242
+
+[1] "10.ii Graph of questionnaire-influence correlation"
+      variable corellation    p.value                               method
+t  likeability   -2.359345 0.02242333 Pearson's product-moment correlation
+t1     ability   -2.424282 0.01915442 Pearson's product-moment correlation
+t2 benevolence   -1.768402 0.08334851 Pearson's product-moment correlation
+       variable corellation   p.value                               method
+t  rawInfluence   0.0846194 0.9329159 Pearson's product-moment correlation
+t1    influence   0.0846194 0.9329159 Pearson's product-moment correlation

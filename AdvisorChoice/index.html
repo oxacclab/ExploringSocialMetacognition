@@ -111,7 +111,7 @@
         practiceBlockStructure: {
             [trialTypes.catch]: 0,
             [trialTypes.choice]: 0,
-            [trialTypes.force]: 25
+            [trialTypes.force]: 2//5
         },
         preTrialInterval: 200,
         preStimulusInterval: 500,
@@ -333,7 +333,7 @@
         trial_duration: 1000,
         playAudioFunction: function () {
             let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
-            div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.currentTrial.advice.string;
+            div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.adviceString;
             //gov.currentTrial.advice.play();
         },
         prompt: "",

@@ -459,6 +459,13 @@ class AdvisorChoice extends DotTask {
     }
 
     /**
+     * @return {string} - Advice string for the current trial
+     */
+    get adviceString() {
+        return this.currentTrial.advice.string;
+    }
+
+    /**
      * Return the index of an advisor in the advisors list
      * @param {int} id - id of the advisor whose index is required
      * @return {int} - index of the advisor in the advisors list
@@ -567,9 +574,10 @@ class AdvisorChoice extends DotTask {
 
     /**
      * Show a ghost of the previous thumb placement to remind judges of their previous answer.
+     * @param {string} [sliderID='#jspsych-canvas-sliders-response-slider0'] - slider to add the marker to
      */
-    showMarker() {
-        let slider = document.querySelector('#jspsych-canvas-sliders-response-slider0');
+    showMarker(sliderID = '#jspsych-canvas-sliders-response-slider0') {
+        let slider = document.querySelector(sliderID);
         let marker = document.createElement('div');
         marker.className = 'advisorChoice-marker advisorChoice-prevAnswer';
         slider.parentElement.appendChild(marker);
@@ -619,7 +627,7 @@ class AdvisorChoice extends DotTask {
         textDiv.id = 'jspsych-jas-present-advice-choice-prompt';
         let a = this.currentAdvisor;
         picDiv.innerHTML = a.portrait.outerHTML;
-        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.currentTrial.advice.string;
+        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
         // Set the class of the slider the advisor endorsed
         let labelID = this.currentTrial.advice.side === 0? 0 : 2;
         let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
@@ -693,7 +701,7 @@ class AdvisorChoice extends DotTask {
 
     /**
      * Process the judge's initial response
-     * @param {Trial} trial - jsPsych plugin response
+     * @param {Object} trial - jsPsych plugin response
      * @param {Object} [args={}] - assorted arguments to customize behaviour
      * @param {boolean} [args.advisorAlwaysCorrect - whether to override advisor's behaviour and force them to advice the correct response
      */
@@ -757,18 +765,22 @@ class AdvisorChoice extends DotTask {
         }
         // Store advisor
         this.currentTrial.advisorId = a.id;
+        // Recalculate agreement variables
+        this.setAgreementVars();
     }
 
     /**
      * produce a shuffled list of advisors to be used for the specified confidence category
      */
     redrawContingency(confidenceCategory) {
-        let advisors = this.advisorLists[this.currentTrial.advisorSet];
+        let advisors = utils.shuffle(this.advisorLists[this.currentTrial.advisorSet]);
         let blockLength = utils.getMatches(this.trials, (trial)=>{
             return trial.block === this.currentTrial.block;
         }).length;
-        this.contingentAdvisors[confidenceCategory] =
-            utils.shuffleShoe(advisors, Math.ceil(blockLength/advisors.length));
+        let tmp = [];
+        for(let i = 0; i < blockLength; i++)
+            tmp.push(advisors[i%advisors.length]); // advisors are listed in order, repeated
+        this.contingentAdvisors[confidenceCategory] = tmp;
     }
 
     /**
@@ -799,7 +811,7 @@ class AdvisorChoice extends DotTask {
         // set some styling stuff
         let style = display_element.appendChild(document.createElement('style'));
         style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:40vw} ' +
-            '.jspsych-sliders-response-wrapper {max-width:60vw} ' +
+            '.jspsych-sliders-response-wrapper {width:60vw} ' +
             '.jspsych-sliders-response-container {max-width:100%} ' +
             '#jspsych-content {max-width: 1000px !important; display:flex; margin:auto;}' +
             '#advisorChoice-choice-stimulus {max-width:30vw; display:block; position:relative; ' +
@@ -881,4 +893,146 @@ class AdvisorChoice extends DotTask {
     }
 }
 
-export {trialTypes, trialTypeNames, DotTask, AdvisorChoice};
+
+class HaloEffect extends AdvisorChoice {
+    /**
+     * @constructor
+     *
+     * @param {Object} [args={}] - properties to assign to the Governor
+     * @param {Trial[]} [args.trials=[]] - trial list
+     * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
+     * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
+     * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
+     *
+     * @param {int} [args.dotCount] - number of dots in a box
+     * @param {int} [args.dotDifference] - half the difference between the dot counts in the two boxes; the difficulty
+     * @param {int} [args.difficultyStep] - amount the difficulty increases/decreases after success/failure
+     * @param {number} [args.minimumBlockScore] - lowest proportion of successful trials allowed on a block
+     * @param {int} [args.blockCount] - number of blocks in the study
+     * @param {int} [args.practiceBlockCount] - number of practice blocks
+     * @param {Object|Object[]} [args.blockStructure] - the structure of each block, where each object is a series of [trialType: number of instances] mappings. Multiple objects represent different subblocks run consecutively.
+     * @param {Object|Object[]} [args.practiceBlockStructure] - the structure of each practice block
+     * @param {int} [args.preTrialInterval] - delay before each trial begins
+     * @param {int} [args.preStimulusInterval] - fixation delay before the stimulus is displayed
+     * @param {int} [args.stimulusDuration] - duration the dot stimulus is displayed
+     * @param {int} [args.feedbackDuration] - duration of the feedback screen
+     *
+     * @param {Advisor[]} [args.advisors=[]] - list of advisors
+     * @param {Advisor} [args.practiceAdvisor] - practice advisor
+     * @param {[Advisor[]]} [args.advisorLists] - list of lists of advisors, each one being a set of advisors competing with one another in a block
+     * @param {[Advisor[]]} [args.contingentAdvisors] - list of advisors to be used contingent on the confidence category of a response matching the list index
+     * @param {[Advisor[]]} [args.questionnaireStack] - stack of advisors about whom questionnaires are to be asked
+     *
+     * @property {Advisor} currentAdvisor - advisor currently in focus
+     * @property {Trial} currentTrial - trial currently underway
+     */
+    constructor(args = {}) {
+        super(args);
+
+    }
+
+    /**
+     * @return {string} - Advice string for the current trial
+     */
+    get adviceString() {
+        let str = this.currentTrial.advice.string;
+        if(!(this.currentTrial instanceof gkTask))
+            return str;
+        return str.replace('on the LEFT', this.currentTrial.answerOptions[0])
+            .replace('on the RIGHT', this.currentTrial.answerOptions[1]);
+    }
+
+    /**
+     * Display the question and the answer options for the current question
+     */
+    generalKnowledge(display_element, callback) {
+        console.log('gkBegin')
+        let qDiv = display_element.appendChild(document.createElement('div'));
+        qDiv.id = 'gkQuestion';
+        qDiv.classList.add('gk-question');
+        let p = qDiv.appendChild(document.createElement('p'));
+        p.id = 'gkQuestionText';
+        p.classList.add('gk-question');
+        p.innerText = this.currentTrial.question;
+
+        callback(this.currentTrial.question);
+    }
+
+    /**
+     * Process the initial response to a general knowledge question
+     */
+    generalKnowledgeResponse(trial) {
+
+        // Generic behaviour
+        this.initialResponse(trial);
+    }
+
+    /**
+     * Process the final response to a general knowledge question
+     */
+    generalKnowledgeFinalResponse(trial) {
+
+        // Generic behaviour
+        this.finalResponse(trial);
+    }
+
+    /**
+     * Replace the slider values with answer alternatives
+     */
+    generalKnowledgeOnLoad(finalDecision = false) {
+        for(let i=0; i<2; i++)
+            document.querySelector('#jspsych-function-sliders-response-labelS0L'+i.toString()).innerHTML =
+                this.currentTrial.answerOptions[i];
+
+        // Normal load functions
+        if(!finalDecision)
+            this.setSliderClick(true);
+        else
+            this.showAdvice();
+    }
+
+    /**
+     * Override the showAdvice function to avoid relying on the canvas plugin
+     */
+    showAdvice(){
+        if(!(this.currentTrial instanceof gkTask)) {
+            super.showAdvice();
+            return;
+        }
+        // Hack an advisor display in here with a directional indicator
+        let parent = document.querySelector('#jspsych-content');
+        let child = document.querySelector('#jspsych-function-sliders-response-stimulus');
+        let div = parent.insertBefore(document.createElement('div'), child);
+        div.innerHTML = "";
+        let picDiv = div.appendChild(document.createElement('div'));
+        picDiv.id = 'jspsych-jas-present-advice-choice-image';
+        let textDiv = div.appendChild(document.createElement('div'));
+        textDiv.id = 'jspsych-jas-present-advice-choice-prompt';
+        let a = this.currentAdvisor;
+        picDiv.innerHTML = a.portrait.outerHTML;
+        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
+        // Set the class of the slider the advisor endorsed
+        let labelID = this.currentTrial.advice.side === 0? 0 : 1;
+        let sliderLabel = document.querySelector('#jspsych-function-sliders-response-labelS0L' +
+            labelID);
+        sliderLabel.classList.add('advisor-endorsed');
+        this.showMarker('#jspsych-function-sliders-response-slider0');
+    }
+}
+
+/**
+ * @class for running general knowledge trials
+ * These trials contain a statement to which the answer is true/false rather than a dot discrimination
+ */
+class gkTask extends Trial {
+    /**
+     * @constructor
+     */
+    constructor(id, args = {}) {
+        super(id, args);
+        this.question = typeof args.question == "undefined"? null : args.question;
+        this.answerOptions = typeof args.answerOptions == "undefined"? null : args.answerOptions;
+    }
+}
+
+export {trialTypes, trialTypeNames, DotTask, AdvisorChoice, HaloEffect, gkTask};
