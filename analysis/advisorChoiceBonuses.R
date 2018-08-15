@@ -20,6 +20,13 @@ tmp$initialConfidence <- tmp$initialConfidence/50
 scores <- brierscore(initialCorrect ~ initialConfidence, data = tmp, group = 'pid')
 scores$brieravg
 
+if(exists('rawString')) {
+  prolificIds <- NULL
+  matches <- gregexpr('5[a-z0-9]{23}', rawString)
+  for(x in matches[[1]])
+    prolificIds <- c(prolificIds, substr(rawString, x, x+23))
+}
+
 if(exists('prolificIds')) {
   prolificIdHashes <- sapply(prolificIds,digest,algo='sha1',serialize=F)
   tmp <- NULL
@@ -30,8 +37,8 @@ if(exists('prolificIds')) {
       tmp <- rbind(tmp, data.frame(pid,
                                    prolificId = proId,
                                    brieravg = scores$brieravg[i],
-                                   excluded = participants$excluded[participants$pid==pid],
-                                   extra = participants$debriefComments[participants$pid==pid]))
+                                   excluded = all.participants$excluded[all.participants$pid==pid],
+                                   extra = all.participants$debriefComments[all.participants$pid==pid]))
     else
       print(paste('PID',pid,'has no prolific hash associated'))
   }
@@ -44,4 +51,10 @@ if(exists('prolificIds')) {
   for(r in 1:nrow(tmp))
     print(paste0(tmp$prolificId[r], ', ', tmp$reward[r]))
   prolificIds[!(prolificIds %in% tmp$prolificId)]
+  write.csv(data.frame(id = tmp$prolificId[tmp$reward>0], name = tmp$reward[tmp$reward>0]), 
+            'tmp.csv', 
+            sep = ',',
+            row.names = F,
+            col.names = F,
+            quote = F)
 }

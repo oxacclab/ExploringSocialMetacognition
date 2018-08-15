@@ -1,7 +1,11 @@
 .idea/
 *.pdnBak
 chicago face database
-AdvisorChoice/data/*
+AdvisorChoice/data
 gov.JSON
 .Rproj.user
 analysis/.RData
+analysis/.Rhistory
+analysis/tmp.csv
+analysis/explore
+

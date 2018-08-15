@@ -765,18 +765,22 @@ class AdvisorChoice extends DotTask {
         }
         // Store advisor
         this.currentTrial.advisorId = a.id;
+        // Recalculate agreement variables
+        this.setAgreementVars();
     }
 
     /**
      * produce a shuffled list of advisors to be used for the specified confidence category
      */
     redrawContingency(confidenceCategory) {
-        let advisors = this.advisorLists[this.currentTrial.advisorSet];
+        let advisors = utils.shuffle(this.advisorLists[this.currentTrial.advisorSet]);
         let blockLength = utils.getMatches(this.trials, (trial)=>{
             return trial.block === this.currentTrial.block;
         }).length;
-        this.contingentAdvisors[confidenceCategory] =
-            utils.shuffleShoe(advisors, Math.ceil(blockLength/advisors.length));
+        let tmp = [];
+        for(let i = 0; i < blockLength; i++)
+            tmp.push(advisors[i%advisors.length]); // advisors are listed in order, repeated
+        this.contingentAdvisors[confidenceCategory] = tmp;
     }
 
     /**
@@ -807,7 +811,7 @@ class AdvisorChoice extends DotTask {
         // set some styling stuff
         let style = display_element.appendChild(document.createElement('style'));
         style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:40vw} ' +
-            '.jspsych-sliders-response-wrapper {max-width:60vw} ' +
+            '.jspsych-sliders-response-wrapper {width:60vw} ' +
             '.jspsych-sliders-response-container {max-width:100%} ' +
             '#jspsych-content {max-width: 1000px !important; display:flex; margin:auto;}' +
             '#advisorChoice-choice-stimulus {max-width:30vw; display:block; position:relative; ' +
