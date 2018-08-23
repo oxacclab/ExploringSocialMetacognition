@@ -27,12 +27,12 @@ tmp$when <- sapply(tmp$pid,
 tmp$when <- as.factor(tmp$when)
 
 # the problem: poorly differentiated aggreement rates in forced trials ####
-ggplot(tmp[tmp$initialCorrect & tmp$when=="10", ], 
+ggplot(tmp, 
        aes(x = confidenceCategory, y = as.numeric(advisorAgrees), 
            colour = adviceType, fill = adviceType)) +
   stat_summary(geom = 'point', fun.y = mean, size = 2, alpha = 0.5) +
   stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, width = 0.25) + 
-  facet_grid(early ~ type, labeller = label_both) +
+  facet_wrap(typeName ~ ., labeller = label_both) +
   style
   
 # animated version of the problem ####
@@ -77,13 +77,32 @@ g <- ggplot(tmp.2, aes(x = confidenceCategory, y = meanAgreement, colour = advic
   ease_aes('sine-in-out')
 animate(g,nframes = 600, fps = 20, detail = 10)
 
-
-# agreement and appearence count ####
-ggplot(tmp.2[tmp.2$trialNum==60, ], 
-       aes(x = n, y = meanAgreement, colour = confidenceCategory, shape = adviceType)) +
+# static version
+ggplot(tmp.2, 
+       aes(x = trialNum, y = meanAgreement, colour = confidenceCategory, shape = adviceType)) +
   geom_point() +
   facet_grid(type ~ order, label = label_both) +
   style
+
+# agreement and appearence count ####
+tmp.3 <- NULL
+for(aT in unique(tmp$adviceType)) {
+  for(cc in unique(tmp$confidenceCategory)) {
+    for(type in unique(tmp$typeName)) {
+      v <- trials[trials$adviceType==aT & trials$confidenceCategory==cc & trials$typeName==type, ]
+      tmp.3 <- rbind(tmp.3, data.frame(adviceType = getAdviceTypeName(aT),
+                                       confidenceCategory = cc,
+                                       type,
+                                       n = nrow(v),
+                                       agreement = mean(as.numeric(v$advisorAgrees))))
+    }
+  }
+}
+ggplot(tmp.3, aes(x = n, y = agreement, colour = adviceType, shape = confidenceCategory)) + 
+  geom_point(size = 4) +
+  facet_wrap(type ~ ., labeller = label_both) +
+  style
+
 
 # confidence categories by time ####
 ggplot(tmp[tmp$initialCorrect, ],

@@ -282,6 +282,9 @@ trials$finalCorrect <- trials$finalAnswer == trials$correctAnswer # whether the 
 # Sometimes it helps to see confidence arranged from sure left to sure right (-100 to 100)
 trials$initialConfSpan <- ifelse(trials$initialAnswer==0,trials$initialConfidence*-1,trials$initialConfidence)
 trials$finalConfSpan <- ifelse(trials$finalAnswer==0,trials$finalConfidence*-1,trials$finalConfidence)
+# Was the response to the advice irrational?
+trials$irrational <- (trials$advisorAgrees & trials$confidenceShift < 0) |
+  (!trials$advisorAgrees & trials$confidenceShift > 0)
 # Convert times to seconds since the 70 epoch
 participants$timeStart <- sapply(participants$timeStart, function(x)x[[1]]/1000)
 participants$timeEnd <- sapply(participants$timeEnd, function(x)x[[1]]/1000)
@@ -651,6 +654,19 @@ gg.v.iv <- ggplot(trials, aes(x = initialConfSpan, y = finalConfSpan)) +
         plot.margin = unit(c(0,1,0,0.5), 'lines'))
 gg.v.iv
 
+df.v.iv <- NULL
+for(a in c(T,F)) {
+  v <- trials[trials$advisorAgrees == a, ]
+  i <- mean(v$confidenceShiftRaw > 0)
+  d <- mean(v$confidenceShiftRaw < 0)
+  n <- mean(v$confidenceShiftRaw == 0)
+  df.v.iv <- rbind(df.v.iv, data.frame(advisorAgrees = a, 
+                                       increaseConfPerC = i,
+                                       noChangePerC = n,
+                                       decreaseConfPerC = d))
+}
+print(df.v.iv)
+
 #   5.v) Questionnaire responses ####
 print('5.v Questionnaire responses')
 df.v.v <- NULL
@@ -669,7 +685,7 @@ for(tp in unique(questionnaires$timepoint)) {
       df.v.v <- rbind(df.v.v, data.frame(timepoint = tp,
                                          question = colName,
                                          adviceType = getAdviceTypeName(aT),
-                                         meanCorrect = m,
+                                         mean = m,
                                          cl95Min = cl$ymin,
                                          cl95Max = cl$ymax,
                                          rangeMin = rn[1],
@@ -702,10 +718,9 @@ t.vi.i <- t.test(tmp$adviceType, mu=0.5)
 d <- cohensD(tmp$adviceType, mu = 0.5)
 tB.vi.i <- ttestBF(tmp$adviceType, mu = 0.5)
 
-print('Mean AiC pick rate')
-printMean(tmp$adviceType, d)
+printMean(tmp$adviceType, 'Mean AiC pick rate')
 print('Choice proportion Agree-in-confidence vs. chance level (.5)')
-prettyPrint(t.vi.i)
+prettyPrint(t.vi.i, d)
 print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
 print(tB.vi.i)
 print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.vi.i@bayesFactor$bf),3)))
@@ -718,10 +733,12 @@ tmp <- aggregate(adviceType ~ pid,
                                & trials$confidenceCategory==confidenceCategories$medium, ],
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
 t.vi.ii <- t.test(tmp$adviceType, mu=0.5)
+d <- cohensD(tmp$adviceType, mu=0.5)
 tB.vi.ii <- ttestBF(tmp$adviceType, mu = 0.5)
 
+printMean(tmp$adviceType, 'Mean AiC pick rate')
 print('Choice proportion Agree-in-confidence vs. chance level (.5) for mid-confidence trials')
-prettyPrint(t.vi.ii)
+prettyPrint(t.vi.ii,d)
 print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
 print(tB.vi.ii)
 print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.vi.ii@bayesFactor$bf),3)))
@@ -788,18 +805,12 @@ print('2x2x2 Mixed ANOVA of advisor type x choice x agreement')
 print(summary(aov.vii.i))
 
 print('Means:')
-print('AiC')
-printMean(tmp$influence[tmp$adviceType==adviceTypes$AiC])
-print('AiU')
-printMean(tmp$influence[tmp$adviceType==adviceTypes$AiU])
-print('Choice')
-printMean(tmp$influence[tmp$hasChoice])
-print('Forced')
-printMean(tmp$influence[!tmp$hasChoice])
-print('Agree')
-printMean(tmp$influence[tmp$advisorAgrees])
-print('Disagree')
-printMean(tmp$influence[!tmp$advisorAgrees])
+printMean(tmp$influence[tmp$adviceType==adviceTypes$AiC], 'Mean|AiC')
+printMean(tmp$influence[tmp$adviceType==adviceTypes$AiU], 'Mean|AiU')
+printMean(tmp$influence[tmp$hasChoice], 'Mean|Choice')
+printMean(tmp$influence[!tmp$hasChoice], 'Mean|Forced')
+printMean(tmp$influence[tmp$advisorAgrees], 'Mean|Agree')
+printMean(tmp$influence[!tmp$advisorAgrees], 'Mean|Disagree')
 
 #   7.ii) Graph: Adjusted Advice influence, all trials ####
 print('7.ii Graph of adjusted influence on all trials')
@@ -808,7 +819,7 @@ print('7.ii Graph of adjusted influence on all trials')
 # bars specifying 95% confidence intervals.
 tmp$adviceType <- factor(tmp$adviceType)
 gg.vii.ii <- ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill = adviceType)) +
-  geom_point(position = position_jitter(w=0.1, h=0)) +
+  geom_point(position = position_jitter(w=0.1, h=0), alpha = 0.5) +
   stat_summary(geom = "errorbar",
                fun.data = "mean_cl_boot",
                width = 0.2) +
@@ -820,7 +831,7 @@ gg.vii.ii <- ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill 
              labeller = as_labeller(c('FALSE'='Forced trials','TRUE'='Choice trials'))) +
   scale_color_discrete(name = 'Advisor type', labels = c('Agree-in-confidence', 'Agree-in-uncertainty')) +
   scale_fill_discrete(name = 'Advisor type', labels = c('Agree-in-confidence', 'Agree-in-uncertainty')) +
-  scale_x_discrete(name = 'Judge-advisor agreement', labels = c('Agree', 'Disagree')) +
+  scale_x_discrete(name = 'Judge-advisor agreement', labels = c('Disagree', 'Agree')) +
   labs(title = "Advice Influence",
        legend = NULL,
        y = "Influence of the advice") +
@@ -848,6 +859,14 @@ aov.vii.iii <- aov(influence ~ adviceType * hasChoice * advisorAgrees +
 print('As above, looking at only trials where intial decision was correct and made with middle confidence:')
 print(summary(aov.vii.iii))
 
+print('Means:')
+printMean(tmp$influence[tmp$adviceType==adviceTypes$AiC], 'Mean|AiC')
+printMean(tmp$influence[tmp$adviceType==adviceTypes$AiU], 'Mean|AiU')
+printMean(tmp$influence[tmp$hasChoice], 'Mean|Choice')
+printMean(tmp$influence[!tmp$hasChoice], 'Mean|Forced')
+printMean(tmp$influence[tmp$advisorAgrees], 'Mean|Agree')
+printMean(tmp$influence[!tmp$advisorAgrees], 'Mean|Disagree')
+
 #   7.iv) Raw influence, all trials ####
 print('7.iv Raw influence on all trials')
 
@@ -863,6 +882,14 @@ aov.vii.iv <- aov(rawInfluence ~ adviceType * hasChoice * advisorAgrees +
                                             data=tmp)
 print('Original mixed ANOVA using raw influence scores')
 print(summary(aov.vii.iv))
+
+print('Means:')
+printMean(tmp$rawInfluence[tmp$adviceType==adviceTypes$AiC], 'Mean|AiC')
+printMean(tmp$rawInfluence[tmp$adviceType==adviceTypes$AiU], 'Mean|AiU')
+printMean(tmp$rawInfluence[tmp$hasChoice], 'Mean|Choice')
+printMean(tmp$rawInfluence[!tmp$hasChoice], 'Mean|Forced')
+printMean(tmp$rawInfluence[tmp$advisorAgrees], 'Mean|Agree')
+printMean(tmp$rawInfluence[!tmp$advisorAgrees], 'Mean|Disagree')
 
 # 8) Trust questionnaire answers ####
 print('Analysis of trust questionnaires')
@@ -1109,3 +1136,60 @@ gg.xi.ii <- ggplot(tmp, aes(x = genTrust, y = influence)) +
   geom_point(aes(colour = as.factor(pid))) +
   style.long
 gg.xi.ii
+
+
+# 12) Predicting advisor from confidence ####
+
+df.xii <- NULL
+for(pid in unique(trials$pid)) {
+  tmp <- trials[trials$pid==pid, ]
+  tmp$adviceType <- as.factor(tmp$adviceType)
+  ans <- glm(adviceType ~ initialConfidence, tmp, family = binomial(link = "logit"))
+  s <- summary(ans)
+  df.xii <- rbind(df.xii, data.frame(pid,
+                                     coef = s$coefficients[2,1],
+                                     p = s$coefficients[2,4]))
+}
+tmp <- df.xii
+names(tmp)[2] <- 'y'
+tmp$x <- 0
+gg.xii <- ggplot(tmp, aes(x = p)) + geom_freqpoly(binwidth = 0.1) 
+gg.xii
+
+
+# 13) Influence strength by confidence category ####
+tmp <- aggregate(influence ~ confidenceCategory + pid, data = trials, FUN = mean)
+gg.xiii <- ggplot(tmp, aes(x = confidenceCategory, y = influence)) + 
+  geom_point(aes(colour = as.factor(pid)), alpha = 0.5) + 
+  geom_smooth(method = 'lm', 
+              aes(group = as.factor(pid), colour = as.factor(pid)),
+              se = F,
+              alpha = 0.2) +
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot) +
+  style.long
+gg.xiii
+
+summary(aov(influence ~ confidenceCategory, data = tmp))
+
+# 13) Confidence autocorrelation plots by participant ####
+for(pid in unique(trials$pid)) {
+  tmp <- trials[trials$pid == pid, ]
+  ggplot(tmp, aes(x = initialConfSpan, y = finalConfSpan)) +
+    geom_polygon(data = df.poly1, aes(x,y), fill = 'grey', alpha = 0.2) +
+    geom_polygon(data = df.poly2, aes(x,y), fill = 'grey', alpha = 0.2) +
+    geom_point(alpha = 0.2, aes(color = factor(finalCorrect))) +
+    geom_abline(slope = 1, intercept = 0, linetype = 'dashed', size = 1, color = 'black') +
+    scale_color_discrete(name = 'Final judgement', labels = c('Incorrect', 'Correct')) +
+    scale_x_continuous(limits = c(-50,50), expand = c(0,0)) +
+    scale_y_continuous(limits = c(-50,50), expand = c(0,0)) +
+    facet_grid(~advisorAgrees, labeller = as_labeller(c('FALSE'='Disagree', 'TRUE'='Agree'))) +
+    labs(title = paste('PID:', pid, 'Initial vs final confidence'),
+         legend = NULL,
+         x = 'Initial confidence',
+         y = "Final confidence") +
+    coord_fixed() +
+    style + 
+    theme(panel.spacing = unit(1.5, 'lines'),
+          plot.margin = unit(c(0,1,0,0.5), 'lines'))
+  ggsave(paste0('explore/autocorrelations/pid', pid, '.png'), width = 8.96, height = 5.97, units = 'in')
+}
