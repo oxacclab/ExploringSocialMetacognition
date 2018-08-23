@@ -552,6 +552,7 @@ class Trial {
         this.advice = typeof args.advice === 'undefined'? null : args.advice;
         this.advisorAgrees = typeof args.advisorAgrees === 'undefined'? null : args.advisorAgrees;
         this.getCorrect = typeof args.getCorrect === 'undefined'? null : args.getCorrect;
+        this.dotDifference = typeof args.dotDifference === 'undefined' ? null : args.dotDifference;
         this.whichSide = typeof args.whichSide === 'undefined'? null : args.whichSide;
         this.practice = typeof args.practice === 'undefined'? null : args.practice;
         this.feedback = typeof args.feedback === 'undefined'? null : args.feedback;

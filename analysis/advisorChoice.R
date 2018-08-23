@@ -1171,7 +1171,7 @@ gg.xiii
 
 summary(aov(influence ~ confidenceCategory, data = tmp))
 
-# 13) Confidence autocorrelation plots by participant ####
+# 14) Confidence autocorrelation plots by participant ####
 for(pid in unique(trials$pid)) {
   tmp <- trials[trials$pid == pid, ]
   ggplot(tmp, aes(x = initialConfSpan, y = finalConfSpan)) +
@@ -1193,3 +1193,42 @@ for(pid in unique(trials$pid)) {
           plot.margin = unit(c(0,1,0,0.5), 'lines'))
   ggsave(paste0('explore/autocorrelations/pid', pid, '.png'), width = 8.96, height = 5.97, units = 'in')
 }
+
+# 15) Examining dot difference ####
+getDotDifferences <- function(input, difficultyStep = 3, startingDotDifference = 30) {
+  out <- rep(startingDotDifference, nrow(input))
+  correct = T # first trial is forced to be correct
+  for(i in 1:nrow(input)) {
+    trial <- input[i, ]
+    # easier if wrong
+    if(!trial$initialCorrect)
+      out[i+1] <- out[i] + difficultyStep
+    else if(correct) {
+      # two in a row = make harder
+      out[i+1] <- out[i] - difficultyStep
+      if(out[i+1] < 1)
+        out[i+1] <- 1
+    } else {
+      out[i+1] <- out[i]
+    }
+    correct <- trial$initialCorrect
+  }
+  return(out)
+}
+
+tmp <- all.trials[all.trials$pid %in% participants$pid, ]
+for(pid in unique(tmp$pid)){
+  tmp$dotDifference[tmp$pid == pid] <- getDotDifferences(tmp[tmp$pid==pid, ])
+}
+  
+g <- ggplot(tmp, aes(x = id, y = dotDifference)) +
+  geom_line() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous(limits = c(60,246)) +
+  style.long +
+  labs(title = 'Participant {frame_time}') +
+  transition_time(pid) +
+  enter_fade() +
+  ease_aes('sine-in-out')
+
+animate(g, fps = 1)  

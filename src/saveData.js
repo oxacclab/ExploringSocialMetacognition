@@ -75,6 +75,7 @@ function flattenTrialData(trial, id) {
     out.practice = trial.practice;
     out.type = trial.type;
     out.typeName = trial.typeName;
+    out.dotDifference = trial.dotDifference;
     out.correctAnswer = trial.whichSide;
     out.initialAnswer = trial.answer[0];
     out.finalAnswer = trial.answer[1];
