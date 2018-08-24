@@ -50,7 +50,13 @@
     import {DoubleDotGrid, Advisor, utils} from '../src/exploringSocialMetacognition.js';
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
 
-    let adviceTypes = [0,3,4,3,4];
+    /* Advice types:
+        1|2 = metacog
+        3|4 = strong metacog
+        5|6 = acc
+        7|8 = agg
+    */
+    let adviceTypes = [0,5,6,5,6];
     let advisorIdDeck = utils.shuffle(utils.getSequence(1,5));
     let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
     let advisorPicDeck = utils.shuffle(utils.getSequence(1,5));
