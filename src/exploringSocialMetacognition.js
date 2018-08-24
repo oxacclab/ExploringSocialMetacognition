@@ -518,6 +518,60 @@ class Advisor {
     }
 
     /**
+     * Return an HTML string describing the agreement policy for adviceType
+     *
+     * @param {int} adviceType
+     * @returns {string}
+     */
+    static getDescriptionHTML(adviceType) {
+        switch(adviceType){
+            case 1:
+            case 3:
+                return "<em>Agrees when confident</em>";
+            case 2:
+            case 4:
+                return "<em>Agrees when uncertain</em>";
+            case 5:
+                return "<em>High accuracy</em>";
+            case 6:
+                return "<em>Low accuracy</em>";
+            case 7:
+                return "<em>High agreement</em>";
+            case 8:
+                return "<em>Low agreement</em>";
+        }
+    }
+
+    /**
+     * Return a text string with detailed mouseover text describing the agreement policy adviceType
+     *
+     * @param {int} adviceType
+     * @returns {string}
+     */
+    static getDescriptionTitleText(adviceType) {
+        switch(adviceType) {
+            case 1:
+            case 3:
+                return 'When your initial decision is correct, this advisor is more'+
+                    ' likely to agree with you if you are more confident ' +
+                    'in your initial decision.';
+            case 2:
+            case 4:
+                return 'When your initial decision is correct, this advisor is less'+
+                    ' likely to agree with you if you are more confident ' +
+                    'in your initial decision.';
+            case 5:
+                return 'This advisor is very good at the task.';
+            case 6:
+                return 'This advisor is not very good at the task';
+            case 7:
+                return 'This advisor agrees with you most of the time.';
+            case 8:
+                return 'This advisor disagrees with you quite frequently.';
+        }
+    }
+
+    /**
      * Return true if Advisor agrees with judgement
      *
      * @param {boolean} judgeCorrect - whether the judge's judgement was correct
@@ -596,6 +650,7 @@ class Governor {
      * @constructor
      *
      * @param {Object} [args={}] - properties to assign to the Governor
+     * @param {string} [args.experimentCode=''] - code identifying the experiment
      * @param {Trial[]} [args.trials=[]] - trial list
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
@@ -607,6 +662,7 @@ class Governor {
             if (args.hasOwnProperty(key))
                 this[key] = args[key];
         }
+        this.experimentCode = typeof args.experimentCode === 'undefined'? '' : args.experimentCode;
         this.trials = typeof args.trials === 'undefined'? [] : Governor.addTrials(args.trials);
         this.miscTrials = typeof args.miscTrials === 'undefined'? [] : args.miscTrials;
         this.currentTrialIndex = args.currentTrialIndex || 0;

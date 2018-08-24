@@ -6,7 +6,7 @@
  */
 
 "use strict";
-import {Trial, utils} from "./exploringSocialMetacognition.js";
+import {Trial, Advisor, utils} from "./exploringSocialMetacognition.js";
 
 /**
  * @class advisorChoice
@@ -314,13 +314,26 @@ class advisorChoice {
         let thanksSection = body.appendChild(document.createElement('section'));
         let thanksDiv = document.createElement('div');
         thanksDiv.id = 'thanks';
-        thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment you " +
-            "had two advisors, and were sometimes able to choose between them. Both of these advisors are " +
-            "equally accurate on the task, but one agreed with you more often when you are more confident, " +
-            "while the other agreed with you more often when you were unsure.</p>" +
-            "<p>We suspect that most people will prefer the advisor who agrees with them more when they are more " +
-            "confident. Let's have a look at how your results and see how you did on the task and whether your " +
-            "choices matched our prediction.</p>";
+        switch(g.experimentCode) {
+            case 'acc':
+                thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
+                    "you had two advisors, and were sometimes able to choose between them. One of these advisors " +
+                    "was about 80% accurate, the other was about 60% accurate.</p>" +
+                    "<p>We suspect that most people will be able to learn that one advisor is better than the other, " +
+                    "even when there is no feedback about whether the final decision is correct. Let's have a look " +
+                    "at how your results and see how you did on the task and whether your choices matched our " +
+                    "prediction.</p>";
+                break;
+            default:
+                thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
+                    "you had two advisors, and were sometimes able to choose between them. Both of these advisors " +
+                    "are equally accurate on the task, but one agreed with you more often when you are more " +
+                    "confident, while the other agreed with you more often when you were unsure.</p>" +
+                    "<p>We suspect that most people will prefer the advisor who agrees with them more when they are " +
+                    "more confident. Let's have a look at how your results and see how you did on the task and " +
+                    "whether your choices matched our prediction.</p>";
+        }
+
         thanksSection.appendChild(thanksDiv);
         let permalinkDiv = thanksDiv.appendChild(document.createElement('div'));
         permalinkDiv.className = 'permalink-container';
@@ -407,11 +420,8 @@ class advisorChoice {
                 stats.className = 'advisor-stats';
                 stats.appendChild(document.createElement('h3')).innerText = advisor.name;
                 let last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML= "<em>Agrees when "+(advisor.adviceType===3? 'confident' : 'uncertain')+"</em>";
-                last.title = 'When your initial decision is correct, this advisor is '+
-                    (advisor.adviceType === 1? 'more' : 'less')+
-                    ' likely to agree with you if you are more confident ' +
-                    'in your initial decision.';
+                last.innerHTML= Advisor.getDescriptionHTML(advisor.adviceType);
+                last.title = Advisor.getDescriptionTitleText(advisor.adviceType);
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Chosen: <strong>"+
                     utils.round(advisorChoice.advisorChoiceRate(g.trials, advisor.id)[0]*100,1).toString()+'%</strong>';
