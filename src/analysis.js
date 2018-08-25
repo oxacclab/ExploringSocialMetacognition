@@ -659,11 +659,11 @@ class advisorChoice {
         let correctPre = bar.appendChild(document.createElement('div'));
         correctPre.id = 'confidenceCorrectPre';
         correctPre.className = 'confidenceMarker correct preAdvice feedback';
-        correctPre.style.left = confReport.final.correct.initial[0].toString()+'%';
+        correctPre.style.left = (confReport.final.correct.initial[0]*2).toString()+'%';
         let incorrectPre = bar.appendChild(document.createElement('div'));
         incorrectPre.id = 'confidenceIncorrectPre';
         incorrectPre.className = 'confidenceMarker incorrect preAdvice feedback';
-        incorrectPre.style.left = 'calc(-20px + '+confReport.final.incorrect.initial[0].toString()+'%)';
+        incorrectPre.style.left = 'calc(-20px + '+(confReport.final.incorrect.initial[0]*2).toString()+'%)';
         // Repeat the steps for post-advice
         let containerPost = div.appendChild(document.createElement('div'));
         containerPost.className = 'feedback confidenceBarContainer';
@@ -673,11 +673,11 @@ class advisorChoice {
         let correctPost = barPost.appendChild(document.createElement('div'));
         correctPost.id = 'confidenceCorrectPost';
         correctPost.className = 'confidenceMarker correct postAdvice feedback';
-        correctPost.style.left = confReport.final.correct.final[0].toString()+'%';
+        correctPost.style.left = (confReport.final.correct.final[0]*2).toString()+'%';
         let incorrectPost = barPost.appendChild(document.createElement('div'));
         incorrectPost.id = 'confidenceIncorrectPost';
         incorrectPost.className = 'confidenceMarker incorrect postAdvice feedback';
-        incorrectPost.style.left = 'calc(-20px + '+confReport.final.incorrect.final[0].toString()+'%)';
+        incorrectPost.style.left = 'calc(-20px + '+(confReport.final.incorrect.final[0]*2).toString()+'%)';
         let labelPost = containerPost.appendChild(document.createElement('h3'));
         labelPost.id = 'confidenceBarLabel';
         labelPost.className = 'confidenceLabel postAdvice feedback';
