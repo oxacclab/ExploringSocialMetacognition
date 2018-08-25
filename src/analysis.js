@@ -317,8 +317,17 @@ class advisorChoice {
         switch(g.experimentCode) {
             case 'acc':
                 thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
-                    "you had two advisors, and were sometimes able to choose between them. One of these advisors " +
-                    "was about 80% accurate, the other was about 60% accurate.</p>" +
+                    "you had two sets of advisors, and were sometimes able to choose between them. One of these " +
+                    "advisors was about 80% accurate, the other was about 60% accurate.</p>" +
+                    "<p>We suspect that most people will be able to learn that one advisor is better than the other, " +
+                    "even when there is no feedback about whether the final decision is correct. Let's have a look " +
+                    "at how your results and see how you did on the task and whether your choices matched our " +
+                    "prediction.</p>";
+                break;
+            case 'agr':
+                thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
+                    "you had sets of two advisors, and were sometimes able to choose between them. One of these " +
+                    "advisors agreed with you much more often than the other.</p>" +
                     "<p>We suspect that most people will be able to learn that one advisor is better than the other, " +
                     "even when there is no feedback about whether the final decision is correct. Let's have a look " +
                     "at how your results and see how you did on the task and whether your choices matched our " +
@@ -326,8 +335,8 @@ class advisorChoice {
                 break;
             default:
                 thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
-                    "you had two advisors, and were sometimes able to choose between them. Both of these advisors " +
-                    "are equally accurate on the task, but one agreed with you more often when you are more " +
+                    "you had two sets of advisors, and were sometimes able to choose between them. Both of these " +
+                    "advisors are equally accurate on the task, but one agreed with you more often when you are more " +
                     "confident, while the other agreed with you more often when you were unsure.</p>" +
                     "<p>We suspect that most people will prefer the advisor who agrees with them more when they are " +
                     "more confident. Let's have a look at how your results and see how you did on the task and " +
