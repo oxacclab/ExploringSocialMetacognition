@@ -1,50 +1,6 @@
 ## Analysis script for AdvisorChoice web data ##############################################
 # Matt Jaquiery, March 2018 (matt.jaquiery@psy.ox.ac.uk)
 #
-# 0) Support
-#   0.i) Libraries
-#   0.ii) Functions
-#   0.iii) Globals
-# 1) Load data 
-#   1.i) Load data
-#   1.ii) Calculate utility variables
-#   1.iii) Split off real trials
-# 2) Demographics
-# 3) Manipulation checks
-#   3.i) Overall agreement by contingency
-#   3.ii) Graph: overall agreement by contingency
-#   3.iii) Initial block agreement by contingency
-#   3.iv) Graph: initial block agreement by contingency
-#   3.v) Trial count by contingency
-#   3.vi) Graph: trial count by contingency
-# 4) Exclusions
-# 5) Descriptives
-#   5.i) Proportion correct
-#   5.ii) Agreement rate
-#   5.iii) Mean confidence
-#   5.iv) Graph: Initial vs Final confidence
-#   5.v) Questionnaire responses
-# 6) Is the AiC advisor selected more often?
-#   6.i) Overall
-#   6.ii) Medium-confidence trials
-#   6.iii) Graph: Advisor preference by confidence category
-# 7) ANOVA investigating influence
-#   7.i) Adjusted influence, all trials
-#   7.ii) Graph: Adjusted Advice influence, all trials
-#   7.iii) Adjusted influence, medium-confidence trials
-#   7.iv) Raw influence, all trials
-# 8) Trust questionnaire answers
-#   8.i) Bayesian no-difference tests for advisor properties 
-#   8.ii) 2x2 AdviceType x Timepoint MANOVA 
-#   8.ii) Graph: Pro/retrospective assessments by advice type and dimension
-# 9) Do participants simply prefer agreement?
-#   9.i) Pick rate in low- vs high-confidence trials
-# 10) Subjective-objective correlation
-#   10.i) Questionnaire-influence correlation
-#   10.ii) Graph: Questionnaire-influence correlation
-# 11) Generalised Trust 
-#   11.i) Generalised Trust and subjective assessments
-#   11.ii) Generalised Trust and influence
 
 # 0) Support ####
 
@@ -355,12 +311,8 @@ print('Manipulation checks')
 
 #   3.i) Overall agreement by contingency ####
 
-# We need to check the advisors did what they were supposed to do, i.e. that the
-# AiC advisors agreed more on confident trials, and the AiU advisors agreed more
-# on unconfident trials. We'll do this using agreement rate as the outcome of an
-# ANOVA, and plugging in confidence, correctness, and advice type as predictors.
-# We should see no main effect of advice type, but an interaction between
-# confidence and advice type. Correctness should have a strong main effect.
+# These advisors don't show contingent agreement, so there shouldn't be much
+# here. This is retained mostly for comparison purposes
 print('3.i Overall agreement by contingency')
 tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, data = trials, FUN = mean)
 aov.iii.i <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
@@ -717,7 +669,7 @@ print('6.i Overall preference')
 # the participant when a choice is offered.
 #
 # We will find this out by taking the number of times each participant selected
-# the agree-in-confidence advisor and dividing by the total number of choice
+# the high accuracy advisor and dividing by the total number of choice
 # trials for that participant (should be the same for all participants). We can
 # then take the mean of this proportion across participants and test it for
 # significant versus the null hypothesis of random picking (0.5).
@@ -755,11 +707,14 @@ print(paste0('Evidence strength for preferential HighAcc picking: BF=', round(ex
 
 #   6.iii) Graph: Advisor preference by confidence category ####
 print('6.iii Graph of advisor preference')
-# Proportion of the time each participant picked the agree-in-confidence
+# Proportion of the time each participant picked the high agreement
 # advisor. Connected points of a colour indicate data from a single participant,
 # while the diamond indicates the mean proportion across all participants. The
 # dashed reference line indicates picking both advisors equally, as would be
 # expected by chance. Error bars give 95% bootstrapped confidence intervals.
+
+# This graph is likely to change in the write-up because confidence categories
+# aren't very useful for these advisors
 tmp <- aggregate(adviceType ~ pid + confidenceCategory,
                  data = trials[trials$type==trialTypes$choice, ],
                  FUN = function(x)sum(x==adviceTypes$HighAcc)/length(x))
@@ -1019,10 +974,10 @@ print('Do participants simply prefer agreement?')
 
 #   9.i) Pick rate in low- vs high-confidence trials ####
 print('9.i Pick rate in low- vs high-confidence trials')
-# If so, we should see that participants preferentially pick agree-in-confidence
-# advisor when their initial confidence is high, and agreee-in-uncertainty when
-# their initial confidence is low. We can t-test aic pick proportion in
-# high-confidence vs aic pick proportion in low-confidence.
+# If so, we should see that participants preferentially pick the high accuracy
+# advisor when their initial confidence is high, and low accuracy when
+# their initial confidence is low. We can t-test HighAcc pick proportion in
+# high-confidence vs HighAcc pick proportion in low-confidence.
 tmp <- aggregate(adviceType ~ pid + confidenceCategory,
                  data = trials[trials$type==trialTypes$choice, ],
                  FUN = function(x)sum(x==adviceTypes$HighAcc)/length(x))
@@ -1201,7 +1156,7 @@ for(pid in unique(trials$pid)) {
     style + 
     theme(panel.spacing = unit(1.5, 'lines'),
           plot.margin = unit(c(0,1,0,0.5), 'lines'))
-  ggsave(paste0('explore/autocorrelations/pid', pid, '.png'), width = 8.96, height = 5.97, units = 'in')
+  #ggsave(paste0('explore/autocorrelations/pid', pid, '.png'), width = 8.96, height = 5.97, units = 'in')
 }
 
 # 15) Examining dot difference ####
@@ -1214,4 +1169,4 @@ g <- ggplot(trials, aes(x = id, y = dotDifference)) +
   labs(title = 'Participant {frame_time}') +
   transition_time(pid)
 
-animate(g, fps = 1)  
+#animate(g, fps = 1)  
