@@ -534,9 +534,9 @@ print(df.v.iii.i)
 print('5.iii.ii Mean confidence by advisor')
 df.v.iii.ii <- NULL
 for(col in c('initial', 'final')) {
-  for(aT in adviceTypes) {
+  for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
     if(aT==adviceTypes$neutral)
-      aT <- c(adviceTypes$AiC, adviceTypes$AiU) # hack for including the total
+      aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
     colName <- paste0(col,'Confidence')
     x <- trials[trials[,"adviceType"] %in% aT, ]
     m <- mean(x[,colName])
@@ -559,9 +559,9 @@ print(df.v.iii.ii)
 # As above by dis/agreement and advice type
 df.v.iii.2 <- NULL
 for(agree in c(T,F)) {
-  for(aT in adviceTypes) {
+  for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
     if(aT==adviceTypes$neutral)
-      aT <- c(adviceTypes$AiC, adviceTypes$AiU)
+      aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
     x <- trials[trials$advisorAgrees & trials$adviceType %in% aT, ]
     m <- mean(x$finalConfidence)
     cl <- mean_cl_normal(x$finalConfidence)

@@ -474,12 +474,12 @@ class Advisor {
                     }
                 };
             case 5: // High accuracy
-                return function() {
-                    return 0.8;
+                return function(judgeCorrect) {
+                    return judgeCorrect? 0.8 : 0.2;
                 };
             case 6: // Low accuracy
-                return function() {
-                    return 0.6;
+                return function(judgeCorrect) {
+                    return judgeCorrect? 0.6 : 0.4;
                 };
             case 7: // High agreement
                 return function(judgeCorrect) {
