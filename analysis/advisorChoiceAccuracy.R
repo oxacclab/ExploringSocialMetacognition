@@ -241,6 +241,8 @@ print('Calculate utility variables')
 trials$adviceRight <- grepl('RIGHT', trials$adviceString, fixed = T)
 trials$adviceSideOld <- trials$adviceSide
 trials$adviceSide <- ifelse(trials$adviceRight, 1, 0)
+trials$advisorAgreesOld <- trials$advisorAgrees
+trials$advisorAgrees <- trials$initialAnswer == trials$adviceRight
 
 trials$adviceType <- getAdviceType(trials, participants, advisors) # adviceType > trials table
 trials$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
