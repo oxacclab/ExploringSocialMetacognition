@@ -237,6 +237,11 @@ rm(jsonData, files, fileName, folderName, json)
   
 #   1.ii) Calculate utility variables ####
 print('Calculate utility variables')
+# Fix for the javascript saving function recording the advice side as correctness rather than agreement
+trials$adviceRight <- grepl('RIGHT', trials$adviceString, fixed = T)
+trials$adviceSideOld <- trials$adviceSide
+trials$adviceSide <- ifelse(trials$adviceRight, 1, 0)
+
 trials$adviceType <- getAdviceType(trials, participants, advisors) # adviceType > trials table
 trials$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
 trials$confidenceShiftRaw <- getConfidenceShift(trials,T,T) # as above, without symmetry adjustment
@@ -382,7 +387,7 @@ print('3.v Trial count by contingency')
 df.iii.v <- aggregate(practice ~ 
                    pid + confidenceCategory + adviceType + initialCorrect + advisorAgrees, 
                  data = trials, FUN = length)
-print(df.iii.v)
+#print(df.iii.v)
 
 #   3.vi) Graph: trial count by contingency ####
 print('3.vi Graph of trial count by contingency')
@@ -1051,6 +1056,7 @@ gg.x.ii
 
 # 11) Generalised Trust ####
 #   11.i) Generalised Trust and subjective assessments ####
+print('11.i Generalized Trust and Subjective Assessments')
 
 # Generalised Trust is a measure of the propensity to trust, so we expect it to
 # correlate with the initial scores for the advisor questionnaires
@@ -1079,6 +1085,7 @@ gg.xi.i <- ggplot(tmp.2, aes(x = genTrust, y = value)) +
 gg.xi.i
 
 #   11.ii) Generalised Trust and influence ####
+print('11.ii Generalized Trust and Influence')
 
 # Generalised trust should also correlate with influence given that influence is
 # supposedly a manifestation of trust
@@ -1104,6 +1111,7 @@ gg.xi.ii
 
 
 # 12) Predicting advisor from confidence ####
+print('12 Predicting advisor from confidence')
 
 df.xii <- NULL
 for(pid in unique(trials$pid)) {
@@ -1123,6 +1131,8 @@ gg.xii
 
 
 # 13) Influence strength by confidence category ####
+print('13 Influence strength by confidence category')
+
 tmp <- aggregate(influence ~ confidenceCategory + pid, data = trials, FUN = mean)
 gg.xiii <- ggplot(tmp, aes(x = confidenceCategory, y = influence)) + 
   geom_point(aes(colour = as.factor(pid)), alpha = 0.5) + 
@@ -1160,7 +1170,7 @@ for(pid in unique(trials$pid)) {
 }
 
 # 15) Examining dot difference ####
-
+library(gganimate)
 g <- ggplot(trials, aes(x = id, y = dotDifference)) +
   geom_line() +
   geom_smooth(method = 'lm') +

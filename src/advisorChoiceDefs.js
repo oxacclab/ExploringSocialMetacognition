@@ -732,16 +732,15 @@ class AdvisorChoice extends DotTask {
             agree = this.currentTrial.getCorrect(false);
         else
             agree = this.currentAdvisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory());
+        this.currentTrial.advisorAgrees = agree;
         // Check the answer and dis/agree as appropriate
         if (agree) {
             this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
-                self.currentTrial.advisorAgrees = true;
-                return line.side === self.currentTrial.whichSide;
+                return line.side === self.currentTrial.answer[0];
             });
         } else {
             this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
-                self.currentTrial.advisorAgrees = false;
-                let side = [1, 0][self.currentTrial.whichSide];
+                let side = [1, 0][self.currentTrial.answer[0]];
                 return line.side === side;
             });
         }

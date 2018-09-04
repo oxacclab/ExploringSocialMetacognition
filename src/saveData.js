@@ -88,7 +88,7 @@ function flattenTrialData(trial, id) {
     out.advisorId = trial.advisorId;
     out.advisorAgrees = trial.advisorAgrees;
     if (trial.advisorId !== 0)
-        out.adviceSide = trial.advisorAgrees? trial.whichSide : 1-trial.whichSide;
+        out.adviceSide = trial.advice.side;
     else
         out.adviceSide = null;
     out.feedback = trial.feedback;
