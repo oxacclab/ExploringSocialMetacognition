@@ -180,7 +180,7 @@ class DotTask extends Governor {
      * This prevents users clicking on the slider, getting the visual feedback of the slider being activated and set,
      * and then being told they have not moved the slider.
      *
-     * @param {bool} drawMiddleBar - whether to draw the middle bar on the questionnaire
+     * @param {boolean} drawMiddleBar - whether to draw the middle bar on the questionnaire
      */
     setSliderClick(drawMiddleBar = true) {
         let sliders = document.querySelectorAll('.jspsych-sliders-response-slider');
@@ -359,22 +359,32 @@ class DotTask extends Governor {
         let warning = "";
         if (this.currentTrialIndex > 1) {
             // two-down one-up staircase
-            let lastTrial = this.trials[this.currentTrialIndex-1];
+            let lastTrial = this.trials[this.currentTrialIndex - 1];
             if (!this.currentTrial.getCorrect(false)) {
                 // Wrong! Make it easier
-                this.dotDifference += this.difficultyStep;
-                if (this.dotDifference > this.dotCount-1) {
-                    this.dotDifference = this.dotCount-1;
+                this.dotDifference += this.difficultyStep.current;
+                if (this.dotDifference > this.dotCount - 1) {
+                    this.dotDifference = this.dotCount - 1;
                     warning = "Difficulty at minimum!";
+                }
+                // Update the step size
+                if (this.difficultyStep.current > this.difficultyStep.end &&
+                    --this.difficultyStep.currentReversals <= 0) {
+                    this.difficultyStep.current--;
+                    this.difficultyStep.currentReversals = this.dotDifference.nReversals;
                 }
             } else if (lastTrial.getCorrect(false) && this.currentTrial.getCorrect(false)) {
                 // Two hits, impressive! Make it harder
-                this.dotDifference -= this.difficultyStep;
+                this.dotDifference -= this.difficultyStep.current;
                 if (this.dotDifference < 1) {
                     this.dotDifference = 1;
                     warning = "Difficulty at maximum!";
                 }
             }
+        } else {
+            // First trial: initialize the difficulty step tracker variables
+            this.difficultyStep.current = this.difficultyStep.start;
+            this.difficultyStep.currentReversals = this.difficultyStep.nReversals;
         }
         if (warning.length > 0 && this.currentTrialIndex < this.trials.length) {
             this.currentTrial.warnings.push(warning);

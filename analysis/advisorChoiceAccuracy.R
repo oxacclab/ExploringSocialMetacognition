@@ -569,14 +569,14 @@ for(agree in c(T,F)) {
   for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
     if(aT==adviceTypes$neutral)
       aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
-    x <- trials[trials$advisorAgrees & trials$adviceType %in% aT, ]
+    x <- trials[trials$advisorAgrees==agree & trials$adviceType %in% aT, ]
     m <- mean(x$finalConfidence)
     cl <- mean_cl_normal(x$finalConfidence)
     rn <- range(aggregate(finalConfidence ~ pid, data = x,
                           FUN = function(x){sum(as.numeric(x))/length(x)})$finalConfidence)
     df.v.iii.2 <- rbind(df.v.iii.2, data.frame(agree,
                                  advisor = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
-                                 meanCorrect = m,
+                                 meanConfidence = m,
                                  cl95Min = cl$ymin,
                                  cl95Max = cl$ymax,
                                  rangeMin = rn[1],
@@ -665,6 +665,30 @@ for(tp in unique(questionnaires$timepoint)) {
 }
 df.v.v[,-(1:3)] <- round(df.v.v[,-(1:3)],2)
 print(df.v.v)
+
+#   5.vi) Advisor accuracy ####
+print('5.vi) Advisor accuracy')
+df.vi <- NULL
+for(agree in list(T,F,c(T,F))) {
+  for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
+    if(aT==adviceTypes$neutral)
+      aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
+    x <- trials[trials$advisorAgrees %in% agree & trials$adviceType %in% aT, ]
+    x$adviceCorrect <- x$adviceSide == x$correctAnswer
+    cl <- mean_cl_normal(x$adviceCorrect)
+    rn <- range(aggregate(adviceCorrect ~ pid, x, FUN = mean)$adviceCorrect)
+    df.vi <- rbind(df.vi, data.frame(agree = ifelse(length(agree)>1, 'Both', agree),
+                                     advisor = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
+                                     meanConfidence = cl$y,
+                                     cl95Min = cl$ymin,
+                                     cl95Max = cl$ymax,
+                                     rangeMin = rn[1],
+                                     rangeMax = rn[2]))
+    
+  }
+}
+df.vi[,-(1:2)] <- round(df.vi[,-(1:2)],2)
+df.vi
 
 # 6) Is the HighAcc advisor selected more often? ####
 

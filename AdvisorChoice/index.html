@@ -86,7 +86,11 @@
         experimentCode: 'acc',
         dotCount: 200,
         dotDifference: 30,
-        difficultyStep: 3,
+        difficultyStep: {
+            start: 3,
+            end: 1,
+            nReversals: 2
+        },
         minimumBlockScore: 0.10,
         practiceAdvisor,
         advisorLists: [
