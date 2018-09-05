@@ -46,6 +46,10 @@ if(!require(lsr)) {
   install.packages('lsr')
   library(lsr)
 }
+if(!require(knitr)) {
+  install.packages('knitr')
+  library(knitr)
+}
 ```
 
 ## 0.ii) Functions ####
@@ -429,7 +433,7 @@ Exclusion rules:
     * NB:practice trials are INCLUDED in this since they are used in part for determining confidence calibration
 * Having fewer than 3 confidence categories
 * Having fewer than 5% of trials in each confidence category
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 participants$excluded <- sapply(participants$pid, function(pid){
   ts <- which(all.trials$pid == pid)
   # overall accuracy of initial decisions
@@ -458,13 +462,13 @@ questionnaires <- questionnaires[questionnaires$pid %in% participants$pid, ]
 
 df.iv <- aggregate(pid ~ excluded, data = all.participants, FUN = length)
 names(df.iv) <- c('exclusionReason', 'count')
-print(df.iv)
+kable(df.iv)
 ```
 
 # 5) Descriptives ####
 
 ## 5.i) Proportion correct ####
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.i <- NULL
 for(col in c('initial', 'final')) {
   for(aT in c(5,6,0)) {
@@ -488,11 +492,11 @@ for(col in c('initial', 'final')) {
   }
 }
 df.v.i[,-(1:2)] <- round(df.v.i[,-(1:2)],2)
-print(df.v.i)
+kable(df.v.i)
 ```
 
 ## 5.ii) Agreement rate ####
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.ii <- NULL
 for(aT in c(5,6)) {
   if(aT==adviceTypes$neutral)
@@ -529,13 +533,13 @@ for(aT in c(5,6)) {
   }
 }
 df.v.ii[,-(1:2)] <- round(df.v.ii[,-(1:2)],2)
-print(df.v.ii)
+kable(df.v.ii)
 ```
 
 ## 5.iii) Mean confidence ####
 
 ### 5.iii.i Mean confidence by correctness
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.iii.i <- NULL
 for(col in c('initial', 'final')) {
   for(correct in list(T,F,c(T,F))) {
@@ -556,11 +560,11 @@ for(col in c('initial', 'final')) {
   }
 }
 df.v.iii.i[,-(1:2)] <- round(df.v.iii.i[,-(1:2)],2)
-print(df.v.iii.i)
+kable(df.v.iii.i)
 ```
 
 ### 5.iii.ii Mean confidence by advisor
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.iii.ii <- NULL
 for(col in c('initial', 'final')) {
   for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
@@ -583,11 +587,11 @@ for(col in c('initial', 'final')) {
   }
 }
 df.v.iii.ii[,-(1:2)] <- round(df.v.iii.ii[,-(1:2)],2)
-print(df.v.iii.ii)
+kable(df.v.iii.ii)
 ```
 
 ### 5.iii.iii Mean confidence by dis/agreement and advice type
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.iii.2 <- NULL
 for(agree in c(T,F)) {
   for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
@@ -608,8 +612,7 @@ for(agree in c(T,F)) {
   }
 }
 df.v.iii.2[,-(1:2)] <- round(df.v.iii.2[,-(1:2)],2)
-print('Descriptives: final decision confidence')
-df.v.iii.2
+kable(df.v.iii.2)
 ```
 
 ## 5.iv) Graph: Initial vs Final confidence ####
@@ -650,7 +653,7 @@ gg.v.iv
 ```
 
 ### Response contingencies
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.iv <- NULL
 for(a in c(T,F)) {
   v <- trials[trials$advisorAgrees == a, ]
@@ -662,11 +665,11 @@ for(a in c(T,F)) {
                                        noChangePerC = n,
                                        decreaseConfPerC = d))
 }
-print(df.v.iv)
+kable(df.v.iv)
 ```
 
 ## 5.v) Questionnaire responses ####
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.v.v <- NULL
 for(tp in unique(questionnaires$timepoint)) {
   for(colName in c('likeability', 'ability', 'benevolence')) {
@@ -692,11 +695,11 @@ for(tp in unique(questionnaires$timepoint)) {
   }
 }
 df.v.v[,-(1:3)] <- round(df.v.v[,-(1:3)],2)
-print(df.v.v)
+kable(df.v.v)
 ```
 
 ## 5.vi) Advisor accuracy ####
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.vi <- NULL
 for(agree in list(T,F,c(T,F))) {
   for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
@@ -717,7 +720,7 @@ for(agree in list(T,F,c(T,F))) {
   }
 }
 df.vi[,-(1:2)] <- round(df.vi[,-(1:2)],2)
-df.vi
+kable(df.vi)
 ```
 
 # 6) Is the HighAcc advisor selected more often? ####
@@ -927,7 +930,7 @@ no effect. We will do this by showing that they did not differ between
 timepoints.
 
 ###     8.i.i) Race
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.viii.i.i <- NULL
 for(v in c('likeability', 'ability', 'benevolence')) {
   x <- questionnaires[questionnaires$advisorCategory=='b',v]
@@ -938,22 +941,22 @@ for(v in c('likeability', 'ability', 'benevolence')) {
                                                mu1 = mean(x),
                                                mu2 = mean(y)))
 }
-print(df.viii.i.i)
+kable(df.viii.i.i)
 ```
 
 ### 8.i.ii) Age
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 df.viii.i.ii <- NULL
 for(v in c('likeability', 'ability', 'benevolence')) {
   tmp <- correlationBF(questionnaires[,v], questionnaires[,'advisorAge'])
   df.viii.i.ii <- rbind(df.viii.i.ii, data.frame(variable = v,
                                                  corellationBF = exp(tmp@bayesFactor$bf)))
 }
-print(df.viii.i.ii)
+kable(df.viii.i.ii)
 ```
 
 ### 8.i.iii) Portrait
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 tmp <- questionnaires
 tmp$pid <- as.factor(tmp$pid)
 df.viii.i.iii <- NULL
@@ -963,11 +966,11 @@ for(v in c('likeability', 'ability', 'benevolence')) {
   df.viii.i.iii <- rbind(df.viii.i.iii, data.frame(variable = v,
                                                  BF = exp(tmp.aov@bayesFactor$bf)))
 }
-print(df.viii.i.iii)
+kable(df.viii.i.iii)
 ```
 
 ### 8.i.iv) Name
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 tmp <- questionnaires
 tmp$pid <- as.factor(tmp$pid)
 df.viii.i.iv <- NULL
@@ -977,7 +980,7 @@ for(v in c('likeability', 'ability', 'benevolence')) {
   df.viii.i.iv <- rbind(df.viii.i.iv, data.frame(variable = v,
                                                  BF = exp(tmp.aov@bayesFactor$bf)))
 }
-print(df.viii.i.iv)
+kable(df.viii.i.iv)
 ```
 If any of the above do show significant differences then we'll have to show
 that the factors which differ are not systematically linked to the advice type
@@ -988,7 +991,7 @@ effects we observe
 ## 8.ii) 2x2 AdviceType x Timepoint MANOVA ####
 **TODO**
 Check this MANOVA actually accounts for multiple observations per participant
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 aov.viii.ii <- manova(cbind(ability, likeability, benevolence) ~ adviceType * timepoint,# + Error(pid),
                       data = questionnaires)
 print(summary(aov.viii.ii))
@@ -1016,7 +1019,7 @@ for(v in c('likeability', 'ability', 'benevolence')) {
 }
 df.viii.ii[ ,4:6] <- round(df.viii.ii[ ,4:6],2)
 df.viii.ii$adviceType <- sapply(df.viii.ii$adviceType, getAdviceTypeName)
-df.viii.ii[order(df.viii.ii$timepoint), ]
+kable(df.viii.ii[order(df.viii.ii$timepoint), ])
 ```
 
 ## 8.iii) Graph: Pro/retrospective assessments by advice type and dimension ####
@@ -1093,7 +1096,7 @@ tmp.2 <- aggregate(influence ~ adviceType + pid + hasChoice,
 tmp$influence <- sapply(1:nrow(tmp), function(i){tmp.2$influence[tmp.2$hasChoice 
                                                                  & tmp.2$pid == tmp$pid[i]
                                                                  & tmp.2$adviceType == tmp$adviceType[i]]})
-
+tmp$influence <- as.numeric(tmp$influence)
 # The test is a regression with the change in subjective variables as predictors
 lm.x.i <- lm(influence ~ ability + benevolence + likeability, data = tmp)
 print(summary(lm.x.i))
@@ -1122,7 +1125,7 @@ gg.x.ii
 # 11.i) Generalised Trust and subjective assessments ####
 Generalised Trust is a measure of the propensity to trust, so we expect it to
 correlate with the initial scores for the advisor questionnaires
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 tmp <- aggregate(cbind(likeability, ability, benevolence) ~ pid,
                   data = questionnaires[questionnaires$timepoint==1,],
                   FUN = mean)
@@ -1135,7 +1138,7 @@ for(v in c('likeability', 'ability', 'benevolence')) {
                                        p.value = tmp.2$p.value,
                                        method = tmp.2$method))
 }
-print(df.xi.i)
+kable(df.xi.i)
 ```
 
 ### 11.ii.i) Graph of Generalised Trust and subjective assessments
@@ -1153,7 +1156,7 @@ gg.xi.i
 ## 11.ii) Generalised Trust and influence ####
 Generalised trust should also correlate with influence given that influence is
 supposedly a manifestation of trust
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 tmp <- aggregate(cbind(influence, rawInfluence) ~ pid,
                  data = trials,
                  FUN = mean)
@@ -1166,7 +1169,7 @@ for(v in c('rawInfluence', 'influence')) {
                                          p.value = tmp.2$p.value,
                                          method = tmp.2$method))
 }
-print(df.xi.ii)
+kable(df.xi.ii)
 ```
 
 ### 11.ii.i) Graph of Generalised Trust and influence
