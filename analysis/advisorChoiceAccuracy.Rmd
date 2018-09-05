@@ -8,6 +8,8 @@ output:
 toc_depth: 3
 number_sections: true
 author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
+editor_options: 
+  chunk_output_type: console
 ---
 September 2018 
 
@@ -369,7 +371,7 @@ gg.iii.iv <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory
   geom_point(alpha = 0.5, position = position_dodge(w)) +
   facet_wrap(~initialCorrect, labeller = label_both) +
   scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = c('AiC', 'AiU')) +
+  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
   scale_y_continuous(name = 'Advisor Agreement') +
   labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness\n on forced trials') +
   style
@@ -389,7 +391,7 @@ gg.iii.iv.i <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCatego
   geom_point(alpha = 0.5, position = position_dodge(w)) +
   facet_wrap(~typeName, labeller = label_both) +
   scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = c('AiC', 'AiU')) +
+  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
   scale_y_continuous(name = 'Advisor Agreement') +
   labs(title = 'Observed agreement rate for each advisor by initial decision confidence and block\n on initially correct trials') +
   style
@@ -706,7 +708,7 @@ for(agree in list(T,F,c(T,F))) {
     rn <- range(aggregate(adviceCorrect ~ pid, x, FUN = mean)$adviceCorrect)
     df.vi <- rbind(df.vi, data.frame(agree = ifelse(length(agree)>1, 'Both', agree),
                                      advisor = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
-                                     meanConfidence = cl$y,
+                                     meanAccuracy = cl$y,
                                      cl95Min = cl$ymin,
                                      cl95Max = cl$ymax,
                                      rangeMin = rn[1],
@@ -1242,10 +1244,17 @@ library(gganimate)
 g <- ggplot(trials, aes(x = id, y = dotDifference)) +
   geom_line() +
   geom_smooth(method = 'lm') +
-  scale_x_continuous(limits = c(60,246)) +
+  scale_x_continuous(limits = c(0,246)) +
   style.long +
   labs(title = 'Participant {frame_time}') +
   transition_time(pid)
 
-#animate(g, fps = 1)  
+animate(g, fps = 1) 
+
+ggplot(all.trials, aes(x = id, y = dotDifference)) +
+  geom_line() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous(limits = c(0,246)) +
+  style.long +
+  facet_wrap(.~pid)
 ```
