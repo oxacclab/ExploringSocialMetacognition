@@ -1242,6 +1242,7 @@ for(pid in unique(participants$pid)) {
                                                                   sum(tmp$influence[tmp$adviceType!=aid]))))
   }
 }
+df.xii.i.ii <- aggregate(. ~ pid, df.xii.i.ii, FUN = mean) # reaggregate
 cor.test(df.xii.i.ii$PrefStrength, df.xii.i.ii$InfluenceDiff)
 correlationBF(df.xii.i.ii$PrefStrength, df.xii.i.ii$InfluenceDiff)
 ```

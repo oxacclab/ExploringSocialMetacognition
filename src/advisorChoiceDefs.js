@@ -43,6 +43,7 @@ class DotTask extends Governor {
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
      * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
+     * @param {string} [args.experimentCode=''] - code identifying the experiment
      *
      * @param {int} [args.dotCount] - number of dots in a box
      * @param {int} [args.dotDifference] - half the difference between the dot counts in the two boxes; the difficulty
@@ -89,6 +90,89 @@ class DotTask extends Governor {
     }
 
     /**
+     * Return a list of Trial objects.
+     *
+     * A large part of the work of defining the experiment takes place here, although the key properties are
+     * actually defined in the Governor definition.
+     *
+     * The trials defined here are the master list used by the Governor to decide which stimuli to serve,
+     * which advisor or choice to offer, etc. This list is **not necessarily the same as** the trial list
+     * established at the beginning of the experiment and handed to jsPsych. It is therefore the responsibility
+     * of the programmer to ensure that these lists are lawfully aligned such that the block structures, etc.
+     * match.
+     *
+     * A possible alternative strategy - push new trials to the jsPsych timeline at
+     * the end of each completed trial. Since we don't get nice progress bar this way we may as well use on-the-fly
+     * timeline tweaking. This may just be more work to duplicate jsPsych's capabilities, though
+     */
+    getTrials() {
+        let trials = [];
+        let id = 0;
+        let realId = 0;
+        let blockCount = this.blockStructure.length;
+        // Shuffle which side the correct answer appears on
+        let whichSideDeck = utils.shuffleShoe([0, 1], utils.sumList(this.blockStructure));
+        // Define trials
+        for (let b=1; b<=this.practiceBlockCount+blockCount; b++) {
+            let blockIndex = b; // the block we're in
+            if (b > this.practiceBlockCount) {
+                blockIndex = (b-this.practiceBlockCount-1)%this.blockStructure.length; // account for practice blocks
+            }
+            let blockLength = b<=this.practiceBlockCount? this.practiceBlockLength :
+                utils.sumList(this.blockStructure[blockIndex]);
+            // intro trials are a special case so the block length needs to be longer to accommodate them
+            if (b === 1)
+                blockLength += 3;
+            // Work out what type of trial to be
+            let trialTypeDeck = [];
+            let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
+            if (b === 1)
+                structure = {0:0, 1:5, 2:0};
+            for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
+                for (let i=0; i<structure[tt]; i++)
+                    trialTypeDeck.push(tt);
+            }
+            trialTypeDeck = utils.shuffle(trialTypeDeck);
+            for (let i=1; i<=blockLength; i++) {
+                id++;
+                let isPractice = b<=this.practiceBlockCount;
+                let trialType = trialTypeDeck.pop();
+                let advisorId = 0;
+                if (isPractice)
+                    advisorId = id<=3? 0 : this.practiceAdvisor.id;
+                else
+                    advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
+                let r = Math.random() < .5? 1 : 0;
+                let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
+                trials.push(new Trial(id, {
+                    type: trialType,
+                    typeName: trialTypeNames[trialType],
+                    block: b,
+                    advisorSet,
+                    advisorId,
+                    choice,
+                    answer: [NaN, NaN],
+                    confidence: [NaN, NaN],
+                    getCorrect: function(finalAnswer = true) {
+                        let answer = finalAnswer? this.answer[1] : this.answer[0];
+                        return answer === this.whichSide;
+                    },
+                    whichSide: isPractice? Math.round(Math.random()) : whichSideDeck[realId],
+                    practice: isPractice,
+                    feedback: isPractice,
+                    warnings: [],
+                    stimulusDrawTime: [],
+                    stimulusOffTime: [],
+                    fixationDrawTime: []
+                }));
+                if (!isPractice)
+                    realId++;
+            }
+        }
+        return trials;
+    }
+
+    /**
      * Do the actual drawing on the canvas.
      *
      * This function is called by the trial (supplied as stimulus). Query the Governor to get the details for
@@ -114,6 +198,55 @@ class DotTask extends Governor {
             self.currentTrial.stimulusDrawTime.push(performance.now());
             grid.draw(canvasId);
         }, this.preTrialInterval+this.preStimulusInterval);
+    }
+
+    /**
+     * Ensure the participant did the intro trial correctly
+     * @param {Object} trial - jsPsych plugin response
+     *
+     * @return {Boolean|void} false if trial should be repeated or void if okay
+     */
+    checkIntroResponse(trial) {
+        switch(this.currentTrialIndex) {
+            case 0: // First practice - have to get it right (it's very easy)
+                if(DotTask.getAnswerFromResponse(trial.response) !== this.currentTrial.whichSide) {
+                    // redo the first trial
+                    // returning false tells jsPsych to repeat the trial
+                    return false;
+                } else
+                    return this.initialResponse(trial);
+            default:
+                return this.initialResponse(trial);
+        }
+    }
+
+    /** Check the initial response to ensure that the participant hasn't selected neither answer.
+     * @param {Object} trialresponse - potential response from the plugin
+     * @return true to allow the response through, false to prevent it
+     */
+    checkResponse(trialresponse) {
+        let okay = trialresponse.response[0].answer!=="50";
+        if(okay)
+            return true;
+        // Add a warning and reject response
+        document.querySelector('#jspsych-canvas-sliders-response-warnings').innerHTML =
+            "<span style='color: red'>Please choose one side or the other.</span>";
+        return false;
+    }
+
+    /**
+     * Process the judge's initial response
+     * @param {Object} trial - jsPsych plugin response
+     * @param {Object} [args={}] - assorted arguments to customize behaviour
+     * @param {boolean} [args.advisorAlwaysCorrect - whether to override advisor's behaviour and force them to advice the correct response
+     */
+    initialResponse(trial, args={}) {
+        this.storePluginData(trial);
+        this.currentTrial.stimulusOffTime.push(trial.stimulusOffTime);
+        // trial is the complete trial object with its trial.response object
+        this.currentTrial.answer[0] = DotTask.getAnswerFromResponse(trial.response);
+        this.currentTrial.confidence[0]  = DotTask.getConfidenceFromResponse(trial.response, this.currentTrial.answer[0]);
+        this.closeTrial(trial);
     }
 
     /**
@@ -409,6 +542,7 @@ class AdvisorChoice extends DotTask {
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
      * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
+     * @param {string} [args.experimentCode=''] - code identifying the experiment
      *
      * @param {int} [args.dotCount] - number of dots in a box
      * @param {int} [args.dotDifference] - half the difference between the dot counts in the two boxes; the difficulty
@@ -610,20 +744,6 @@ class AdvisorChoice extends DotTask {
         this.setSliderClick();
     }
 
-    /* Check the initial response to ensure that the participant hasn't selected neither answer.
-     * @param {Object} trialresponse - potential response from the plugin
-     * @return true to allow the response through, false to prevent it
-     */
-    checkResponse(trialresponse) {
-        let okay = trialresponse.response[0].answer!=="50";
-        if(okay)
-            return true;
-        // Add a warning and reject response
-        document.querySelector('#jspsych-canvas-sliders-response-warnings').innerHTML =
-            "<span style='color: red'>Please choose one side or the other.</span>";
-        return false;
-    }
-
     /**
      * Show advice over the stimulus presentation area
      */
@@ -687,26 +807,6 @@ class AdvisorChoice extends DotTask {
         display_element.appendChild(choiceImgs.pop());
         display_element.appendChild(p);
         display_element.appendChild(choiceImgs.pop());
-    }
-
-    /**
-     * Ensure the participant did the intro trial correctly
-     * @param {Object} trial - jsPsych plugin response
-     *
-     * @return {Boolean|void} false if trial should be repeated or void if okay
-     */
-    checkIntroResponse(trial) {
-        switch(this.currentTrialIndex) {
-            case 0: // First practice - have to get it right (it's very easy)
-                if(AdvisorChoice.getAnswerFromResponse(trial.response) !== this.currentTrial.whichSide) {
-                    // redo the first trial
-                    // returning false tells jsPsych to repeat the trial
-                    return false;
-                } else
-                    return this.initialResponse(trial);
-            default:
-                return this.initialResponse(trial);
-        }
     }
 
     /**
@@ -912,6 +1012,7 @@ class HaloEffect extends AdvisorChoice {
      * @param {Object[]} [args.miscTrials] - miscellaneous trials (breaks, instructions, etc)
      * @param {int} [args.currentTrialIndex=0] - index of current trial in trial list
      * @param {string} [args.completionURL=''] - URL to which to refer participants for payment
+     * @param {string} [args.experimentCode=''] - code identifying the experiment
      *
      * @param {int} [args.dotCount] - number of dots in a box
      * @param {int} [args.dotDifference] - half the difference between the dot counts in the two boxes; the difficulty
