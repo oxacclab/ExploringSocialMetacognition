@@ -55,6 +55,10 @@ h1.feedback:first-of-type {
     margin-bottom: 0;
 }
 
+*.feedback.default-width {
+    width: unset !important;
+}
+
 div.feedback.container {
     display: block;
 }

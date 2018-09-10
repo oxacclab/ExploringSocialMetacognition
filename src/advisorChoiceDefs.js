@@ -5,7 +5,7 @@
 "use strict";
 
 import {DoubleDotGrid, Trial, Governor, Advisor, utils} from './exploringSocialMetacognition.js';
-import {advisorChoice} from "./analysis.js";
+import {dotTask, advisorChoice} from "./analysis.js";
 import debriefForm from "./debriefForm.js";
 //import processData from "./saveData.js";
 
@@ -68,20 +68,11 @@ class DotTask extends Governor {
         this.practiceBlockCount = typeof args.practiceBlockCount === 'undefined'? null : args.practiceBlockCount;
         this.blockStructure = typeof args.blockStructure === 'undefined'? [
             {
-                [trialTypes.catch]: 0,
-                [trialTypes.choice]: 0,
-                [trialTypes.force]: 0
-            },
-            {
-                [trialTypes.catch]: 0,
-                [trialTypes.choice]: 0,
-                [trialTypes.force]: 0
+                0: 0
             }
         ] : args.blockStructure;
         this.practiceBlockStructure = typeof args.practiceBlockStructure === 'undefined'? {
-            [trialTypes.catch]: 0,
-            [trialTypes.choice]: 0,
-            [trialTypes.force]: 2
+            0: 0
         } : args.practiceBlockStructure;
         this.preTrialInterval = typeof args.preTrialInterval === 'undefined'? null : args.preTrialInterval;
         this.preStimulusInterval = typeof args.preStimulusInterval === 'undefined'? null : args.preStimulusInterval;
@@ -109,7 +100,7 @@ class DotTask extends Governor {
         let trials = [];
         let id = 0;
         let realId = 0;
-        let blockCount = this.blockStructure.length;
+        let blockCount = this.blockStructure.length * this.blockCount;
         // Shuffle which side the correct answer appears on
         let whichSideDeck = utils.shuffleShoe([0, 1], utils.sumList(this.blockStructure));
         // Define trials
@@ -127,7 +118,7 @@ class DotTask extends Governor {
             let trialTypeDeck = [];
             let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
             if (b === 1)
-                structure = {0:0, 1:5, 2:0};
+                structure = {0:blockLength}; // pad out the structure to account for extra intro trials
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
                 for (let i=0; i<structure[tt]; i++)
                     trialTypeDeck.push(tt);
@@ -137,20 +128,10 @@ class DotTask extends Governor {
                 id++;
                 let isPractice = b<=this.practiceBlockCount;
                 let trialType = trialTypeDeck.pop();
-                let advisorId = 0;
-                if (isPractice)
-                    advisorId = id<=3? 0 : this.practiceAdvisor.id;
-                else
-                    advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
-                let r = Math.random() < .5? 1 : 0;
-                let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
                 trials.push(new Trial(id, {
                     type: trialType,
-                    typeName: trialTypeNames[trialType],
+                    typeName: 'dot',
                     block: b,
-                    advisorSet,
-                    advisorId,
-                    choice,
                     answer: [NaN, NaN],
                     confidence: [NaN, NaN],
                     getCorrect: function(finalAnswer = true) {
@@ -358,7 +339,7 @@ class DotTask extends Governor {
         });
         let hitList = utils.getMatches(trialList, (trial)=>{
             let answer = trial.answer[1];
-            if (answer === null)
+            if (answer === null || isNaN(answer))
                 answer = trial.answer[0];
             return answer === trial.whichSide;
         });
@@ -385,6 +366,73 @@ class DotTask extends Governor {
         "<p>This is below the score required to continue with the study, so your participation has been ended prematurely.</p>";
         div.classList.add('terminated');
         this.drawProgressBar();
+    }
+
+    /**
+     * Draw the form which asks participants for final comments
+     */
+    drawDebriefForm() {
+        let owner = this;
+        // Create form
+        let div = document.querySelector('.jspsych-content').appendChild(document.createElement('div'));
+        div.id = 'debriefContainer';
+        div.className = 'debrief';
+        let header = div.appendChild(document.createElement('h1'));
+        header.id = 'debriefTitle';
+        div.className = 'debrief';
+        header.innerText = 'finally...';
+        let form = div.appendChild(document.createElement('form'));
+        form.id = 'debriefForm';
+        form.className = 'debrief';
+        let comment = form.appendChild(document.createElement('div'));
+        comment.id = 'debriefCommentContainer';
+        comment.className = 'debrief';
+        let commentQ = comment.appendChild(document.createElement('div'));
+        commentQ.id = 'debriefCommentQuestion';
+        commentQ.className = 'debrief';
+        commentQ.innerHTML = 'Do you have any comments or concerns about the experiment? <em>(optional)</em>';
+        let commentA = comment.appendChild(document.createElement('textarea'));
+        commentA.id = 'debriefCommentAnswer';
+        commentA.className = 'debrief';
+        let ok = form.appendChild(document.createElement('button'));
+        ok.innerText = 'submit';
+        ok.className = 'debrief jspsych-btn';
+        ok.onclick = function (e) {
+            e.preventDefault();
+            owner.debriefFormSubmit(form);
+        };
+    }
+
+    /**
+     * submit the debrief form and finish the experiment
+     *
+     */
+    debriefFormSubmit(form) {
+        this.debrief = {
+            manipulationQuestion: "",
+            comments: form.querySelector('#debriefCommentAnswer').value
+        };
+        document.querySelector('body').innerHTML = "";
+        this.endExperiment();
+    }
+
+    feedback(data, includePayment = false) {
+        if(typeof data === 'undefined')
+            data = this;
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(function(){dotTask.showFeedback(data, includePayment)});
+    }
+
+    endExperiment(saveData = true, clearScreen = true) {
+        this.timeEnd = (new Date()).getTime();
+        if(saveData === true)
+            this.exportGovernor();
+        // reset background colour
+        if(clearScreen === true) {
+            document.querySelector('body').style.backgroundColor = '';
+            document.body.innerHTML = "<div id='jspsych-content'></div>";
+        }
+        this.feedback(this, (saveData && this.completionURL !== ''));
     }
 
     /**

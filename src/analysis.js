@@ -9,11 +9,11 @@
 import {Trial, Advisor, utils} from "./exploringSocialMetacognition.js";
 
 /**
- * @class advisorChoice
+ * @class dotTask
  *
- * Functions pertaining to the advisorChoice experiment
+ * Functions pertaining to the DotTask experiment
  */
-class advisorChoice {
+class dotTask {
     /**
      * Return the overall accuracy of the judge
      *
@@ -46,6 +46,200 @@ class advisorChoice {
             return hits/(hits+misses);
     }
 
+    /**
+     * Return accuracy summary broken down by decision
+     * @param {Trial[]} trials - trial list
+     * @returns {{initial: number[]}
+     */
+    static accuracySummary(trials) {
+        let initial = dotTask.overallAccuracy(trials, true, true);
+        return {initial};
+    }
+
+    /**
+     * Return the mean confidence of trials
+     * @param {Trial[]} trials - trial list
+     * @param {boolean} firstResponse - whether to extract the initial vs final response
+     * @returns {number|number[]} - [mean, sum, count] or NaN if no trials are found
+     */
+    static meanConfidence(trials, firstResponse = true) {
+        let sum = 0;
+        let count = 0;
+        let i = firstResponse? 0 : 1;
+        trials.forEach(function (trial) {
+            if (trial.confidence[i] === null || isNaN(trial.confidence[i]))
+                return;
+            sum += trial.confidence[i];
+            count++;
+        });
+        if (count===0)
+            return NaN;
+        return [sum/count, sum, count];
+    }
+
+    /**
+     * Get a summary of confidence for inital, final, and combined scores
+     * @param {Trial[]} trials - trial list
+     * @returns {{initial: number[]}}
+     */
+    static confidenceSummary(trials) {
+          let initial = dotTask.meanConfidence(trials, true);
+          return {initial};
+    }
+
+    /**
+     * Confidence broken down by whether the initial/final decision was in/correct
+     * @param trials
+     * @returns {{initial: {correct: *|{initial: number[]}, incorrect: *|{initial: number[]}}}}
+     */
+    static confidenceBreakdown(trials) {
+        let initialCorrectTrials = utils.getMatches(trials, function(trial) {
+            return dotTask.accuracySummary([trial]).initial[0] === 1;
+        });
+        let initialIncorrectTrials = utils.getMatches(trials, function(trial) {
+            return dotTask.accuracySummary([trial]).initial[0] === 0;
+        });
+        let correct = dotTask.confidenceSummary(initialCorrectTrials);
+        let incorrect = dotTask.confidenceSummary(initialIncorrectTrials);
+
+        return {
+            initial: {correct, incorrect}
+        };
+    }
+
+    /**
+     * Show feedback based on a Governor object
+     * @param {AdvisorChoice} g
+     *
+     */
+    static showFeedback(g, includePayment = false) {
+        let body = document.querySelector('body');
+        // Reward link
+        g.completionURL = 'https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4'
+        if(includePayment !== false) {
+            let paymentSection = body.appendChild(document.createElement('section'));
+            let paymentDiv = document.createElement('div');
+            paymentDiv.id = 'thanks';
+            paymentDiv.innerHTML = "<h1>Complete!</h1><p>Completion URL:</p>" +
+                "<p><a class='feedback payment-link' href='" + g.completionURL +
+                "' target='_blank'>" + g.completionURL + "</a></p>" +
+                "<p>You will not be notified of this URL again, so please click it now!</p>";
+            paymentSection.appendChild(paymentDiv);
+        }
+        // Thanks
+        let thanksSection = body.appendChild(document.createElement('section'));
+        let thanksDiv = document.createElement('div');
+        thanksDiv.id = 'thanks';
+        switch(g.experimentCode) {
+            default:
+                thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
+                    "the difficulty was continually adjusted to try to keep you at around 70% accuracy.</p>" +
+                    "<p>We are investigating how people evaluate advice, and we need to know how people" +
+                    " approach the task when there is not advice. Your participation helps with this.</p>";
+        }
+
+        thanksSection.appendChild(thanksDiv);
+        // Accuracy
+        let accuracySection = body.appendChild(document.createElement('section'));
+        let accuracyDiv = document.createElement('div');
+        accuracyDiv.id = 'accuracy';
+        accuracySection.appendChild(accuracyDiv);
+        accuracyDiv.appendChild(document.createElement('h2')).innerHTML =
+            '<a href="#top" name="accuracy">Accuracy</a>';
+        let accuracyContainer = document.createElement('div');
+        accuracyContainer.id = 'accuracyContainer';
+        accuracyContainer.className = 'container';
+        accuracyDiv.appendChild(accuracyContainer);
+        let accuracyDescription = document.createElement('div');
+        accuracyDescription.id = 'accuracyDescription';
+        accuracyDescription.className = 'description default-width';
+        let pre = advisorChoice.accuracySummary(g.trials);
+        pre = utils.round(pre.initial[0]*100,1);
+        accuracyDescription.innerHTML = "<p>The task difficulty changes based on your performance so that we " +
+            "can compare advice-taking properly. Your accuracy should be approximately 71%. " +
+            "Your accuracy was <strong>"+pre+
+            "%</strong>.</p>";
+        accuracyContainer.appendChild(accuracyDescription);
+
+        // confidence
+        let confidenceSection = body.appendChild(document.createElement('section'));
+        let confidenceDiv = document.createElement('div');
+        confidenceDiv.id = 'confidence';
+        confidenceSection.appendChild(confidenceDiv);
+        confidenceDiv.appendChild(document.createElement('h2')).innerHTML =
+            '<a href="#top" name="confidence">Confidence</a>';
+        let confidenceContainer = document.createElement('div');
+        confidenceContainer.id = 'confidenceContainer';
+        confidenceContainer.className = 'container';
+        confidenceDiv.appendChild(confidenceContainer);
+        let confidenceGraph = document.createElement('div');
+        confidenceGraph.id = 'confidenceGraph';
+        confidenceGraph.className = 'graph';
+        confidenceContainer.appendChild(confidenceGraph);
+        let confidenceDescription = document.createElement('div');
+        confidenceDescription.id = 'confidenceDescription';
+        confidenceDescription.className = 'description';
+        let preconf = advisorChoice.accuracySummary(g.trials);
+        pre = utils.round(preconf.initial[0]*100,1);
+        confidenceDescription.innerHTML = "<p>Your confidence is presented here broken down by whether " +
+            "or not your decision was correct. Most people show a pattern where they are more confident " +
+            "when they are correct than when they are mistaken.</p>";
+        confidenceContainer.appendChild(confidenceDescription);
+
+        // apply 'feedback' class to all elements for styling purposes
+        body.className += ' feedback';
+        utils.applyClassToChildren(body, 'feedback');
+        body.style.backgroundColor = 'ghostwhite';
+
+        // fill in graphs
+        dotTask.getConfidenceFeedback(g, confidenceGraph);
+    }
+
+    /**
+     * Show the confidence breakdown using positions on the sliders
+     * @param {Governor} input - data holder
+     * @param {HTMLElement} div - div to draw the output inside
+     */
+    static getConfidenceFeedback(input, div) {
+        let confReport = dotTask.confidenceBreakdown(input.trials);
+        // Draw a representation of the slider
+        let container = div.appendChild(document.createElement('div'));
+        container.className = 'feedback confidenceBarContainer';
+        let label = container.appendChild(document.createElement('h3'));
+        label.id = 'confidenceBarLabel';
+        label.className = 'confidenceLabel preAdvice feedback';
+        let bar = container.appendChild(document.createElement('div'));
+        bar.id = 'confidenceBarPre';
+        bar.className = 'feedback confidenceBar preAdvice';
+        // Add indicators for the various positions
+        let correctPre = bar.appendChild(document.createElement('div'));
+        correctPre.id = 'confidenceCorrectPre';
+        correctPre.className = 'confidenceMarker correct preAdvice feedback';
+        correctPre.style.left = (confReport.initial.correct.initial[0]*2).toString()+'%';
+        let incorrectPre = bar.appendChild(document.createElement('div'));
+        incorrectPre.id = 'confidenceIncorrectPre';
+        incorrectPre.className = 'confidenceMarker incorrect preAdvice feedback';
+        incorrectPre.style.left = 'calc(-20px + '+(confReport.initial.incorrect.initial[0]*2).toString()+'%)';
+        // Add popups
+        let cpChild = correctPre.appendChild(document.createElement('div'));
+        cpChild.className = 'confidencePopup correct preAdvice feedback';
+        cpChild.innerHTML = 'Your average confidence was <strong>'+
+            utils.round(confReport.initial.correct.initial[0],1,true).toString()+
+            '</strong> when you were correct.';
+        let ipChild = incorrectPre.appendChild(document.createElement('div'));
+        ipChild.className = 'confidencePopup incorrect preAdvice feedback';
+        ipChild.innerHTML = 'Your average confidence was <strong>'+
+           utils.round(confReport.initial.incorrect.initial[0],1,true).toString()+
+            '</strong> when you were incorrect.';
+    }
+}
+
+/**
+ * @class advisorChoice
+ *
+ * Functions pertaining to the advisorChoice experiment
+ */
+class advisorChoice extends dotTask {
     /**
      * Return accuracy summary broken down by decision
      * @param {Trial[]} trials - trial list
@@ -89,14 +283,14 @@ class advisorChoice {
      * @returns {{initial: number[], final: number[], combined: number[]}}
      */
     static confidenceSummary(trials) {
-          let initial = advisorChoice.meanConfidence(trials, true);
-          let final = advisorChoice.meanConfidence(trials, false);
-          let combined = [
-              (initial[1]+final[1] / (initial[1]+initial[2]+final[1]+final[2])),
-              (initial[1]+final[1]),
-              (initial[2]+final[2])
-          ];
-          return {initial, final, combined};
+        let initial = advisorChoice.meanConfidence(trials, true);
+        let final = advisorChoice.meanConfidence(trials, false);
+        let combined = [
+            (initial[1]+final[1] / (initial[1]+initial[2]+final[1]+final[2])),
+            (initial[1]+final[1]),
+            (initial[2]+final[2])
+        ];
+        return {initial, final, combined};
     }
 
     /**
@@ -700,7 +894,7 @@ class advisorChoice {
         let ipChild = incorrectPre.appendChild(document.createElement('div'));
         ipChild.className = 'confidencePopup incorrect preAdvice feedback';
         ipChild.innerHTML = 'Your average confidence before advice was <strong>'+
-           utils.round(confReport.final.incorrect.initial[0],1,true).toString()+
+            utils.round(confReport.final.incorrect.initial[0],1,true).toString()+
             '</strong> when you were incorrect.';
         let ctChild = correctPost.appendChild(document.createElement('div'));
         ctChild.className = 'confidencePopup correct postAdvice feedback';
@@ -715,4 +909,4 @@ class advisorChoice {
     }
 }
 
-export {advisorChoice};
+export {dotTask, advisorChoice};

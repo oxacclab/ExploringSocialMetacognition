@@ -9,7 +9,7 @@
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null) {
-            redirectURL = "../consent.html?study=AdvisorChoice";
+            redirectURL = "../consent.html?study=DotTask";
             if(prolificID !== null)
                 redirectURL += "&PROLIFIC_PID=" + prolificID;
             window.location.replace(redirectURL); // simulate redirect (no history)
@@ -67,17 +67,18 @@
             nReversals: 2
         },
         minimumBlockScore: 0.10,
-        blockCount: 2,
+        blockCount: 1,
         blockStructure: [
             {
-                [-1]: 60 // using -1 so we don't confuse these with practice trials in R
+                0: 6//0 // using 0 because it corresponds to 'catch' trials without advice in AdvisorChoice
+            },
+            {
+                0: 6//0
             }
         ],
         practiceBlockCount: 1,
         practiceBlockStructure: {
-            [trialTypes.catch]: 0,
-            [trialTypes.choice]: 0,
-            [trialTypes.force]: 2//5
+            0: 5
         },
         preTrialInterval: 200,
         preStimulusInterval: 500,
@@ -203,6 +204,35 @@
     };
 
     /* Initial response: present an initial stimulus and get a decision */
+    const practiceDecision = {
+        type: "canvas-sliders-response",
+        stimulus: (canvasId)=>gov.drawDots(canvasId),
+        stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        prompt: '',
+        sliderCount: 1,
+        labels: [
+            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
+        ],
+        slider_prompt: [
+            'Which box has more dots?'
+        ],
+        slider_name: [
+            'answer'
+        ],
+        reversed: [false],
+        slider_full_width: [true],
+        slider_col_spacing: [0],
+        exclusive_group: [1],
+        require_change: [1],
+        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        on_load: ()=>gov.setSliderClick(),
+        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
+        on_finish: (trial)=>gov.initialResponse(trial),
+        post_trial_gap: gov.feedbackDuration
+    };
+
+    /* Initial response: present an initial stimulus and get a decision */
     const initialDecision = {
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
@@ -229,6 +259,9 @@
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.initialResponse(trial)
     };
+
+    /* Show a black or white screen for in/correct responses */
+    const showFeedback = {};
 
     const genTrustQuestionnaire = {
         type: "function-sliders-response",
@@ -272,17 +305,17 @@
         special_class_names: ['genTrustQ'],
         max_warnings: 1,
         on_load: ()=>gov.setSliderClick(false),
-        on_finish: (trial)=>gov.genTrustQuestionnaireResponse(trial)
+        on_finish: (trial)=>gov.generalisedTrustQuestionnaire = trial
     };
 
     const practice_procedure = {
-        timeline: [initialDecision, advice, finalDecision],
+        timeline: [practiceDecision],
         randomize_order: false,
         repetitions: gov.practiceBlockLength
     };
 
     const test_procedure = {
-        timeline: [initialDecision, advice, finalDecision],
+        timeline: [initialDecision],
         randomize_order: false,
         repetitions: utils.sumList(gov.blockStructure)/2
     };
@@ -298,33 +331,20 @@
 
     for (let b=1; b<=gov.practiceBlockCount; b++) {
         timeline.push(practice_procedure);
-        if (b===1)
-            timeline.push(questionnaire);
     }
 
     timeline.push(finalInstructions);
 
     // real experiment
-    for (let a=0; a<gov.advisorLists.length; a++) {
-        timeline.push(questionnaireProspective);
-        timeline.push(questionnaireProspective);
-
-        // real experiment
-        for (let b=0; b<gov.blockStructure.length; b++) {
-            test_procedure.repetitions = utils.sumList(gov.blockStructure[b]);
-            timeline.push(test_procedure);
-            timeline.push(blockBreak);
-        }
-
-        // Remove the last break screen
-        timeline.pop();
-
-        timeline.push(questionnaire);
-        timeline.push(questionnaire);
+    for (let b=0; b<gov.blockStructure.length; b++) {
+        test_procedure.repetitions = utils.sumList(gov.blockStructure[b]);
+        timeline.push(test_procedure);
         timeline.push(blockBreak);
     }
 
+    // Remove the last break screen
     timeline.pop();
+
     
     // Trust questionnaire
     timeline.push(genTrustQuestionnaire);

@@ -24,7 +24,7 @@ $id = $raw->participantId;
 // Experiment name is the last directory
 $experimentName = basename(pathinfo($_SERVER['HTTP_REFERER'], PATHINFO_DIRNAME));
 // Whitelist for experiment names:
-$experimentNames = array("AdvisorChoice");
+$experimentNames = array("AdvisorChoice", "DotTask");
 
 $out = array(
     "error" => "",

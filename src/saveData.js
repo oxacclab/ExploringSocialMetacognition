@@ -40,14 +40,16 @@ export default function processData(data, test = false) {
 
     // Advisor data
     let advisorData = [];
-    for (let a=0; a<data.advisors.length; a++)
-        advisorData.push(flattenAdvisorData(data.advisors[a], participantData.id));
+    if(typeof data.advisors !== 'undefined')
+        for (let a=0; a<data.advisors.length; a++)
+            advisorData.push(flattenAdvisorData(data.advisors[a], participantData.id));
     participantData.advisors = advisorData;
 
     // Questionnaires
     let questionnaireData = [];
-    for (let q=0; q<data.questionnaires.length; q++)
-        questionnaireData.push(flattenQuestionnaireData(data.questionnaires[q], participantData.id))
+    if(typeof data.questionnaires !== 'undefined')
+        for (let q=0; q<data.questionnaires.length; q++)
+            questionnaireData.push(flattenQuestionnaireData(data.questionnaires[q], participantData.id))
     participantData.questionnaires = questionnaireData;
 
     // Trials
@@ -82,12 +84,19 @@ function flattenTrialData(trial, id) {
     out.initialConfidence = trial.confidence[0];
     out.finalConfidence = trial.confidence[1];
     out.confidenceCategory = trial.confidenceCategory;
-    out.hasChoice = !!trial.choice.length;
-    out.choice0 = trial.choice.length? trial.choice[0] : null;
-    out.choice1 = trial.choice.length? trial.choice[1] : null;
+    if(trial.choice !== null) {
+        out.hasChoice = !!trial.choice.length;
+        out.choice0 = trial.choice.length? trial.choice[0] : null;
+        out.choice1 = trial.choice.length? trial.choice[1] : null;
+    } else {
+        out.hasChoice = null;
+        out.choice0 = null;
+        out.choice1 = null;
+    }
+
     out.advisorId = trial.advisorId;
     out.advisorAgrees = trial.advisorAgrees;
-    if (trial.advisorId !== 0)
+    if (trial.advisorId !== 0 && trial.advisorId !== null)
         out.adviceSide = trial.advice.side;
     else
         out.adviceSide = null;
