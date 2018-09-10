@@ -461,6 +461,8 @@ class DotTask extends Governor {
             this.currentTrial.warnings.push('getConfidenceCategory: trial not found in this.trials');
             return 1;
         }
+        if (trialIndex === 0)
+            return 1; // first trial has no history
         let confidenceScore = this.trials[trialIndex].confidence[(args.initialConfidence? 0 : 1)];
 
         // collate valid trials and get confidence
