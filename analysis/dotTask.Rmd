@@ -1,5 +1,5 @@
 ---
-title: "Analysis script for AdvisorChoice (Advisor Accuracy)"
+title: "Analysis script for DotTask"
 output: 
   html_document:
   toc: true
@@ -222,7 +222,7 @@ if(exists('questionnaires'))
   rm(questionnaires)
 if(exists('genTrustQ'))
   rm(genTrustQ)
-folderName <- '../AdvisorChoice/data/processed/'
+folderName <- '../DotTask/data/processed/'
 files <- list.files(folderName)
 participants <- NULL
 trials <- NULL
@@ -245,8 +245,6 @@ for (i in seq(length(files))) {
                                                                          'generalisedTrustQuestionnaire')])))
   # store the trials in the trials table
   trials <- rbind(trials, jsonData$trials)
-  advisors <- rbind(advisors, jsonData$advisors)
-  questionnaires <- rbind(questionnaires, jsonData$questionnaires)
   if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
     genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
 }
@@ -254,63 +252,17 @@ rm(jsonData, files, fileName, folderName, json)
   
 #   1.ii) Calculate utility variables ####
 print('Calculate utility variables')
-# Fix for the javascript saving function recording the advice side as correctness rather than agreement
-trials$adviceRight <- grepl('RIGHT', trials$adviceString, fixed = T)
-trials$adviceSideOld <- trials$adviceSide
-trials$adviceSide <- ifelse(trials$adviceRight, 1, 0)
-trials$advisorAgreesOld <- trials$advisorAgrees
-trials$advisorAgrees <- trials$initialAnswer == trials$adviceRight
 
-trials$adviceType <- getAdviceType(trials, participants, advisors) # adviceType > trials table
-trials$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
-trials$confidenceShiftRaw <- getConfidenceShift(trials,T,T) # as above, without symmetry adjustment
-trials$influence <- getInfluence(trials) # amount the confidence changes in the direction of the advice
-trials$rawInfluence <- getInfluence(trials, T, T) # as above, without symmetry adjustment
-trials$switch <- trials$initialAnswer != trials$finalAnswer # whether participant switched response
-trials$initialCorrect <- trials$initialAnswer == trials$correctAnswer # whether the initial answer is correct
-trials$finalCorrect <- trials$finalAnswer == trials$correctAnswer # whether the final answer is correct
-# Sometimes it helps to see confidence arranged from sure left to sure right (-100 to 100)
-trials$initialConfSpan <- ifelse(trials$initialAnswer==0,trials$initialConfidence*-1,trials$initialConfidence)
-trials$finalConfSpan <- ifelse(trials$finalAnswer==0,trials$finalConfidence*-1,trials$finalConfidence)
-# Was the response to the advice irrational?
-trials$irrational <- (trials$advisorAgrees & trials$confidenceShift < 0) |
-  (!trials$advisorAgrees & trials$confidenceShift > 0)
 # Convert times to seconds since the 70 epoch
 participants$timeStart <- sapply(participants$timeStart, function(x)x[[1]]/1000)
 participants$timeEnd <- sapply(participants$timeEnd, function(x)x[[1]]/1000)
+
 # For convenience the long participant Id is shortened to a simple number:
 participants$pid <- which(as.character(participants$id) == participants$id)
 tmp <- function(x) participants$pid[which(participants$id == x)]
 trials$pid <- sapply(trials$participantId, tmp)
-questionnaires$pid <- sapply(questionnaires$participantId, tmp)
-advisors$pid <- sapply(advisors$participantId, tmp)
 genTrustQ$pid <- sapply(genTrustQ$participantId, tmp)
-# adviceType > questionnaire table
-aT <- vector(length = dim(questionnaires)[1]) 
-timepoint <- aT
-for (i in 1:dim(questionnaires)[1]) {
-  aT[[i]] <- getAdviceTypeById(questionnaires$advisorId[i], questionnaires$participantId[i], advisors)
-  # get the time point of the questionnaire (1=prospective, 2=retrospective)
-  timepoint[i] <- 1 + 
-    as.numeric(questionnaires$afterTrial[i] > 
-                 mean(questionnaires$afterTrial[questionnaires$pid == questionnaires$pid[i] 
-                                                & questionnaires$advisorId == questionnaires$advisorId[i]]))
-}
-questionnaires$adviceType <- aT
-questionnaires$timepoint <- timepoint
-# Stick the name and portrait data into the questionnaires table
-questionnaires$advisorName <- factor(sapply(1:nrow(questionnaires), function(i) 
-  advisors$name[advisors$pid==questionnaires$pid[i]
-                & advisors$id == questionnaires$advisorId[i]]))
-questionnaires$advisorPortrait <- sapply(1:nrow(questionnaires), function(i) {
-  x <- advisors$portraitSrc[advisors$pid==questionnaires$pid[i]
-                            & advisors$id == questionnaires$advisorId[i]]
-  x <- sub('assets/image/advisor', '', x, fixed = T)
-  as.factor(sub('.jpg', '', x, fixed = T))
-})
-# Add on the source data
-questionnaires$advisorAge <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$age[i])
-questionnaires$advisorCategory <- sapply(questionnaires$advisorPortrait, function(i) portraitDetails$category[i])
+
 # The first general trust question is reverse coded
 genTrustQ$answer <- as.numeric(genTrustQ$answer)
 genTrustQ$answer[genTrustQ$order==0] <- 100 - genTrustQ$answer[genTrustQ$order==0]
@@ -319,10 +271,6 @@ genTrustQ$answer[genTrustQ$order==0] <- 100 - genTrustQ$answer[genTrustQ$order==
 print('Separate real trials from practice')
 all.trials <- trials
 trials <- trials[which(!trials$practice),]
-all.questionnaires <- questionnaires
-questionnaires <- questionnaires[which(questionnaires$adviceType!=0),]
-all.advisors <- advisors
-advisors <- advisors[which(advisors$adviceType!=0),]
 ```
 
 # 2) Demographics ####
@@ -330,101 +278,7 @@ Demographic data are not collected and therefore not analysed
 
 
 # 3) Manipulation checks ####
-
-## 3.i) Overall agreement by contingency ####
-These advisors don't show contingent agreement, so there shouldn't be much
-here. This is retained mostly for comparison purposes
-```{r echo = F}
-tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, data = trials, FUN = mean)
-aov.iii.i <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
-             Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
-print(summary(aov.iii.i))
-```
-
-## 3.ii) Graph: overall agreement by contingency ####
-```{r echo = F}
-w <- 0.8
-gg.iii.ii <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~initialCorrect, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_y_continuous(name = 'Advisor Agreement') +
-  labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness') +
-  style
-gg.iii.ii
-```
-
-## 3.iii) Initial block agreement by contingency ####
-```{r echo = F}
-# Initial block is forced trials
-tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, 
-                 data = trials[trials$type==trialTypes$force, ], FUN = mean)
-tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
-                 Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
-summary(tmp.aov)
-```
-
-## 3.iv) Graph: initial block agreement by contingency ####
-```{r echo = F}
-gg.iii.iv <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~initialCorrect, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_y_continuous(name = 'Advisor Agreement') +
-  labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness\n on forced trials') +
-  style
-gg.iii.iv
-```
-
-### 3.iv.i) Graph of agreement by block on initialCorrect trials
-```{r echo = F}
-tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + typeName, 
-                 data = trials[trials$initialCorrect==T, ], FUN = mean)
-tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * typeName + 
-                 Error(pid / (confidenceCategory + adviceType + typeName)), data = tmp)
-summary(tmp.aov)
-gg.iii.iv.i <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~typeName, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_y_continuous(name = 'Advisor Agreement') +
-  labs(title = 'Observed agreement rate for each advisor by initial decision confidence and block\n on initially correct trials') +
-  style
-gg.iii.iv.i
-```
-
-## 3.v) Trial count by contingency ####
-```{r echo = F}
-# Let's also check we got appropriate numbers of trials in each of the bins for
-# each participant
-df.iii.v <- aggregate(practice ~ 
-                   pid + confidenceCategory + adviceType + initialCorrect + advisorAgrees, 
-                 data = trials, FUN = length)
-#print(df.iii.v)
-
-gg.iii.vi <- ggplot(df.iii.v, aes(y = practice, x = as.factor(confidenceCategory), 
-                colour = as.factor(adviceType), shape = as.factor(advisorAgrees))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~initialCorrect, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = c('AiC', 'AiU')) +
-  scale_y_continuous(name = 'Trial Count') +
-  scale_shape_discrete(name = 'Advisor Agreement', labels = c('Disagree', 'Agree')) +
-  labs(title = 'Observed trial count for dis/agreement from each advisor by initial decision confidence\n and correctness') +
-  style
-gg.iii.vi
-```
+No manipulations occur so manipulation checks are not necessary.
 
 # 4) Exclusions ####
 Exclusion rules:
@@ -469,71 +323,15 @@ kable(df.iv)
 
 ## 5.i) Proportion correct ####
 ```{r echo = F, results = 'asis'}
-df.v.i <- NULL
-for(col in c('initial', 'final')) {
-  for(aT in c(5,6,0)) {
-    colName <- paste0(col,'Correct')
-    if(aT==adviceTypes$neutral)
-      aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
-    x <- as.numeric(trials[trials$adviceType %in% aT, colName]) # in future update should aggregate first because it's more normal and useful to give mean/cl of participant means than overall mean/cl
-    m <- mean(x)
-    cl <- mean_cl_normal(x)
-    rn <- range(aggregate(trials[trials$adviceType %in% aT, c(colName,'pid','adviceType')], 
-                          by = list(trials$pid[trials$adviceType %in% aT]), 
-                          FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
-    df.v.i <- rbind(df.v.i, data.frame(decision = col,
-                                 adviceType = ifelse(length(aT)>1,'Total',getAdviceTypeName(aT)), # hack to label total
-                                 target = ifelse(col=='initial',.71,NA),
-                                 meanCorrect = m,
-                                 cl95Min = cl$ymin,
-                                 cl95Max = cl$ymax,
-                                 rangeMin = rn[1],
-                                 rangeMax = rn[2]))
-  }
-}
-df.v.i[,-(1:2)] <- round(df.v.i[,-(1:2)],2)
+x <- aggregate(initialCorrect ~ pid, trials, mean)$initialCorrect
+cl <- mean_cl_normal(x)
+rn <- range(x)
+df.v.i <- data.frame(target = 71,
+                     meanCorrect = cl$y, 
+                     cl95Min = cl$ymin, cl95Max = cl$ymax,
+                     rangeMin = rn[1], rangeMax = rn[2])
+df.v.i <- round(df.v.i,3)
 kable(df.v.i)
-```
-
-## 5.ii) Agreement rate ####
-```{r echo = F, results = 'asis'}
-df.v.ii <- NULL
-for(aT in c(5,6)) {
-  if(aT==adviceTypes$neutral)
-    next()
-  ts <- trials[trials$adviceType==aT, ]
-  for(i in 1:(length(confidenceCategories)+3)) {
-    if(i <= length(confidenceCategories)) {
-      x <- ts[ts$confidenceCategory==confidenceCategories[i] & ts$initialCorrect==T, ]
-      name <- names(confidenceCategories[i])
-    } else {
-      i <- i - length(confidenceCategories)
-      if(i==1) {
-        x <- ts[ts$initialCorrect, ]
-        name <- 'allCorrect'
-      } else if(i==2) {
-        x <- ts[!ts$initialCorrect, ]
-        name <- 'allWrong'
-      } else {
-        x <- ts
-        name <- 'All'
-      }
-    }
-    m <- mean(as.numeric(x$advisorAgrees))
-    cl <- mean_cl_normal(as.numeric(x$advisorAgrees))
-    rn <- range(aggregate(advisorAgrees ~ pid, data = x,
-                          FUN = function(x){sum(as.numeric(x))/length(x)})$advisorAgrees)
-    df.v.ii <- rbind(df.v.ii, data.frame(adviceType = getAdviceTypeName(aT), # hack to label totalname,
-                                 name,
-                                 probAgree = m,
-                                 cl95Min = cl$ymin,
-                                 cl95Max = cl$ymax,
-                                 rangeMin = rn[1],
-                                 rangeMax = rn[2]))
-  }
-}
-df.v.ii[,-(1:2)] <- round(df.v.ii[,-(1:2)],2)
-kable(df.v.ii)
 ```
 
 ## 5.iii) Mean confidence ####
@@ -541,25 +339,18 @@ kable(df.v.ii)
 ### 5.iii.i Mean confidence by correctness
 ```{r echo = F, results = 'asis'}
 df.v.iii.i <- NULL
-for(col in c('initial', 'final')) {
-  for(correct in list(T,F,c(T,F))) {
-    colName <- paste0(col,'Confidence')
-    x <- trials[trials[,paste0(col,'Correct')] %in% correct, ]
-    m <- mean(x[,colName])
-    cl <- mean_cl_normal(x[,colName])
-    rn <- range(aggregate(trials[trials[,paste0(col,'Correct')] %in% correct, c(colName,'pid','adviceType')], 
-                          by = list(trials$pid[trials[,paste0(col,'Correct')] %in% correct]), 
-                          FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
-    df.v.iii.i <- rbind(df.v.iii.i, data.frame(decision = col,
-                                 correct = ifelse(length(correct)>1,'Both',correct), # hack to label total
-                                 meanConfidence = m,
-                                 cl95Min = cl$ymin,
-                                 cl95Max = cl$ymax,
-                                 rangeMin = rn[1],
-                                 rangeMax = rn[2]))
-  }
+for(correct in list(T,F,c(T,F))) {
+  x <- aggregate(initialCorrect ~ pid, trials[trials$initialCorrect %in% correct, ], mean)
+  cl <- mean_cl_normal(x)
+  rn <- range(x)
+  df.v.iii.i <- rbind(df.v.iii.i, data.frame(correct = ifelse(length(correct)>1,'Both',correct), # hack to label total
+                                             meanConfidence = cl$y,
+                                             cl95Min = cl$ymin,
+                                             cl95Max = cl$ymax,
+                                             rangeMin = rn[1],
+                                             rangeMax = rn[2]))
 }
-df.v.iii.i[,-(1:2)] <- round(df.v.iii.i[,-(1:2)],2)
+df.v.iii.i <- round(df.v.iii.i,3)
 kable(df.v.iii.i)
 ```
 
