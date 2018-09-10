@@ -113,7 +113,7 @@ class DotTask extends Governor {
                 utils.sumList(this.blockStructure[blockIndex]);
             // intro trials are a special case so the block length needs to be longer to accommodate them
             if (b === 1)
-                blockLength += 3;
+                blockLength += 2;
             // Work out what type of trial to be
             let trialTypeDeck = [];
             let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
