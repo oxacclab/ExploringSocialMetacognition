@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Feedback: Advisor Choice</title>
+    <title>Feedback: DotTask</title>
     <?php
 /**
  * Created by PhpStorm.
@@ -53,7 +53,7 @@ if($json == false)
     if($err != "") {
         ?>
         <h1>Error!</h1>
-        <p><?php echo $err."<br/>".realpath($path)."<br/>".filesize($file)." bytes"; ?></p>
+        <p><?php echo $err."<br/>".realpath($path)."<br/>".intval(filesize($file))." bytes"; ?></p>
 </div>
 </body>
 </html>
@@ -66,8 +66,8 @@ if($json == false)
 </div>
 </body>
 <script type="module">
-    import {AdvisorChoice} from "../src/advisorChoiceDefs.js";
-    window.gov = new AdvisorChoice(<?php echo $json; ?>);
+    import {DotTask} from "../src/advisorChoiceDefs.js";
+    window.gov = new DotTask(<?php echo $json; ?>);
     window.gov.endExperiment(false);
 </script>
 </html>
