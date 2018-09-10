@@ -227,6 +227,7 @@ class DotTask extends Governor {
         // trial is the complete trial object with its trial.response object
         this.currentTrial.answer[0] = DotTask.getAnswerFromResponse(trial.response);
         this.currentTrial.confidence[0]  = DotTask.getConfidenceFromResponse(trial.response, this.currentTrial.answer[0]);
+        this.getLastConfidenceCategory(); // set the confidence category
         this.closeTrial(trial);
     }
 
@@ -549,8 +550,8 @@ class DotTask extends Governor {
                     warning = "Difficulty at minimum!";
                 }
                 // Update the step size
-                if (this.difficultyStep.current > this.difficultyStep.end &&
-                    --this.difficultyStep.currentReversals <= 0) {
+                if (this.difficultyStep.current > this.difficultyStep.end
+                    && --this.difficultyStep.currentReversals <= 0) {
                     this.difficultyStep.current--;
                     this.difficultyStep.currentReversals = this.dotDifference.nReversals;
                 }
