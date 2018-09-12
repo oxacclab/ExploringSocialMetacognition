@@ -475,16 +475,16 @@ for(col in c('initial', 'final')) {
     colName <- paste0(col,'Correct')
     if(aT==adviceTypes$neutral)
       aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
-    x <- as.numeric(trials[trials$adviceType %in% aT, colName]) # in future update should aggregate first because it's more normal and useful to give mean/cl of participant means than overall mean/cl
-    m <- mean(x)
+    # aggregate to get the proportion correct for the current set of interest
+    x <- aggregate(trials[trials$adviceType %in% aT, c(colName,'pid','adviceType')], 
+                   by = list(trials$pid[trials$adviceType %in% aT]), 
+                   FUN = function(x){sum(as.numeric(x))/length(x)})[,colName]
     cl <- mean_cl_normal(x)
-    rn <- range(aggregate(trials[trials$adviceType %in% aT, c(colName,'pid','adviceType')], 
-                          by = list(trials$pid[trials$adviceType %in% aT]), 
-                          FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
+    rn <- range(x)
     df.v.i <- rbind(df.v.i, data.frame(decision = col,
                                  adviceType = ifelse(length(aT)>1,'Total',getAdviceTypeName(aT)), # hack to label total
                                  target = ifelse(col=='initial',.71,NA),
-                                 meanCorrect = m,
+                                 meanCorrect = cl$y,
                                  cl95Min = cl$ymin,
                                  cl95Max = cl$ymax,
                                  rangeMin = rn[1],
@@ -519,13 +519,13 @@ for(aT in c(5,6)) {
         name <- 'All'
       }
     }
-    m <- mean(as.numeric(x$advisorAgrees))
-    cl <- mean_cl_normal(as.numeric(x$advisorAgrees))
-    rn <- range(aggregate(advisorAgrees ~ pid, data = x,
-                          FUN = function(x){sum(as.numeric(x))/length(x)})$advisorAgrees)
+    x <- aggregate(advisorAgrees ~ pid, data = x,
+                   FUN = function(x){sum(as.numeric(x))/length(x)})$advisorAgrees
+    cl <- mean_cl_normal(x)
+    rn <- range(x)
     df.v.ii <- rbind(df.v.ii, data.frame(adviceType = getAdviceTypeName(aT), # hack to label totalname,
                                  name,
-                                 probAgree = m,
+                                 probAgree = cl$y,
                                  cl95Min = cl$ymin,
                                  cl95Max = cl$ymax,
                                  rangeMin = rn[1],
@@ -544,15 +544,14 @@ df.v.iii.i <- NULL
 for(col in c('initial', 'final')) {
   for(correct in list(T,F,c(T,F))) {
     colName <- paste0(col,'Confidence')
-    x <- trials[trials[,paste0(col,'Correct')] %in% correct, ]
-    m <- mean(x[,colName])
-    cl <- mean_cl_normal(x[,colName])
-    rn <- range(aggregate(trials[trials[,paste0(col,'Correct')] %in% correct, c(colName,'pid','adviceType')], 
-                          by = list(trials$pid[trials[,paste0(col,'Correct')] %in% correct]), 
-                          FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
+    x <- aggregate(trials[trials[,paste0(col,'Correct')] %in% correct, c(colName,'pid','adviceType')],
+                   by = list(trials$pid[trials[,paste0(col,'Correct')] %in% correct]), 
+                   FUN = function(x){sum(as.numeric(x))/length(x)})[,colName]
+    cl <- mean_cl_normal(x)
+    rn <- range(x)
     df.v.iii.i <- rbind(df.v.iii.i, data.frame(decision = col,
                                  correct = ifelse(length(correct)>1,'Both',correct), # hack to label total
-                                 meanConfidence = m,
+                                 meanConfidence = cl$y,
                                  cl95Min = cl$ymin,
                                  cl95Max = cl$ymax,
                                  rangeMin = rn[1],
@@ -571,15 +570,14 @@ for(col in c('initial', 'final')) {
     if(aT==adviceTypes$neutral)
       aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
     colName <- paste0(col,'Confidence')
-    x <- trials[trials[,"adviceType"] %in% aT, ]
-    m <- mean(x[,colName])
-    cl <- mean_cl_normal(x[,colName])
-    rn <- range(aggregate(trials[trials[,"adviceType"] %in% aT, c(colName,'pid','adviceType')], 
-                          by = list(trials$pid[trials[,"adviceType"] %in% aT]), 
-                          FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
+    x <- aggregate(trials[trials[,"adviceType"] %in% aT, c(colName,'pid','adviceType')], 
+                   by = list(trials$pid[trials[,"adviceType"] %in% aT]), 
+                   FUN = function(x){sum(as.numeric(x))/length(x)})[,colName]
+    cl <- mean_cl_normal(x)
+    rn <- range(x)
     df.v.iii.ii <- rbind(df.v.iii.ii, data.frame(decision = col,
                                              adviceType = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
-                                             meanConfidence = m,
+                                             meanConfidence = cl$y,
                                              cl95Min = cl$ymin,
                                              cl95Max = cl$ymax,
                                              rangeMin = rn[1],
@@ -597,14 +595,14 @@ for(agree in c(T,F)) {
   for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
     if(aT==adviceTypes$neutral)
       aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
-    x <- trials[trials$advisorAgrees==agree & trials$adviceType %in% aT, ]
-    m <- mean(x$finalConfidence)
-    cl <- mean_cl_normal(x$finalConfidence)
-    rn <- range(aggregate(finalConfidence ~ pid, data = x,
-                          FUN = function(x){sum(as.numeric(x))/length(x)})$finalConfidence)
+    x <- aggregate(finalConfidence ~ pid, 
+                   data = trials[trials$advisorAgrees==agree & trials$adviceType %in% aT, ],
+                   FUN = function(x){sum(as.numeric(x))/length(x)})$finalConfidence
+    cl <- mean_cl_normal(x)
+    rn <- range(x)
     df.v.iii.2 <- rbind(df.v.iii.2, data.frame(agree,
                                  advisor = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
-                                 meanConfidence = m,
+                                 meanConfidence = cl$y,
                                  cl95Min = cl$ymin,
                                  cl95Max = cl$ymax,
                                  rangeMin = rn[1],
@@ -671,22 +669,21 @@ kable(df.v.iv)
 ## 5.v) Questionnaire responses ####
 ```{r echo = F, results = 'asis'}
 df.v.v <- NULL
-for(tp in unique(questionnaires$timepoint)) {
-  for(colName in c('likeability', 'ability', 'benevolence')) {
-    for(aT in c(5,6)) {
-      if(aT == adviceTypes$neutral)
-        next()
-      x <- questionnaires[questionnaires$adviceType==aT & questionnaires$timepoint==tp, ]
-      m <- mean(x[,colName])
-      cl <- mean_cl_normal(x[,colName])
-      rn <- range(aggregate(x[,c('pid',colName)], 
-                            by = list(questionnaires$pid[questionnaires$adviceType==aT 
-                                                         & questionnaires$timepoint==tp]), 
-                            FUN = function(x){sum(as.numeric(x))/length(x)})[,colName])
+for(aT in c(5,6)) {
+  if(aT == adviceTypes$neutral)
+    next()
+  for(tp in unique(questionnaires$timepoint)) {
+    for(colName in c('likeability', 'ability', 'benevolence')) {
+      x <- aggregate(questionnaires[questionnaires$adviceType==aT & questionnaires$timepoint==tp, c('pid',colName)], 
+                     by = list(questionnaires$pid[questionnaires$adviceType==aT 
+                                                  & questionnaires$timepoint==tp]), 
+                     FUN = function(x){sum(as.numeric(x))/length(x)})[,colName]
+      cl <- mean_cl_normal(x)
+      rn <- range(x)
       df.v.v <- rbind(df.v.v, data.frame(timepoint = tp,
                                          question = colName,
                                          adviceType = getAdviceTypeName(aT),
-                                         mean = m,
+                                         mean = cl$y,
                                          cl95Min = cl$ymin,
                                          cl95Max = cl$ymax,
                                          rangeMin = rn[1],
@@ -705,10 +702,13 @@ for(agree in list(T,F,c(T,F))) {
   for(aT in c(adviceTypes$HighAcc, adviceTypes$LowAcc, adviceTypes$neutral)) {
     if(aT==adviceTypes$neutral)
       aT <- c(adviceTypes$HighAcc, adviceTypes$LowAcc) # hack for including the total
-    x <- trials[trials$advisorAgrees %in% agree & trials$adviceType %in% aT, ]
-    x$adviceCorrect <- x$adviceSide == x$correctAnswer
-    cl <- mean_cl_normal(x$adviceCorrect)
-    rn <- range(aggregate(adviceCorrect ~ pid, x, FUN = mean)$adviceCorrect)
+    tmp <- trials[trials$advisorAgrees %in% agree & trials$adviceType %in% aT, ]
+    tmp$adviceCorrect <- tmp$adviceSide == tmp$correctAnswer
+    x <- aggregate(adviceCorrect ~ pid, 
+                   tmp,
+                   FUN = mean)$adviceCorrect
+    cl <- mean_cl_normal(x)
+    rn <- range(x)
     df.vi <- rbind(df.vi, data.frame(agree = ifelse(length(agree)>1, 'Both', agree),
                                      advisor = ifelse(length(aT)>1,'Both',getAdviceTypeName(aT)), # hack to label total
                                      meanAccuracy = cl$y,
