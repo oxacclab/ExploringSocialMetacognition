@@ -1,5 +1,6 @@
 ---
 title: "Analysis script for AdvisorChoice (Advisor Accuracy)"
+author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
 output: 
   html_document:
   toc: true
@@ -7,7 +8,6 @@ output:
   toc_collapsed: true
 toc_depth: 3
 number_sections: true
-author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
 editor_options: 
   chunk_output_type: console
 ---
@@ -459,6 +459,8 @@ participants <- participants[participants$excluded==F, ]
 trials <- trials[trials$pid %in% participants$pid, ]
 advisors <- advisors[advisors$pid %in% participants$pid, ]
 questionnaires <- questionnaires[questionnaires$pid %in% participants$pid, ]
+all.genTrustQ <- genTrustQ
+genTrustQ <- genTrustQ[genTrustQ$pid %in% participants$pid, ]
 
 df.iv <- aggregate(pid ~ excluded, data = all.participants, FUN = length)
 names(df.iv) <- c('exclusionReason', 'count')
@@ -1453,4 +1455,5 @@ ggplot(all.trials, aes(x = id, y = dotDifference, colour = as.factor(pid))) +
   geom_smooth(method = 'lm', se = F) +
   scale_x_continuous(limits = c(0,246)) +
   style.long 
+
 ```

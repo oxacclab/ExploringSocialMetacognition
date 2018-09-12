@@ -555,7 +555,7 @@ class DotTask extends Governor {
                 if (this.difficultyStep.current > this.difficultyStep.end
                     && --this.difficultyStep.currentReversals <= 0) {
                     this.difficultyStep.current--;
-                    this.difficultyStep.currentReversals = this.dotDifference.nReversals;
+                    this.difficultyStep.currentReversals = this.difficultyStep.nReversals;
                 }
             } else if (lastTrial.getCorrect(false) &&
                 this.currentTrial.getCorrect(false) &&
