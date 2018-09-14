@@ -206,11 +206,10 @@ style <- theme_light() +
         panel.grid.major.x = element_blank(),
         legend.position = 'top')
 style.long <- style + theme(legend.position = 'none')
+```
 
 # 1) Load data  ####
-
-#   1.i) Load data ####
-
+```{r echo = F, results='hide'}
 print('Load data')
 folderName <- '../DotTask/data/processed/'
 files <- list.files(folderName)
@@ -341,26 +340,59 @@ for(correct in list(T,F,c(T,F))) {
                                              rangeMin = rn[1],
                                              rangeMax = rn[2]))
 }
-df.v.iii.i[-1,] <- round(df.v.iii.i[-1,],3)
+df.v.iii.i[,-1] <- round(df.v.iii.i[,-1],3)
 kable(df.v.iii.i)
 ```
 
 ```{r eval = F}
 # 15) Examining dot difference ####
-library(gganimate)
-g <- ggplot(trials, aes(x = id, y = dotDifference)) +
+ggplot(all.trials, aes(x = id, y = dotDifference, colour = as.factor(pid))) +
   geom_line() +
-  geom_smooth(method = 'lm') +
-  scale_x_continuous(limits = c(0,246)) +
+  geom_smooth(method = 'lm', se = F, data = all.trials[all.trials$block == max(all.trials$block), ]) +
+  scale_x_continuous(limits = c(0,249)) +
   style.long +
-  labs(title = 'Participant {frame_time}') +
-  transition_time(pid)
+  labs(title = 'Difficulty (and trend for the final block) for plain Dot Task')
 
-animate(g, fps = 1) 
 
-ggplot(all.trials[all.trials$id > 60, ], aes(x = id, y = dotDifference, colour = as.factor(pid))) +
-  geom_line() +
-  geom_smooth(method = 'lm', se = F) +
-  scale_x_continuous(limits = c(0,246)) +
-  style.long 
+# Cumulative accuracy plot
+df.cumAcc <- NULL
+limit <- 123
+for(pid in unique(all.trials$pid)) {
+  tmp <- all.trials[all.trials$pid == pid & all.trials$id > limit, ]
+  for(id in unique(tmp$id)) {
+    df.cumAcc <- rbind (df.cumAcc, data.frame(pid = as.factor(pid), 
+                                              id,
+                                              cumAcc = mean(tmp$initialCorrect[tmp$id<=id])))
+  }
+}
+gg.cumAcc <- ggplot(df.cumAcc, aes(x = id, y = cumAcc, colour = pid)) +
+  geom_line(alpha = 0.25) +
+  stat_summary(geom = 'line', fun.y = mean, colour = 'red') +
+  stat_summary(geom = 'ribbon', fun.data = mean_cl_normal, colour = NA, fill = 'red', alpha = 0.05) +
+  annotate(geom = 'text', label = c('Mean', 'CL95% Low', 'CL95% High'),
+           y = c(.175,.075,.025), x = 230, hjust = 1) +
+  annotate(geom = 'text', 
+           label = paste(round(mean_cl_normal(df.cumAcc$cumAcc[df.cumAcc$id==max(df.cumAcc$id)]),3)),
+           y = c(.175,.075,.025), x = 240) +
+  geom_hline(yintercept = .71, linetype = 'dashed', colour = 'black', size = 1) +
+  scale_y_continuous(limits=c(0,1),breaks=seq(0,1,.05)) +
+  style.long +
+  labs(title = 'Cumulative accuracy plot for participants in the plain Dot Task')
+gg.cumAcc
+
+# 10-trial accuracy snapshots
+df.accSnap <- NULL
+for(i in seq(9,239,10)) {
+  tmp <- aggregate(initialCorrect ~ pid, 
+                   data = all.trials[all.trials$id > i, ],#%in% (i-4):(i+5), ], 
+                   FUN = mean)
+  tmp$i <- i
+  df.accSnap <- rbind(df.accSnap, tmp)
+}
+ggplot(df.accSnap, aes(x=i, y=initialCorrect, colour=as.factor(pid))) + 
+  geom_line(alpha = 0.25) +
+  stat_summary(geom = 'line', fun.y = mean, colour = 'red') +
+  stat_summary(geom = 'ribbon', fun.data = mean_cl_normal, colour = NA, fill = 'red', alpha = 0.05) +
+  geom_hline(yintercept = .71, linetype = 'dashed', colour = 'black', size = 1)
+
 ```

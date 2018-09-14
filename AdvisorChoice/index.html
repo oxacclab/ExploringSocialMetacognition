@@ -520,9 +520,10 @@
 
     for (let b=1; b<=gov.practiceBlockCount; b++) {
         timeline.push(practice_procedure);
-        if (b===1)
-            timeline.push(questionnaire);
+        timeline.push(blockBreak);
     }
+    // Remove the last break screen
+    timeline.pop();
 
     timeline.push(finalInstructions);
 

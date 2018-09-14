@@ -62,7 +62,7 @@
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: {
-            start: 3,
+            start: 5,
             end: 1,
             nReversals: 2
         },
@@ -84,7 +84,7 @@
         ],
         practiceBlockCount: 1,
         practiceBlockStructure: {
-            0: 6
+            0: 60
         },
         preTrialInterval: 200,
         preStimulusInterval: 500,
@@ -337,7 +337,10 @@
 
     for (let b=1; b<=gov.practiceBlockCount; b++) {
         timeline.push(practice_procedure);
+        timeline.push(blockBreak);
     }
+    // Remove the last break screen
+    timeline.pop();
 
     timeline.push(finalInstructions);
 

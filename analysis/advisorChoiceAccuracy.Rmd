@@ -11,7 +11,8 @@ number_sections: true
 editor_options: 
   chunk_output_type: console
 ---
-September 2018 
+September 2018  
+[Script run `r Sys.time()`]
 
 # 0) Support ####
 
@@ -328,6 +329,7 @@ advisors <- advisors[which(advisors$adviceType!=0),]
 # 2) Demographics ####
 Demographic data are not collected and therefore not analysed
 
+Responses were collected between `r as.POSIXct(min(participants$timeEnd), tz = '', origin = '1970-01-01')` and `r as.POSIXct(max(participants$timeEnd), tz = '', origin = '1970-01-01')`.
 
 # 3) Manipulation checks ####
 
@@ -1450,10 +1452,38 @@ g <- ggplot(trials, aes(x = id, y = dotDifference)) +
 
 animate(g, fps = 1) 
 
+
 ggplot(all.trials, aes(x = id, y = dotDifference, colour = as.factor(pid))) +
   geom_line() +
-  geom_smooth(method = 'lm', se = F) +
-  scale_x_continuous(limits = c(0,246)) +
-  style.long 
+  geom_smooth(method = 'lm', se = F, data = all.trials[all.trials$block == max(all.trials$block), ]) +
+  scale_x_continuous(limits = c(0,249)) +
+  style.long +
+  labs(title = 'Difficulty (and trend for the final block) for Advisor Choice (accuracy)')
+
+# Cumulative accuracy plot
+df.cumAcc <- NULL
+limit <- 0
+for(pid in unique(all.trials$pid)) {
+  tmp <- all.trials[all.trials$pid == pid & all.trials$id > limit, ]
+  for(id in unique(tmp$id)) {
+    df.cumAcc <- rbind (df.cumAcc, data.frame(pid = as.factor(pid), 
+                                              id,
+                                              cumAcc = mean(tmp$initialCorrect[tmp$id<=id])))
+  }
+}
+gg.cumAcc <- ggplot(df.cumAcc, aes(x = id, y = cumAcc, colour = pid)) +
+  geom_line(alpha = 0.25) +
+  stat_summary(geom = 'line', fun.y = mean, colour = 'red') +
+  stat_summary(geom = 'ribbon', fun.data = mean_cl_normal, colour = NA, fill = 'red', alpha = 0.05) +
+  annotate(geom = 'text', label = c('Mean', 'CL95% Low', 'CL95% High'),
+           y = c(.175,.075,.025), x = 230, hjust = 1) +
+  annotate(geom = 'text', 
+           label = paste(round(mean_cl_normal(df.cumAcc$cumAcc[df.cumAcc$id==max(df.cumAcc$id)]),3)),
+           y = c(.175,.075,.025), x = 240) +
+  geom_hline(yintercept = .71, linetype = 'dashed', colour = 'black', size = 1) +
+  scale_y_continuous(limits=c(0,1),breaks=seq(0,1,.05)) +
+  style.long +
+  labs(title = 'Cumulative accuracy plot for participants in the Advisor Choice (accuracy) task')
+gg.cumAcc
 
 ```
