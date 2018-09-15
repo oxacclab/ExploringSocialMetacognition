@@ -65,7 +65,6 @@ class DotTask extends Governor {
         this.difficultyStep = typeof args.difficultyStep === 'undefined'? null : args.difficultyStep;
         this.minimumBlockScore = typeof args.minimumBlockScore === 'undefined'? null : args.minimumBlockScore;
         this.blockCount = typeof args.blockCount === 'undefined'? null : args.blockCount;
-        this.practiceBlockCount = typeof args.practiceBlockCount === 'undefined'? null : args.practiceBlockCount;
         this.blockStructure = typeof args.blockStructure === 'undefined'? [
             {
                 0: 0
@@ -697,34 +696,31 @@ class AdvisorChoice extends DotTask {
         let realId = 0;
         let advisorSets = this.advisorLists.length;
         let blockCount = this.blockStructure.length * advisorSets;
+        let practiceBlockCount = this.practiceBlockStructure.length;
         // Same for which side the correct answer appears on
         let whichSideDeck = utils.shuffleShoe([0, 1], advisorSets*utils.sumList(this.blockStructure));
         // Define trials
-        for (let b=1; b<=this.practiceBlockCount+blockCount; b++) {
+        for (let b=0; b<practiceBlockCount+blockCount; b++) {
             let advisorSet = 0;
             let blockIndex = b;
             let advisorChoices = [];
             let advisorDeck = null;
-            if (b > this.practiceBlockCount) {
-                advisorSet = Math.floor((b-this.practiceBlockCount-1) / this.blockStructure.length);
-                blockIndex = (b-this.practiceBlockCount-1)%this.blockStructure.length;
+            if (b >= practiceBlockCount) {
+                advisorSet = Math.floor((b-practiceBlockCount) / this.blockStructure.length);
+                blockIndex = (b-practiceBlockCount)%this.blockStructure.length;
                 advisorChoices = this.advisorLists[advisorSet];
                 // Shuffle advisors so they appear an equal number of times
                 advisorDeck = utils.shuffleShoe(advisorChoices,
-                    this.blockStructure[blockIndex][trialTypes.force]);
+                    this.blockStructure[blockIndex][trialTypes.force]/advisorChoices.length);
             } else {
                 advisorSet = NaN;
             }
-            let blockLength = b<=this.practiceBlockCount? this.practiceBlockLength :
+            let blockLength = b<practiceBlockCount? utils.sumList(gov.practiceBlockStructure[blockIndex]) :
                 utils.sumList(this.blockStructure[blockIndex]);
-            // intro trials are a special case so the block length needs to be longer to accommodate them
-            if (b === 1)
-                blockLength += 4;
             // Work out what type of trial to be
             let trialTypeDeck = [];
-            let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
-            if (b === 1)
-                structure = {0:0, 1:5, 2:0};
+            let structure = b<practiceBlockCount?
+                this.practiceBlockStructure[blockIndex] : this.blockStructure[blockIndex];
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
                 for (let i=0; i<structure[tt]; i++)
                     trialTypeDeck.push(tt);
@@ -732,11 +728,11 @@ class AdvisorChoice extends DotTask {
             trialTypeDeck = utils.shuffle(trialTypeDeck);
             for (let i=1; i<=blockLength; i++) {
                 id++;
-                let isPractice = b<=this.practiceBlockCount;
+                let isPractice = b<practiceBlockCount;
                 let trialType = trialTypeDeck.pop();
                 let advisorId = 0;
                 if (isPractice)
-                    advisorId = id<=3? 0 : this.practiceAdvisor.id;
+                    advisorId = trialType===trialTypes.catch? 0 : this.practiceAdvisor.id;
                 else
                     advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
                 let r = Math.random() < .5? 1 : 0;

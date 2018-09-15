@@ -356,7 +356,7 @@ ggplot(all.trials, aes(x = id, y = dotDifference, colour = as.factor(pid))) +
 
 # Cumulative accuracy plot
 df.cumAcc <- NULL
-limit <- 123
+limit <- 63
 for(pid in unique(all.trials$pid)) {
   tmp <- all.trials[all.trials$pid == pid & all.trials$id > limit, ]
   for(id in unique(tmp$id)) {
