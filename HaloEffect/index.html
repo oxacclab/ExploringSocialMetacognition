@@ -98,18 +98,18 @@
                 [trialTypes.force]: 0
             }
         ],
-        practiceBlockCount: 1,
-        practiceBlockStructure: {
-            [trialTypes.catch]: 0,
-            [trialTypes.choice]: 0,
-            [trialTypes.force]: 25
-        },
+        practiceBlockStructure: [
+            {
+                [trialTypes.catch]: 0,
+                [trialTypes.choice]: 0,
+                [trialTypes.force]: 25
+            }
+        ],
         preTrialInterval: 200,
         preStimulusInterval: 500,
         questionnaireStack: [
             advisorListA[0], advisorListA[1],
-            advisorListA[1], advisorListA[0],
-            practiceAdvisor
+            advisorListA[1], advisorListA[0]
         ],
         stimulusDuration: 200,
         feedbackDuration: 200,
@@ -533,7 +533,7 @@
     timeline.push(intro_procedure);
     timeline.push(practiceInstructions);
 
-    for (let b=1; b<=gov.practiceBlockCount; b++) {
+    for (let b=1; b<=gov.practiceBlockStructure.length; b++) {
         timeline.push(practice_procedure);
         if (b===1)
             timeline.push(questionnaire);

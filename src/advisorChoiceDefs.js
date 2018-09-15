@@ -100,24 +100,21 @@ class DotTask extends Governor {
         let id = 0;
         let realId = 0;
         let blockCount = this.blockStructure.length * this.blockCount;
+        let practiceBlockCount = this.practiceBlockStructure.length;
         // Shuffle which side the correct answer appears on
         let whichSideDeck = utils.shuffleShoe([0, 1], utils.sumList(this.blockStructure));
         // Define trials
-        for (let b=1; b<=this.practiceBlockCount+blockCount; b++) {
+        for (let b=0; b<practiceBlockCount+blockCount; b++) {
             let blockIndex = b; // the block we're in
-            if (b > this.practiceBlockCount) {
-                blockIndex = (b-this.practiceBlockCount-1)%this.blockStructure.length; // account for practice blocks
+            if (b >= practiceBlockCount) {
+                blockIndex = (b-practiceBlockCount)%this.blockStructure.length; // account for practice blocks
             }
-            let blockLength = b<=this.practiceBlockCount? this.practiceBlockLength :
+            let blockLength = b<practiceBlockCount? utils.sumList(this.practiceBlockStructure[blockIndex]) :
                 utils.sumList(this.blockStructure[blockIndex]);
-            // intro trials are a special case so the block length needs to be longer to accommodate them
-            if (b === 1)
-                blockLength += 3;
             // Work out what type of trial to be
             let trialTypeDeck = [];
-            let structure = b<=this.practiceBlockCount? this.practiceBlockStructure : this.blockStructure[blockIndex];
-            if (b === 1)
-                structure = {0:blockLength}; // pad out the structure to account for extra intro trials
+            let structure = b<practiceBlockCount?
+                this.practiceBlockStructure[blockIndex] : this.blockStructure[blockIndex];
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
                 for (let i=0; i<structure[tt]; i++)
                     trialTypeDeck.push(tt);
@@ -125,7 +122,7 @@ class DotTask extends Governor {
             trialTypeDeck = utils.shuffle(trialTypeDeck);
             for (let i=1; i<=blockLength; i++) {
                 id++;
-                let isPractice = b<=this.practiceBlockCount;
+                let isPractice = b<practiceBlockCount;
                 let trialType = trialTypeDeck.pop();
                 trials.push(new Trial(id, {
                     type: trialType,

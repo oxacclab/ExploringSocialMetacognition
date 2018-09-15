@@ -82,10 +82,11 @@
                 0: 60
             }
         ],
-        practiceBlockCount: 1,
-        practiceBlockStructure: {
-            0: 60
-        },
+        practiceBlockStructure: [
+            {
+                0: 60
+            }
+        ],
         preTrialInterval: 200,
         preStimulusInterval: 500,
         stimulusDuration: 200,
@@ -317,7 +318,7 @@
     const practice_procedure = {
         timeline: [practiceDecision],
         randomize_order: false,
-        repetitions: gov.practiceBlockLength
+        repetitions: utils.sumList(gov.practiceBlockStructure[0])
     };
 
     const test_procedure = {
@@ -335,7 +336,9 @@
     timeline.push(initialDecision);
     timeline.push(practiceInstructions);
 
-    for (let b=1; b<=gov.practiceBlockCount; b++) {
+    for (let b=0; b<gov.practiceBlockStructure.length; b++) {
+        practice_procedure.repetitions = b===0?
+            utils.sumList(gov.practiceBlockStructure[b]-3) : utils.sumList(gov.practiceBlockStructure[b]);
         timeline.push(practice_procedure);
         timeline.push(blockBreak);
     }
