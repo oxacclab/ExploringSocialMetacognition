@@ -125,6 +125,11 @@
                 [trialTypes.force]: 0
             },
             {
+                [trialTypes.catch]: 60,
+                [trialTypes.choice]: 0,
+                [trialTypes.force]: 0
+            },
+            {
                 [trialTypes.catch]: 0,
                 [trialTypes.choice]: 0,
                 [trialTypes.force]: 5
@@ -531,7 +536,7 @@
     const advisor_practice_procedure = {
         timeline: [initialDecision, advice, finalDecision],
         randomize_order: false,
-        repetitions: utils.sumList(gov.practiceBlockStructure[1])
+        repetitions: utils.sumList(gov.practiceBlockStructure[1])-1
     };
 
     const test_procedure = {
@@ -550,10 +555,16 @@
 
     // practice with feedback
     timeline.push(practiceInstructions);
-    timeline.push(practice_procedure);
+    // non-advisor practice blocks
+    for(let b=0; b<gov.practiceBlockStructure.length-1; b++) {
+        timeline.push(practice_procedure);
+        timeline.push(blockBreak);
+    }
+    timeline.pop(); // remove last break screen
 
     // practice with advisor
     timeline.push(adviceInstructions);
+    timeline.push(advisorIntroInitialDecision);
     timeline.push(advisor_practice_procedure);
 
     timeline.push(finalInstructions);

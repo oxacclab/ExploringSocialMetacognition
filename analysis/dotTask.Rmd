@@ -237,7 +237,7 @@ for (i in seq(length(files))) {
   if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
     genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
 }
-rm(jsonData, files, fileName, folderName, json)
+#rm(jsonData, files, fileName, folderName, json)
   
 #   1.ii) Calculate utility variables ####
 print('Calculate utility variables')

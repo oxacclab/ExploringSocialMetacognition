@@ -1462,7 +1462,7 @@ ggplot(all.trials, aes(x = id, y = dotDifference, colour = as.factor(pid))) +
 
 # Cumulative accuracy plot
 df.cumAcc <- NULL
-limit <- 0
+limit <- 68
 for(pid in unique(all.trials$pid)) {
   tmp <- all.trials[all.trials$pid == pid & all.trials$id > limit, ]
   for(id in unique(tmp$id)) {
@@ -1476,12 +1476,12 @@ gg.cumAcc <- ggplot(df.cumAcc, aes(x = id, y = cumAcc, colour = pid)) +
   stat_summary(geom = 'line', fun.y = mean, colour = 'red') +
   stat_summary(geom = 'ribbon', fun.data = mean_cl_normal, colour = NA, fill = 'red', alpha = 0.05) +
   annotate(geom = 'text', label = c('Mean', 'CL95% Low', 'CL95% High'),
-           y = c(.175,.075,.025), x = 230, hjust = 1) +
+           y = c(.625,.575,.525), x = 230, hjust = 1) +
   annotate(geom = 'text', 
            label = paste(round(mean_cl_normal(df.cumAcc$cumAcc[df.cumAcc$id==max(df.cumAcc$id)]),3)),
-           y = c(.175,.075,.025), x = 240) +
+           y = c(.625,.575,.525), x = 240) +
   geom_hline(yintercept = .71, linetype = 'dashed', colour = 'black', size = 1) +
-  scale_y_continuous(limits=c(0,1),breaks=seq(0,1,.05)) +
+  scale_y_continuous(limits=c(0.5,1),breaks=seq(0,1,.05)) +
   style.long +
   labs(title = 'Cumulative accuracy plot for participants in the Advisor Choice (accuracy) task')
 gg.cumAcc

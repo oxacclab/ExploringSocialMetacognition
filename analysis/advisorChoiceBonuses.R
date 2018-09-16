@@ -42,7 +42,7 @@ if(exists('prolificIds')) {
     else
       print(paste('PID',pid,'has no prolific hash associated'))
   }
-  markers <- quantile(tmp$brieravg[tmp$excluded==F])
+  markers <- quantile(tmp$brieravg[tmp$excluded==F], na.rm = T)
   for(i in 1:nrow(tmp)) {
     tmp$quantile[i] <- which(markers >= tmp$brieravg[i])[1]
     tmp$reward[i] <- round(2 - 2/(length(markers)-1)*(tmp$quantile[i]-1),2)
