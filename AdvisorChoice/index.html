@@ -110,29 +110,29 @@
             {
                 [trialTypes.catch]: 0,
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 2//60
+                [trialTypes.force]: 60
             },
             {
                 [trialTypes.catch]: 0,
-                [trialTypes.choice]: 2,//60,
+                [trialTypes.choice]: 60,
                 [trialTypes.force]: 0
             }
         ],
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 4,//63, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 63, // intro trials need to be accommodated in the first practice block
                 [trialTypes.choice]: 0,
                 [trialTypes.force]: 0
             },
             {
-                [trialTypes.catch]: 2,//60,
+                [trialTypes.catch]: 60,
                 [trialTypes.choice]: 0,
                 [trialTypes.force]: 0
             },
             {
                 [trialTypes.catch]: 0,
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 2,//5
+                [trialTypes.force]: 5
             }
         ],
         preTrialInterval: 200,
@@ -527,23 +527,15 @@
         on_finish: (trial)=>gov.genTrustQuestionnaireResponse(trial)
     };
 
-    const practice_procedure = {
-        timeline: [practiceInitialDecision],
-        randomize_order: false,
-        repetitions: utils.sumList(gov.practiceBlockStructure[0])-3
-    };
+    const practice_procedure = [practiceInitialDecision];
 
     const advisor_practice_procedure = {
         timeline: [initialDecision, advice, finalDecision],
         randomize_order: false,
-        repetitions: utils.sumList(gov.practiceBlockStructure[1])-1
+        repetitions: utils.sumList(gov.practiceBlockStructure[gov.practiceBlockStructure.length-1])-1
     };
 
-    const test_procedure = {
-        timeline: [initialDecision, advice, finalDecision],
-        randomize_order: false,
-        repetitions: utils.sumList(gov.blockStructure)/gov.blockCount
-    };
+    const test_procedure = [initialDecision, advice, finalDecision];
 
     // intro and training
     timeline.push(welcome);
@@ -557,18 +549,21 @@
     timeline.push(practiceInstructions);
     // non-advisor practice blocks
     for(let b=0; b<gov.practiceBlockStructure.length-1; b++) {
-        timeline.push(practice_procedure);
+        let repetitions = utils.sumList(gov.practiceBlockStructure[b]);
+        if(b === 0)
+            repetitions -= 3;
+        timeline.push({timeline: practice_procedure, repetitions, randomize_order: false});
         timeline.push(blockBreak);
     }
     timeline.pop(); // remove last break screen
 
     // practice with advisor
     timeline.push(adviceInstructions);
-    timeline.push(advisorIntroInitialDecision);
+    timeline.push({timeline: [advisorIntroInitialDecision, advice, finalDecision]});
     timeline.push(advisor_practice_procedure);
 
     timeline.push(finalInstructions);
-
+console.log(timeline)
     // real experiment
     for (let a=0; a<gov.advisorLists.length; a++) {
         timeline.push(questionnaireProspective);
@@ -576,8 +571,8 @@
 
         // real experiment
         for (let b=0; b<gov.blockStructure.length; b++) {
-            test_procedure.repetitions = utils.sumList(gov.blockStructure[b]);
-            timeline.push(test_procedure);
+            let repetitions = utils.sumList(gov.blockStructure[b]);
+            timeline.push({timeline: test_procedure, repetitions, randomize_order: false});
             timeline.push(blockBreak);
         }
 
