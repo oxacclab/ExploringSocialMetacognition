@@ -422,7 +422,8 @@ Exclusion rules:
 * Proportion of correct initial judgements must be (.60 < cor1/n < .90)
     * NB:practice trials are INCLUDED in this since they are used in part for determining confidence calibration
 * Having fewer than 3 confidence categories
-* Having fewer than 5% of trials in each confidence category
+* Having fewer than 5% of trials in each confidence category  
+* There being more data collected than specified in pre-registration
 ```{r echo = F, results = 'asis'}
 participants$excluded <- sapply(participants$pid, function(pid){
   ts <- which(all.trials$pid == pid)
