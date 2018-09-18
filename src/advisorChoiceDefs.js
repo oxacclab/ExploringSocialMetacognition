@@ -50,7 +50,6 @@ class DotTask extends Governor {
      * @param {int} [args.difficultyStep] - amount the difficulty increases/decreases after success/failure
      * @param {number} [args.minimumBlockScore] - lowest proportion of successful trials allowed on a block
      * @param {int} [args.blockCount] - number of blocks in the study
-     * @param {int} [args.practiceBlockCount] - number of practice blocks
      * @param {Object|Object[]} [args.blockStructure] - the structure of each block, where each object is a series of [trialType: number of instances] mappings. Multiple objects represent different subblocks run consecutively.
      * @param {Object|Object[]} [args.practiceBlockStructure] - the structure of each practice block
      * @param {int} [args.preTrialInterval] - delay before each trial begins
@@ -598,7 +597,6 @@ class AdvisorChoice extends DotTask {
      * @param {int} [args.difficultyStep] - amount the difficulty increases/decreases after success/failure
      * @param {number} [args.minimumBlockScore] - lowest proportion of successful trials allowed on a block
      * @param {int} [args.blockCount] - number of blocks in the study
-     * @param {int} [args.practiceBlockCount] - number of practice blocks
      * @param {Object|Object[]} [args.blockStructure] - the structure of each block, where each object is a series of [trialType: number of instances] mappings. Multiple objects represent different subblocks run consecutively.
      * @param {Object|Object[]} [args.practiceBlockStructure] - the structure of each practice block
      * @param {int} [args.preTrialInterval] - delay before each trial begins
@@ -1065,7 +1063,6 @@ class HaloEffect extends AdvisorChoice {
      * @param {int} [args.difficultyStep] - amount the difficulty increases/decreases after success/failure
      * @param {number} [args.minimumBlockScore] - lowest proportion of successful trials allowed on a block
      * @param {int} [args.blockCount] - number of blocks in the study
-     * @param {int} [args.practiceBlockCount] - number of practice blocks
      * @param {Object|Object[]} [args.blockStructure] - the structure of each block, where each object is a series of [trialType: number of instances] mappings. Multiple objects represent different subblocks run consecutively.
      * @param {Object|Object[]} [args.practiceBlockStructure] - the structure of each practice block
      * @param {int} [args.preTrialInterval] - delay before each trial begins

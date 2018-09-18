@@ -8,7 +8,5 @@ analysis/.RData
 analysis/.Rhistory
 analysis/tmp.csv
 analysis/explore
-
-analysis/.Rhistory
+*.Rhistory
 *.JSON
-analysis/.Rhistory

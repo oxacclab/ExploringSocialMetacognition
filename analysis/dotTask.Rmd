@@ -225,8 +225,6 @@ for (i in seq(length(files))) {
   # store all columns in participants table except the three last 
   # (trials, advisors, and questionnaires are stored separately)
   # Patch for missing data in practice
-  if(!('debriefComments' %in% names(jsonData)))
-    jsonData <- c(list(debriefComments = 'NA'), jsonData)
   participants <- rbind(participants, 
                         as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors', 
                                                                          'questionnaires', 

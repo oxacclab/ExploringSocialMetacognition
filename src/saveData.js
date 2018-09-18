@@ -17,7 +17,6 @@ export default function processData(data, test = false) {
         catchPerBlock: data.blockStructure[0],
         forcePerBlock: data.blockStructure[1],
         choicePerBlock: data.blockStructure[2],
-        practiceBlockCount: data.practiceBlockCount,
         practiceBlockLength: data.practiceBlockLength,
         practiceCatchPerBlock: data.practiceBlockStructure[0],
         practiceForcePerBlock: data.practiceBlockStructure[1],

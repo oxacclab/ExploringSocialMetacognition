@@ -207,22 +207,13 @@ style <- theme_light() +
         panel.grid.major.x = element_blank(),
         legend.position = 'top')
 style.long <- style + theme(legend.position = 'none')
+```
 
 # 1) Load data  ####
 
+```{r echo = F, results='hide'}
 #   1.i) Load data ####
-
 print('Load data')
-if(exists('trials'))
-  rm(trials)
-if(exists('participants'))
-  rm(participants)
-if(exists('advisors'))
-  rm(advisors)
-if(exists('questionnaires'))
-  rm(questionnaires)
-if(exists('genTrustQ'))
-  rm(genTrustQ)
 folderName <- '../AdvisorChoice/data/processed/'
 files <- list.files(folderName)
 participants <- NULL
@@ -236,9 +227,6 @@ for (i in seq(length(files))) {
   jsonData <- fromJSON(json, simplifyVector = T, simplifyMatrix = T, simplifyDataFrame = T)
   # store all columns in participants table except the three last 
   # (trials, advisors, and questionnaires are stored separately)
-  # Patch for missing data in practice
-  if(!('debriefComments' %in% names(jsonData)))
-    jsonData <- c(list(debriefComments = 'NA'), jsonData)
   participants <- rbind(participants, 
                         as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors', 
                                                                          'questionnaires', 
@@ -251,7 +239,7 @@ for (i in seq(length(files))) {
   if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
     genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
 }
-rm(jsonData, files, fileName, folderName, json)
+#rm(jsonData, files, fileName, folderName, json)
   
 #   1.ii) Calculate utility variables ####
 print('Calculate utility variables')
@@ -455,6 +443,13 @@ participants$excluded <- sapply(participants$pid, function(pid){
     return('Confidence.cat')
   return(F)
   })
+# exclude on the basis of collecting too much data
+if(sum(participants$excluded == F) > 50) {
+  tmp <- participants[participants$excluded == F, c('id', 'timeStart')]
+  tmp <- tmp$id[order(tmp$timeStart)]
+  tmp <- tmp[1:50]
+  participants$excluded[!(participants$id %in% tmp)] <- 'Excess.data'
+}
 all.participants <- participants
 participants <- participants[participants$excluded==F, ]
 # Remove excluded participants' data from other data frames
@@ -668,6 +663,24 @@ for(a in c(T,F)) {
                                        decreaseConfPerC = d))
 }
 kable(df.v.iv)
+
+df.v.iv.2 <- NULL 
+for(a in c(T,F)) {
+  for(pid in unique(trials$pid)) {
+    v <- trials[trials$advisorAgrees==a & trials$pid == pid, ]
+    i <- mean(v$confidenceShiftRaw > 0)
+    d <- mean(v$confidenceShiftRaw < 0)
+    n <- mean(v$confidenceShiftRaw == 0)
+    df.v.iv.2 <- rbind(df.v.iv.2, data.frame(pid, advisorAgrees = a,
+                                             increasConfPerC = i,
+                                             noChangePerC = n,
+                                             decreaseConfPerC = d,
+                                             totalN = nrow(v)))
+  }
+}
+#kable(df.v.iv.2)
+
+#kable(aggregate(rawInfluence ~ pid + advisorAgrees, data = trials, FUN = mean))
 ```
 
 ## 5.v) Questionnaire responses ####
@@ -1340,7 +1353,7 @@ We examine for each questionnaire dimension the association between the differen
 df.xiii <- NULL
 for(pid in unique(participants$pid)) {
   for(early in c(T,F)) { # split by advisor sets 1 and 2 (blocks 2&3, 4&5)
-    tmp <- trials[trials$pid==pid & trials$block %in% ifelse(early,2:3,4:5), ]
+    tmp <- trials[trials$pid==pid & trials$block %in% ifelse(early,3:4,5:6), ]
     aid <- ifelse(mean(tmp$adviceType==adviceTypes$HighAcc), adviceTypes$HighAcc, adviceTypes$LowAcc)
     # Find questionnaire ratings for advisors
     tmp.2 <- questionnaires[questionnaires$pid==pid 
@@ -1462,9 +1475,9 @@ ggplot(all.trials, aes(x = id, y = dotDifference, colour = as.factor(pid))) +
 
 # Cumulative accuracy plot
 df.cumAcc <- NULL
-limit <- 68
+limit <- 0
 for(pid in unique(all.trials$pid)) {
-  tmp <- all.trials[all.trials$pid == pid & all.trials$id > limit, ]
+  tmp <- all.trials[all.trials$pid == pid & all.trials$id > limit & all.trials$practice==F, ]
   for(id in unique(tmp$id)) {
     df.cumAcc <- rbind (df.cumAcc, data.frame(pid = as.factor(pid), 
                                               id,
