@@ -29,7 +29,7 @@ ui <- fluidPage(
                     "P(correct):",
                     min = 0.00,
                     max = 1.00,
-                    value = 0.65),
+                    value = 0.71),
         sliderInput("agrC",
                     "P(agree|correct):",
                     min = 0.00,

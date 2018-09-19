@@ -483,17 +483,17 @@ class Advisor {
                 };
             case 7: // High agreement
                 return function(judgeCorrect) {
-                    /* An agreement rate of 89%|correct and 50%|incorrect
-                    * yields an overall agreement of 75.4% and an overall accuracy of 75.4%
-                    * when participants get 65% of answers correct. */
-                   return judgeCorrect? 0.89 : 0.50;
+                    /* An agreement rate of 84%|correct and 61%|incorrect
+                    * yields an overall agreement of 77.33% and an overall accuracy of 70.95%
+                    * when participants get 71% of answers correct. */
+                   return judgeCorrect? 0.84 : 0.61;
                 };
             case 8: // Low agreement
                 return function(judgeCorrect) {
-                    /* An agreement rate of 65%|correct and 05%|incorrect
-                    * yields an overall agreement of 44% and an overall accuracy of .75.5%
-                    * when participants get 65% of answers correct. */
-                    return judgeCorrect? 0.65 : 0.05;
+                    /* An agreement rate of 66%|correct and 17%|incorrect
+                    * yields an overall agreement of 51.79% and an overall accuracy of 70.93%
+                    * when participants get 71% of answers correct. */
+                    return judgeCorrect? 0.66 : 0.17;
                 };
             default:
                 return function(judgeCorrect) {

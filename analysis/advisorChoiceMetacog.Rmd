@@ -1,5 +1,5 @@
 ---
-title: "Analysis script for AdvisorChoice (Advisor Accuracy)"
+title: "Analysis script for AdvisorChoice (Metacognitive-contingent advisors)"
 author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
 output: 
   html_document:
@@ -736,6 +736,44 @@ df.vi[,-(1:2)] <- round(df.vi[,-(1:2)],2)
 kable(df.vi)
 ```
 
+## 5.vii) Contingency Ns ####  
+```{r echo = F, results = 'asis'}
+df.vii <- NULL
+tmp <- aggregate(id ~ confidenceCategory + pid, trials, length)
+for(cc in confidenceCategories) {
+  v <- tmp$id[tmp$confidenceCategory==cc]
+  cl <- mean_cl_normal(v)
+  rn <- range(v)
+  df.vii <- rbind(df.vii, data.frame(confidenceCategory = cc,
+                                     meanN = cl$y,
+                                     cl95L = cl$ymin,
+                                     cl95H = cl$ymax,
+                                     rangeL = rn[1],
+                                     rangeH = rn[2]))
+}
+#kable(round(df.vii,2))
+
+df.vii.2 <- NULL
+tmp <- NULL
+for(pid in unique(trials$pid)) {
+  v <- trials$confidenceCategory[trials$pid==pid]
+  tmp <- rbind(tmp, data.frame(pid, 
+                               low=mean(v==confidenceCategories$low),
+                               med=mean(v==confidenceCategories$medium),
+                               high=mean(v==confidenceCategories$high)))
+}
+for(cc in confidenceCategories) {
+  v <- tmp[ ,2+cc] # for each confidence category in tmp
+  cl <- mean_cl_normal(v)
+  rn <- range(v)
+  df.vii.2 <- rbind(df.vii.2, data.frame(confidenceCategory = cc,
+                                         meanProp = cl$y,
+                                         cl95L = cl$ymin, cl95H = cl$ymax,
+                                         rangeL = rn[1], rangeH = rn[2]))
+}
+kable(round(df.vii.2,2))
+```
+
 # 6) Is the AiC advisor selected more often? ####
 
 ## 6.i) Overall ####
@@ -1033,9 +1071,7 @@ for(v in c('likeability', 'ability', 'benevolence')) {
   tmp.2 <- aggregate(v ~ adviceType + timepoint + pid, 
                      data = tmp,
                      FUN = mean)
-  for(aT in c(5,6)) {
-    if(aT == adviceTypes$neutral)
-      next()
+  for(aT in unique(trials$adviceType)) {
     for(tp in unique(tmp.2$timepoint)) {
       x <- tmp.2$v[tmp.2$adviceType==aT & tmp.2$timepoint==tp]
       df.viii.ii <- rbind(df.viii.ii, data.frame(domain = v,
