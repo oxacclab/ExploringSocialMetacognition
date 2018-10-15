@@ -3,11 +3,8 @@ title: "Analysis script for AdvisorChoice (Agreement advisors)"
 author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
 output: 
   html_document:
+    toc_float: true
     toc: true
-    toc_float:
-      toc_collapsed: true
-    toc_depth: 3
-    number_sections: true
     theme: lumen
 editor_options: 
   chunk_output_type: console

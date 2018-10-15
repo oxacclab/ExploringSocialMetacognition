@@ -3,12 +3,8 @@ title: "Analysis script for AdvisorChoice (Advisor Accuracy)"
 author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
 output: 
   html_document:
+    toc_float: true
     toc: true
-    toc_float:
-      toc_collapsed: true
-    toc_depth: 3
-    number_sections: true
-    theme: lumen
 editor_options: 
   chunk_output_type: console
 ---
@@ -215,7 +211,7 @@ style.long <- style + theme(legend.position = 'none')
 ```{r echo = F, results='hide'}
 #   1.i) Load data ####
 print('Load data')
-folderName <- '../AdvisorChoice/data/processed/'
+folderName <- "G:\\Documents\\University\\Google Drive\\Project Documents\\AdvisorChoice\\results\\Accuracy\\2018-09-17 120 practice trials\\processed"
 files <- list.files(folderName)
 participants <- NULL
 trials <- NULL
@@ -740,6 +736,44 @@ for(agree in list(T,F,c(T,F))) {
 }
 df.vi[,-(1:2)] <- round(df.vi[,-(1:2)],2)
 kable(df.vi)
+```
+
+## 5.vii) Contingency Ns ####  
+```{r echo = F, results = 'asis'}
+df.vii <- NULL
+tmp <- aggregate(id ~ confidenceCategory + pid, trials, length)
+for(cc in confidenceCategories) {
+  v <- tmp$id[tmp$confidenceCategory==cc]
+  cl <- mean_cl_normal(v)
+  rn <- range(v)
+  df.vii <- rbind(df.vii, data.frame(confidenceCategory = cc,
+                                     meanN = cl$y,
+                                     cl95L = cl$ymin,
+                                     cl95H = cl$ymax,
+                                     rangeL = rn[1],
+                                     rangeH = rn[2]))
+}
+#kable(round(df.vii,2))
+
+df.vii.2 <- NULL
+tmp <- NULL
+for(pid in unique(trials$pid)) {
+  v <- trials$confidenceCategory[trials$pid==pid]
+  tmp <- rbind(tmp, data.frame(pid, 
+                               low=mean(v==confidenceCategories$low),
+                               med=mean(v==confidenceCategories$medium),
+                               high=mean(v==confidenceCategories$high)))
+}
+for(cc in confidenceCategories) {
+  v <- tmp[ ,2+cc] # for each confidence category in tmp
+  cl <- mean_cl_normal(v)
+  rn <- range(v)
+  df.vii.2 <- rbind(df.vii.2, data.frame(confidenceCategory = cc,
+                                         meanProp = cl$y,
+                                         cl95L = cl$ymin, cl95H = cl$ymax,
+                                         rangeL = rn[1], rangeH = rn[2]))
+}
+kable(round(df.vii.2,2))
 ```
 
 # 6) Is the HighAcc advisor selected more often? ####
