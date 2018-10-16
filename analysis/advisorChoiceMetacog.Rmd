@@ -7,8 +7,6 @@ output:
     toc_float:
       toc_collapsed: true
     toc_depth: 3
-    number_sections: true
-    theme: lumen
 editor_options: 
   chunk_output_type: console
 ---
@@ -79,6 +77,29 @@ printMean <- function(vector, label = 'Mean', doPrint = T, conf.int = .95, na.rm
   print(paste0(label,'=', round(mu,decimals), ' [', round(conf.int,decimals)*100, '%CI: ',
                round(ci.low,decimals), ', ', round(ci.high,decimals),'] [Range: ',
                r[[1]], ', ', r[[2]], ']'))
+}
+
+#' Format proportion to be a string beginning with a decimal point.
+#' Does not respect scientific notation options
+prop2str <- function(proportion, precision = 2) {
+  if(length(proportion) > 1)
+    return(sapply(proportion, prop2str))
+  if(is.nan(proportion))
+    return(as.character(proportion))
+  proportion <- round(proportion, precision)
+  if(abs(proportion) < 1)
+    x <- sub('^-?0\\.', ifelse(proportion < 0, '-.', '.'), as.character(proportion))
+  else 
+    x <- as.character(proportion)
+  dot <- regexpr('.', x, fixed = T)
+  if(dot == -1) {
+    x <- paste0(x,'.')
+    dot <- regexpr('.', x, fixed = T)
+  }
+  right <- substr(x, dot, dot+precision) # portion of x after 0
+  right <- paste0(right, strrep('0',precision-nchar(right)+1))
+  x <- paste0(substr(x, 1, dot-1), right)
+  return(x)
 }
 
 # Return the advice type of an advisor for participant with row number=pid
@@ -215,7 +236,7 @@ style.long <- style + theme(legend.position = 'none')
 ```{r echo = F, results='hide'}
 #   1.i) Load data ####
 print('Load data')
-folderName <- '../AdvisorChoice/data/processed/'
+folderName <- "G:\\Documents\\University\\Google Drive\\Project Documents\\AdvisorChoice\\results\\MetaCog\\2018-09-18 2c Fixed\\processed"
 files <- list.files(folderName)
 participants <- NULL
 trials <- NULL
@@ -772,7 +793,30 @@ for(cc in confidenceCategories) {
                                          cl95L = cl$ymin, cl95H = cl$ymax,
                                          rangeL = rn[1], rangeH = rn[2]))
 }
-kable(round(df.vii.2,2))
+#kable(round(df.vii.2,2))
+
+# For parity with MATLAB experiment we look at confidence categories for initially-correct trials only
+df.vii.3 <- NULL
+tmp <- NULL
+for(pid in unique(trials$pid)) {
+  v <- trials$confidenceCategory[trials$pid==pid]
+  v[!trials$initialCorrect[trials$pid==pid]] <- NaN # set non-initially correct to NaN
+  tmp <- rbind(tmp, data.frame(pid, 
+                               low=mean(v==confidenceCategories$low, na.rm=T),
+                               med=mean(v==confidenceCategories$medium, na.rm=T),
+                               high=mean(v==confidenceCategories$high, na.rm=T),
+                               nan=mean(is.nan(v))))
+}
+for(cc in c(confidenceCategories,NaN)) {
+  v <- tmp[ ,2+ifelse(is.nan(cc),3,cc)] # for each confidence category in tmp
+  cl <- mean_cl_normal(v)
+  rn <- range(v)
+  df.vii.3 <- rbind(df.vii.3, data.frame(confidenceCategory = cc,
+                                         meanProp = cl$y,
+                                         cl95L = cl$ymin, cl95H = cl$ymax,
+                                         rangeL = rn[1], rangeH = rn[2]))
+}
+kable(prop2str(df.vii.3,2))
 ```
 
 # 6) Is the AiC advisor selected more often? ####

@@ -160,3 +160,117 @@ ggplot(tmp[tmp$type==1, ],
   style
 
 mean(as.numeric(tmp$adviceType[tmp$early & tmp$type==1]))
+
+# exploring confidence category calculation ####
+
+#' We want to look at how different methods of calculating confidence alter the
+#' distribution of confidence categories. Ideally we're aiming for 30/40/30, and
+#' we only really care about initially correct trials.
+#'
+#' We start by stepping through some different lag sets: we select different
+#' numbers of previous trials to examine, and calculate the confidence as
+#' fitting in to the confidence distribution from those trials
+#' 
+lags <- c(5,10,20,40,60,120,Inf)
+df.lags <- NULL
+# For each lag setting 
+print('Calculating trial confidence categories at various lag settings')
+pb <- txtProgressBar(min = 0, max = length(lags) * nrow(participants))
+for(lag in lags) {
+  # For each participant
+  for(pid in unique(participants$pid)) {
+    # for each trial calculate the confidence category using the lag
+    ts <- all.trials[all.trials$pid == pid, ]
+    ts$initialConfidence[!ts$initialCorrect] <- NaN # void confidence for incorrect trials
+    for(i in (min(ts$id)+1):max(ts$id)) {
+      trial <- ts[ts$id == i, ]
+      low <- i - lag
+      low <- ifelse(low < min(ts$id), min(ts$id), low)
+      testSet <- ts[ts$id %in% low:(i-1) & !is.nan(ts$initialConfidence), ]
+      # markers <- quantile(testSet$initialConfidence, c(.3,.7)) # nice approach, but not used in JS version
+      testSet <- testSet[order(testSet$initialConfidence),]
+      markers <- testSet$initialConfidence[c(round(nrow(testSet)*.3), round(nrow(testSet)*.7))]
+      trial$confidenceCategory <- sum(markers < trial$initialConfidence)
+      ts[ts$id == i, ] <- trial
+    }
+    # calculate confidence category proportions
+    ts <- ts[!ts$practice, ]
+    for(confCat in confidenceCategories) {
+      df.lags <- rbind(df.lags, data.frame(lag,
+                                           pid,
+                                           confCat,
+                                           prop = mean(ts$confidenceCategory==confCat, na.rm = T)))
+    }
+    setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
+  }
+}
+close(pb)
+
+# plot results
+ggplot(df.lags, aes(x = as.factor(lag), y = prop, colour = as.factor(confCat))) + 
+  geom_hline(yintercept = .4, linetype = 'dashed') +
+  geom_hline(yintercept = .3, linetype = 'dashed') +
+  stat_summary(geom = 'point', fun.y = mean) +
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot)
+
+#' 
+#' Now we look at using the last n practice trials to determine the confidence distribution
+#' 
+lags <- c(5,10,20,40,60,Inf)
+df.lags <- NULL
+# For each lag setting 
+print('Calculating trial confidence categories at various lag settings')
+pb <- txtProgressBar(min = 0, max = length(lags) * nrow(participants))
+for(lag in lags) {
+  # For each participant
+  for(pid in unique(participants$pid)) {
+    # for each trial calculate the confidence category using the lag
+    ts <- all.trials[all.trials$pid == pid, ]
+    ts$initialConfidence[!ts$initialCorrect] <- NaN # void confidence for incorrect trials
+    testSet <- ts[ts$practice & ts$id > (max(ts$id[ts$practice])-lag), ]
+    # markers <- quantile(testSet$initialConfidence, c(.3,.7)) # nice approach, but not used in JS version
+    testSet <- testSet[order(testSet$initialConfidence),]
+    markers <- testSet$initialConfidence[c(round(nrow(testSet)*.3), round(nrow(testSet)*.7))]
+    ts <- ts[!ts$practice & ts$initialCorrect, ]
+    for(i in ts$id) {
+      ts$confidenceCategory[ts$id == i] <- sum(markers < ts$initialConfidence[ts$id == i])
+    }
+    # calculate confidence category proportions
+    for(confCat in confidenceCategories) {
+      df.lags <- rbind(df.lags, data.frame(lag,
+                                           pid,
+                                           confCat,
+                                           prop = mean(ts$confidenceCategory==confCat, na.rm = T)))
+    }
+    setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
+  }
+}
+close(pb)
+
+# plot results
+ggplot(df.lags, aes(x = as.factor(lag), y = prop, colour = as.factor(confCat))) + 
+  geom_hline(yintercept = .4, linetype = 'dashed') +
+  geom_hline(yintercept = .3, linetype = 'dashed') +
+  stat_summary(geom = 'point', fun.y = mean) +
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot)
+
+# Do people just become less confident over time ####
+
+ggplot(trials[!trials$practice & trials$initialCorrect, ], 
+       aes(x = id, y = initialConfidence, colour = as.factor(pid))) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = 'lm', se = F)
+
+df.conf <- NULL
+for(pid in unique(trials$pid)) {
+  m <- lm(initialConfidence ~ id, trials[!trials$practice & trials$initialCorrect & trials$pid == pid, ])
+  df.conf <- rbind(df.conf, data.frame(pid,
+                                       coef = m$coefficients[2]))
+}
+ggplot(df.conf, aes(x = "", y = coef)) +
+  geom_violin(alpha = 0.5, colour = NA, fill = 'lightgrey') + 
+  geom_point(alpha = 0.25, position = position_jitter(), aes(colour = as.factor(pid))) +
+  stat_summary(geom = 'point', fun.y = mean) +
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot) +
+  theme_light()
+
