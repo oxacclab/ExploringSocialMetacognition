@@ -1,3 +1,34 @@
+# Aggregate results into a single list ####
+results <- list()
+experiment <- 'meta'
+# experiment <- 'acc'
+# experiment <- 'agr'
+results[[experiment]] <- list(all.advisors = all.advisors,
+                              advisors = advisors,
+                              all.genTrustQ = all.genTrustQ,
+                              genTrustQ = genTrustQ,
+                              all.participants = all.participants,
+                              participants = participants,
+                              all.questionnaires = all.questionnaires,
+                              questionnaires = questionnaires,
+                              all.trials = all.trials,
+                              trials = trials)
+
+# Produce master dataframes with all experiments combined, labelling each row
+# with the experiment to which it belongs. Also relabells the pid to include the
+# experiment tag.
+if(length(results)==3) {
+  for(var in names(results[[1]])) {
+    tmp <- NULL
+    for(ex in names(results)) {
+      results[[ex]][[var]]$experiment <- ex
+      results[[ex]][[var]]$pid <- paste0(ex, results[[ex]][[var]]$pid)
+      tmp <- rbind(tmp, results[[ex]][[var]])
+    }
+    assign(var, tmp)
+  }  
+}
+
 if(!require(gganimate)) {
   # Set path of Rtools
   Sys.setenv(PATH = paste(Sys.getenv("PATH"), "*InstallDirectory*/Rtools/bin/",
@@ -171,13 +202,14 @@ mean(as.numeric(tmp$adviceType[tmp$early & tmp$type==1]))
 #' numbers of previous trials to examine, and calculate the confidence as
 #' fitting in to the confidence distribution from those trials
 #' 
-lags <- c(5,10,20,40,60,120,Inf)
+lags <- c(5,15,30,60,90,120,Inf)
 df.lags <- NULL
 # For each lag setting 
 print('Calculating trial confidence categories at various lag settings')
 pb <- txtProgressBar(min = 0, max = length(lags) * nrow(participants))
 for(lag in lags) {
   # For each participant
+  # for(pid in mask){
   for(pid in unique(participants$pid)) {
     # for each trial calculate the confidence category using the lag
     ts <- all.trials[all.trials$pid == pid, ]
@@ -198,12 +230,14 @@ for(lag in lags) {
     for(confCat in confidenceCategories) {
       df.lags <- rbind(df.lags, data.frame(lag,
                                            pid,
+                                           experiment = ts$experiment[1],
                                            confCat,
                                            prop = mean(ts$confidenceCategory==confCat, na.rm = T)))
     }
     setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
   }
 }
+
 close(pb)
 
 # plot results
@@ -211,23 +245,25 @@ ggplot(df.lags, aes(x = as.factor(lag), y = prop, colour = as.factor(confCat))) 
   geom_hline(yintercept = .4, linetype = 'dashed') +
   geom_hline(yintercept = .3, linetype = 'dashed') +
   stat_summary(geom = 'point', fun.y = mean) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot)
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot) +
+  facet_wrap(~experiment)
 
 #' 
 #' Now we look at using the last n practice trials to determine the confidence distribution
 #' 
-lags <- c(5,10,20,40,60,Inf)
+lags <- c(5,15,30,60,Inf)
 df.lags <- NULL
 # For each lag setting 
 print('Calculating trial confidence categories at various lag settings')
-pb <- txtProgressBar(min = 0, max = length(lags) * nrow(participants))
+pb <- txtProgressBar(min = 0, max = 1)
+x <- length(lags) * nrow(participants)
 for(lag in lags) {
   # For each participant
-  for(pid in unique(participants$pid)) {
+  for(pid in mask){#unique(participants$pid)) {
     # for each trial calculate the confidence category using the lag
     ts <- all.trials[all.trials$pid == pid, ]
     ts$initialConfidence[!ts$initialCorrect] <- NaN # void confidence for incorrect trials
-    testSet <- ts[ts$practice & ts$id > (max(ts$id[ts$practice])-lag), ]
+    testSet <- ts[ts$practice & ts$id > (max(ts$id[ts$practice])-lag) & !is.nan(ts$initialConfidence), ]
     # markers <- quantile(testSet$initialConfidence, c(.3,.7)) # nice approach, but not used in JS version
     testSet <- testSet[order(testSet$initialConfidence),]
     markers <- testSet$initialConfidence[c(round(nrow(testSet)*.3), round(nrow(testSet)*.7))]
@@ -239,12 +275,14 @@ for(lag in lags) {
     for(confCat in confidenceCategories) {
       df.lags <- rbind(df.lags, data.frame(lag,
                                            pid,
+                                           experiment = ts$experiment[1],
                                            confCat,
                                            prop = mean(ts$confidenceCategory==confCat, na.rm = T)))
     }
-    setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
+    setTxtProgressBar(pb, getTxtProgressBar(pb) + x)
   }
 }
+
 close(pb)
 
 # plot results
@@ -252,25 +290,74 @@ ggplot(df.lags, aes(x = as.factor(lag), y = prop, colour = as.factor(confCat))) 
   geom_hline(yintercept = .4, linetype = 'dashed') +
   geom_hline(yintercept = .3, linetype = 'dashed') +
   stat_summary(geom = 'point', fun.y = mean) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot)
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot) +
+  facet_wrap(~experiment)
 
 # Do people just become less confident over time ####
 
 ggplot(trials[!trials$practice & trials$initialCorrect, ], 
        aes(x = id, y = initialConfidence, colour = as.factor(pid))) +
   geom_point(alpha = 0.1) +
-  geom_smooth(method = 'lm', se = F)
+  geom_smooth(method = 'lm', se = F) +
+  facet_wrap(~experiment) +
+  theme(legend.position = 'none')
 
 df.conf <- NULL
 for(pid in unique(trials$pid)) {
   m <- lm(initialConfidence ~ id, trials[!trials$practice & trials$initialCorrect & trials$pid == pid, ])
   df.conf <- rbind(df.conf, data.frame(pid,
+                                       experiment = participants$experiment[participants$pid==pid],
                                        coef = m$coefficients[2]))
 }
-ggplot(df.conf, aes(x = "", y = coef)) +
+ggplot(df.conf[abs(df.conf$coef) < .0375, ], aes(x = experiment, y = coef)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
   geom_violin(alpha = 0.5, colour = NA, fill = 'lightgrey') + 
   geom_point(alpha = 0.25, position = position_jitter(), aes(colour = as.factor(pid))) +
   stat_summary(geom = 'point', fun.y = mean) +
   stat_summary(geom = 'errorbar', fun.data = mean_cl_boot) +
-  theme_light()
+  theme_light() +
+  theme(legend.position = 'none') +
+  scale_y_continuous(breaks = seq(-.125,.1,.025))
 
+nRealTrials <- max(trials$id) - min(trials$id)
+maxShift <- 2
+mask <- df.conf$pid[abs(df.conf$coef) < (maxShift/nRealTrials)]
+
+#' Looking at the relationship between the lower and upper confidence boundaries
+#' for practice vs real trials. Ideally these should be the same.
+df.markers <- NULL
+for(pid in unique(trials$pid)) {
+  ts <- all.trials[all.trials$pid == pid & all.trials$initialCorrect, ]
+  tmp <- list()
+  for(practice in c(T,F)) {
+    v <- ts$initialConfidence[ts$practice == practice] 
+    v <- v[order(v)]
+    tmp[[as.numeric(practice)+1]] <- data.frame(low = v[round(length(v) * .3)],
+                                            high = v[round(length(v) * .7)])
+  }
+  for(marker in c(1,2)) {
+    name <- c('low', 'high')[marker]
+    df.markers <- rbind(df.markers, data.frame(pid,
+                                               experiment = ts$experiment[1],
+                                               marker = name,
+                                               practice = as.numeric(tmp[[marker]][name]),
+                                               real = as.numeric(tmp[[marker]][name])))
+  }
+}
+
+ggplot(df.markers, aes(x = practice, y = real, colour = pid)) +
+  geom_abline(slope = 1, linetype = 'dashed') +
+  geom_rect(inherit.aes = F, xmin = 0, ymin = 0, xmax = 15, ymax = 15, data = data.frame(marker = 'low'),
+            fill = 'lightblue', alpha = .3) +
+  geom_rect(inherit.aes = F, xmin = 35, ymin = 35, xmax = 50, ymax = 50, data = data.frame(marker = 'high'),
+            fill = 'pink', alpha = .3) +
+  geom_point(alpha = 0.3) +
+  facet_grid(marker ~ experiment) +
+  theme_light() +
+  theme(legend.position = 'none',
+        panel.spacing = unit(1, 'lines')) +
+  coord_equal() +
+  scale_x_continuous(limits = c(0,50), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0,50), expand = c(0,0)) +
+  labs(title = 'Confidence Thresholds',
+       subtitle = 'Each dot is a participant\'s low/high threshold\nBoxes show idealised low/high confidence areas of the scales.')
