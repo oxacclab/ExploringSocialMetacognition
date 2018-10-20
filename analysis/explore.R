@@ -14,6 +14,13 @@ results[[experiment]] <- list(all.advisors = all.advisors,
                               all.trials = all.trials,
                               trials = trials)
 
+# Add in the exported data from the MATLAB experiment
+# load(file.choose())
+name <- as.character(export$trials$experiment[1])
+results[[name]] <- list()
+for(n in names(export))
+  results[[name]][[n]] <- export[[n]]
+
 # Produce master dataframes with all experiments combined, labelling each row
 # with the experiment to which it belongs. Also relabells the pid to include the
 # experiment tag.
@@ -29,6 +36,7 @@ if(length(results)==3) {
   }  
 }
 
+# Installing gganimate is complex ####
 if(!require(gganimate)) {
   # Set path of Rtools
   Sys.setenv(PATH = paste(Sys.getenv("PATH"), "*InstallDirectory*/Rtools/bin/",
@@ -210,7 +218,7 @@ pb <- txtProgressBar(min = 0, max = length(lags) * nrow(participants))
 for(lag in lags) {
   # For each participant
   # for(pid in mask){
-  for(pid in unique(participants$pid)) {
+  for(pid in unique(all.trials$pid)) {
     # for each trial calculate the confidence category using the lag
     ts <- all.trials[all.trials$pid == pid, ]
     ts$initialConfidence[!ts$initialCorrect] <- NaN # void confidence for incorrect trials
@@ -323,6 +331,8 @@ nRealTrials <- max(trials$id) - min(trials$id)
 maxShift <- 2
 mask <- df.conf$pid[abs(df.conf$coef) < (maxShift/nRealTrials)]
 
+
+
 #' Looking at the relationship between the lower and upper confidence boundaries
 #' for practice vs real trials. Ideally these should be the same.
 df.markers <- NULL
@@ -338,6 +348,7 @@ for(pid in unique(trials$pid)) {
   for(marker in c(1,2)) {
     name <- c('low', 'high')[marker]
     df.markers <- rbind(df.markers, data.frame(pid,
+                                               pNum = sub('\\D+', '', pid),
                                                experiment = ts$experiment[1],
                                                marker = name,
                                                practice = as.numeric(tmp[[marker]][name]),
@@ -345,13 +356,13 @@ for(pid in unique(trials$pid)) {
   }
 }
 
-ggplot(df.markers, aes(x = practice, y = real, colour = pid)) +
+ggplot(df.markers, aes(x = practice, y = real, colour = as.factor(pNum))) +
   geom_abline(slope = 1, linetype = 'dashed') +
   geom_rect(inherit.aes = F, xmin = 0, ymin = 0, xmax = 15, ymax = 15, data = data.frame(marker = 'low'),
             fill = 'lightblue', alpha = .3) +
   geom_rect(inherit.aes = F, xmin = 35, ymin = 35, xmax = 50, ymax = 50, data = data.frame(marker = 'high'),
             fill = 'pink', alpha = .3) +
-  geom_point(alpha = 0.3) +
+  geom_point(alpha = 0.8) +
   facet_grid(marker ~ experiment) +
   theme_light() +
   theme(legend.position = 'none',
@@ -361,3 +372,50 @@ ggplot(df.markers, aes(x = practice, y = real, colour = pid)) +
   scale_y_continuous(limits = c(0,50), expand = c(0,0)) +
   labs(title = 'Confidence Thresholds',
        subtitle = 'Each dot is a participant\'s low/high threshold\nBoxes show idealised low/high confidence areas of the scales.')
+
+
+
+# Graph showing the number of discrete values used by a participant in each category ####
+df.spread <- NULL
+for(pid in unique(trials$pid)) {
+  ts <- all.trials[all.trials$pid == pid & all.trials$initialCorrect, ]
+  tmp <- list()
+  v <- ts$initialConfidence 
+  v <- v[order(v)]
+  # get unique values used in each category
+  df.spread <- rbind(df.spread, data.frame(pid,
+                                           experiment = ts$experiment[1],
+                                           low = length(unique(v[v < v[round(length(v)*.3)]])),
+                                           med = length(unique(v[v >= v[round(length(v)*.3)] &
+                                                                 v < v[round(length(v)*.7)]])),
+                                           high = length(unique(v[v >= v[round(length(v)*.7)]]))))
+}
+
+# stacked column chart for unique value counts
+ggplot(df.spread, aes(x = pid)) +
+  geom_col(aes(y = low + med + high), fill = 'red', alpha = .5) +
+  geom_col(aes(y = med + low), fill = 'black') +
+  geom_col(aes(y = low), fill = 'blue') +
+  theme_light() +
+  labs(title = 'Number of Unique Values in Each Category')
+
+# And a swarm-like plot for each participant
+if(!require(ggbeeswarm)) {
+  install.packages('ggbeeswarm')
+  library(ggbeeswarm)
+}
+
+pidPerPlot <- 4
+swarm <- list()
+for(i in 1:ceiling(length(unique(trials$pid))/pidPerPlot)) {
+  pidList <- unique(trials$pid)[((i-1)*pidPerPlot+1):(i*pidPerPlot)]
+  swarm[[i]] <- ggplot(all.trials[all.trials$initialCorrect & all.trials$pid %in% pidList, ], 
+                       aes(x = pid, y = initialConfidence, colour = as.factor(confidenceCategory))) + 
+    geom_beeswarm() +
+    scale_y_continuous(limits = c(0,55), expand = c(0,1)) +
+    coord_flip() +
+    theme_light() +
+    labs(title = 'Beeswarm plot for confidence responses') +
+    theme(legend.position = 'top')
+}
+swarm[[38]]
