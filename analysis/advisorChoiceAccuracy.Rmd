@@ -15,220 +15,11 @@ September 2018
 
 # 0) Support ####
 
-## 0.i) Libraries ####
+# 0) Load utility files ####
+
 ```{r echo = F, results = 'hide'}
-if(!require(jsonlite)) {
-  install.packages("jsonlite")
-  library(jsonlite)
-}
-  
-if(!require(BayesFactor)) {
-  install.packages('BayesFactor')
-  library(BayesFactor)
-}
-
-if(!require(tidyverse)) {
-  install.packages('tidyverse')
-  library(tidyverse)
-}
-
-if(!require(reshape2)) {
-  install.packages('reshape2')
-  library(reshape2)
-}
-
-if(!require(lme4)) {
-  install.packages('lme4')
-  library(lme4)
-}
-
-if(!require(lsr)) {
-  install.packages('lsr')
-  library(lsr)
-}
-if(!require(knitr)) {
-  install.packages('knitr')
-  library(knitr)
-}
-```
-
-## 0.ii) Functions ####
-```{r echo = F, results = 'hide'}
-# Print the results of a t-test as we would like to see them reported in a paper
-prettyPrint <- function(results, d = NULL) {
-  es <- NULL
-  if(!is.null(d))
-    es <- paste0(' , d=', round(d,2))
-  print(paste0('t(',results$parameter,')=',round(results$statistic,2),
-               ' [',round(attr(results$conf.int, "conf.level")*100),'%CI: ',
-               round(results$conf.int[[1]],2), ', ', round(results$conf.int[[2]],2),'],',
-               ' p=',round(results$p.value,3), es))
-}
-
-# Print the mean and CIs of a vector
-printMean <- function(vector, label = 'Mean', doPrint = T, conf.int = .95, na.rm = F, decimals = 2) {
-  mu <- mean(vector, na.rm = na.rm)
-  s <- sd(vector, na.rm = na.rm)
-  n <- length(vector)
-  error <- qnorm(1-(1-conf.int)/2)*s/sqrt(n) # 95% confidence interval width
-  ci.low <- mu - error
-  ci.high <- mu + error
-  r <- round(range(vector, na.rm = na.rm), decimals)
-  print(paste0(label,'=', round(mu,decimals), ' [', round(conf.int,decimals)*100, '%CI: ',
-               round(ci.low,decimals), ', ', round(ci.high,decimals),'] [Range: ',
-               r[[1]], ', ', r[[2]], ']'))
-}
-
-#' Format proportion to be a string beginning with a decimal point.
-#' Does not respect scientific notation options
-prop2str <- function(proportion, precision = 2) {
-  if(length(proportion) > 1)
-    return(sapply(proportion, prop2str))
-  if(is.nan(proportion))
-    return(as.character(proportion))
-  proportion <- round(proportion, precision)
-  if(abs(proportion) < 1)
-    x <- sub('^-?0\\.', ifelse(proportion < 0, '-.', '.'), as.character(proportion))
-  else 
-    x <- as.character(proportion)
-  dot <- regexpr('.', x, fixed = T)
-  if(dot == -1) {
-    x <- paste0(x,'.')
-    dot <- regexpr('.', x, fixed = T)
-  }
-  right <- substr(x, dot, dot+precision) # portion of x after 0
-  right <- paste0(right, strrep('0',precision-nchar(right)+1))
-  x <- paste0(substr(x, 1, dot-1), right)
-  return(x)
-}
-
-# Return the advice type of an advisor for participant with row number=pid
-getAdviceTypeById <- function(aid, pid, advisor.data.frame) {
-  type <- advisor.data.frame[which(advisor.data.frame$participantId==pid),]
-  type <- type[which(type$id==aid),]
-  if (length(type) > 0)
-    return(type$adviceType)
-  return(NA)
-}
-# Return a vector of advice types for trial list t
-getAdviceType <- function (t, participant.data.frame, advisor.data.frame, forceRecalculate = FALSE) {
-  # shortcut if we already calculated this
-  if('adviceType' %in% colnames(t) && !forceRecalculate)
-    return(t$adviceType)
-  out <- vector(length=dim(t)[1])
-  for (i in seq(length(out))) {
-    if (t$advisorId[i]==0) {
-      # no advisor
-      out[i] <- NA;
-    } else {
-    pid <- t$participantId[i]
-    out[i] <- getAdviceTypeById(t$advisorId[i], pid, advisor.data.frame)
-    }
-  }
-  return(out)
-}
-
-#' Find the confidence shift in a given trial
-#' @param t trial list
-#' @param rawShift whether to report the confidence shift without adjusting for the assymetric scale
-#' @param forceRecalulate if true, simply return the appropriate column from t if it exists already
-#' @return a vector of confidence shifts for trial list t
-getConfidenceShift <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
-  scaleMaximum <- 50
-  # shortcut if we already calculated this
-  if('confidenceShift' %in% colnames(t) && !forceRecalculate)
-    return(t$confidenceShift)
-  out <- vector(length=dim(t)[1])
-  for (i in seq(length(out))) {
-    if (is.na(t$finalConfidence[i])) { # no advisor
-      out[i] <- NA
-    } else {
-      max.shift <- scaleMaximum - t$initialConfidence[i]
-      if(t$initialAnswer[i]==t$finalAnswer[i])
-        out[i] <- t$finalConfidence[i]-t$initialConfidence[i] # same side
-      else
-        out[i] <- -1 * (t$finalConfidence[i]+t$initialConfidence[i]) # switched sliders, so went to 0 on the first one
-      out[i] <- ifelse((abs(out[i]) > max.shift) & rawShift == F, max.shift*sign(out[i]), out[i])
-    }
-  }
-  return(out)
-}
-
-# Return a vector of influence for trial list t
-#' @param t trial list
-#' @param rawShift whether to report the influence without adjusting for the assymetric scale
-#' @param forceRecalulate if true, simply return the appropriate column from t if it exists already
-#' @return a vector of influence for trial list t
-getInfluence <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
-  # shortcut if we already calculated this
-  if('influence' %in% colnames(t) && !forceRecalculate)
-    return(t$influence)
-  out <- vector(length=dim(t)[1])
-  for (i in seq(length(out))) {
-    if (t$advisorId[i] == 0) { # no advisor
-      out[i] <- NA
-    } else {
-      if (t$advisorAgrees[i])
-        out[i] <- getConfidenceShift(t[i,], rawShift, forceRecalculate) # amount confidence increased
-      else
-        out[i] <- -1 * getConfidenceShift(t[i,], rawShift, forceRecalculate) # -1 * amount confidence increased
-    }
-  }
-  return(out)
-}
-
-#' Get the name of the advice type
-#' @param adviceType the advice type to fetch the name for
-#' @param long whether to return the long name
-#' @return string of the advice type, or NA by default
-getAdviceTypeName <- function(adviceType, long = FALSE) {
-  if(length(adviceType)>1) {
-    out <- NULL
-    for(aT in adviceType)
-      out <- c(out, getAdviceTypeName(aT))
-    return(out)
-  }
-  if(adviceType==adviceTypes$neutral)
-    return(ifelse(long, 'neutral', 'Ntl'))
-  if(adviceType==adviceTypes$AiC)
-    return(ifelse(long,'Agree-in-confidence', 'AiC'))
-  if(adviceType==adviceTypes$AiU)
-    return(ifelse(long,'Agree-in-uncertainty', 'AiU'))
-  if(adviceType==adviceTypes$HighAcc)
-    return(ifelse(long,'High accuracy', 'HighAcc'))
-  if(adviceType==adviceTypes$LowAcc)
-    return(ifelse(long,'Low accuracy', 'LowAcc'))
-  return(ifelse(long, 'None', NA))
-}
-```
-
-## 0.iii) Globals ####
-```{r echo = F, results = 'hide'}
-# advice types: neutral, agree-in-confidence, and agree-in-uncertainty
-adviceTypes <- list(neutral=0, AiC=3, AiU=4, HighAcc=5, LowAcc=6)
-trialTypes <- list(catch=0, force=1, choice=2)
-confidenceCategories <- list(low=0, medium=1, high=2)
-
-# Advisor questionnaire dimensions
-questionnaireDimensions <- list(accurate=1,
-                                like=2,
-                                trust=3,
-                                influence=4)
-
-# The Advisor portraits have properties which might affect ratings, so we should investigate these:
-portraitDetails <- data.frame(
-  portraitId = 1:5,
-  category = factor(c('w', 'b', 'w', 'b', 'w')),
-  blackProp = c(0, .99, 0, .99, .01),
-  age = c(28.7, 24.9, 23.3, 24.6, 23.7)
-)
-
-# styling for ggplots
-style <- theme_light() +
-  theme(panel.grid.minor = element_blank(),
-        panel.grid.major.x = element_blank(),
-        legend.position = 'top')
-style.long <- style + theme(legend.position = 'none')
+source('ESMutils.R')
+source('miscFunctions.R')
 ```
 
 # 1) Load data  ####
@@ -824,6 +615,76 @@ for(cc in c(confidenceCategories,NaN)) {
 kable(prop2str(df.vii.3,2))
 ```
 
+## 5.viii) Performance summary table
+
+Data sanity checks - did participants demonstrate good use of confidence, did participants benefit from advice
+was their calibration better after advice, was their accuracy better after advice?
+
+```{r echo = F, results = 'asis'}
+# Plot function, expects melted dataframe
+getPlot.v.viii <- function(df) {
+  ggplot(df, aes(x = variable, y = value, colour = as.factor(pid))) +
+    geom_violin(alpha = 0.25, colour = NA, fill = 'grey') +
+    stat_summary(geom = 'point', fun.y = mean, size = 5, shape = 23, fill = 'black', aes(group = variable)) +
+    stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, aes(group = variable), width = 0.25) +
+    stat_summary(geom = 'line', fun.y = mean, aes(group = 1)) +
+    geom_point(alpha = 0.25) +
+    geom_line(alpha = 0.25, aes(group = as.factor(pid)))+
+    scale_x_discrete(name = '', labels = c('Initial Decision', 'Final Decision')) +
+    style.long
+}
+
+# decision accuracy
+print('Decision accuracy:')
+tmp <- aggregate(cbind(initialCorrect, finalCorrect) ~ pid, data = trials, FUN = mean)
+tmp.2 <- quickCompareVectors(tmp$initialCorrect, tmp$finalCorrect, 'Initial', 'Final', paired = T)
+
+gg.v.viii.1 <- getPlot.v.viii(melt(tmp, id.vars = 'pid')) +
+    scale_y_continuous(name = 'P(Correct)', expand = c(0.1,0))
+  
+gg.v.viii.1
+
+# decision confidence
+print('Decision confidence:')
+tmp <- aggregate(cbind(initialConfidence, finalConfidence) ~ pid, data = trials, FUN = mean)
+tmp.2 <- quickCompareVectors(tmp$initialConfidence, tmp$finalConfidence, 'Initial', 'Final', paired = T)
+
+gg.v.viii.2 <- getPlot.v.viii(melt(tmp, id.vars = 'pid')) +
+    scale_y_continuous(name = 'Confidence', limits = c(0,50))
+  
+gg.v.viii.2
+
+# metacognitive performance measures
+df.metacog <- NULL
+for(pid in unique(trials$pid)) {
+  ts <- trials[trials$pid == pid, ]
+  corInitial = cor(ts$initialCorrect, ts$initialConfidence)
+  corFinal = cor(ts$finalCorrect, ts$finalConfidence)
+  brierInitial = brierscore(initialCorrect ~ initialConfidence, data = ts, group = 'pid')$brieravg
+  brierFinal = brierscore(finalCorrect ~ finalConfidence, data = ts, group = 'pid')$brieravg
+  df.metacog <- rbind(df.metacog, data.frame(pid, corInitial, brierInitial, corFinal, brierFinal))
+}
+# confidence-accuracy correlation
+print('Confidence-accuracy correlation:')
+tmp.2 <- quickCompareVectors(df.metacog$corInitial, df.metacog$corFinal, 'Initial', 'Final', paired = T)
+
+gg.v.viii.3 <- getPlot.v.viii(melt(df.metacog[ , c('pid', 'corInitial', 'corFinal')], id.vars = 'pid')) +
+    scale_y_continuous(name = 'Confidence-accuracy correlation', expand = c(0.1,0))
+  
+gg.v.viii.3
+
+# confidence brier score
+print('Brier score:')
+tmp.2 <- quickCompareVectors(df.metacog$brierInitial, df.metacog$brierFinal, 'Initial', 'Final', paired = T)
+
+gg.v.viii.4 <- getPlot.v.viii(melt(df.metacog[ , c('pid', 'brierInitial', 'brierFinal')], id.vars = 'pid')) +
+    scale_y_continuous(name = 'Brier score', expand = c(0.1,0))
+  
+gg.v.viii.4
+
+
+```
+
 # 6) Is the HighAcc advisor selected more often? ####
 
 ## 6.i) Overall ####
@@ -887,12 +748,16 @@ tmp.2 <- aggregate(adviceType ~ pid,
                    data = trials[trials$type == trialTypes$choice, ],
                    FUN = function(x)sum(x==adviceTypes$HighAcc)/length(x))
 gg.vi.iii <- ggplot(tmp, aes(x = factor(confidenceCategory), y = adviceType)) +
+  # Reference line
   geom_hline(linetype = "dashed", color = "black", yintercept = .5, size = 1) +
+  # Confidence category values
   geom_point(aes(color = factor(pid))) +
   geom_line(aes(group = factor(pid), color = factor(pid))) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0.1) +
   stat_summary(geom = "point", fun.y = "mean", shape = 23, fill = "black", size = 4) +
-  geom_point(position = position_jitter(w=0.03, h=0),
+  # Overall values
+  geom_violin(data = tmp.2, aes(x="Overall"), fill = "grey", color = NA, alpha = 0.25) +
+  geom_point(position = position_jitter(w=0.025, h=0),
              aes(x="Overall", color = factor(pid)), 
              data = tmp.2) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0.1,
@@ -906,7 +771,7 @@ gg.vi.iii <- ggplot(tmp, aes(x = factor(confidenceCategory), y = adviceType)) +
   labs(title = "Advisor preference",
        legend = NULL,
        x = "Confidence",
-       y = "P(HighAcc advisor is chosen)") +
+       y = "P(HighAcc chosen)") +
   style.long
 gg.vi.iii
 ```
