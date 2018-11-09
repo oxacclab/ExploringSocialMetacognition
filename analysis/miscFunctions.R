@@ -94,9 +94,15 @@ quickCompareVectors <- function(v1, v2, label1 = 'Vector 1', label2 = 'Vector2',
 
 # ggplot Presentation -----------------------------------------------------
 
+gg.font.small <- 16
+gg.font.med <- 20
+gg.font.large <- 24
+
 style <- theme_light() +
   theme(panel.grid.minor = element_blank(),
         panel.grid.major.x = element_blank(),
+        text = element_text(size = gg.font.small),
+        plot.title = element_text(size = gg.font.med),
         legend.position = 'top')
 
 style.long <- style + theme(legend.position = 'none')
