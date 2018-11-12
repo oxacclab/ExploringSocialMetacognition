@@ -10,3 +10,4 @@ analysis/tmp.csv
 analysis/explore
 *.Rhistory
 *.JSON
+analysis/spss

@@ -7,6 +7,7 @@ source('miscFunctions.R') # neat printing, etc
 # Variables ---------------------------------------------------------------
 
 dodge.width.agreements <- .8
+dodge.width.influence <- .4
 
 # Manipulation check functions ----------------------------------------------
 
@@ -28,10 +29,12 @@ tmp.agreementContingencies <- function(trials, factorize = T, stripMissing = T) 
 }
 
 #' ANOVA of agreement by correcteness, confidence, and advisor
+#' @param trials trial list to compute ANOVA on
 aov.agreementContingencies <- function(trials) {
   tmp <- tmp.agreementContingencies(trials)
-  aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
-        Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
+  ezANOVA(data = tmp, dv = advisorAgrees, wid = pid, 
+          within = .(confidenceCategory, adviceType, initialCorrect), 
+          return_aov = T)
 }
 
 #' Graph of agreement
@@ -70,10 +73,12 @@ tmp.agreementContingenciesByType <- function(trials, factorize = T, stripMissing
 }
 
 #' ANOVA of agreement by trial type, confidence, and advisor
+#' @param trials trial list to compute ANOVA on
 aov.agreementContingenciesByType <- function(trials) {
   tmp <- tmp.agreementContingenciesByType(trials)
-  aov(advisorAgrees ~ confidenceCategory * adviceType * typeName + 
-        Error(pid / (confidenceCategory + adviceType + typeName)), data = tmp)
+  ezANOVA(data = tmp, dv = advisorAgrees, wid = pid, 
+          within = .(confidenceCategory, adviceType, typeName), 
+          return_aov = T)
 }
 
 #' Graph of agreement
@@ -153,11 +158,21 @@ tmp.influence <- function(trials, factorize = T, stripMissing = T) {
 } 
 
 #' ANOVA on influence by the within-subjects factors
+#' @param trials trial list to compute ANOVA on
 aov.influence <- function(trials) {
   tmp <- tmp.influence(trials)
-  aov(influence ~ adviceType * hasChoice * advisorAgrees + 
-        Error(pid / (adviceType + hasChoice + advisorAgrees)), 
-      data=tmp)
+  ezANOVA(data = tmp, dv = influence, wid = pid, 
+          within = .(adviceType, hasChoice, advisorAgrees), 
+          return_aov = T)
+}
+
+#' ANOVA on influence by the within-subjects factors
+#' @param trials trial list to compute ANOVA on
+aov.influence.allForced <- function(trials) {
+  tmp <- tmp.influence(trials)
+  ezANOVA(data = tmp, dv = influence, wid = pid, 
+          within = .(adviceType, advisorAgrees), 
+          return_aov = T)
 }
 
 #' Print the means for the within-subjects factors
@@ -169,10 +184,14 @@ printMeans.influence <- function(trials, ...) {
   for(aT in unique(tmp$adviceType))
     printMean(tmp$influence[tmp$adviceType==aT], 
               paste0('Mean|', getAdviceTypeName(aT)))
-  printMean(tmp$influence[tmp$hasChoice==T], 'Mean|Choice')
-  printMean(tmp$influence[tmp$hasChoice==F], 'Mean|Forced')
-  printMean(tmp$influence[tmp$advisorAgrees==T], 'Mean|Agree')
-  printMean(tmp$influence[tmp$advisorAgrees==F], 'Mean|Disagree')
+  if(length(unique(tmp$hasChoice)) > 1) {
+    printMean(tmp$influence[tmp$hasChoice==T], 'Mean|Choice')
+    printMean(tmp$influence[tmp$hasChoice==F], 'Mean|Forced')
+  }
+  if(length(unique(tmp$advisorAgrees)) > 1) {
+    printMean(tmp$influence[tmp$advisorAgrees==T], 'Mean|Agree')
+    printMean(tmp$influence[tmp$advisorAgrees==F], 'Mean|Disagree')
+  }
   NULL
 }
 
@@ -181,10 +200,13 @@ printMeans.influence <- function(trials, ...) {
 gg.influence <- function(trials, ...) {
   tmp <- tmp.influence(trials, ...)
   ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill = adviceType)) +
-    geom_point(position = position_jitter(w=0.1, h=0), alpha = 0.5) +
-    stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0.2) +
-    stat_summary(geom = "point", fun.y = "mean", shape = 23, size = 5) +
-    stat_summary(aes(group = adviceType), fun.y=mean, geom="line") + 
+    geom_point(position = position_jitterdodge(0.25, dodge.width = dodge.width.influence), alpha = 0.5) +
+    stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0.2, 
+                 position = position_dodge(dodge.width.influence)) +
+    stat_summary(geom = "point", fun.y = "mean", shape = 23, size = 5, 
+                 position = position_dodge(dodge.width.influence)) +
+    # stat_summary(aes(group = adviceType), fun.y=mean, geom="line", 
+    #              position = position_dodge(dodge.width.influence)) + 
     facet_grid(.~hasChoice, 
                labeller = as_labeller(c('FALSE'='Forced trials','TRUE'='Choice trials'))) +
     scale_color_discrete(name = 'Advisor type', labels = getAdviceTypeName(unique(tmp$adviceType))) +

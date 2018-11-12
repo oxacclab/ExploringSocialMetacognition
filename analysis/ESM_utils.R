@@ -34,6 +34,11 @@ if(!require(lsr)) {
   install.packages('lsr')
   library(lsr)
 }
+# repeated measures ANOVA
+if(!require(ez)) {
+  install.packages('ez')
+  library(ez)
+}
 # RMarkdown to HTML conversion
 if(!require(knitr)) {
   install.packages('knitr')

@@ -10,10 +10,13 @@
 #' @return \{code}proportion stripped of leading 0s and rounded to \{code}precision decimal places
 prop2str <- function(proportion, precision = 2, truncateZeros = F) {
   if(length(proportion) > 1)
-    return(sapply(proportion, prop2str))
+    return(sapply(proportion, function(x) prop2str(x, precision, truncateZeros)))
   if(is.nan(proportion))
     return(as.character(proportion))
-  proportion <- round(proportion, precision)
+  proportion <- round(as.numeric(proportion), precision)
+  # if we hit scientific notation then give up!
+  if(grepl('e', proportion, fixed = T))
+    return(as.character(proportion))
   if(abs(proportion) < 1)
     x <- sub('^-?0\\.', ifelse(proportion < 0, '-.', '.'), as.character(proportion))
   else 
@@ -39,10 +42,10 @@ prop2str <- function(proportion, precision = 2, truncateZeros = F) {
 #' @return \{code}num stripped of leading 0s and rounded to \{code}precision decimal places
 num2str <- function(num, precision = 2, truncateZeros = F) {
   if(length(num) > 1)
-    return(sapply(num, num2str))
+    return(sapply(num, function(x) num2str(x, precision, truncateZeros)))
   if(is.nan(num))
     return(as.character(num))
-  num <- round(num, precision)
+  num <- round(as.numeric(num), precision)
   # string manipulation to pad 0s
   x <- as.character(num)
   if(truncateZeros)
@@ -90,9 +93,9 @@ printMean <- function(vector, label = 'Mean', doPrint = T, conf.int = .95, na.rm
   mu <- mean(vector, na.rm = na.rm)
   s <- sd(vector, na.rm = na.rm)
   n <- length(vector)
-  error <- qnorm(1-(1-conf.int)/2)*s/sqrt(n) # 95% confidence interval width
-  ci.low <- mu - error
-  ci.high <- mu + error
+  ci <- ciMean(vector, conf = conf.int) # lsr::ciMean()
+  ci.low <- ci[1]
+  ci.high <- ci[2]
   r <- precisionFun(range(vector, na.rm = na.rm), decimals)
   out <- paste0(label,'=', precisionFun(mu,decimals), ' [', precisionFun(conf.int*100,decimals,F), '%CI: ',
                 precisionFun(ci.low,decimals), ', ', precisionFun(ci.high,decimals),'] [Range: ',
@@ -162,4 +165,19 @@ aggregateMissing <- function(df, id.colName, factor.colNames) {
       out <- c(out, id)
   }
   return(out)
+}
+
+
+# Specific package tweaks -------------------------------------------------
+
+#' Make ezANOVA's $ANOVA output neater by rounding appropriately
+#' @param obj ezANOVA output (supports return_aov = T|F)
+prettifyEZ <- function(obj) {
+  # if there's a $ANOVA item use that instead
+  if(!is.null(obj$ANOVA))
+    return(prettifyEZ(obj$ANOVA))
+  obj$F <- num2str(obj$F)
+  obj$p <- prop2str(obj$p, 3)
+  obj$ges <- prop2str(obj$ges, 4)
+  return(obj)  
 }
