@@ -18,8 +18,7 @@ September 2018
 # 0) Load utility files ####
 
 ```{r echo = F, results = 'hide'}
-source('ESMutils.R')
-source('miscFunctions.R')
+source('ESM_core.R')
 ```
 
 # 1) Load data  ####
@@ -138,70 +137,36 @@ Responses were collected between `r as.POSIXct(min(participants$timeEnd), tz = '
 These advisors don't show contingent agreement, so there shouldn't be much
 here. This is retained mostly for comparison purposes
 ```{r echo = F}
-tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, data = trials, FUN = mean)
-aov.iii.i <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
-             Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
+aov.iii.i <- aov.agreementContingencies(trials)
 print(summary(aov.iii.i))
 ```
 
 ## 3.ii) Graph: overall agreement by contingency ####
 ```{r echo = F}
-w <- 0.8
-gg.iii.ii <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~initialCorrect, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_y_continuous(name = 'Advisor Agreement') +
-  labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness') +
-  style
+gg.iii.ii <- gg.agreementContingencies(trials) + 
+  labs(title = 'Observed agreement rate')
 gg.iii.ii
 ```
 
 ## 3.iii) Initial block agreement by contingency ####
 ```{r echo = F}
 # Initial block is forced trials
-tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + initialCorrect, 
-                 data = trials[trials$type==trialTypes$force, ], FUN = mean)
-tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * initialCorrect + 
-                 Error(pid / (confidenceCategory + adviceType + initialCorrect)), data = tmp)
+tmp.aov <- aov.agreementContingencies(trials[trials$type==trialTypes$force, ])
 summary(tmp.aov)
 ```
 
 ## 3.iv) Graph: initial block agreement by contingency ####
 ```{r echo = F}
-gg.iii.iv <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~initialCorrect, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_y_continuous(name = 'Advisor Agreement') +
-  labs(title = 'Observed agreement rate for each advisor by initial decision confidence and correctness\n on forced trials') +
-  style
+gg.iii.iv <- gg.agreementContingencies(trials[trials$type==trialTypes$force, ]) + 
+  labs(title = 'Observed agreement rate on Forced trials')
 gg.iii.iv
 ```
 
 ### 3.iv.i) Graph of agreement by block on initialCorrect trials
 ```{r echo = F}
-tmp <- aggregate(advisorAgrees ~ pid + confidenceCategory + adviceType + typeName, 
-                 data = trials[trials$initialCorrect==T, ], FUN = mean)
-tmp.aov <- aov(advisorAgrees ~ confidenceCategory * adviceType * typeName + 
-                 Error(pid / (confidenceCategory + adviceType + typeName)), data = tmp)
+tmp.aov <- aov.agreementContingenciesByType(trials[trials$initialCorrect==T, ])
 summary(tmp.aov)
-gg.iii.iv.i <- ggplot(tmp, aes(y = advisorAgrees, x = as.factor(confidenceCategory), colour = as.factor(adviceType))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~typeName, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_y_continuous(name = 'Advisor Agreement') +
-  labs(title = 'Observed agreement rate for each advisor by initial decision confidence and block\n on initially correct trials') +
-  style
+gg.iii.iv.i <- gg.agreementContingenciesByType(trials[trials$initialCorrect==T, ])
 gg.iii.iv.i
 ```
 
@@ -209,23 +174,7 @@ gg.iii.iv.i
 ```{r echo = F}
 # Let's also check we got appropriate numbers of trials in each of the bins for
 # each participant
-df.iii.v <- aggregate(practice ~ 
-                   pid + confidenceCategory + adviceType + initialCorrect + advisorAgrees, 
-                 data = trials, FUN = length)
-#print(df.iii.v)
-
-gg.iii.vi <- ggplot(df.iii.v, aes(y = practice, x = as.factor(confidenceCategory), 
-                colour = as.factor(adviceType), shape = as.factor(advisorAgrees))) +
-  stat_summary(geom = 'point', size = 3, fun.y = mean, position = position_dodge(w)) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_boot, position = position_dodge(w), size = 0.2) +
-  geom_point(alpha = 0.5, position = position_dodge(w)) +
-  facet_wrap(~initialCorrect, labeller = label_both) +
-  scale_x_discrete(name = 'Confidence Category', labels = c('Low', 'Med', 'High')) +
-  scale_color_discrete(name = 'Advice Type', labels = c('AiC', 'AiU')) +
-  scale_y_continuous(name = 'Trial Count') +
-  scale_shape_discrete(name = 'Advisor Agreement', labels = c('Disagree', 'Agree')) +
-  labs(title = 'Observed trial count for dis/agreement from each advisor by initial decision confidence\n and correctness') +
-  style
+gg.iii.vi <- gg.contingencyCounts(trials)
 gg.iii.vi
 ```
 
@@ -704,7 +653,7 @@ t.vi.i <- t.test(tmp$adviceType, mu=0.5)
 d <- cohensD(tmp$adviceType, mu = 0.5)
 tB.vi.i <- ttestBF(tmp$adviceType, mu = 0.5)
 
-printMean(tmp$adviceType, 'Mean HighAcc pick rate')
+printMean(tmp$adviceType, 'Mean HighAcc pick rate', isProportion = T)
 print('Choice proportion HighAcc vs. chance level (.5)')
 prettyPrint(t.vi.i, d)
 print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
@@ -723,7 +672,7 @@ t.vi.ii <- t.test(tmp$adviceType, mu=0.5)
 d <- cohensD(tmp$adviceType, mu=0.5)
 tB.vi.ii <- ttestBF(tmp$adviceType, mu = 0.5)
 
-printMean(tmp$adviceType, 'Mean HighAcc pick rate')
+printMean(tmp$adviceType, 'Mean HighAcc pick rate', isProportion = T)
 print('Choice proportion HighAcc vs. chance level (.5) for mid-confidence trials')
 prettyPrint(t.vi.ii,d)
 print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
@@ -752,7 +701,7 @@ gg.vi.iii <- ggplot(tmp, aes(x = factor(confidenceCategory), y = adviceType)) +
   geom_hline(linetype = "dashed", color = "black", yintercept = .5, size = 1) +
   # Confidence category values
   geom_point(aes(color = factor(pid))) +
-  geom_line(aes(group = factor(pid), color = factor(pid))) +
+  geom_line(aes(group = factor(pid), color = factor(pid)), alpha = 0.25) +
   stat_summary(geom = "errorbar", fun.data = "mean_cl_boot", width = 0.1) +
   stat_summary(geom = "point", fun.y = "mean", shape = 23, fill = "black", size = 4) +
   # Overall values
@@ -790,21 +739,13 @@ later. Below, we run an ANOVA using the influence data.
 (High/Low accuracy), choice (un/forced), and agreement
 (dis/agree) on influence. These are all within-subjects manipulations.
 ```{r echo = F}
-tmp <- aggregate(influence ~ adviceType + hasChoice + advisorAgrees + pid, data = trials, FUN = mean)
-print('Running ANOVAs')
-aov.vii.i <- aov(influence ~ adviceType * hasChoice * advisorAgrees + 
-                                              Error(pid / (adviceType + hasChoice + advisorAgrees)), 
-                                            data=tmp)
+
 print('2x2x2 Mixed ANOVA of advisor type x choice x agreement')
+aov.vii.i <- aov.influence(trials)
 print(summary(aov.vii.i))
 
 print('Means:')
-printMean(tmp$influence[tmp$adviceType==adviceTypes$HighAcc], 'Mean|HighAcc')
-printMean(tmp$influence[tmp$adviceType==adviceTypes$LowAcc], 'Mean|LowAcc')
-printMean(tmp$influence[tmp$hasChoice], 'Mean|Choice')
-printMean(tmp$influence[!tmp$hasChoice], 'Mean|Forced')
-printMean(tmp$influence[tmp$advisorAgrees], 'Mean|Agree')
-printMean(tmp$influence[!tmp$advisorAgrees], 'Mean|Disagree')
+printMeans.influence(trials)
 ```
 
 ## 7.ii) Graph: Adjusted Advice influence, all trials ####
@@ -812,25 +753,7 @@ Influence of advice under varied conditions. Points indicate mean values for a
 participant, while diamonds indicate the mean of participant means, with error
 bars specifying 95% confidence intervals.
 ```{r echo = F}
-tmp$adviceType <- factor(tmp$adviceType)
-gg.vii.ii <- ggplot(tmp, aes(advisorAgrees, influence, color = adviceType, fill = adviceType)) +
-  geom_point(position = position_jitter(w=0.1, h=0), alpha = 0.5) +
-  stat_summary(geom = "errorbar",
-               fun.data = "mean_cl_boot",
-               width = 0.2) +
-  stat_summary(geom = "point",
-               fun.y = "mean",
-               shape = 23, size = 5) +
-  stat_summary(aes(group = adviceType), fun.y=mean, geom="line") + 
-  facet_grid(.~hasChoice, 
-             labeller = as_labeller(c('FALSE'='Forced trials','TRUE'='Choice trials'))) +
-  scale_color_discrete(name = 'Advisor type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_fill_discrete(name = 'Advisor type', labels = getAdviceTypeName(unique(tmp$adviceType))) +
-  scale_x_discrete(name = 'Judge-advisor agreement', labels = c('Disagree', 'Agree')) +
-  labs(title = "Advice Influence",
-       legend = NULL,
-       y = "Influence of the advice") +
-  style
+gg.vii.ii <- gg.influence(trials)
 gg.vii.ii
 ```
 
@@ -845,23 +768,23 @@ confidence balance out). This subset only includes trials on which the
 participant was CORRECT. Where incorrect, advisors also agree equally often
 (30% of the time), so these trials could be included.
 ```{r echo = F}
-tmp <- aggregate(influence ~ adviceType + hasChoice + advisorAgrees + pid, 
-                 data = trials[trials$confidenceCategory==confidenceCategories$medium
-                               & trials$finalAnswer==trials$correctAnswer, ], 
-                 FUN = mean)
-aov.vii.iii <- aov(influence ~ adviceType * hasChoice * advisorAgrees + 
-                                                 Error(pid / (adviceType + hasChoice + advisorAgrees)), 
-                                               data=tmp)
+aov.vii.iii <- aov.influence(trials[trials$confidenceCategory==confidenceCategories$medium
+                                    & trials$finalAnswer==trials$correctAnswer, ])
 print('As above, looking at only trials where intial decision was correct and made with middle confidence:')
 print(summary(aov.vii.iii))
 
 print('Means:')
-printMean(tmp$influence[tmp$adviceType==adviceTypes$HighAcc], 'Mean|HighAcc')
-printMean(tmp$influence[tmp$adviceType==adviceTypes$LowAcc], 'Mean|LowAcc')
-printMean(tmp$influence[tmp$hasChoice], 'Mean|Choice')
-printMean(tmp$influence[!tmp$hasChoice], 'Mean|Forced')
-printMean(tmp$influence[tmp$advisorAgrees], 'Mean|Agree')
-printMean(tmp$influence[!tmp$advisorAgrees], 'Mean|Disagree')
+printMeans.influence(trials[trials$confidenceCategory==confidenceCategories$medium
+                            & trials$finalAnswer==trials$correctAnswer, ])
+```
+
+And the graph for medium-confidence trials only
+
+```{r echo=F}
+gg.vii.ii <- gg.influence(trials[trials$confidenceCategory==confidenceCategories$medium
+                                 & trials$finalAnswer==trials$correctAnswer, ]) +
+  labs(title = 'Advisor Influence on medium-confidence trials')
+gg.vii.ii
 ```
 
 ## 7.iv) Raw influence, all trials ####
@@ -871,21 +794,16 @@ N.B. This is not a core analysis!
 (agree-in-confidence/uncertainty), choice (un/forced), and agreement
 (dis/agree) on influence. These are all within-subjects manipulations.
 ```{r echo = F}
-tmp <- aggregate(rawInfluence ~ adviceType + hasChoice + advisorAgrees + pid, data = trials, FUN = mean)
-print('Running ANOVAs')
-aov.vii.iv <- aov(rawInfluence ~ adviceType * hasChoice * advisorAgrees + 
-                                              Error(pid / (adviceType + hasChoice + advisorAgrees)), 
-                                            data=tmp)
+tmp <- trials
+tmp$influence <- tmp$rawInfluence
+
+aov.vii.iv <- aov.influence(tmp)
+
 print('Original mixed ANOVA using raw influence scores')
 print(summary(aov.vii.iv))
 
 print('Means:')
-printMean(tmp$rawInfluence[tmp$adviceType==adviceTypes$HighAcc], 'Mean|HighAcc')
-printMean(tmp$rawInfluence[tmp$adviceType==adviceTypes$LowAcc], 'Mean|LowAcc')
-printMean(tmp$rawInfluence[tmp$hasChoice], 'Mean|Choice')
-printMean(tmp$rawInfluence[!tmp$hasChoice], 'Mean|Forced')
-printMean(tmp$rawInfluence[tmp$advisorAgrees], 'Mean|Agree')
-printMean(tmp$rawInfluence[!tmp$advisorAgrees], 'Mean|Disagree')
+printMeans.influence(tmp)
 ```
 
 # 7.iv.i) Raw influence adjustments
@@ -1067,6 +985,9 @@ results of our previous study, is likely to be largely orthogonal to advice.
 ```{r echo = F}
 tmp <- aggregate(cbind(likeability, ability, benevolence) ~ adviceType + timepoint + pid,
                  data = questionnaires, FUN = mean)
+
+for(n in 1:3)
+  tmp[ ,n] <- factor(tmp[ ,n])
 # calculate difference scores
 for(i in 1:nrow(tmp))
   if(tmp$timepoint[i]==2)
@@ -1076,7 +997,11 @@ for(i in 1:nrow(tmp))
 
 tmp.2 <- aggregate(influence ~ adviceType + pid + hasChoice, 
                    data = trials, FUN = mean)
-tmp$influence <- sapply(1:nrow(tmp), function(i){tmp.2$influence[tmp.2$hasChoice 
+
+for(n in names(tmp.2[-(length(tmp.2))]))
+  tmp.2[ ,n] <- factor(tmp.2[ ,n])
+
+tmp$influence <- sapply(1:nrow(tmp), function(i){tmp.2$influence[tmp.2$hasChoice == T 
                                                                  & tmp.2$pid == tmp$pid[i]
                                                                  & tmp.2$adviceType == tmp$adviceType[i]]})
 tmp$influence <- as.numeric(tmp$influence)
@@ -1173,24 +1098,58 @@ gg.xi.ii
 ```{r echo = F}
 df.xii.i.i <- NULL
 for(pid in unique(participants$pid)) {
-  tmp <- trials[trials$type==trialTypes$choice & trials$pid==pid, ]
-  df.xii.i.i <- rbind(df.xii.i.i, data.frame(pid,
-                                             HighAccPref=mean(tmp$adviceType==adviceTypes$HighAcc),
-                                             InfluenceDiff=(sum(tmp$influence[tmp$adviceType==adviceTypes$HighAcc]) -
-                                                              sum(tmp$influence[tmp$adviceType==adviceTypes$LowAcc]))))
+  tmp <- trials[trials$pid==pid, ]
+  tmp.2 <- tmp[tmp$type == trialTypes$force, ]
+  tmp <- tmp[tmp$type == trialTypes$choice, ]
+  df.xii.i.i <- rbind(df.xii.i.i, 
+                      data.frame(pid,
+                                 HighAccPref=mean(tmp$adviceType==adviceTypes$HighAcc),
+                                 InfluenceDiff=(mean(tmp.2$influence[tmp.2$adviceType==adviceTypes$HighAcc]) -
+                                                  mean(tmp.2$influence[tmp.2$adviceType==adviceTypes$LowAcc]))))
 }
 cor.test(df.xii.i.i$HighAccPref, df.xii.i.i$InfluenceDiff)
 correlationBF(df.xii.i.i$HighAccPref, df.xii.i.i$InfluenceDiff)
 ```
 
 ```{r echo = F}
-gg.xii.i.i <- ggplot(df.xii.i.i, aes(x = HighAccPref, y = InfluenceDiff)) +
-  geom_vline(linetype = "dashed", color = "black", xintercept = .5, size = 1) +
-  geom_smooth(method = 'lm') +
+gg.xii.i.i <- ggplot(df.xii.i.i, aes(y = HighAccPref, x = InfluenceDiff)) +
+  geom_hline(linetype = "dashed", color = "black", yintercept = .5, size = 1) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0, fill = 'grey', alpha = .5) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = 1, ymax = Inf, fill = 'grey', alpha = .5) +
+  geom_smooth(method = 'lm', fill = 'lightblue', alpha = 0.5) +
   geom_point(aes(colour = as.factor(pid))) +
-  labs(title = 'Correlation between influence difference and preference for high-accuracy advisor') +
+  labs(title = 'Correlation between influence difference and preference',
+       y = 'P(HighAcc Chosen)',
+       x = 'Mean influence difference on Forced trials') +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_x_continuous(expand = c(0,0.2)) +
   style.long
 gg.xii.i.i
+```
+
+Looking at the above but removing outliers beyond 3sd.
+```{r echo = F}
+df.xii.i.i.2 <- df.xii.i.i[abs(scale(df.xii.i.i$InfluenceDiff))<3 & 
+                             abs(scale(df.xii.i.i$HighAccPref))<3, ]
+
+cor.test(df.xii.i.i.2$HighAccPref, df.xii.i.i.2$InfluenceDiff)
+correlationBF(df.xii.i.i.2$HighAccPref, df.xii.i.i.2$InfluenceDiff)
+
+gg.xii.i.i.2 <- ggplot(df.xii.i.i.2, 
+                       aes(y = HighAccPref, x = InfluenceDiff)) +
+  geom_hline(linetype = "dashed", color = "black", yintercept = .5, size = 1) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0, fill = 'grey', alpha = .5) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = 1, ymax = Inf, fill = 'grey', alpha = .5) +
+  geom_smooth(method = 'lm', fill = 'lightblue', alpha = 0.5) +
+  geom_point(aes(colour = as.factor(pid))) +
+  labs(title = 'Correlation between influence difference and preference',
+       subtitle = 'Outliers z>=3 removed for preference and influence difference',
+       y = 'P(HighAcc Chosen)',
+       x = 'Mean influence difference on Forced trials') +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_x_continuous(expand = c(0,0.2)) +
+  style.long
+gg.xii.i.i.2
 ```
 
 ### 12.i.ii) By advisor
@@ -1198,14 +1157,15 @@ gg.xii.i.i
 ```{r echo = F}
 df.xii.i.ii <- NULL
 for(pid in unique(participants$pid)) {
-  for(block in c(3,5)) {
+  for(block in unique(trials$block[trials$type==trialTypes$choice])) {
     # Look for the favourate advisor in each block and use the preference strength for that advisor
     tmp <- trials[trials$block==block & trials$pid==pid, ]
+    tmp.2 <- trials[trials$block==block-1 & trials$pid==pid, ]
     aid <- ifelse(mean(tmp$adviceType==adviceTypes$HighAcc)>.5, adviceTypes$HighAcc, adviceTypes$LowAcc)
     df.xii.i.ii <- rbind(df.xii.i.ii, data.frame(pid, 
                                                  PrefStrength=mean(tmp$adviceType==aid),
-                                                 InfluenceDiff=(sum(tmp$influence[tmp$adviceType==aid]) -
-                                                                  sum(tmp$influence[tmp$adviceType!=aid]))))
+                                                 InfluenceDiff=(mean(tmp.2$influence[tmp$adviceType==aid]) -
+                                                                  mean(tmp.2$influence[tmp$adviceType!=aid]))))
   }
 }
 df.xii.i.ii <- aggregate(. ~ pid, df.xii.i.ii, FUN = mean) # reaggregate
@@ -1214,13 +1174,40 @@ correlationBF(df.xii.i.ii$PrefStrength, df.xii.i.ii$InfluenceDiff)
 ```
 
 ```{r echo = F}
-gg.xii.i.ii <- ggplot(df.xii.i.ii, aes(x = PrefStrength, y = InfluenceDiff)) +
-  geom_vline(linetype = "dashed", color = "black", xintercept = .5, size = 1) +
-  geom_smooth(method = 'lm') +
+gg.xii.i.ii <- ggplot(df.xii.i.ii, aes(y = PrefStrength, x = InfluenceDiff)) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = .5, fill = 'grey', alpha = .5) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = 1, ymax = Inf, fill = 'grey', alpha = .5) +
+  geom_smooth(method = 'lm', fill = 'lightblue', alpha = 0.5) +
   geom_point(aes(colour = as.factor(pid))) +
-  labs(title = 'Correlation between influence difference and \npreference strength for preferred advisor') +
+  labs(title = 'Influence difference and preference strength for preferred advisor',
+       y = 'P(Preferred advisor chosen)',
+       x = 'Mean Influence difference on Forced trials') +
+  scale_x_continuous(expand = c(0,0.2)) +
   style.long
 gg.xii.i.ii
+```
+
+Looking at the above but removing outliers beyond 3sd.
+```{r echo = F}
+df.xii.i.ii.2 <- df.xii.i.ii[abs(scale(df.xii.i.ii$InfluenceDiff))<3 & 
+                             abs(scale(df.xii.i.ii$PrefStrength))<3, ]
+
+cor.test(df.xii.i.ii.2$PrefStrength, df.xii.i.ii.2$InfluenceDiff)
+correlationBF(df.xii.i.ii.2$PrefStrength, df.xii.i.ii.2$InfluenceDiff)
+
+gg.xii.i.ii.2 <- ggplot(df.xii.i.ii.2, 
+                       aes(y = PrefStrength, x = InfluenceDiff)) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = .5, fill = 'grey', alpha = .5) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = 1, ymax = Inf, fill = 'grey', alpha = .5) +
+  geom_smooth(method = 'lm', fill = 'lightblue', alpha = 0.5) +
+  geom_point(aes(colour = as.factor(pid))) +
+  labs(title = 'Influence difference and preference strength for preferred advisor',
+       subtitle = 'Outliers z>=3 removed for preference and influence difference',
+       y = 'P(Preferred advisor chosen)',
+       x = 'Mean influence difference on Forced trials') +
+  scale_x_continuous(expand = c(0,0.2)) +
+  style.long
+gg.xii.i.ii.2
 ```
 
 ## 12.ii) Task performance and preference strength
@@ -1339,6 +1326,19 @@ for(v in c('Likeability', 'Ability', 'Benevolence')) {
                                 'DiffCorrelation'=x2$estimate, 'pDiff'=x2$p.value, 'DiffBF'=exp(bf2@bayesFactor$bf)))
 }
 kable(df.xiii.2)
+```
+
+# 14) Does agreement in Forced blocks predict picking in Choice blocks?
+
+```{r echo = F}
+df.xiv <- df.initialAgreement(trials)
+
+cor.test(df.xiv$agreementDiff, df.xiv$pickRate)
+correlationBF(df.xiv$agreementDiff, df.xiv$pickRate)
+
+gg.xiv <- gg.initialAgreement(trials)
+gg.xiv
+
 ```
 
 # Additional/In progress
