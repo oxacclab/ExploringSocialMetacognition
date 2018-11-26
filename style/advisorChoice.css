@@ -76,7 +76,11 @@ img.advisorChoice-choice:hover {
     margin-top: 1em;
 }
 
-#jspsych-jas-present-advice-choice-prompt {
+.jspsych-jas-present-advice-choice-image {
+    position: relative;
+}
+
+.jspsych-jas-present-advice-choice-prompt {
     font-size: 1.3em;
     padding: 0.5em;
 }

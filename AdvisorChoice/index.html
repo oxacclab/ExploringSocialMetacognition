@@ -382,7 +382,7 @@
         },
         trial_duration: 1000,
         playAudioFunction: function () {
-            let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt');
+            let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt0');
             div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.adviceString;
             //gov.currentTrial.advice.play();
         },
@@ -539,6 +539,8 @@
 
     // intro and training
     timeline.push(welcome);
+    gov.currentTrialIndex = 250
+    timeline.push({timeline: test_procedure})
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);

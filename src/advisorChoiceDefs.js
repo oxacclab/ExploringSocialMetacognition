@@ -731,7 +731,8 @@ class AdvisorChoice extends DotTask {
                 else
                     advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
                 let r = Math.random() < .5? 1 : 0;
-                let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
+                // let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
+                let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
                 trials.push(new Trial(id, {
                     type: trialType,
                     typeName: trialTypeNames[trialType],
@@ -796,12 +797,42 @@ class AdvisorChoice extends DotTask {
         let div = document.querySelector('canvas').parentElement;
         div.innerHTML = "";
         let picDiv = div.appendChild(document.createElement('div'));
-        picDiv.id = 'jspsych-jas-present-advice-choice-image';
+        picDiv.id = 'jspsych-jas-present-advice-choice-image0';
+        picDiv.classList.add('jspsych-jas-present-advice-choice-image');
         let textDiv = div.appendChild(document.createElement('div'));
-        textDiv.id = 'jspsych-jas-present-advice-choice-prompt';
+        textDiv.id = 'jspsych-jas-present-advice-choice-prompt0';
+        textDiv.classList.add('jspsych-jas-present-advice-choice-prompt');
         let a = this.currentAdvisor;
         picDiv.innerHTML = a.portrait.outerHTML;
         textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
+        // Set the class of the slider the advisor endorsed
+        let labelID = this.currentTrial.advice.side === 0? 0 : 2;
+        let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
+            labelID);
+        sliderLabel.classList.add('advisor-endorsed');
+        this.showMarker();
+    }
+
+    /**
+     * Show advice over the stimulus presentation area
+     */
+    showDualAdvice(){
+        // Hack an advisor display in here with a directional indicator
+        let div = document.querySelector('canvas').parentElement;
+        div.innerHTML = "";
+        // Show the advisors and their endorsements
+        for(let i = 0; i < 2; i++) {
+            let picDiv = div.appendChild(document.createElement('div'));
+            picDiv.id = 'jspsych-jas-present-advice-choice-image0';
+            picDiv.classList.add('jspsych-jas-present-advice-choice-image');
+            let textDiv = div.appendChild(document.createElement('div'));
+            textDiv.id = 'jspsych-jas-present-advice-choice-prompt0';
+            textDiv.classList.add('jspsych-jas-present-advice-choice-prompt');
+            let a = this.currentAdvisor;
+            picDiv.innerHTML = a.portrait.outerHTML;
+            textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
+        }
+
         // Set the class of the slider the advisor endorsed
         let labelID = this.currentTrial.advice.side === 0? 0 : 2;
         let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
@@ -1158,9 +1189,11 @@ class HaloEffect extends AdvisorChoice {
         let div = parent.insertBefore(document.createElement('div'), child);
         div.innerHTML = "";
         let picDiv = div.appendChild(document.createElement('div'));
-        picDiv.id = 'jspsych-jas-present-advice-choice-image';
+        picDiv.id = 'jspsych-jas-present-advice-choice-image0';
+        picDiv.classList.add('jspsych-jas-present-advice-choice-image');
         let textDiv = div.appendChild(document.createElement('div'));
-        textDiv.id = 'jspsych-jas-present-advice-choice-prompt';
+        textDiv.id = 'jspsych-jas-present-advice-choice-prompt0';
+        textDiv.classList.add('jspsych-jas-present-advice-choice-prompt');
         let a = this.currentAdvisor;
         picDiv.innerHTML = a.portrait.outerHTML;
         textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
