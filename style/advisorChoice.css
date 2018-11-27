@@ -21,10 +21,6 @@ div.advisorChoice-prevAnswer {
     background-color: yellow;
 }
 img.advisor-portrait {
-    border: 2px solid black;
-    padding: 5px;
-    background-color: black;
-    border-radius: 25px;
     max-width: 550px;
     max-height: 200px;
 }
@@ -76,7 +72,7 @@ img.advisorChoice-choice:hover {
     margin-top: 1em;
 }
 
-.jspsych-jas-present-advice-choice-image {
+.jspsych-jas-present-advice-choice-wrapper, .jspsych-jas-present-advice-wrapper {
     position: relative;
 }
 
@@ -97,23 +93,44 @@ div.jspsych-sliders-row.genTrustQ:hover {
     background-color: #dddddd;
 }
 
-div.jspsych-jas-present-advice-wrapper {
-    position: relative;
-}
-
 div.jspsych-jas-present-advice-arrow {
-    height: 50px;
-    width: 50%;
+    width: 25%;
     position: absolute;
-    top: calc(50% - 25px);
+    top: calc(50% - 3em);
     z-index: -1;
-    border-radius: 5em;
+    border-radius: 100%;
+    vertical-align: middle;
+    padding: 2em 12.5%;
+    text-transform: uppercase;
+    font-weight: bold;
 }
 
 div.jspsych-jas-present-advice-arrow-left {
     left: 0;
+    text-align: left;
 }
 
 div.jspsych-jas-present-advice-arrow-right {
     left: 50%;
+    text-align: right;
+}
+
+div.jspsych-jas-present-advice-image, div.jspsych-jas-present-advice-choice-image {
+    border: 2px solid;
+    padding: 0;
+    border-radius: 1em;
+    width: 50%;
+    margin: auto;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-light,
+.jspsych-jas-present-advice-image.advisorChoice-advisor-light {
+    background-color: #2196F3;
+    border-color: #2196F3;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-dark,
+.jspsych-jas-present-advice-image.advisorChoice-advisor-dark {
+    background-color: #F1F1F1;
+    border-color: #F1F1F1;
 }

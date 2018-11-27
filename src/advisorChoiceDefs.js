@@ -731,8 +731,8 @@ class AdvisorChoice extends DotTask {
                 else
                     advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
                 let r = Math.random() < .5? 1 : 0;
-                // let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
-                let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
+                let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
+                // let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
                 trials.push(new Trial(id, {
                     type: trialType,
                     typeName: trialTypeNames[trialType],
@@ -818,7 +818,7 @@ class AdvisorChoice extends DotTask {
      * @param advisorId {int} ID of the advisor to draw
      * @param textAboveImage {boolean} whether to draw the advice text above the image
      */
-    drawAdvice(div, advisorId, textAboveImage = false) {
+    drawAdvice(div, advisorId, textAboveImage = true) {
         let idSuffix =  textAboveImage? '1' : '0';
         let advisorDiv = div.appendChild(document.createElement('div'));
         advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
@@ -826,20 +826,26 @@ class AdvisorChoice extends DotTask {
         let picDiv = advisorDiv.appendChild(document.createElement('div'));
         picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
         picDiv.classList.add('jspsych-jas-present-advice-image');
+        let a = this.advisors[this.getAdvisorIndex(advisorId)];
+        let portrait = picDiv.appendChild(a.portrait);
         let textDiv = {};
         if(textAboveImage)
-            textDiv = advisorDiv.insertBefore(document.createElement('div'), picDiv);
+            textDiv = picDiv.insertBefore(document.createElement('div'), portrait);
         else
-            textDiv = advisorDiv.appendChild(document.createElement('div'));
+            textDiv = picDiv.appendChild(document.createElement('div'));
         textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
         textDiv.classList.add('jspsych-jas-present-advice-prompt');
-        let a = this.advisors[this.getAdvisorIndex(advisorId)];
-        picDiv.innerHTML = a.portrait.outerHTML;
-        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
+        textDiv.innerHTML = a.nameHTML;
         let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
         arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
         arrowDiv.classList.add('jspsych-jas-present-advice-arrow');
-        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.chooseRight? 'left' : 'right'));
+        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.chooseRight? 'right' : 'left'));
+        arrowDiv.innerText = a.chooseRight? 'right' : 'left';
+        // Add advisor class to relevant divs
+        picDiv.classList.add(a.advisorClass);
+        arrowDiv.classList.add(a.advisorClass);
+        textDiv.classList.add(a.advisorClass);
+        advisorDiv.classList.add(a.advisorClass);
     }
 
     /**
@@ -931,7 +937,7 @@ class AdvisorChoice extends DotTask {
             });
         }
         // note the advisor's decision in the advisor object
-        this.currentAdvisor.chooseRight = this.currentTrial.advice;
+        this.currentAdvisor.chooseRight = this.currentTrial.advice.side;
     }
 
     /**

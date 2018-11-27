@@ -61,19 +61,37 @@
     let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
     let advisorPicDeck = utils.shuffle(utils.getSequence(1,5));
     let args = {skipAudioPreload: true};
-    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0], advisorVoiceDeck[0], advisorPicDeck[0], args);
+    // Each advisor in a pair has one of the two colour schemes (assigned randomly)
+    let advisorClassDeck = [
+        utils.shuffle(['advisorChoice-advisor-light', 'advisorChoice-advisor-dark'])[0] // practice advisor
+    ];
+    for(let i = 0; i < 2; i++) {
+        let deck = utils.shuffle(['advisorChoice-advisor-light', 'advisorChoice-advisor-dark']);
+        advisorClassDeck.push(deck.pop());
+        advisorClassDeck.push(deck.pop());
+    }
+    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0],
+        advisorVoiceDeck[0], advisorPicDeck[0],
+        advisorClassDeck[0], args);
     let advisorListA = [
-        new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1], args),
-        new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2], args)
+        new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1],
+            advisorClassDeck[1], args),
+        new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2],
+            advisorClassDeck[2], args)
     ];
     let advisorListB = [
-        new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3], args),
-        new Advisor(advisorIdDeck[4], adviceTypes[4], advisorVoiceDeck[4], advisorPicDeck[4], args)
+        new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3],
+            advisorClassDeck[3], args),
+        new Advisor(advisorIdDeck[4], adviceTypes[4], advisorVoiceDeck[4], advisorPicDeck[4],
+            advisorClassDeck[4], args)
     ];
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];
     if (Math.random() < .5)
         advisorListB = [advisorListB[1], advisorListB[0]];
+
+    // Assign the advisors different classes
+
 
     /**
      * The governor contains the properties which the experiment functions need to access from everywhere.
@@ -566,8 +584,8 @@
 
     // intro and training
     timeline.push(welcome);
-    gov.currentTrialIndex = 250
-    timeline.push({timeline: [initialDecision, dualAdviceFinalDecision]})
+    gov.currentTrialIndex = 130
+    timeline.push({timeline: [initialDecision, finalDecision]})
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);

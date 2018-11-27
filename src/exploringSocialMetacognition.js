@@ -360,6 +360,7 @@ class Advisor {
      * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an int to pass
      *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
      * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
+     * @param {string} [advisorClass=''] - class to be added to advisor's HTML representations
      * @param {Object} [args] - optional arguments
      * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
      * @param {int} [args.id]
@@ -368,11 +369,12 @@ class Advisor {
      * @param {int} [args.portraitId] - the portrait ID
      * @param {string} [args.portraitSrc] - the portrait img src (nothing else needed to regenerate portrait)
      */
-    constructor(id, adviceType, voice = null, portrait = 0, args = {}) {
+    constructor(id, adviceType, voice = null, portrait = 0, advisorClass = '', args = {}) {
         if(typeof id !== 'object') {
             // Create a new advisor
             this.id = id;
             this.adviceType = adviceType;
+            this.advisorClass = advisorClass;
             // Fetch the voice
             if(typeof args.skipAudioPreload !== 'boolean')
                 args.skipAudioPreload = false;
@@ -405,7 +407,9 @@ class Advisor {
         }
         this.portrait = new Image();
         this.portrait.src = this.portraitSrc;
-        this.portrait.className = 'advisor-portrait';
+        this.portrait.classList.add('advisor-portrait');
+        if(this.advisorClass !== '')
+            this.portrait.classList.add(this.advisorClass);
         this.portrait.id = 'advisor-portrait-' + this.portraitId;
         this.chooseRight = null; // the advisor's advice
     }
