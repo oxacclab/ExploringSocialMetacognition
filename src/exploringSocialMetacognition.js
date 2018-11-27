@@ -407,6 +407,7 @@ class Advisor {
         this.portrait.src = this.portraitSrc;
         this.portrait.className = 'advisor-portrait';
         this.portrait.id = 'advisor-portrait-' + this.portraitId;
+        this.chooseRight = null; // the advisor's advice
     }
 
     /** Hoist the name for ease-of-access */

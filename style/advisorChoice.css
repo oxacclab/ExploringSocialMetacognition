@@ -96,3 +96,24 @@ tr.jspsych-sliders-response-labels td:last-of-type {
 div.jspsych-sliders-row.genTrustQ:hover {
     background-color: #dddddd;
 }
+
+div.jspsych-jas-present-advice-wrapper {
+    position: relative;
+}
+
+div.jspsych-jas-present-advice-arrow {
+    height: 50px;
+    width: 50%;
+    position: absolute;
+    top: calc(50% - 25px);
+    z-index: -1;
+    border-radius: 5em;
+}
+
+div.jspsych-jas-present-advice-arrow-left {
+    left: 0;
+}
+
+div.jspsych-jas-present-advice-arrow-right {
+    left: 50%;
+}

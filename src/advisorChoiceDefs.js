@@ -791,54 +791,55 @@ class AdvisorChoice extends DotTask {
 
     /**
      * Show advice over the stimulus presentation area
+     * @param dualAdvice {boolean} whether to show advice from both advisors
      */
-    showAdvice(){
+    showAdvice(dualAdvice = false){
         // Hack an advisor display in here with a directional indicator
         let div = document.querySelector('canvas').parentElement;
         div.innerHTML = "";
-        let picDiv = div.appendChild(document.createElement('div'));
-        picDiv.id = 'jspsych-jas-present-advice-choice-image0';
-        picDiv.classList.add('jspsych-jas-present-advice-choice-image');
-        let textDiv = div.appendChild(document.createElement('div'));
-        textDiv.id = 'jspsych-jas-present-advice-choice-prompt0';
-        textDiv.classList.add('jspsych-jas-present-advice-choice-prompt');
-        let a = this.currentAdvisor;
-        picDiv.innerHTML = a.portrait.outerHTML;
-        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
+        if(dualAdvice && this.currentTrial.choice !== []) {
+            for(let i = 0; i < 2; i++)
+                this.drawAdvice(div, this.currentTrial.choice[i], i === 1);
+        }
+        else if(typeof this.currentAdvisor !== 'undefined') {
+            this.drawAdvice(div, this.currentAdvisor.id);
+        }
         // Set the class of the slider the advisor endorsed
-        let labelID = this.currentTrial.advice.side === 0? 0 : 2;
-        let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
-            labelID);
-        sliderLabel.classList.add('advisor-endorsed');
+        // let labelID = this.currentTrial.advice.side === 0? 0 : 2;
+        // let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
+        //     labelID);
+        // sliderLabel.classList.add('advisor-endorsed');
         this.showMarker();
     }
 
     /**
-     * Show advice over the stimulus presentation area
+     * Draw the advisor portrait, advice, and advice text
+     * @param div {HTMLElement} div in which to draw
+     * @param advisorId {int} ID of the advisor to draw
+     * @param textAboveImage {boolean} whether to draw the advice text above the image
      */
-    showDualAdvice(){
-        // Hack an advisor display in here with a directional indicator
-        let div = document.querySelector('canvas').parentElement;
-        div.innerHTML = "";
-        // Show the advisors and their endorsements
-        for(let i = 0; i < 2; i++) {
-            let picDiv = div.appendChild(document.createElement('div'));
-            picDiv.id = 'jspsych-jas-present-advice-choice-image0';
-            picDiv.classList.add('jspsych-jas-present-advice-choice-image');
-            let textDiv = div.appendChild(document.createElement('div'));
-            textDiv.id = 'jspsych-jas-present-advice-choice-prompt0';
-            textDiv.classList.add('jspsych-jas-present-advice-choice-prompt');
-            let a = this.currentAdvisor;
-            picDiv.innerHTML = a.portrait.outerHTML;
-            textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
-        }
-
-        // Set the class of the slider the advisor endorsed
-        let labelID = this.currentTrial.advice.side === 0? 0 : 2;
-        let sliderLabel = document.querySelector('#jspsych-canvas-sliders-response-labelS0L' +
-            labelID);
-        sliderLabel.classList.add('advisor-endorsed');
-        this.showMarker();
+    drawAdvice(div, advisorId, textAboveImage = false) {
+        let idSuffix =  textAboveImage? '1' : '0';
+        let advisorDiv = div.appendChild(document.createElement('div'));
+        advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
+        advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
+        let picDiv = advisorDiv.appendChild(document.createElement('div'));
+        picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
+        picDiv.classList.add('jspsych-jas-present-advice-image');
+        let textDiv = {};
+        if(textAboveImage)
+            textDiv = advisorDiv.insertBefore(document.createElement('div'), picDiv);
+        else
+            textDiv = advisorDiv.appendChild(document.createElement('div'));
+        textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
+        textDiv.classList.add('jspsych-jas-present-advice-prompt');
+        let a = this.advisors[this.getAdvisorIndex(advisorId)];
+        picDiv.innerHTML = a.portrait.outerHTML;
+        textDiv.innerHTML = this.currentAdvisor.nameHTML + ': ' + this.adviceString;
+        let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
+        arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
+        arrowDiv.classList.add('jspsych-jas-present-advice-arrow');
+        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.chooseRight? 'left' : 'right'));
     }
 
     /**
@@ -929,6 +930,8 @@ class AdvisorChoice extends DotTask {
                 return line.side === side;
             });
         }
+        // note the advisor's decision in the advisor object
+        this.currentAdvisor.chooseRight = this.currentTrial.advice;
     }
 
     /**

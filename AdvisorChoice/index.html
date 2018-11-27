@@ -421,6 +421,33 @@
         on_finish: (trial)=>gov.finalResponse(trial)
     };
 
+    /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
+    const dualAdviceFinalDecision = {
+        type: "canvas-sliders-response",
+        stimulus: ()=>{},
+        prompt: '',
+        sliderCount: 1,
+        labels: [
+            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
+        ],
+        slider_prompt: [
+            'Which box had more dots?'
+        ],
+        slider_name: [
+            'answer'
+        ],
+        reversed: [false],
+        slider_full_width: [true],
+        slider_col_spacing: [0],
+        exclusive_group: [1],
+        require_change: [1],
+        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
+        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        on_load: ()=>gov.showAdvice(true),
+        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
+        on_finish: (trial)=>gov.finalResponse(trial)
+    };
+
     /* Questionnaires to ask about how the judge feels about the advisors */
     let order = utils.shuffle([0, 1, 2]);
 
@@ -540,7 +567,7 @@
     // intro and training
     timeline.push(welcome);
     gov.currentTrialIndex = 250
-    timeline.push({timeline: test_procedure})
+    timeline.push({timeline: [initialDecision, dualAdviceFinalDecision]})
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
