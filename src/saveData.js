@@ -141,6 +141,7 @@ function flattenAdvisorData(data, id) {
     out.name = data.name;
     out.portraitSrc = data.portraitSrc;
     out.voiceId = data.voice.id;
+    out.styleClass = data.styleClass;
     return out;
 }
 

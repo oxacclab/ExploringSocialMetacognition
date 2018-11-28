@@ -842,10 +842,10 @@ class AdvisorChoice extends DotTask {
         arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.chooseRight? 'right' : 'left'));
         arrowDiv.innerText = a.chooseRight? 'right' : 'left';
         // Add advisor class to relevant divs
-        picDiv.classList.add(a.advisorClass);
-        arrowDiv.classList.add(a.advisorClass);
-        textDiv.classList.add(a.advisorClass);
-        advisorDiv.classList.add(a.advisorClass);
+        picDiv.classList.add(a.styleClass);
+        arrowDiv.classList.add(a.styleClass);
+        textDiv.classList.add(a.styleClass);
+        advisorDiv.classList.add(a.styleClass);
     }
 
     /**
