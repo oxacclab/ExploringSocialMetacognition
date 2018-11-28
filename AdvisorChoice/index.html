@@ -62,28 +62,21 @@
     let advisorPicDeck = utils.shuffle(utils.getSequence(1,5));
     let args = {skipAudioPreload: true};
     // Each advisor in a pair has one of the two colour schemes (assigned randomly)
-    let advisorClassDeck = [
-        utils.shuffle(['advisorChoice-advisor-light', 'advisorChoice-advisor-dark'])[0] // practice advisor
-    ];
-    for(let i = 0; i < 2; i++) {
-        let deck = utils.shuffle(['advisorChoice-advisor-light', 'advisorChoice-advisor-dark']);
-        advisorClassDeck.push(deck.pop());
-        advisorClassDeck.push(deck.pop());
-    }
+    let advisorClassDeck = utils.shuffle(utils.getSequence(1,5));
     let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0],
         advisorVoiceDeck[0], advisorPicDeck[0],
-        advisorClassDeck[0], args);
+        advisorClassDeck[0].toString(), args);
     let advisorListA = [
         new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1],
-            advisorClassDeck[1], args),
+            advisorClassDeck[1].toString(), args),
         new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2],
-            advisorClassDeck[2], args)
+            advisorClassDeck[2].toString(), args)
     ];
     let advisorListB = [
         new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3],
-            advisorClassDeck[3], args),
+            advisorClassDeck[3].toString(), args),
         new Advisor(advisorIdDeck[4], adviceTypes[4], advisorVoiceDeck[4], advisorPicDeck[4],
-            advisorClassDeck[4], args)
+            advisorClassDeck[4].toString(), args)
     ];
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];

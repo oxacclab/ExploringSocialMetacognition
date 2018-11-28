@@ -360,7 +360,7 @@ class Advisor {
      * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an int to pass
      *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
      * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
-     * @param {string} [advisorClass=''] - class to be added to advisor's HTML representations
+     * @param {string} [advisorClass=''] - class to be added to advisor's HTML representations, if non-blank advisorChoice-advisor-
      * @param {Object} [args] - optional arguments
      * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
      * @param {int} [args.id]
@@ -374,7 +374,7 @@ class Advisor {
             // Create a new advisor
             this.id = id;
             this.adviceType = adviceType;
-            this.advisorClass = advisorClass;
+            this.advisorClass = advisorClass === ''? '' : 'advisorChoice-advisor-' + advisorClass;
             // Fetch the voice
             if(typeof args.skipAudioPreload !== 'boolean')
                 args.skipAudioPreload = false;

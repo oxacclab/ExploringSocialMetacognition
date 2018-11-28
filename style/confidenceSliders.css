@@ -30,6 +30,10 @@ table.jspsych-sliders-table {
     border-collapse: collapse;
 }
 
+td.jspsych-sliders-slider {
+    position: relative;
+}
+
 input.jspsych-sliders-response-slider {
     -webkit-appearance: none;
     margin: 0 0;

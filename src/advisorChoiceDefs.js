@@ -312,11 +312,11 @@ class DotTask extends Governor {
                 marker.className = 'advisorChoice-middleBar advisorChoice-marker';
                 parent.appendChild(marker);
 
-                let yOffset = slider.clientHeight + 7;
-                // Massive HACK for Edge doing sliders differently
-                if(window.navigator.userAgent.indexOf("Edge") > -1)
-                    yOffset -= 21;
-                marker.style.top = -yOffset.toString() + 'px';
+                // let yOffset = slider.clientHeight + 7;
+                // // Massive HACK for Edge doing sliders differently
+                // if(window.navigator.userAgent.indexOf("Edge") > -1)
+                //     yOffset -= 21;
+                // marker.style.top = -yOffset.toString() + 'px';
 
                 let xOffset = slider.clientWidth/2 - marker.clientWidth/2;
                 marker.style.left = xOffset.toString() + 'px';
@@ -771,12 +771,12 @@ class AdvisorChoice extends DotTask {
         marker.className = 'advisorChoice-marker advisorChoice-prevAnswer';
         slider.parentElement.appendChild(marker);
 
-        let yOffset = -marker.clientHeight;
-        yOffset += 1; // compensate for box shadow on the slider making things look off
+        // let yOffset = -marker.clientHeight;
+        // yOffset += 1; // compensate for box shadow on the slider making things look off
         // Massive HACK to compensate for Edge drawing sliders differently
-        if(window.navigator.userAgent.indexOf("Edge") > -1)
-            yOffset -= 21;
-        marker.style.top = yOffset.toString() + 'px';
+        // if(window.navigator.userAgent.indexOf("Edge") > -1)
+        //     yOffset -= 21;
+        // marker.style.top = yOffset.toString() + 'px';
 
         let xOffset = this.currentTrial.answer[0] === 1? slider.clientWidth/2 : 0;
         let xDistance = this.currentTrial.answer[0] === 1?
