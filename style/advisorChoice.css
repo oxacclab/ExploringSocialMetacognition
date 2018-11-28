@@ -25,7 +25,9 @@ div.advisorChoice-prevAnswer {
 img.advisor-portrait {
     max-width: 550px;
     max-height: 200px;
+    border-radius: 1em;
 }
+
 span.advisor-name {
     text-transform: uppercase;
     font-weight: bold;
@@ -43,8 +45,9 @@ img.advisorChoice-choice:hover {
     width: 100%;
 }
 .pad-bottom {
-    padding-bottom: 151px; /* don't like the hardcoded value here */
+    padding-bottom: 104px; /* don't like the hardcoded value here */
 }
+
 #progressbar-outer {
     width: 80%;
     height: 25px;
@@ -78,6 +81,17 @@ img.advisorChoice-choice:hover {
     position: relative;
 }
 
+.jspsych-jas-present-advice-choice-wrapper:nth-of-type(n+2),
+.jspsych-jas-present-advice-wrapper:nth-of-type(n+2) {
+    margin-top: .5em;
+}
+
+
+.jspsych-jas-present-advice-choice-wrapper:nth-of-type(n+2) img.advisor-portrait,
+.jspsych-jas-present-advice-wrapper:nth-of-type(n+2) img.advisor-portrait {
+    margin-top: .5em;
+}
+
 .jspsych-jas-present-advice-choice-prompt {
     font-size: 1.3em;
     padding: 0.5em;
@@ -98,11 +112,11 @@ div.jspsych-sliders-row.genTrustQ:hover {
 div.jspsych-jas-present-advice-arrow {
     width: 25%;
     position: absolute;
-    top: calc(50% - 3em);
+    top: calc(50% - 4em);
     z-index: -1;
     border-radius: 100%;
     vertical-align: middle;
-    padding: 2em 12.5%;
+    padding: 4em 12.5%;
     text-transform: uppercase;
     font-weight: bold;
 }
@@ -117,7 +131,7 @@ div.jspsych-jas-present-advice-arrow-right {
     text-align: right;
 }
 
-div.jspsych-jas-present-advice-image, div.jspsych-jas-present-advice-choice-image {
+div.jspsych-jas-present-advice-image {
     border: 2px solid;
     padding: 0;
     border-radius: 1em;

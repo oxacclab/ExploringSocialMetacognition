@@ -94,11 +94,21 @@ function flattenTrialData(trial, id) {
     }
 
     out.advisorId = trial.advisorId;
+    for(let i = 0; i < 2; i++)
+        out['advisor' + i.toString() + 'id'] = trial['advisor' + i.toString() + 'id'];
     out.advisorAgrees = trial.advisorAgrees;
+    out.advisor0agrees = trial.advisor0agrees;
+    out.advisor1agrees = trial.advisor1agrees;
     if (trial.advisorId !== 0 && trial.advisorId !== null)
         out.adviceSide = trial.advice.side;
     else
         out.adviceSide = null;
+    // and for individual advisors in the dual advice paradigm
+    for(let i = 0; i < 2; i++) {
+        out['advisor' + i.toString() + 'adviceSide'] = trial['advisor' + i.toString() + 'advice'] === null?
+            null : trial['advisor' + i.toString() + 'advice'].side;
+    }
+
     out.feedback = trial.feedback;
     out.warnings = trial.warnings.join("\n");
     // timings

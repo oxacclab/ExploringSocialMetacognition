@@ -610,12 +610,18 @@ class Trial {
         this.block = typeof args.block === 'undefined'? null : args.block;
         this.advisorSet = typeof args.advisorSet === 'undefined'? null : args.advisorSet;
         this.advisorId = typeof args.advisorId === 'undefined'? null : args.advisorId;
+        this.advisor0id = typeof args.advisor0id === 'undefined'? null : args.advisor0id;
+        this.advisor1id = typeof args.advisor1id === 'undefined'? null : args.advisor1id;
         this.choice = typeof args.choice === 'undefined'? null : args.choice;
         this.answer = typeof args.answer  === 'undefined'? null : args.answer ;
         this.confidence = typeof args.confidence === 'undefined'? null : args.confidence;
         this.confidenceCategory = typeof args.confidenceCategory === 'undefined'? null : args.confidenceCategory;
         this.advice = typeof args.advice === 'undefined'? null : args.advice;
+        this.advisor0advice = typeof args.advisor0advice === 'undefined'? null : args.advisor0advice;
+        this.advisor1advice = typeof args.advisor1advice === 'undefined'? null : args.advisor1advice;
         this.advisorAgrees = typeof args.advisorAgrees === 'undefined'? null : args.advisorAgrees;
+        this.advisor0agrees = typeof args.advisor0agrees === 'undefined'? null : args.advisor0agrees;
+        this.advisor1agrees = typeof args.advisor1agrees === 'undefined'? null : args.advisor1agrees;
         this.getCorrect = typeof args.getCorrect === 'undefined'? null : args.getCorrect;
         this.dotDifference = typeof args.dotDifference === 'undefined' ? null : args.dotDifference;
         this.whichSide = typeof args.whichSide === 'undefined'? null : args.whichSide;

@@ -16,7 +16,8 @@ import debriefForm from "./debriefForm.js";
 const trialTypes = {
     catch: 0,
     force: 1,
-    choice: 2
+    choice: 2,
+    dual: 3
 };
 
 /**
@@ -26,7 +27,8 @@ const trialTypes = {
 const trialTypeNames = {
     [trialTypes.catch]: 'catch',
     [trialTypes.force]: 'force',
-    [trialTypes.choice]: 'choice'
+    [trialTypes.choice]: 'choice',
+    [trialTypes.dual]: 'dual'
 };
 
 /**
@@ -697,6 +699,8 @@ class AdvisorChoice extends DotTask {
         // Define trials
         for (let b=0; b<practiceBlockCount+blockCount; b++) {
             let advisorSet = 0;
+            let advisor0id = null;
+            let advisor1id = null;
             let blockIndex = b;
             let advisorChoices = [];
             let advisorDeck = null;
@@ -704,7 +708,9 @@ class AdvisorChoice extends DotTask {
                 advisorSet = Math.floor((b-practiceBlockCount) / this.blockStructure.length);
                 blockIndex = (b-practiceBlockCount)%this.blockStructure.length;
                 advisorChoices = this.advisorLists[advisorSet];
-                // Shuffle advisors so they appear an equal number of times
+                advisor0id = advisorChoices[0].adviceType % 2? advisorChoices[1].id : advisorChoices[0].id;
+                advisor1id = advisorChoices[0].adviceType % 2? advisorChoices[0].id : advisorChoices[1].id;
+                    // Shuffle advisors so they appear an equal number of times
                 advisorDeck = utils.shuffleShoe(advisorChoices,
                     this.blockStructure[blockIndex][trialTypes.force]/advisorChoices.length);
             } else {
@@ -723,7 +729,7 @@ class AdvisorChoice extends DotTask {
             trialTypeDeck = utils.shuffle(trialTypeDeck);
             for (let i=1; i<=blockLength; i++) {
                 id++;
-                let isPractice = b<practiceBlockCount;
+                let isPractice = b < practiceBlockCount;
                 let trialType = trialTypeDeck.pop();
                 let advisorId = 0;
                 if (isPractice)
@@ -739,6 +745,8 @@ class AdvisorChoice extends DotTask {
                     block: b,
                     advisorSet,
                     advisorId,
+                    advisor0id,
+                    advisor1id,
                     choice,
                     answer: [NaN, NaN],
                     confidence: [NaN, NaN],
@@ -791,15 +799,14 @@ class AdvisorChoice extends DotTask {
 
     /**
      * Show advice over the stimulus presentation area
-     * @param dualAdvice {boolean} whether to show advice from both advisors
      */
-    showAdvice(dualAdvice = false){
+    showAdvice(){
         // Hack an advisor display in here with a directional indicator
         let div = document.querySelector('canvas').parentElement;
         div.innerHTML = "";
-        if(dualAdvice && this.currentTrial.choice !== []) {
+        if(this.currentTrial.type === trialTypes.dual) {
             for(let i = 0; i < 2; i++)
-                this.drawAdvice(div, this.currentTrial.choice[i], i === 1);
+                this.drawAdvice(div, this.currentTrial['advisor' + i.toString() + 'id'], i === 0);
         }
         else if(typeof this.currentAdvisor !== 'undefined') {
             this.drawAdvice(div, this.currentAdvisor.id);
@@ -857,15 +864,18 @@ class AdvisorChoice extends DotTask {
      */
     getAdvisorChoice(display_element, callback) {
         let choices = this.currentTrial.choice;
-        if (choices.length === 0) { // force and catch trials
+        if (this.currentTrial.type !== trialTypes.choice) {
+            if(this.currentTrial.type === trialTypes.dual) {
+                callback(null);
+                return;
+            }
             if (typeof this.currentAdvisor === 'undefined') {
                 callback(-1); // catch trials
                 return;
-            } else {
-                this.findAdvisorFromContingency();
+            }
+            this.findAdvisorFromContingency();
                 callback(this.currentAdvisor.id); // force trials
                 return;
-            }
         }
         // present choices
         let choiceImgs = [];
@@ -904,40 +914,63 @@ class AdvisorChoice extends DotTask {
         this.currentTrial.answer[0] = AdvisorChoice.getAnswerFromResponse(trial.response);
         this.currentTrial.confidence[0]  = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[0]);
 
-        if (typeof this.currentAdvisor === 'undefined' && this.currentTrial.choice.length === 0) {
+        if (this.currentTrial.type === trialTypes.catch ||
+            (typeof this.currentAdvisor === 'undefined' && this.currentTrial.type === trialTypes.force)) {
             this.closeTrial(trial);
-        } else if (this.currentTrial.choice.length === 0)
-            if(typeof args.advisorAlwaysCorrect !== "undefined" && args.advisorAlwaysCorrect === true)
-                this.setAgreementVars(true);
-            else
-                this.setAgreementVars();
+        }
+        if(typeof args.advisorAlwaysCorrect !== "undefined" && args.advisorAlwaysCorrect === true)
+            this.setAgreementVars(true);
+        else
+            this.setAgreementVars();
     }
 
     /**
-     * Determine whether the advisor in this trial is to agree or disagree with the judge
+     * Determine whether the advisors in this trial agree or disagree with the judge
      * @param [alwaysCorrect=false] - whether the advisor is always correct
      */
     setAgreementVars(alwaysCorrect = false) {
+        if(typeof this.currentAdvisor !== 'undefined')
+            this.setAdvisorAgreement(this.currentAdvisor.id, alwaysCorrect);
+        else if(this.currentTrial.type === trialTypes.dual) {
+            for(let i = 0; i < 2; i++)
+                this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect, false);
+        }
+    }
+
+    setAdvisorAgreement(advisorId, alwaysCorrect = false, isCurrentAdvisor = true) {
+        let advisor = this.advisors[this.getAdvisorIndex(advisorId)];
         let self = this;
         let agree = false;
         if(alwaysCorrect === true)
             agree = this.currentTrial.getCorrect(false);
         else
-            agree = this.currentAdvisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory());
-        this.currentTrial.advisorAgrees = agree;
+            agree = advisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory());
         // Check the answer and dis/agree as appropriate
+        let advice = null;
         if (agree) {
-            this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
+            advice = advisor.voice.getLineByFunction(function (line) {
                 return line.side === self.currentTrial.answer[0];
             });
         } else {
-            this.currentTrial.advice = this.currentAdvisor.voice.getLineByFunction(function (line) {
+            advice = advisor.voice.getLineByFunction(function (line) {
                 let side = [1, 0][self.currentTrial.answer[0]];
                 return line.side === side;
             });
         }
+        if(isCurrentAdvisor) {
+            this.currentTrial.advisorAgrees = agree;
+            this.currentTrial.advice = advice;
+        }
         // note the advisor's decision in the advisor object
-        this.currentAdvisor.chooseRight = this.currentTrial.advice.side;
+        advisor.chooseRight = agree? this.currentTrial.answer[0] : [1,0][self.currentTrial.answer[0]];
+
+        // Update the advisor's individual decision in the trial.
+        // Advisors are identified by whether their adviceType is even.
+        // This is done because R doesn't really want to be sorting through object representations,
+        // so instead we provide a predictable column name.
+        let index = 'advisor' + (advisor.adviceType % 2).toString();
+        this.currentTrial[index + 'agrees'] = agree;
+        this.currentTrial[index + 'advice'] = advice;
     }
 
     /**

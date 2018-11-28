@@ -62,7 +62,7 @@ jsPsych.plugins["jspsych-jas-present-advice"] = (function() {
 
         //show prompt if there is one
         html += '<div id="jspsych-jas-present-advice-choice-prompt0" ' +
-            'class="jspsych-jas-present-advice-choice-prompt">'+trial.prompt+'</div>';
+            'class="jspsych-jas-present-advice-choice-prompt jspsych-jas-present-advice-prompt">'+trial.prompt+'</div>';
 
         display_element.innerHTML = html;
 

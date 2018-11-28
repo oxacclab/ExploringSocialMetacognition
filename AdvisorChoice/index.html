@@ -83,9 +83,6 @@
     if (Math.random() < .5)
         advisorListB = [advisorListB[1], advisorListB[0]];
 
-    // Assign the advisors different classes
-
-
     /**
      * The governor contains the properties which the experiment functions need to access from everywhere.
      *
@@ -94,7 +91,7 @@
      * variables which are required for things such as staircasing.
      */
     let gov = new AdvisorChoice({
-        experimentCode: 'agr',
+        experimentCode: 'meta-dual',
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: {
@@ -121,29 +118,34 @@
             {
                 [trialTypes.catch]: 0,
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 60
+                [trialTypes.force]: 0,
+                [trialTypes.dual]: 3 //60
             },
             {
                 [trialTypes.catch]: 0,
-                [trialTypes.choice]: 60,
-                [trialTypes.force]: 0
+                [trialTypes.choice]: 10,//60,
+                [trialTypes.force]: 0,
+                [trialTypes.dual]: 0
             }
         ],
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 63, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 3,//63, // intro trials need to be accommodated in the first practice block
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 0
+                [trialTypes.force]: 0,
+                [trialTypes.dual]: 0
             },
             {
-                [trialTypes.catch]: 60,
+                [trialTypes.catch]: 1,//60,
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 0
+                [trialTypes.force]: 0,
+                [trialTypes.dual]: 0
             },
             {
                 [trialTypes.catch]: 0,
                 [trialTypes.choice]: 0,
-                [trialTypes.force]: 5
+                [trialTypes.force]: 2,//5
+                [trialTypes.dual]: 0
             }
         ],
         preTrialInterval: 200,
@@ -382,19 +384,24 @@
         type: "jspsych-jas-present-advice-choice",
         choiceFunction: (display_element, callback)=>gov.getAdvisorChoice(display_element, callback),
         displayImageFunction: function(choice, divId) {
+            // Pad out the bottom so the image doesn't move when the response options return
+            document.querySelector('#jspsych-content').classList.add('pad-bottom');
             let div = document.querySelector('#' + divId);
+            if(gov.currentTrial.type === trialTypes.dual) {
+                for(let i = 0; i < 2; i++)
+                    gov.drawAdvice(div, gov.currentTrial['advisor' + i.toString() + 'id'], i === 0);
+                return null;
+            }
             let a = gov.currentAdvisor;
             if (typeof a === 'undefined')
                 return -1; // special value which tells the present-advice plugin to end early
-            div.innerHTML = a.portrait.outerHTML;
-            // Pad out the bottom so the image doesn't move when the response options return
-            document.querySelector('#jspsych-content').classList.add('pad-bottom');
+            gov.drawAdvice(div, a.id);
             return a.portrait.src;
         },
         trial_duration: 1000,
         playAudioFunction: function () {
-            let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt0');
-            div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.adviceString;
+            // let div = document.querySelector('#jspsych-jas-present-advice-choice-prompt0');
+            // div.innerHTML = gov.currentAdvisor.nameHTML + ': ' + gov.adviceString;
             //gov.currentTrial.advice.play();
         },
         prompt: "",
@@ -428,33 +435,6 @@
         canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
         canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
         on_load: ()=>gov.showAdvice(),
-        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
-        on_finish: (trial)=>gov.finalResponse(trial)
-    };
-
-    /* Final decision: repeat the initial decision phase to let the judge reconsider their response */
-    const dualAdviceFinalDecision = {
-        type: "canvas-sliders-response",
-        stimulus: ()=>{},
-        prompt: '',
-        sliderCount: 1,
-        labels: [
-            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
-        ],
-        slider_prompt: [
-            'Which box had more dots?'
-        ],
-        slider_name: [
-            'answer'
-        ],
-        reversed: [false],
-        slider_full_width: [true],
-        slider_col_spacing: [0],
-        exclusive_group: [1],
-        require_change: [1],
-        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
-        on_load: ()=>gov.showAdvice(true),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.finalResponse(trial)
     };
@@ -577,8 +557,8 @@
 
     // intro and training
     timeline.push(welcome);
-    gov.currentTrialIndex = 130
-    timeline.push({timeline: [initialDecision, finalDecision]})
+    gov.currentTrialIndex = 7
+    timeline.push({timeline: test_procedure})
     timeline.push(introInitialDecision);
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
