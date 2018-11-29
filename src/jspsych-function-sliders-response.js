@@ -277,8 +277,8 @@ jsPsych.plugins['function-sliders-response'] = (function() {
                 'class="jspsych-function-sliders-response jspsych-sliders-response-wrapper">';
             // Prompt text
             if (trial.prompt !== null) {
-                html += '<div id="jspsych-sliders-response-prompt" class="jspsych-function-sliders-response"'+
-                    +'>'+trial.prompt+'</div>';
+                html = html + '<div id="jspsych-sliders-response-prompt" class="jspsych-function-sliders-response"' +
+                    '>' + trial.prompt + '</div>';
             }
             // Sliders
             // Define the sliders

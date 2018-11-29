@@ -99,6 +99,22 @@ function flattenTrialData(trial, id) {
         out.adviceSide = trial.advice.side;
     else
         out.adviceSide = null;
+    out.adviceString = trial.advice === null? "" : trial.advice.string;
+    // and for individual advisors in the dual advice paradigm
+    for(let i = 0; i < 2; i++) {
+        let index = 'advisor' + i.toString();
+        out[index + 'id'] = trial[index + 'id'];
+        if(trial[index + 'advice'] === null) {
+            out[index + 'adviceSide'] = null;
+            out[index + 'agrees'] = null;
+            out[index + 'adviceString'] = null;
+        } else {
+            out[index + 'adviceSide'] = trial[index + 'advice'].side;
+            out[index + 'agrees'] = trial[index + 'agrees'];
+            out[index + 'adviceString'] = trial[index + 'adviceString'];
+        }
+    }
+
     out.feedback = trial.feedback;
     out.warnings = trial.warnings.join("\n");
     // timings
@@ -122,7 +138,6 @@ function flattenTrialData(trial, id) {
             out.timeFinalResponse = trial.pluginResponse[2].startTime + trial.pluginResponse[2].rt;
         }
     }
-    out.adviceString = trial.advice === null? "" : trial.advice.string;
 
     return out;
 }
@@ -141,6 +156,7 @@ function flattenAdvisorData(data, id) {
     out.name = data.name;
     out.portraitSrc = data.portraitSrc;
     out.voiceId = data.voice.id;
+    out.styleClass = data.styleClass;
     return out;
 }
 

@@ -20,6 +20,7 @@ $data = json_decode($json);
 $raw = json_decode($data->rawData);
 $processed = json_decode($data->processedData);
 $id = $raw->participantId;
+$prefix = $raw->experimentCode;
 
 // Experiment name is the last directory
 $experimentName = basename(pathinfo($_SERVER['HTTP_REFERER'], PATHINFO_DIRNAME));
@@ -34,14 +35,16 @@ $out = array(
 
 //$out['debug'] = basename($_SERVER['HTTP_REFERER']);
 
-if (!is_sha1($id) || !in_array($experimentName, $experimentNames, true)) {
+if (!is_sha1($id)
+    || !in_array($experimentName, $experimentNames, true)
+    || !preg_match("/^[a-z0-9\-]+$/i", $prefix)) {
     $out['error'] = 'Refused';
     $out['code'] = 403;
     $out['content'] = "Invalid ID specified '$id'";
     die(json_encode($out));
 }
 
-$fname = "$experimentName/data/raw/$id.JSON";
+$fname = "$experimentName/data/raw/".$prefix."_$id.JSON";
 if (file_exists($fname)) {
     $out['error'] = 'File exists';
     $out['code'] = 500;
@@ -58,7 +61,7 @@ if (gettype($file) !== 'resource') {
 fwrite($file, json_encode($raw));
 fclose($file);
 
-$fname = "$experimentName/data/processed/$id.JSON";
+$fname = "$experimentName/data/processed/".$prefix."_$id.JSON";
 // A file exists check is unlikely to trigger given the cleanup script which tarballs and compresses everything daily
 $file = fopen($fname, 'w');
 if (gettype($file) !== 'resource') {

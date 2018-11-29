@@ -257,6 +257,7 @@ class Voice {
     static getName(id) {
         if(id === null)
             id = Math.floor(Math.random()*10)+1; // random name from the full list
+        return 'User ' + Math.floor(Math.pow(Math.E, id)).toString();
         switch(id) {
             case 1:
                 return "Annie";
@@ -360,6 +361,7 @@ class Advisor {
      * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an int to pass
      *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
      * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
+     * @param {string} [styleClass=''] - class to be added to advisor's HTML representations, if non-blank advisorChoice-advisor-
      * @param {Object} [args] - optional arguments
      * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
      * @param {int} [args.id]
@@ -368,11 +370,12 @@ class Advisor {
      * @param {int} [args.portraitId] - the portrait ID
      * @param {string} [args.portraitSrc] - the portrait img src (nothing else needed to regenerate portrait)
      */
-    constructor(id, adviceType, voice = null, portrait = 0, args = {}) {
+    constructor(id, adviceType, voice = null, portrait = 0, styleClass = '', args = {}) {
         if(typeof id !== 'object') {
             // Create a new advisor
             this.id = id;
             this.adviceType = adviceType;
+            this.styleClass = styleClass === ''? '' : 'advisorChoice-advisor-' + styleClass;
             // Fetch the voice
             if(typeof args.skipAudioPreload !== 'boolean')
                 args.skipAudioPreload = false;
@@ -391,7 +394,8 @@ class Advisor {
             this.portraitId = portrait;
             if (portrait === 0)
                 this.portraitId = this.id;
-            this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
+            // this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
+            this.portraitSrc = "assets/image/advisor_blank.png";
         } else {
             // Regenerate an old advisor for feedback
             args = id;
@@ -405,8 +409,11 @@ class Advisor {
         }
         this.portrait = new Image();
         this.portrait.src = this.portraitSrc;
-        this.portrait.className = 'advisor-portrait';
+        this.portrait.classList.add('advisor-portrait');
+        if(this.styleClass !== '')
+            this.portrait.classList.add(this.styleClass);
         this.portrait.id = 'advisor-portrait-' + this.portraitId;
+        this.chooseRight = null; // the advisor's advice
     }
 
     /** Hoist the name for ease-of-access */
@@ -605,12 +612,18 @@ class Trial {
         this.block = typeof args.block === 'undefined'? null : args.block;
         this.advisorSet = typeof args.advisorSet === 'undefined'? null : args.advisorSet;
         this.advisorId = typeof args.advisorId === 'undefined'? null : args.advisorId;
+        this.advisor0id = typeof args.advisor0id === 'undefined'? null : args.advisor0id;
+        this.advisor1id = typeof args.advisor1id === 'undefined'? null : args.advisor1id;
         this.choice = typeof args.choice === 'undefined'? null : args.choice;
         this.answer = typeof args.answer  === 'undefined'? null : args.answer ;
         this.confidence = typeof args.confidence === 'undefined'? null : args.confidence;
         this.confidenceCategory = typeof args.confidenceCategory === 'undefined'? null : args.confidenceCategory;
         this.advice = typeof args.advice === 'undefined'? null : args.advice;
+        this.advisor0advice = typeof args.advisor0advice === 'undefined'? null : args.advisor0advice;
+        this.advisor1advice = typeof args.advisor1advice === 'undefined'? null : args.advisor1advice;
         this.advisorAgrees = typeof args.advisorAgrees === 'undefined'? null : args.advisorAgrees;
+        this.advisor0agrees = typeof args.advisor0agrees === 'undefined'? null : args.advisor0agrees;
+        this.advisor1agrees = typeof args.advisor1agrees === 'undefined'? null : args.advisor1agrees;
         this.getCorrect = typeof args.getCorrect === 'undefined'? null : args.getCorrect;
         this.dotDifference = typeof args.dotDifference === 'undefined' ? null : args.dotDifference;
         this.whichSide = typeof args.whichSide === 'undefined'? null : args.whichSide;

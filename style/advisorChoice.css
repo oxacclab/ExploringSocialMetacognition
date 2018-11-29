@@ -1,33 +1,54 @@
 body {
     background-color: #858585;
 }
+div.jspsych-content.advisorChoice-minHeight {
+    min-height: 500px;
+}
 div.advisorChoice-marker {
-    position: relative;
+    position: absolute;
 }
 div.advisorChoice-middleBar {
-    width: 12px;
-    height: 22px;
-    margin-bottom: -30px;
+    width: .25em;
+    height: 2em;
+    top: calc(50% - 1.2em);
+    left: calc(50% - .125em);
     background-color: white;
     z-index: 10;
 }
 div.advisorChoice-prevAnswer {
     z-index: 1;
     width: 12px;
-    height: 40px;
-    margin-bottom: -40px;
-    box-shadow: 0 0 5px 0 black;
-    border-radius: 3px;
-    background-color: yellow;
+    height: 3em;
+    top: 1px;
+    background-color: #fbff03;
 }
+div.advisorChoice-slider-label {
+    position: absolute;
+    top: 1em;
+    line-height: 1em;
+    transform: scaleY(2);
+}
+div.advisorChoice-slider-label-left {
+    margin-left: .5em;
+}
+div.advisorChoice-slider-label-mid {
+    width: 100%;
+    margin: auto;
+}
+div.advisorChoice-slider-label-right {
+    margin-right: .5em;
+    right: 0;
+}
+span.advisorChoice-slider-label-direction {
+    font-weight: bold;
+}
+
 img.advisor-portrait {
-    border: 2px solid black;
-    padding: 5px;
-    background-color: black;
-    border-radius: 25px;
-    max-width: 550px;
-    max-height: 200px;
+    height: 3em;
+    border-radius: 100%;
+    margin-top: .5em;
 }
+
 span.advisor-name {
     text-transform: uppercase;
     font-weight: bold;
@@ -37,16 +58,16 @@ img.advisorChoice-choice {
     display: block;
     margin: 20px auto;
 }
-img.advisorChoice-choice:hover {
+.advisorChoice-choice:hover {
     cursor: pointer;
-    background-color: white;
+}
+div.advisorChoice-choice:hover div.jspsych-jas-present-advice-image {
+    box-shadow: inset 0 0 5px 1px black;
 }
 .jspsych-content {
     width: 100%;
 }
-.pad-bottom {
-    padding-bottom: 151px; /* don't like the hardcoded value here */
-}
+
 #progressbar-outer {
     width: 80%;
     height: 25px;
@@ -70,13 +91,31 @@ img.advisorChoice-choice:hover {
 #jspsych-content {
     max-width: 600px;
 }
-
-#jspsych-sliders-response-container {
-    height: 7em;
+div#jspsych-canvas-sliders-response-stimulus {
+    min-height: 250px;
+}
+div.jspsych-sliders-response-container {
+    margin-top: 1em;
+}
+.jspsych-btn.genTrustQ {
     margin-top: 1em;
 }
 
-#jspsych-jas-present-advice-choice-prompt {
+.jspsych-jas-present-advice-choice-wrapper, .jspsych-jas-present-advice-wrapper {
+    position: relative;
+}
+
+.jspsych-jas-present-advice-choice-wrapper:nth-of-type(n+2),
+.jspsych-jas-present-advice-wrapper:nth-of-type(n+2) {
+    margin-top: .5em;
+}
+
+
+.jspsych-jas-present-advice-choice-wrapper:nth-of-type(n+2) img.advisor-portrait,
+.jspsych-jas-present-advice-wrapper:nth-of-type(n+2) img.advisor-portrait {
+}
+
+.jspsych-jas-present-advice-choice-prompt {
     font-size: 1.3em;
     padding: 0.5em;
 }
@@ -91,4 +130,89 @@ tr.jspsych-sliders-response-labels td:last-of-type {
 
 div.jspsych-sliders-row.genTrustQ:hover {
     background-color: #dddddd;
+}
+
+div.jspsych-jas-present-advice-arrow {
+    width: 50%;
+    position: absolute;
+    top: calc(50% - 1.1em);
+    z-index: -1;
+    border-radius: 1em;
+    line-height: 1em;
+    vertical-align: middle;
+    padding: 0.5em 1.5em;
+    background-color: white !important;
+    border: 0.2em solid;
+}
+
+div.jspsych-jas-present-advice-arrow-left {
+    left: calc(-40% + 10em);
+    text-align: left;
+}
+
+div.jspsych-jas-present-advice-arrow-right {
+    left: calc(40% + 5em);
+    text-align: right;
+}
+
+div.jspsych-jas-present-advice-image {
+    border: .2em solid white;
+    padding: 0 1em;
+    border-radius: 1em;
+    width: 10em;
+    margin: auto;
+}
+
+div.advisorChoice-change-selected .jspsych-jas-present-advice-image {
+    transform: scale(2);
+    z-index: 2;
+    position: relative;
+}
+div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
+    transform: scale(1);
+    z-index: 1;
+    position: relative;
+}
+
+.advisorChoice-change-instructions {
+    margin-top: 10em;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-1 {
+    border-color: #BF3F3F;
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-1 {
+    background-color: #BF3F3F;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-2 {
+    border-color: #7FBF3F;
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-2 {
+    background-color: #7FBF3F;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-3 {
+    border-color: #3FBFBF;
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-3 {
+    background-color: #3FBFBF;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-4 {
+    border-color: #3F3FBF;
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-4 {
+    background-color: #3F3FBF;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-5 {
+    border-color: #D1CC37;
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-5 {
+    background-color: #D1CC37;
+}
+
+.advisorChoice-change-noOutline:focus {
+    outline: none;
 }

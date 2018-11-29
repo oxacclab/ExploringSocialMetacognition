@@ -47,7 +47,7 @@ jsPsych.plugins["jspsych-jas-present-advice"] = (function() {
     plugin.trial = function(display_element, trial) {
 
         // store response
-        var response = {
+        let response = {
             rt: null
         };
 
@@ -56,18 +56,20 @@ jsPsych.plugins["jspsych-jas-present-advice"] = (function() {
         }
 
         // display stimulus
-        let containerId = "jspsych-jas-present-advice-image";
-        let html = '<div id="'+containerId+'"></div>';
+        let containerId = "jspsych-jas-present-advice-choice-image0";
+        let classList = "jspsych-jas-present-advice-choice-image";
+        let html = '<div id="'+containerId+'" class="'+classList+'"></div>';
 
         //show prompt if there is one
-        html += '<div id="jspsych-jas-present-advice-prompt">'+trial.prompt+'</div>';
+        html += '<div id="jspsych-jas-present-advice-choice-prompt0" ' +
+            'class="jspsych-jas-present-advice-choice-prompt jspsych-jas-present-advice-prompt">'+trial.prompt+'</div>';
 
         display_element.innerHTML = html;
 
         response.image = trial.displayImageFunction(containerId);
         // short out if the trial.displayImageFunction returned '-1'
         if (response.image === -1) {
-            end_trial()
+            end_trial();
             return;
         }
 
@@ -88,7 +90,7 @@ jsPsych.plugins["jspsych-jas-present-advice"] = (function() {
 
             // move on to the next trial
             jsPsych.finishTrial(response);
-        };
+        }
 
         // end trial if time limit is set
         if (trial.trial_duration !== null) {
