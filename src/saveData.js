@@ -94,19 +94,25 @@ function flattenTrialData(trial, id) {
     }
 
     out.advisorId = trial.advisorId;
-    for(let i = 0; i < 2; i++)
-        out['advisor' + i.toString() + 'id'] = trial['advisor' + i.toString() + 'id'];
     out.advisorAgrees = trial.advisorAgrees;
-    out.advisor0agrees = trial.advisor0agrees;
-    out.advisor1agrees = trial.advisor1agrees;
     if (trial.advisorId !== 0 && trial.advisorId !== null)
         out.adviceSide = trial.advice.side;
     else
         out.adviceSide = null;
+    out.adviceString = trial.advice === null? "" : trial.advice.string;
     // and for individual advisors in the dual advice paradigm
     for(let i = 0; i < 2; i++) {
-        out['advisor' + i.toString() + 'adviceSide'] = trial['advisor' + i.toString() + 'advice'] === null?
-            null : trial['advisor' + i.toString() + 'advice'].side;
+        let index = 'advisor' + i.toString();
+        out[index + 'id'] = trial[index + 'id'];
+        if(trial[index + 'advice'] === null) {
+            out[index + 'adviceSide'] = null;
+            out[index + 'agrees'] = null;
+            out[index + 'adviceString'] = null;
+        } else {
+            out[index + 'adviceSide'] = trial[index + 'advice'].side;
+            out[index + 'agrees'] = trial[index + 'agrees'];
+            out[index + 'adviceString'] = trial[index + 'adviceString'];
+        }
     }
 
     out.feedback = trial.feedback;
@@ -132,7 +138,6 @@ function flattenTrialData(trial, id) {
             out.timeFinalResponse = trial.pluginResponse[2].startTime + trial.pluginResponse[2].rt;
         }
     }
-    out.adviceString = trial.advice === null? "" : trial.advice.string;
 
     return out;
 }

@@ -315,8 +315,6 @@
             if (typeof a === 'undefined')
                 return -1; // special value which tells the present-advice plugin to end early
             div.innerHTML = a.portrait.outerHTML;
-            // Pad out the bottom so the image doesn't move when the response options return
-            document.querySelector('#jspsych-content').classList.add('pad-bottom');
             return a.portrait.src;
         },
         trial_duration: 1000,
@@ -326,8 +324,6 @@
         },
         prompt: "",
         on_finish: (pluginData)=>{
-            // HACK the display content padding back to normal
-            document.querySelector('#jspsych-content').classList.remove('pad-bottom');
             gov.storePluginData(pluginData);
         }
     };

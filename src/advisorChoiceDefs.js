@@ -14,10 +14,11 @@ import debriefForm from "./debriefForm.js";
  * @type {{catch: number, force: number, choice: number}}
  */
 const trialTypes = {
-    catch: 0,
-    force: 1,
-    choice: 2,
-    dual: 3
+    catch: 0,   // no advisor
+    force: 1,   // forced to use a specific advisor
+    choice: 2,  // choice of advisors
+    dual: 3,    // see advice from two advisors
+    change: 4   // see advice from a specific advisor with an option to see the other instead
 };
 
 /**
@@ -28,7 +29,8 @@ const trialTypeNames = {
     [trialTypes.catch]: 'catch',
     [trialTypes.force]: 'force',
     [trialTypes.choice]: 'choice',
-    [trialTypes.dual]: 'dual'
+    [trialTypes.dual]: 'dual',
+    [trialTypes.change]: 'change'
 };
 
 /**
@@ -200,7 +202,7 @@ class DotTask extends Governor {
 
     /** Check the initial response to ensure that the participant hasn't selected neither answer.
      * @param {Object} trialresponse - potential response from the plugin
-     * @return true to allow the response through, false to prevent it
+     * @return {boolean} true to allow the response through, false to prevent it
      */
     checkResponse(trialresponse) {
         let okay = trialresponse.response[0].answer!=="50";
@@ -292,9 +294,10 @@ class DotTask extends Governor {
      * This prevents users clicking on the slider, getting the visual feedback of the slider being activated and set,
      * and then being told they have not moved the slider.
      *
-     * @param {boolean} drawMiddleBar - whether to draw the middle bar on the questionnaire
+     * @param {boolean} [drawMiddleBar=true] - whether to draw the middle bar on the slider track
+     * @param {boolean} [drawLabels=true] - whether to draw the labels on the slider track
      */
-    setSliderClick(drawMiddleBar = true) {
+    setSliderClick(drawMiddleBar = false, drawLabels = true) {
         let sliders = document.querySelectorAll('.jspsych-sliders-response-slider');
         sliders.forEach(function (slider) {
             slider.addEventListener('click', function () {
@@ -307,24 +310,51 @@ class DotTask extends Governor {
                 let event = new Event('change');
                 this.dispatchEvent(event);
             });
-            if(drawMiddleBar === true) {
+            let parent = slider.parentElement;
+            if(drawMiddleBar) {
                 // Add a visual indicator to the middle of the slider to show the excluded zone
-                let parent = slider.parentElement;
                 let marker = document.createElement('div');
                 marker.className = 'advisorChoice-middleBar advisorChoice-marker';
                 parent.appendChild(marker);
+            }
+            if(drawLabels) {
+                let left = parent.appendChild(document.createElement('div'));
+                let mid = parent.appendChild(document.createElement('div'));
+                let right = parent.appendChild(document.createElement('div'));
+                left.id = 'advisorChoice-slider-labels-left';
+                mid.id = 'advisorChoice-slider-labels-mid';
+                right.id = 'advisorChoice-slider-labels-right';
+                left.className = "advisorChoice-slider-label advisorChoice-slider-label-left";
+                mid.className = "advisorChoice-slider-label advisorChoice-slider-label-mid";
+                right.className = "advisorChoice-slider-label advisorChoice-slider-label-right";
+                left.innerHTML = '100% <span class="advisorChoice-slider-label-direction">LEFT</span>';
+                mid.innerHTML = '50%';
+                right.innerHTML = '<span class="advisorChoice-slider-label-direction">RIGHT</span> 100%';
 
-                // let yOffset = slider.clientHeight + 7;
-                // // Massive HACK for Edge doing sliders differently
-                // if(window.navigator.userAgent.indexOf("Edge") > -1)
-                //     yOffset -= 21;
-                // marker.style.top = -yOffset.toString() + 'px';
-
-                let xOffset = slider.clientWidth/2 - marker.clientWidth/2;
-                marker.style.left = xOffset.toString() + 'px';
             }
         });
+        this.setContentHeight();
         this.drawProgressBar();
+    }
+
+    /**
+     * Apply a minimum height to the content so that things look consistent with teh advice and response sliders
+     * @param {boolean} [unset=false] - whether to remove the class instead
+     */
+    setContentHeight(unset = false) {
+        if(unset)
+            document.querySelector('#jspsych-content').classList.remove('advisorChoice-minHeight');
+        else
+            document.querySelector('#jspsych-content').classList.add('advisorChoice-minHeight');
+    }
+
+    /**
+     * Save plugin data and reset the content height fixing
+     * @param {Object} plugin
+     */
+    storePluginData(plugin) {
+        this.setContentHeight(false);
+        super.storePluginData(plugin);
     }
 
     /**
@@ -611,6 +641,7 @@ class AdvisorChoice extends DotTask {
      * @param {[Advisor[]]} [args.advisorLists] - list of lists of advisors, each one being a set of advisors competing with one another in a block
      * @param {[Advisor[]]} [args.contingentAdvisors] - list of advisors to be used contingent on the confidence category of a response matching the list index
      * @param {[Advisor[]]} [args.questionnaireStack] - stack of advisors about whom questionnaires are to be asked
+     * @param {int} [args.changeTime = 1000] - time to offer advisor change on change trials in ms
      *
      * @property {Advisor} currentAdvisor - advisor currently in focus
      * @property {Trial} currentTrial - trial currently underway
@@ -625,6 +656,7 @@ class AdvisorChoice extends DotTask {
         this.questionnaireStack = typeof args.questionnaireStack === 'undefined'? null : args.questionnaireStack;
         this.generalisedTrustQuestionnaire = typeof args.generalisedTrustQuestionnaire === 'undefined'?
             null : args.generalisedTrustQuestionnaire;
+        this.changeTime = typeof args.changeTime === 'undefined'? 1000 : args.changeTime;
         this.drawDebriefForm = debriefForm; // why is this in a separate file?
     }
 
@@ -661,7 +693,7 @@ class AdvisorChoice extends DotTask {
     /**
      * Return the index of an advisor in the advisors list
      * @param {int} id - id of the advisor whose index is required
-     * @return {int} - index of the advisor in the advisors list
+     * @return {int|null} - index of the advisor in the advisors list
      */
     getAdvisorIndex(id) {
         for (let i=0; i<this.advisors.length; i++) {
@@ -703,7 +735,8 @@ class AdvisorChoice extends DotTask {
             let advisor1id = null;
             let blockIndex = b;
             let advisorChoices = [];
-            let advisorDeck = null;
+            let advisorForceDeck = null;
+            let advisorChangeDeck = null;
             if (b >= practiceBlockCount) {
                 advisorSet = Math.floor((b-practiceBlockCount) / this.blockStructure.length);
                 blockIndex = (b-practiceBlockCount)%this.blockStructure.length;
@@ -711,8 +744,10 @@ class AdvisorChoice extends DotTask {
                 advisor0id = advisorChoices[0].adviceType % 2? advisorChoices[1].id : advisorChoices[0].id;
                 advisor1id = advisorChoices[0].adviceType % 2? advisorChoices[0].id : advisorChoices[1].id;
                     // Shuffle advisors so they appear an equal number of times
-                advisorDeck = utils.shuffleShoe(advisorChoices,
+                advisorForceDeck = utils.shuffleShoe(advisorChoices,
                     this.blockStructure[blockIndex][trialTypes.force]/advisorChoices.length);
+                advisorChangeDeck = utils.shuffleShoe(advisorChoices,
+                    this.blockStructure[blockIndex][trialTypes.change]/advisorChoices.length);
             } else {
                 advisorSet = NaN;
             }
@@ -735,7 +770,8 @@ class AdvisorChoice extends DotTask {
                 if (isPractice)
                     advisorId = trialType===trialTypes.catch? 0 : this.practiceAdvisor.id;
                 else
-                    advisorId = trialType === trialTypes.force? advisorDeck.pop().id : 0;
+                    advisorId = trialType === trialTypes.force? advisorForceDeck.pop().id : 0;
+                let defaultAdvisor = trialType === trialTypes.change? advisorChangeDeck.pop().id : null;
                 let r = Math.random() < .5? 1 : 0;
                 let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
                 // let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
@@ -744,6 +780,7 @@ class AdvisorChoice extends DotTask {
                     typeName: trialTypeNames[trialType],
                     block: b,
                     advisorSet,
+                    defaultAdvisor,
                     advisorId,
                     advisor0id,
                     advisor1id,
@@ -806,9 +843,8 @@ class AdvisorChoice extends DotTask {
         div.innerHTML = "";
         if(this.currentTrial.type === trialTypes.dual) {
             for(let i = 0; i < 2; i++)
-                this.drawAdvice(div, this.currentTrial['advisor' + i.toString() + 'id'], i === 0);
-        }
-        else if(typeof this.currentAdvisor !== 'undefined') {
+                this.drawAdvice(div, this.currentTrial['advisor' + i.toString() + 'id']);
+        } else if(typeof this.currentAdvisor !== 'undefined') {
             this.drawAdvice(div, this.currentAdvisor.id);
         }
         // Set the class of the slider the advisor endorsed
@@ -820,39 +856,54 @@ class AdvisorChoice extends DotTask {
     }
 
     /**
-     * Draw the advisor portrait, advice, and advice text
-     * @param div {HTMLElement} div in which to draw
-     * @param advisorId {int} ID of the advisor to draw
-     * @param textAboveImage {boolean} whether to draw the advice text above the image
+     * Draw an advisor in a div
+     * @param {HTMLElement} div in which to draw
+     * @param {Advisor} advisor to draw
+     * @param {{}} [options={}] styling options
+     * @param {int} [options.nth=0] whether advisor is a top or bottom position, also used for uniquely specifying HTML element ids
+     * @param {boolean} [options.textAboveImage=false] whether to put the username above the image
+     * @return {HTMLElement} the wrapper div placed within the input div
      */
-    drawAdvice(div, advisorId, textAboveImage = true) {
-        let idSuffix =  textAboveImage? '1' : '0';
+    drawAdvisor(div, advisor, options = {}) {
+        let idSuffix = typeof options.nth === 'undefined'? 0 : options.nth;
         let advisorDiv = div.appendChild(document.createElement('div'));
         advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
         advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
         let picDiv = advisorDiv.appendChild(document.createElement('div'));
         picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
         picDiv.classList.add('jspsych-jas-present-advice-image');
-        let a = this.advisors[this.getAdvisorIndex(advisorId)];
-        let portrait = picDiv.appendChild(a.portrait);
+        let portrait = picDiv.appendChild(advisor.portrait);
         let textDiv = {};
-        if(textAboveImage)
+        if(typeof options.textAboveImage !== 'undefined' && options.textAboveImage)
             textDiv = picDiv.insertBefore(document.createElement('div'), portrait);
         else
             textDiv = picDiv.appendChild(document.createElement('div'));
         textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
         textDiv.classList.add('jspsych-jas-present-advice-prompt');
-        textDiv.innerHTML = a.nameHTML;
+        textDiv.innerHTML = advisor.nameHTML;
+        picDiv.classList.add(advisor.styleClass);
+        textDiv.classList.add(advisor.styleClass);
+        advisorDiv.classList.add(advisor.styleClass);
+        return advisorDiv;
+    }
+
+    /**
+     * Draw the advisor portrait, advice, and advice text
+     * @param div {HTMLElement} div in which to draw
+     * @param advisorId {int} ID of the advisor to draw
+     * @param textAboveImage {boolean} whether to draw the advice text above the image
+     */
+    drawAdvice(div, advisorId, textAboveImage = false) {
+        let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
+        let a = this.advisors[this.getAdvisorIndex(advisorId)];
+        let advisorDiv = this.drawAdvisor(div, a, idSuffix);
         let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
         arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
         arrowDiv.classList.add('jspsych-jas-present-advice-arrow');
         arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.chooseRight? 'right' : 'left'));
-        arrowDiv.innerText = a.chooseRight? 'right' : 'left';
+        arrowDiv.innerText = a.lastAdvice.string;
         // Add advisor class to relevant divs
-        picDiv.classList.add(a.styleClass);
         arrowDiv.classList.add(a.styleClass);
-        textDiv.classList.add(a.styleClass);
-        advisorDiv.classList.add(a.styleClass);
     }
 
     /**
@@ -864,6 +915,10 @@ class AdvisorChoice extends DotTask {
      */
     getAdvisorChoice(display_element, callback) {
         let choices = this.currentTrial.choice;
+        if(this.currentTrial.type === trialTypes.change) {
+            this.offerAdvisorChange(display_element, callback);
+            return;
+        }
         if (this.currentTrial.type !== trialTypes.choice) {
             if(this.currentTrial.type === trialTypes.dual) {
                 callback(null);
@@ -882,23 +937,104 @@ class AdvisorChoice extends DotTask {
         let self = this;
         for (let a=0; a<choices.length; a++) {
             let advisor = this.advisors[this.getAdvisorIndex(choices[a])];
-            let img = document.createElement('img');
+            let advisorDiv = this.drawAdvisor(display_element, advisor, a);
+            advisorDiv.classList.add('advisorChoice-choice');
+            let img = advisorDiv.querySelector('img');
             img.className = 'advisorChoice-choice advisor-portrait';
             img.id = 'advisorChoice-choice-' + a.toString();
             img.src = advisor.portrait.src;
-            img.addEventListener('click', function () {
+            advisorDiv.addEventListener('click', function () {
                 self.currentTrial.advisorId = choices[a];
                 self.setAgreementVars();
                 callback(choices[a]);
             });
             choiceImgs.push(img);
+            if(a === 0) {
+                let p = display_element.appendChild(document.createElement('p'));
+                p.innerText = 'Click on a portrait to hear the advisor\'s advice';
+                p.className = 'advisorChoice-choice';
+            }
         }
-        let p = document.createElement('p');
-        p.innerText = 'Click on a portrait to hear the advisor\'s advice';
-        p.className = 'advisorChoice-choice';
-        display_element.appendChild(choiceImgs.pop());
-        display_element.appendChild(p);
-        display_element.appendChild(choiceImgs.pop());
+    }
+
+    /**
+     * Advisor change function.
+     * Display a default portrait whose advice can be switched for an alternative by pressing spacebar.
+     *
+     * @param {HTMLElement} display_element - element within which to display the default option
+     * @param {function} callback - function to call when a decision is made. Called with the choice and the change times arguments.
+     */
+    offerAdvisorChange(display_element, callback) {
+        // draw portraits in the positions they'll be when advice is presented
+        let advisorIDs = [];
+        let div = display_element.appendChild(document.createElement('div'));
+        div.id = 'jspsych-jas-change-advisors-wrapper';
+        for(let i = 0; i < 2; i++) {
+            let advisor = this.advisors[this.getAdvisorIndex(this.currentTrial['advisor' + i.toString() + 'id'])];
+            advisorIDs.push(advisor.id);
+            let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
+            let advisorDiv = div.appendChild(document.createElement('div'));
+            advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
+            advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
+            let picDiv = advisorDiv.appendChild(document.createElement('div'));
+            picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
+            picDiv.classList.add('jspsych-jas-present-advice-image');
+            picDiv.appendChild(advisor.portrait);
+            let textDiv = picDiv.appendChild(document.createElement('div'));
+            textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
+            textDiv.classList.add('jspsych-jas-present-advice-prompt');
+            textDiv.innerHTML = advisor.nameHTML;
+            // Add advisor class to relevant divs
+            picDiv.classList.add(advisor.styleClass);
+            textDiv.classList.add(advisor.styleClass);
+            advisorDiv.classList.add(advisor.styleClass);
+            if(this.currentTrial.defaultAdvisor === advisor.id) {
+                advisorDiv.classList.add('advisorChoice-change-selected');
+                this.currentTrial.advisorId = advisor.id;
+            }
+            else
+                advisorDiv.classList.add('advisorChoice-change-unselected');
+            advisorDiv.changeTimes = [];
+            advisorDiv.nth = i;
+        }
+        let instructionsDiv = display_element.appendChild(document.createElement('div'));
+        instructionsDiv.id = 'advisorChoice-change-instructions';
+        instructionsDiv.classList.add('advisorChoice-change-instructions');
+        instructionsDiv.innerHTML = 'Press Spacebar to change advisor';
+
+        div.tabIndex = 1;
+        div.classList.add('advisorChoice-change-noOutline');
+        div.focus();
+        div.frozenUntil = -Infinity;
+        div.governor = this;
+        div.addEventListener('keydown', (event)=>{
+            if(performance.now() < this.frozenUntil)
+                return;
+            if(event.keyCode === 32) { // spacebar
+                this.frozenUntil = performance.now() + 50;
+                let advisorDivs = document.querySelectorAll('.jspsych-jas-present-advice-wrapper');
+                for(let i = 0; i < advisorDivs.length; i++) {
+                    let d = advisorDivs[i];
+                    if(d.classList.contains('advisorChoice-change-selected')) {
+                        d.classList.remove('advisorChoice-change-selected');
+                        d.classList.add('advisorChoice-change-unselected');
+                    } else {
+                        d.classList.remove('advisorChoice-change-unselected');
+                        d.classList.add('advisorChoice-change-selected');
+                        let a = 'advisor' + d.nth.toString();
+                        div.governor.currentTrial.advisorId = div.governor.currentTrial[a + 'id'];
+                        div.governor.currentTrial.advice = div.governor.currentTrial[a + 'advice'];
+                        div.governor.currentTrial.advisorAgrees = div.governor.currentTrial[a + 'agrees'];
+                    }
+                    d.changeTimes.push(performance.now());
+                }
+            }
+        });
+
+        setTimeout(function() {
+            let selectedDiv = document.querySelectorAll('.advisorChoice-change-selected')[0];
+            callback(selectedDiv.advisorId, selectedDiv.changeTimes);
+        }, this.changeTime)
     }
 
     /**
@@ -931,7 +1067,7 @@ class AdvisorChoice extends DotTask {
     setAgreementVars(alwaysCorrect = false) {
         if(typeof this.currentAdvisor !== 'undefined')
             this.setAdvisorAgreement(this.currentAdvisor.id, alwaysCorrect);
-        else if(this.currentTrial.type === trialTypes.dual) {
+        else if(this.currentTrial.type === trialTypes.dual || this.currentTrial.type === trialTypes.change) {
             for(let i = 0; i < 2; i++)
                 this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect, false);
         }
@@ -946,23 +1082,22 @@ class AdvisorChoice extends DotTask {
         else
             agree = advisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory());
         // Check the answer and dis/agree as appropriate
-        let advice = null;
         if (agree) {
-            advice = advisor.voice.getLineByFunction(function (line) {
+            advisor.lastAdvice = advisor.voice.getLineByFunction(function (line) {
                 return line.side === self.currentTrial.answer[0];
             });
         } else {
-            advice = advisor.voice.getLineByFunction(function (line) {
+            advisor.lastAdvice = advisor.voice.getLineByFunction(function (line) {
                 let side = [1, 0][self.currentTrial.answer[0]];
                 return line.side === side;
             });
         }
         if(isCurrentAdvisor) {
             this.currentTrial.advisorAgrees = agree;
-            this.currentTrial.advice = advice;
+            this.currentTrial.advice = advisor.lastAdvice;
         }
         // note the advisor's decision in the advisor object
-        advisor.chooseRight = agree? this.currentTrial.answer[0] : [1,0][self.currentTrial.answer[0]];
+        advisor.chooseRight = agree? this.currentTrial.answer[0] : [1,0][this.currentTrial.answer[0]];
 
         // Update the advisor's individual decision in the trial.
         // Advisors are identified by whether their adviceType is even.
@@ -970,7 +1105,7 @@ class AdvisorChoice extends DotTask {
         // so instead we provide a predictable column name.
         let index = 'advisor' + (advisor.adviceType % 2).toString();
         this.currentTrial[index + 'agrees'] = agree;
-        this.currentTrial[index + 'advice'] = advice;
+        this.currentTrial[index + 'advice'] = advisor.lastAdvice;
     }
 
     /**
@@ -1034,33 +1169,32 @@ class AdvisorChoice extends DotTask {
      * @param {Function} callback - function to execute when drawing is complete. Called with the portrait src
      */
     drawQuestionnaire(display_element, callback) {
-        // set some styling stuff
-        let style = display_element.appendChild(document.createElement('style'));
-        style.innerText = 'div#jspsych-function-sliders-response-stimulus {float:left; max-width:40vw} ' +
-            '.jspsych-sliders-response-wrapper {width:60vw} ' +
-            '.jspsych-sliders-response-container {max-width:100%} ' +
-            '#jspsych-content {max-width: 1000px !important; display:flex; margin:auto;}' +
-            '#advisorChoice-choice-stimulus {max-width:30vw; display:block; position:relative; ' +
-            'top:60%; left:10%; margin-top:-40%; margin-right: 5vw}';
-
+        display_element.classList.add('advisorChoice-questionnaire');
         let advisor = this.questionnaireStack.pop();
         this.lastQuestionnaireAdvisorId = advisor.id;
-        let img = document.createElement('img');
-        img.className = 'advisor-portrait';
-        img.id = 'advisorChoice-choice-stimulus';
-        img.src = advisor.portrait.src;
-        display_element.appendChild(img);
-        callback(img.src);
-        AdvisorChoice.changeQuestionnairePrompt(advisor);
+        this.drawAdvisor(display_element, advisor);
+        callback(advisor.portrait.src);
     }
 
     /**
-     * Change the questionnaire prompt to replace 'This advisor' with the advisor's name
-     * @param {Advisor} advisor
+     * Move questionnaire prompts to within the slider box
      */
-    static changeQuestionnairePrompt(advisor) {
-        let p = document.querySelector('#jspsych-sliders-response-prompt > p');
-        p.innerHTML = p.textContent.replace('This advisor', advisor.nameHTML);
+    static hackQuestionnaire() {
+        // Remove the prompts and place them within the bars
+        let bars = document.querySelectorAll('input.jspsych-function-sliders-response');
+        for(let i = 0; i < bars.length; i++) {
+            // Remove middle in-slider prompt
+            bars[i].nextSibling.nextSibling.remove();
+            let prompts = bars[i].parentElement.parentElement.nextSibling.childNodes;
+            for(let isRight = 0; isRight < 2; isRight++) {
+                let text = prompts[isRight].childNodes[0].innerText;
+                // Insert text into the slider
+                bars[i].parentElement.querySelectorAll('.advisorChoice-slider-label')[isRight].innerHTML =
+                    text;
+            }
+            // Remove the prompt row
+            bars[i].parentElement.parentElement.nextSibling.remove();
+        }
     }
 
     /**

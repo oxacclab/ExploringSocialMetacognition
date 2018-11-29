@@ -257,6 +257,7 @@ class Voice {
     static getName(id) {
         if(id === null)
             id = Math.floor(Math.random()*10)+1; // random name from the full list
+        return 'User ' + Math.floor(Math.pow(Math.E, id)).toString();
         switch(id) {
             case 1:
                 return "Annie";
@@ -393,7 +394,8 @@ class Advisor {
             this.portraitId = portrait;
             if (portrait === 0)
                 this.portraitId = this.id;
-            this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
+            // this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
+            this.portraitSrc = "assets/image/advisor_blank.png";
         } else {
             // Regenerate an old advisor for feedback
             args = id;

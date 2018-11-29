@@ -3,15 +3,17 @@ Matt Jaquiery, Feb 2018
 General thanks to https://css-tricks.com/styling-cross-browser-compatible-range-inputs-css/ */
 :root{
     --slider-track-cursor: pointer;
-    --slider-track-color: #373737;
-    --slider-track-color-focus: #999999;
-    --slider-track-height: 24px;
+    --slider-track-color: #ffffff00;
+    --slider-track-color-focus: #ffffff00;
+    --slider-track-background-image: linear-gradient(to right, #46f91936,#3d483d36, #46f91936);
+    --slider-track-background-image-red: linear-gradient(to right, #ff070736, #46f91936);
+    --slider-track-height: 4em;
     --slider-track-box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
     --slider-track-border-radius: 0;
     --slider-track-border: 0.2px solid #010101;
     --slider-thumb-color: #ffffff;
-    --slider-thumb-height: 28px;
-    --slider-thumb-width: 12px;
+    --slider-thumb-height: 4em;
+    --slider-thumb-width: 1em;
     --slider-thumb-box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
     --slider-thumb-border: 0.2px solid #010101;
     --slider-thumb-border-radius: 3px;
@@ -40,6 +42,11 @@ input.jspsych-sliders-response-slider {
     width: 100%;
     position: relative;
     z-index: 10;
+    background-color: transparent;
+    background-image: var(--slider-track-background-image);
+}
+input.jspsych-sliders-response-slider.questionnaire {
+    background-image: var(--slider-track-background-image-red);
 }
 input.jspsych-sliders-response-slider:focus {
     outline: inherit;

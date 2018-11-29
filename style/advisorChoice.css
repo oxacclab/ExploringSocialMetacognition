@@ -1,31 +1,52 @@
 body {
     background-color: #858585;
 }
+div.jspsych-content.advisorChoice-minHeight {
+    min-height: 500px;
+}
 div.advisorChoice-marker {
     position: absolute;
 }
 div.advisorChoice-middleBar {
-    width: 12px;
-    height: 22px;
-    top: calc(50% - 15px);
-    margin-bottom: -30px;
+    width: .25em;
+    height: 2em;
+    top: calc(50% - 1.2em);
+    left: calc(50% - .125em);
     background-color: white;
     z-index: 10;
 }
 div.advisorChoice-prevAnswer {
     z-index: 1;
     width: 12px;
-    height: 40px;
-    top: calc(50% - 23px);
-    margin-bottom: -40px;
-    box-shadow: 0 0 5px 0 black;
-    border-radius: 3px;
-    background-color: yellow;
+    height: 3em;
+    top: 1px;
+    background-color: #fbff03;
 }
+div.advisorChoice-slider-label {
+    position: absolute;
+    top: 1em;
+    line-height: 1em;
+    transform: scaleY(2);
+}
+div.advisorChoice-slider-label-left {
+    margin-left: .5em;
+}
+div.advisorChoice-slider-label-mid {
+    width: 100%;
+    margin: auto;
+}
+div.advisorChoice-slider-label-right {
+    margin-right: .5em;
+    right: 0;
+}
+span.advisorChoice-slider-label-direction {
+    font-weight: bold;
+}
+
 img.advisor-portrait {
-    max-width: 550px;
-    max-height: 200px;
-    border-radius: 1em;
+    height: 3em;
+    border-radius: 100%;
+    margin-top: .5em;
 }
 
 span.advisor-name {
@@ -37,15 +58,14 @@ img.advisorChoice-choice {
     display: block;
     margin: 20px auto;
 }
-img.advisorChoice-choice:hover {
+.advisorChoice-choice:hover {
     cursor: pointer;
-    background-color: white;
+}
+div.advisorChoice-choice:hover div.jspsych-jas-present-advice-image {
+    box-shadow: inset 0 0 5px 1px black;
 }
 .jspsych-content {
     width: 100%;
-}
-.pad-bottom {
-    padding-bottom: 104px; /* don't like the hardcoded value here */
 }
 
 #progressbar-outer {
@@ -71,9 +91,13 @@ img.advisorChoice-choice:hover {
 #jspsych-content {
     max-width: 600px;
 }
-
-#jspsych-sliders-response-container {
-    height: 7em;
+div#jspsych-canvas-sliders-response-stimulus {
+    min-height: 250px;
+}
+div.jspsych-sliders-response-container {
+    margin-top: 1em;
+}
+.jspsych-btn.genTrustQ {
     margin-top: 1em;
 }
 
@@ -89,7 +113,6 @@ img.advisorChoice-choice:hover {
 
 .jspsych-jas-present-advice-choice-wrapper:nth-of-type(n+2) img.advisor-portrait,
 .jspsych-jas-present-advice-wrapper:nth-of-type(n+2) img.advisor-portrait {
-    margin-top: .5em;
 }
 
 .jspsych-jas-present-advice-choice-prompt {
@@ -110,61 +133,86 @@ div.jspsych-sliders-row.genTrustQ:hover {
 }
 
 div.jspsych-jas-present-advice-arrow {
-    width: 25%;
+    width: 50%;
     position: absolute;
-    top: calc(50% - 4em);
+    top: calc(50% - 1.1em);
     z-index: -1;
-    border-radius: 100%;
+    border-radius: 1em;
+    line-height: 1em;
     vertical-align: middle;
-    padding: 4em 12.5%;
-    text-transform: uppercase;
-    font-weight: bold;
+    padding: 0.5em 1.5em;
+    background-color: white !important;
+    border: 0.2em solid;
 }
 
 div.jspsych-jas-present-advice-arrow-left {
-    left: 0;
+    left: calc(-40% + 10em);
     text-align: left;
 }
 
 div.jspsych-jas-present-advice-arrow-right {
-    left: 50%;
+    left: calc(40% + 5em);
     text-align: right;
 }
 
 div.jspsych-jas-present-advice-image {
-    border: 2px solid;
-    padding: 0;
+    border: .2em solid white;
+    padding: 0 1em;
     border-radius: 1em;
-    width: 50%;
+    width: 10em;
     margin: auto;
 }
 
-.jspsych-jas-present-advice-arrow.advisorChoice-advisor-1,
-.jspsych-jas-present-advice-image.advisorChoice-advisor-1 {
-    background-color: #BF3F3F;
+div.advisorChoice-change-selected .jspsych-jas-present-advice-image {
+    transform: scale(2);
+    z-index: 2;
+    position: relative;
+}
+div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
+    transform: scale(1);
+    z-index: 1;
+    position: relative;
+}
+
+.advisorChoice-change-instructions {
+    margin-top: 10em;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-1 {
     border-color: #BF3F3F;
 }
+.jspsych-jas-present-advice-image.advisorChoice-advisor-1 {
+    background-color: #BF3F3F;
+}
 
-.jspsych-jas-present-advice-arrow.advisorChoice-advisor-2,
-.jspsych-jas-present-advice-image.advisorChoice-advisor-2 {
-    background-color: #7FBF3F;
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-2 {
     border-color: #7FBF3F;
 }
+.jspsych-jas-present-advice-image.advisorChoice-advisor-2 {
+    background-color: #7FBF3F;
+}
 
-.jspsych-jas-present-advice-arrow.advisorChoice-advisor-3,
-.jspsych-jas-present-advice-image.advisorChoice-advisor-3 {
-    background-color: #3FBFBF;
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-3 {
     border-color: #3FBFBF;
 }
-
-.jspsych-jas-present-advice-arrow.advisorChoice-advisor-4,
-.jspsych-jas-present-advice-image.advisorChoice-advisor-4 {
-    background-color: #3F3FBF;
-    border-color: #3F3FBF;
+.jspsych-jas-present-advice-image.advisorChoice-advisor-3 {
+    background-color: #3FBFBF;
 }
 
-.jspsych-jas-present-advice-arrow.advisorChoice-advisor-5,
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-4 {
+    border-color: #3F3FBF;
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-4 {
+    background-color: #3F3FBF;
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-5 {
+    border-color: #D1CC37;
+}
 .jspsych-jas-present-advice-image.advisorChoice-advisor-5 {
     background-color: #D1CC37;
-    border-color: #D1CC37;
+}
+
+.advisorChoice-change-noOutline:focus {
+    outline: none;
 }

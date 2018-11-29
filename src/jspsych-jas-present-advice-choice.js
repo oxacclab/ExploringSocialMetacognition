@@ -63,6 +63,7 @@ jsPsych.plugins["jspsych-jas-present-advice-choice"] = (function() {
         // store response
         let response = {
             choiceTime: null,
+            changeTimes: [],
             choice: null,
             totalTime: null
         };
@@ -75,11 +76,16 @@ jsPsych.plugins["jspsych-jas-present-advice-choice"] = (function() {
 
         trial.choiceFunction(display_element, run_trial);
 
-        function run_trial(choice) {
+        function run_trial(choice, changeTimes = []) {
             if(typeof trial.displayImageFunction === 'undefined'){
                 console.error('Required parameter "displayImageFunction" missing in jspsych-jas-present-advice-choice');
             }
 
+            response.changeTimes = changeTimes;
+            // set change times to be relative to start_time
+            if(response.changeTimes.length > 0)
+                for(let i = 0; i < response.changeTimes.length; i++)
+                    response.changeTimes[i] -= start_time;
             response.choice = choice;
             if (response.choice === -1)
                 end_trial();
