@@ -38,6 +38,7 @@ td.jspsych-sliders-slider {
 
 input.jspsych-sliders-response-slider {
     -webkit-appearance: none;
+    height: var(--slider-track-height);
     margin: 0 0;
     width: 100%;
     position: relative;
