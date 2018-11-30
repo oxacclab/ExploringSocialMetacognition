@@ -1001,6 +1001,18 @@ class AdvisorChoice extends DotTask {
         instructionsDiv.id = 'advisorChoice-change-instructions';
         instructionsDiv.classList.add('advisorChoice-change-instructions');
         instructionsDiv.innerHTML = 'Press Spacebar to change advisor';
+        instructionsDiv.updateDelay = 20;
+        instructionsDiv.duration = this.changeTime;
+        instructionsDiv.updateTick = 0;
+        let progressAnimation = function(div) {
+            let percent = div.updateDelay / div.duration * 100 * ++div.updateTick;
+            div.style.backgroundImage = "linear-gradient(to right, var(--advisorChoice-change-instructions-fill) " +
+                (percent - 5).toString() + "%, " +
+                "var(--advisorChoice-change-instructions-background) " +
+                (percent + 5).toString() + "%)";
+            setTimeout(function(){progressAnimation(div)}, div.updateDelay);
+        };
+        progressAnimation(instructionsDiv);
 
         div.tabIndex = 1;
         div.classList.add('advisorChoice-change-noOutline');

@@ -1,3 +1,7 @@
+:root {
+    --advisorChoice-change-instructions-background: #ffffffDD;
+    --advisorChoice-change-instructions-fill: #ff3510DD;
+}
 body {
     background-color: #858585;
 }
@@ -42,17 +46,16 @@ div.advisorChoice-slider-label-right {
 span.advisorChoice-slider-label-direction {
     font-weight: bold;
 }
-
 img.advisor-portrait {
     height: 3em;
     border-radius: 100%;
     margin-top: .5em;
 }
-
 span.advisor-name {
     text-transform: uppercase;
     font-weight: bold;
 }
+
 img.advisorChoice-choice {
     max-height: 150px;
     display: block;
@@ -60,6 +63,10 @@ img.advisorChoice-choice {
 }
 .advisorChoice-choice:hover {
     cursor: pointer;
+}
+div.advisorChoice-choice div.jspsych-jas-present-advice-image {
+    transition: box-shadow .2s;
+    box-shadow: none;
 }
 div.advisorChoice-choice:hover div.jspsych-jas-present-advice-image {
     box-shadow: inset 0 0 5px 1px black;
@@ -129,7 +136,6 @@ tr.jspsych-sliders-response-labels td:last-of-type {
 }
 
 div.jspsych-sliders-row.genTrustQ:hover {
-    background-color: #dddddd;
 }
 
 div.jspsych-jas-present-advice-arrow {
@@ -162,20 +168,34 @@ div.jspsych-jas-present-advice-image {
     width: 10em;
     margin: auto;
 }
-
-div.advisorChoice-change-selected .jspsych-jas-present-advice-image {
-    transform: scale(2);
-    z-index: 2;
+@keyframes advisorChoice-change-select {
+    from{transform: scale(.667);}
+    to {transform: scale(2.33);}
+}
+@keyframes advisorChoice-change-deselect {
+    from{transform: scale(2.33);}
+    to {transform: scale(.667);}
+}
+div.advisorChoice-change-selected .jspsych-jas-present-advice-image,
+div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
     position: relative;
+    transition: transform .5s;
+}
+div.advisorChoice-change-selected:nth-of-type(2) .jspsych-jas-present-advice-image,
+div.advisorChoice-change-unselected:nth-of-type(2) .jspsych-jas-present-advice-image {
+    margin-top: 2em;
+}
+div.advisorChoice-change-selected .jspsych-jas-present-advice-image {
+    z-index: 2;
+    transform: scale(2.33);
 }
 div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
-    transform: scale(1);
     z-index: 1;
-    position: relative;
+    transform: scale(.667);
 }
-
 .advisorChoice-change-instructions {
-    margin-top: 10em;
+    margin-top: 5em;
+    border-radius: 1em;
 }
 
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-1 {
