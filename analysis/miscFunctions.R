@@ -2,63 +2,9 @@
 
 # Presentation functions --------------------------------------------------
 
-#' Format proportion to be a string beginning with a decimal point.
-#' Does not respect scientific notation options
-#' @param proportion number to convert to string
-#' @param precision decimal places to preserve
-#' @param truncateZeros whether to strip trailing 0s
-#' @return \{code}proportion stripped of leading 0s and rounded to \{code}precision decimal places
-prop2str <- function(proportion, precision = 2, truncateZeros = F) {
-  if(length(proportion) > 1)
-    return(sapply(proportion, function(x) prop2str(x, precision, truncateZeros)))
-  if(is.nan(proportion))
-    return(as.character(proportion))
-  proportion <- round(as.numeric(proportion), precision)
-  # if we hit scientific notation then give up!
-  if(grepl('e', proportion, fixed = T))
-    return(as.character(proportion))
-  if(abs(proportion) < 1)
-    x <- sub('^-?0\\.', ifelse(proportion < 0, '-.', '.'), as.character(proportion))
-  else 
-    x <- as.character(proportion)
-  if(truncateZeros)
-    return(x)
-  dot <- regexpr('.', x, fixed = T)
-  if(dot == -1) {
-    x <- paste0(x,'.')
-    dot <- regexpr('.', x, fixed = T)
-  }
-  right <- substr(x, dot, dot+precision) # portion of x after 0
-  right <- paste0(right, strrep('0',precision-nchar(right)+1))
-  x <- paste0(substr(x, 1, dot-1), right)
-  return(x)
-}
-
-#' Format number to be a string beginning with a decimal point.
-#' Does not respect scientific notation options
-#' @param num number to convert to string
-#' @param precision decimal places to preserve
-#' @param truncateZeros whether to strip trailing 0s
-#' @return \{code}num stripped of leading 0s and rounded to \{code}precision decimal places
-num2str <- function(num, precision = 2, truncateZeros = F) {
-  if(length(num) > 1)
-    return(sapply(num, function(x) num2str(x, precision, truncateZeros)))
-  if(is.nan(num))
-    return(as.character(num))
-  num <- round(as.numeric(num), precision)
-  # string manipulation to pad 0s
-  x <- as.character(num)
-  if(truncateZeros)
-    return(x)
-  dot <- regexpr('.', x, fixed = T)
-  if(dot == -1) {
-    x <- paste0(x,'.')
-    dot <- regexpr('.', x, fixed = T)
-  }
-  right <- substr(x, dot, dot+precision) # portion of x after 0
-  right <- paste0(right, strrep('0',precision-nchar(right)+1))
-  x <- paste0(substr(x, 1, dot-1), right)
-  return(x)
+if(!require(prettyMD)) {
+  devtools::install_github('mjaquiery/prettyMD')
+  library(prettyMD)
 }
 
 #' Print the results of a t-test as we would like to see them reported in a paper
@@ -93,7 +39,7 @@ printMean <- function(vector, label = 'Mean', doPrint = T, conf.int = .95, na.rm
   mu <- mean(vector, na.rm = na.rm)
   s <- sd(vector, na.rm = na.rm)
   n <- length(vector)
-  ci <- ciMean(vector, conf = conf.int) # lsr::ciMean()
+  ci <- ciMean(vector, conf = conf.int, na.rm = na.rm) # lsr::ciMean()
   ci.low <- ci[1]
   ci.high <- ci[2]
   r <- precisionFun(range(vector, na.rm = na.rm), decimals)
@@ -138,7 +84,7 @@ style <- theme_light() +
         panel.grid.major.x = element_blank(),
         text = element_text(size = gg.font.med),
         plot.title = element_text(size = gg.font.large, margin=margin(0,0,gg.font.large,0)),
-        legend.position = 'top')
+        legend.position = 'top') 
 
 style.long <- style + theme(legend.position = 'none')
 
@@ -176,6 +122,14 @@ prettifyEZ <- function(obj) {
   # if there's a $ANOVA item use that instead
   if(!is.null(obj$ANOVA))
     return(prettifyEZ(obj$ANOVA))
+  okayCols <- c('F', 'p', 'ges') %in% colnames(obj)
+  if(!all(okayCols)) {
+    colString <- paste0(c('F', 'p', 'ges')[!okayCols], collapse = ', ')
+    msg <- paste0('Expected column', ifelse(sum(!okayCols) < 2, ' (', 's ('),
+                  colString, 
+                  ') not found; supplied object does not appear to be an ezANOVA output.')
+    stop(msg)
+  }
   obj$F <- num2str(obj$F)
   obj$p <- prop2str(obj$p, 3)
   obj$ges <- prop2str(obj$ges, 4)

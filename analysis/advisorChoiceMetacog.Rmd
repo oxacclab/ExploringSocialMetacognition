@@ -138,7 +138,7 @@ These advisors don't show contingent agreement, so there shouldn't be much
 here. This is retained mostly for comparison purposes
 ```{r echo = F}
 aov.iii.i <- aov.agreementContingencies(trials)
-prettifyEZ(aov.iii.i)
+kable(prettifyEZ(aov.iii.i))
 ```
 
 ## 3.ii) Graph: overall agreement by contingency ####
@@ -152,7 +152,7 @@ gg.iii.ii
 ```{r echo = F}
 # Initial block is forced trials
 tmp.aov <- aov.agreementContingencies(trials[trials$type==trialTypes$force, ])
-prettifyEZ(tmp.aov)
+kable(prettifyEZ(tmp.aov))
 ```
 
 ## 3.iv) Graph: initial block agreement by contingency ####
@@ -165,7 +165,7 @@ gg.iii.iv
 ### 3.iv.i) Graph of agreement by block on initialCorrect trials
 ```{r echo = F}
 tmp.aov <- aov.agreementContingenciesByType(trials[trials$initialCorrect==T, ])
-prettifyEZ(tmp.aov)
+kable(prettifyEZ(tmp.aov))
 gg.iii.iv.i <- gg.agreementContingenciesByType(trials[trials$initialCorrect==T, ])
 gg.iii.iv.i
 ```
@@ -602,8 +602,8 @@ gg.v.viii.2
 df.metacog <- NULL
 for(pid in unique(trials$pid)) {
   ts <- trials[trials$pid == pid, ]
-  corInitial = cor(ts$initialCorrect, ts$initialConfidence)
-  corFinal = cor(ts$finalCorrect, ts$finalConfidence)
+  corInitial = glm(initialCorrect ~ initialConfidence, data = ts, family = binomial)$coefficients[2]
+  corFinal = glm(finalCorrect ~ finalConfidence, data = ts, family = binomial)$coefficients[2]
   brierInitial = brierscore(initialCorrect ~ initialConfidence, data = ts, group = 'pid')$brieravg
   brierFinal = brierscore(finalCorrect ~ finalConfidence, data = ts, group = 'pid')$brieravg
   df.metacog <- rbind(df.metacog, data.frame(pid, corInitial, brierInitial, corFinal, brierFinal))
@@ -640,39 +640,23 @@ the high accuracy advisor and dividing by the total number of choice
 trials for that participant (should be the same for all participants). We can
 then take the mean of this proportion across participants and test it for
 significant versus the null hypothesis of random picking (0.5).
-```{r echo = F}
+
+```{r results = 'asis'}
 tmp <- aggregate(adviceType ~ pid, 
                  data = trials[trials$type==trialTypes$choice, ],
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
-t.vi.i <- t.test(tmp$adviceType, mu=0.5)
-d <- cohensD(tmp$adviceType, mu = 0.5)
-tB.vi.i <- ttestBF(tmp$adviceType, mu = 0.5)
-
-printMean(tmp$adviceType, 'Mean AiC pick rate', isProportion = T)
-print('Choice proportion AiC vs. chance level (.5)')
-prettyPrint(t.vi.i, d)
-print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
-print(tB.vi.i)
-print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.vi.i@bayesFactor$bf),3)))
+md.ttest(tmp$adviceType, mu=0.5)
 ```
 
 ## 6.ii) Medium-confidence trials ####
 And the same with mid-confidence trials only:
-```{r echo = F}
+```{r results = 'asis'}
 tmp <- aggregate(adviceType ~ pid, 
                  data = trials[trials$type==trialTypes$choice 
-                               & trials$confidenceCategory==confidenceCategories$medium, ],
+                               & trials$confidenceCategory==confidenceCategories$medium
+                               & trials$initialAnswer == trials$correctAnswer, ],
                  FUN = function(x)sum(x==adviceTypes$AiC)/length(x))
-t.vi.ii <- t.test(tmp$adviceType, mu=0.5)
-d <- cohensD(tmp$adviceType, mu=0.5)
-tB.vi.ii <- ttestBF(tmp$adviceType, mu = 0.5)
-
-printMean(tmp$adviceType, 'Mean AiC pick rate', isProportion = T)
-print('Choice proportion AiC vs. chance level (.5) for mid-confidence trials')
-prettyPrint(t.vi.ii,d)
-print('Bayesian examination of above (prior = mean of 0.5, sd as empirically observed)')
-print(tB.vi.ii)
-print(paste0('Evidence strength for preferential AiC picking: BF=', round(exp(tB.vi.ii@bayesFactor$bf),3)))
+md.ttest(tmp$adviceType, mu=0.5)
 ```
 
 ## 6.iii) Graph: Advisor preference by confidence category ####
@@ -737,7 +721,7 @@ later. Below, we run an ANOVA using the influence data.
 
 print('2x2x2 Mixed ANOVA of advisor type x choice x agreement')
 aov.vii.i <- aov.influence(trials)
-prettifyEZ(aov.vii.i)
+kable(prettifyEZ(aov.vii.i))
 
 printMeans.influence(trials)
 ```
@@ -761,21 +745,21 @@ where both advisors agree 70% of the time, and thus where agreement and
 confidence balance out). This subset only includes trials on which the
 participant was CORRECT. Where incorrect, advisors also agree equally often
 (30% of the time), so these trials could be included.
-```{r echo = F}
+```{r echo = F, results = 'asis'}
 aov.vii.iii <- aov.influence(trials[trials$confidenceCategory==confidenceCategories$medium
-                                    & trials$finalAnswer==trials$correctAnswer, ])
+                                    & trials$initialAnswer==trials$correctAnswer, ])
 
-prettifyEZ(aov.vii.iii)
+kable(prettifyEZ(aov.vii.iii))
 
 printMeans.influence(trials[trials$confidenceCategory==confidenceCategories$medium
-                            & trials$finalAnswer==trials$correctAnswer, ])
+                            & trials$initialAnswer==trials$correctAnswer, ])
 ```
 
 And the graph for medium-confidence trials only
 
 ```{r echo=F}
 gg.vii.ii <- gg.influence(trials[trials$confidenceCategory==confidenceCategories$medium
-                                 & trials$finalAnswer==trials$correctAnswer, ]) +
+                                 & trials$initialAnswer==trials$correctAnswer, ]) +
   labs(title = 'Advisor Influence on medium-confidence trials')
 gg.vii.ii
 ```
@@ -791,7 +775,7 @@ tmp <- trials
 tmp$influence <- tmp$rawInfluence
 
 aov.vii.iv <- aov.influence(tmp)
-prettifyEZ(aov.vii.iv)
+kable(prettifyEZ(aov.vii.iv))
 
 printMeans.influence(tmp)
 ```
@@ -815,7 +799,7 @@ kable(df.vii.i)
 tmp <- trials[trials$type==trialTypes$force &
                 trials$confidenceCategory==confidenceCategories$medium, ]
 aov.vii.v <- aov.influence.allForced(tmp)
-prettifyEZ(aov.vii.v)
+kable(prettifyEZ(aov.vii.v))
 
 printMeans.influence(tmp)
 
@@ -1371,6 +1355,19 @@ gg.cumAcc <- ggplot(df.cumAcc, aes(x = id, y = cumAcc, colour = pid)) +
   style.long +
   labs(title = 'Cumulative accuracy plot for participants in the Advisor Choice (metacognitive) task')
 gg.cumAcc
+```
+
+# 16) Quick and dirty influence analysis
+
+We've tried many ways of analysing influence. Here we just quite simply t-test medium confidence trials. We look at correct trials for parity with Experiment 1.
+
+```{r results='asis'}
+tmp <- trials[trials$confidenceCategory == confidenceCategories$medium & trials$initialCorrect == T, ]
+tmp <- aggregate(influence ~ pid + adviceType, tmp, mean)
+md.ttest(tmp$influence[tmp$adviceType %% 2 == 1], tmp$influence[tmp$adviceType %% 2 == 0],
+         labels = c(getAdviceTypeName(unique(tmp$adviceType[tmp$adviceType %% 2 == 1])),
+                    getAdviceTypeName(unique(tmp$adviceType[tmp$adviceType %% 2 == 0]))),
+         paired = T)
 ```
 
 # Additional/In progress

@@ -182,17 +182,17 @@ aov.influence.allForced <- function(trials) {
 printMeans.influence <- function(trials, ...) {
   tmp <- tmp.influence(trials, ...)
   for(aT in unique(tmp$adviceType))
-    printMean(tmp$influence[tmp$adviceType==aT], 
-              paste0('Mean|', getAdviceTypeName(aT)))
+    cat(paste0(md.mean(tmp$influence[tmp$adviceType==aT], 
+                paste0('*M*|', getAdviceTypeName(aT))), '\n\n'))
   if(length(unique(tmp$hasChoice)) > 1) {
-    printMean(tmp$influence[tmp$hasChoice==T], 'Mean|Choice')
-    printMean(tmp$influence[tmp$hasChoice==F], 'Mean|Forced')
+    cat(paste0(md.mean(tmp$influence[tmp$hasChoice==T], '*M*|Choice'), '\n\n'))
+    cat(paste0(md.mean(tmp$influence[tmp$hasChoice==F], '*M*|Forced'), '\n\n'))
   }
   if(length(unique(tmp$advisorAgrees)) > 1) {
-    printMean(tmp$influence[tmp$advisorAgrees==T], 'Mean|Agree')
-    printMean(tmp$influence[tmp$advisorAgrees==F], 'Mean|Disagree')
+    cat(paste0(md.mean(tmp$influence[tmp$advisorAgrees==T], '*M*|Agree'), '\n\n'))
+    cat(paste0(md.mean(tmp$influence[tmp$advisorAgrees==F], '*M*|Disagree'), '\n\n'))
   }
-  NULL
+  # NULL
 }
 
 #' Graph of influence
