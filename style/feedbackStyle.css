@@ -196,6 +196,7 @@ div.feedback.graph {
     margin: auto;
     min-height: 200px;
     background-color: transparent;
+    width: 90%;
 }
 
 div.feedback.description {
@@ -211,15 +212,48 @@ div.feedback.description p {
     right: 0;
 }
 
-div.feedback.advisor {
-    border: 5px solid black;
-    border-radius: 25px;
-    overflow: hidden;
-    background-color: white;
-    max-width: 80%;
-    display: block;
-    margin: auto;
-    margin-bottom: 1em;
+div.jspsych-jas-present-advice-wrapper.feedback {
+    min-width: 50%;
+    margin: auto !important;
+}
+
+div.jspsych-jas-present-advice-image.feedback {
+    width: unset;
+    padding: 1em;
+}
+
+img.advisor-portrait.feedback {
+    float: left;
+}
+
+div.jspsych-jas-present-advice-prompt.feedback {
+    font-size: 2em;
+    line-height: 2em;
+    margin-left: 2em;
+}
+
+div.advisor-stats.feedback {
+    width: 100%;
+}
+
+div.advisor-stats-container.feedback {
+    width: 100%;
+    display: inline-flex;
+    flex-wrap: wrap;
+    margin: 0;
+    font-size: 1.5em;
+    background-color: #ffffff24;
+}
+
+div.advisor-stats-container p.feedback:first-of-type {
+    width: 100%;
+    background-color: #ffffff0d;
+    padding: .2em;
+}
+
+div.advisor-stats-container p.feedback {
+    width: 45%;
+    text-align: center;
 }
 
 div.feedback.advisor-stats-wrapper {
@@ -231,31 +265,10 @@ div.feedback.advisor-stats-wrapper > p {
     display: block;
 }
 
-div.feedback.advisor-stats-wrapper > div.advisor-portrait {
-    width: 40%;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position-x: 50%;
-    margin: 0;
-    padding: 0;
-    padding-top: 30%;
-    border-bottom: 1px solid #0000000d;
-}
-
-div.feedback.advisor-stats {
-    background-color: #e7e7e726;
-    width: 60%;
-}
-
 div.feedback.advisor-stats > h3 {
     text-align: center;
     margin: 0;
     font-size: 2em;
-}
-
-div.feedback.advisor-stats-container {
-    margin-left: 20%;
-    font-size: 1.5em;
 }
 
 div.feedback.advisor-stats-container > p:first-of-type {
@@ -269,28 +282,30 @@ div.feedback.advisor-stats-container > p:last-of-type {
 div.feedback.advisor-graph {
     width: 100%;
     max-height: 500px;
+    overflow: hidden;
 }
 
 div.confidenceBar {
+    position: relative;
     width: calc(100% - 3em);
-    height: 35px;
-    background-color: green;
+    height: var(--slider-track-height);
+    background-color: #858585;
+    background-image: linear-gradient(to right, var(--slider-color-grey), var(--slider-color-green));
     display: inline-flex;
     margin: 1em;
-    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;;
-    background: #373737;
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
     border-radius: 0;
-    border: 0.2px solid #010101;
+    border: 1px solid #010101;
 }
 
 div#confidenceBarPre, div#confidenceBarPost {
-    margin: 1em;
+    margin: 2em 1em;
 }
 
 div.confidenceMarker {
     height: 100%;
     width: 20px;
-    position: relative;
+    position: absolute;
     z-index: 1;
     border: none;
     border-radius: 3px;
@@ -343,281 +358,25 @@ div.confidencePopup.incorrect {
     border-color: red;
 }
 
+
 @media only screen and (min-width: 1000px) {
     div.feedback.container {
         display: flex;
-    }
-
-    nav.feedback {
-        background-color: palegoldenrod;
-        height: 1.5em;
-        top: 0;
-        width: 100%;
-        position: fixed;
-        z-index: 10;
-    }
-
-    ul.feedback {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        border: 1px solid #e7e7e7;
-        background-color: #f3f3f3;
-    }
-
-    li.feedback {
-        float: right;
-    }
-
-    li.feedback, a.feedback {
-        display: block;
-        color: #666;
-        text-align: center;
-        padding: 0.2em;
-        text-decoration: none;
-    }
-
-    a.feedback {
-        text-decoration: none;
-    }
-
-    li.feedback a.feedback:hover {
-        background-color: #ddd;
-    }
-
-    h1.feedback, h2.feedback > a {
-        color: black;
-        text-decoration: none;
-        margin-bottom: 0.5em;
-        text-align: left;
-    }
-
-    section.feedback h2 {
-        margin-top: 0;
-    }
-
-    h2.feedback > a:hover {
-        background-color: #f3f3f3;
-    }
-
-    h3.feedback {
-        margin: 0;
-    }
-
-    p.feedback {
-        padding: 0;
-        text-align: justify;
-        line-height: 1.1em;
-        font-size: 1.2em;
-        margin: 0.5em 0;
-    }
-
-    div.permalink-container {
-        margin: auto;
-        margin-top: 1em;
-        border: 5px solid black;
-        border-radius: 25px;
-        padding: 0;
-        display: inline-flex;
-        font-size: 1.4em;
-        background: white;
-    }
-
-    div.permalink-label, div.permalink-link, div.permalink-copy {
-        padding: 0.5em;
-    }
-
-    div.permalink-label {
-        background: black;
-        color: white;
-        border-top-left-radius: 10px;
-        border-bottom-left-radius: 10px;
-    }
-
-    div.permalink-link {
-        padding-top: 0.7em;
-        font-size: 1em;
-        font-family: monospace;
-    }
-
-    div.permalink-copy {
-        margin-right: 0.5em;
-        min-width: 1em;
-        min-height: 2em;
-        text-align: right;
-        cursor: pointer;
-        background-image: url(https://use.fontawesome.com/releases/v5.0.13/svgs/solid/copy.svg);
-        background-repeat: no-repeat;
-        background-size: contain;
-        background-position: center;
-    }
-
-    div.permalink-copy img {
-        height: 1em;
-    }
-
-    div.feedback.advisor-stats {
-    }
-
-    div.feedback.advisor-stats-container p {
-        line-height: 1em;
-        font-size: 1em;
-        text-align: left;
-        padding: 0;
-        margin: 0.2em;
+        align-items: center;
     }
 
     div.feedback.graph {
-        display: block;
-        width: 50vw;
-        margin: auto;
-        background-color: transparent;
+        max-width: 50vw;
     }
 
     div.feedback.description {
         position: relative;
-        width: 50vw;
+        max-width: 50vw;
         height: 100%;
         padding-right: 0;
         padding-left: 0;
     }
 
-    div.feedback.description p {
-        position: relative;
-        top: 50%;
-        bottom: 0;
-        left: 0;
-        right: 0;
-    }
-
-    div.feedback.advisor {
-        width: 40%;
-        border: 5px solid black;
-        border-radius: 25px;
-        overflow: hidden;
-        background-color: white;
-        max-width: 500px;
-        display: block;
-        margin: auto;
-    }
-
-    div.feedback.advisor-stats-wrapper {
-        display: inline-flex;
-        width: 100%;
-    }
-
-    div.feedback.advisor-stats-wrapper > p {
-        display: block;
-    }
-
-    div.feedback.advisor-stats-wrapper > div.advisor-portrait {
-        width: 40%;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-position-x: 50%;
-        margin: 0;
-        padding: 0;
-        border-bottom: 1px solid #0000000d;
-    }
-
-    div.feedback.advisor-stats {
-        background-color: #e7e7e726;
-        width: 60%;
-    }
-
-    div.feedback.advisor-stats > h3 {
-        text-align: center;
-        margin: 0;
-    }
-
-    div.feedback.advisor-stats-container {
-        margin-left: 0.5em;
-    }
-
-    div.feedback.advisor-stats-container > p:first-of-type {
-        margin-bottom: 0.5em;
-    }
-
-    div.feedback.advisor-stats-container > p:last-of-type {
-        margin-bottom: 0.5em;
-    }
-
-    div.feedback.advisor-graph {
-        width: 100%;
-        max-height: 500px;
-    }
-
-    div.confidenceBar {
-        width: calc(100% - 3em);
-        height: 35px;
-        background-color: green;
-        display: inline-flex;
-        margin: 1em;
-        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;;
-        background: #373737;
-        border-radius: 0;
-        border: 0.2px solid #010101;
-    }
-
-    div#confidenceBarPre, div#confidenceBarPost {
-        margin: 1em;
-    }
-
-    div.confidenceMarker {
-        height: 100%;
-        width: 20px;
-        position: relative;
-        z-index: 1;
-        border: none;
-        border-radius: 3px;
-        box-shadow: none;
-        background: transparent;
-        cursor: pointer;
-        -webkit-appearance: none;
-    }
-
-    div.confidenceMarker.correct {
-        background-color: dodgerblue;
-        bottom: 50%;
-    }
-
-    div.confidenceMarker.incorrect {
-        background-color: lightpink;
-        top: 50%;
-    }
-
-    div.confidenceMarker:hover {
-        z-index: 2;
-    }
-
-    div.confidenceMarker:hover div.confidencePopup, div.confidencePopup:hover {
-        display: block;
-    }
-
-    div.confidencePopup {
-        position: relative;
-        border: 2px solid;
-        border-radius: 0.5em;
-        font-size: 1em;
-        line-height: 1em;
-        padding: 0.5em;
-        margin: 0;
-        min-width: 10em;
-        left: 50%;
-        display: none;
-        z-index: 3;
-        bottom: 50%;
-        background-color: white;
-    }
-
-    div.confidencePopup.correct {
-        border-color: blue;
-    }
-
-    div.confidencePopup.incorrect {
-        border-color: red;
-    }
 }
 
 .terminated {color: darkred; font-weight: bold;}

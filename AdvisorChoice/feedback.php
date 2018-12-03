@@ -23,17 +23,29 @@ function is_sha1($str) {
 
 $id = $_GET["id"];
 $err = "";
+$filename = array();
+$json = false;
+$file = null;
 
-if(!is_sha1($id))
+if(!preg_match('/^[a-z0-9\-]*_?[0-9a-f]{40}$/i', $id))
     $err = "ID '$id' not found.";
 
-$path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR.$id.".JSON";
+$path = "data".DIRECTORY_SEPARATOR."raw".DIRECTORY_SEPARATOR;
 
 if(!is_readable($path))
-    $err = "Could not find results for ID '$id'.";
+    $err = "Could not find results director.";
+else {
+    $filenames = scandir($path);
+    $filename = preg_grep("/$id.JSON/", $filenames);
+}
+
+if(count($filename) < 0)
+    $err = "Could not find results file for '$id'.";
+else
+    $filename = array_pop($filename);
 
 if($err == "")
-    $json = file_get_contents($path);
+    $json = file_get_contents($path.$filename);
 
 if($json == false)
     $err = "Failed to read results for ID '$id'.";
@@ -44,6 +56,7 @@ if($json == false)
 
     <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
     <link rel="stylesheet" href="../style/confidenceSliders.css"/>
+    <link rel="stylesheet" href="../style/advisorChoice.css"/>
     <link rel="stylesheet" href="../style/feedbackStyle.css"/>
     <link rel="stylesheet" href="../style/debriefForm.css"/>
 </head>
@@ -53,7 +66,7 @@ if($json == false)
     if($err != "") {
         ?>
         <h1>Error!</h1>
-        <p><?php echo $err."<br/>".realpath($path)."<br/>".filesize($file)." bytes"; ?></p>
+        <p><?php echo $err."<br/>".$path."<br/>".filesize($file)." bytes"; ?></p>
 </div>
 </body>
 </html>

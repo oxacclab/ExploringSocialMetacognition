@@ -1,6 +1,11 @@
 :root {
     --advisorChoice-change-instructions-background: #ffffffDD;
     --advisorChoice-change-instructions-fill: #ff3510DD;
+    --advisorChoice-advisor-1: #BF3F3F;
+    --advisorChoice-advisor-2: #7FBF3F;
+    --advisorChoice-advisor-3: #3FBFBF;
+    --advisorChoice-advisor-4: #D1CC37;
+    --advisorChoice-advisor-5: #3F3FBF;
 }
 body {
     background-color: #858585;
@@ -199,38 +204,38 @@ div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
 }
 
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-1 {
-    border-color: #BF3F3F;
+    border-color: var(--advisorChoice-advisor-1);
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-1 {
-    background-color: #BF3F3F;
+    background-color: var(--advisorChoice-advisor-1);
 }
 
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-2 {
-    border-color: #7FBF3F;
+    border-color: var(--advisorChoice-advisor-2);
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-2 {
-    background-color: #7FBF3F;
+    background-color: var(--advisorChoice-advisor-2);
 }
 
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-3 {
-    border-color: #3FBFBF;
+    border-color: var(--advisorChoice-advisor-3);
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-3 {
-    background-color: #3FBFBF;
+    background-color: var(--advisorChoice-advisor-3);
 }
 
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-4 {
-    border-color: #3F3FBF;
+    border-color: var(--advisorChoice-advisor-4);
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-4 {
-    background-color: #3F3FBF;
+    background-color: var(--advisorChoice-advisor-4);
 }
 
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-5 {
-    border-color: #D1CC37;
+    border-color: var(--advisorChoice-advisor-5);
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-5 {
-    background-color: #D1CC37;
+    background-color: var(--advisorChoice-advisor-5);
 }
 
 .advisorChoice-change-noOutline:focus {

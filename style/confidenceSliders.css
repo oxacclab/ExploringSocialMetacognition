@@ -5,8 +5,11 @@ General thanks to https://css-tricks.com/styling-cross-browser-compatible-range-
     --slider-track-cursor: pointer;
     --slider-track-color: #ffffff00;
     --slider-track-color-focus: #ffffff00;
-    --slider-track-background-image: linear-gradient(to right, #46f91936,#3d483d36, #46f91936);
-    --slider-track-background-image-red: linear-gradient(to right, #ff070736, #46f91936);
+    --slider-color-green: #46f91936;
+    --slider-color-grey: #46f91900;
+    --slider-color-red: #ff070736;
+    --slider-track-background-image: linear-gradient(to right, var(--slider-color-green), var(--slider-color-grey), var(--slider-color-green));
+    --slider-track-background-image-red: linear-gradient(to right, var(--slider-color-red), var(--slider-color-green));
     --slider-track-height: 4em;
     --slider-track-box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
     --slider-track-border-radius: 0;

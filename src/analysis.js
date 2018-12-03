@@ -545,7 +545,7 @@ class advisorChoice extends dotTask {
         permalinkLabel.innerText = 'Permanent link:';
         let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
         permalinkLink.className = 'permalink-link';
-        permalinkLink.innerText = 'https://tinyurl.com/mj221?id=' + g.participantId;
+        permalinkLink.innerText = 'https://tinyurl.com/mj221?id=' + g.experimentCode + '_' + g.participantId;
         let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
         permalinkCopy.className = 'permalink-copy';
         permalinkCopy.onclick = function(){
@@ -600,20 +600,11 @@ class advisorChoice extends dotTask {
             for(let a=aS*2; a<aS*2+2; a++) {
                 let advisor = advisors[a];
                 let i = advisor.id;
-                let advisorDiv = document.createElement('div');
-                advisorDiv.id = 'advisor'+i;
-                advisorDiv.className = 'advisor';
-                // stats (portrait + statistics)
+                let advisorDiv = g.drawAdvisor(advisorContainer, advisor);
                 let statsDiv = document.createElement('div');
                 statsDiv.id = 'advisor'+i+'statsWrapper';
                 statsDiv.className = 'advisor-stats-wrapper';
-                advisorDiv.appendChild(statsDiv);
-                // portrait
-                let portraitDiv = document.createElement('div');
-                portraitDiv.id = 'advisor'+i+'portrait';
-                portraitDiv.className = 'advisor-portrait';
-                portraitDiv.style.backgroundImage = "url('"+advisor.portraitSrc+"')";
-                statsDiv.appendChild(portraitDiv);
+                advisorDiv.firstChild.appendChild(statsDiv);
                 // stats
                 let statsContainer = document.createElement('div');
                 statsContainer.id = 'advisor'+i+'statsContainer';
@@ -621,9 +612,8 @@ class advisorChoice extends dotTask {
                 let stats = document.createElement('div');
                 stats.id = 'advisor'+i+'stats';
                 stats.className = 'advisor-stats';
-                stats.appendChild(document.createElement('h3')).innerText = advisor.name;
                 let last = statsContainer.appendChild(document.createElement('p'));
-                last.innerHTML= Advisor.getDescriptionHTML(advisor.adviceType);
+                last.innerHTML= "Agreement profile: " + Advisor.getDescriptionHTML(advisor.adviceType);
                 last.title = Advisor.getDescriptionTitleText(advisor.adviceType);
                 last = statsContainer.appendChild(document.createElement('p'));
                 last.innerHTML = "Chosen: <strong>"+
@@ -650,8 +640,7 @@ class advisorChoice extends dotTask {
                 let graphDiv = document.createElement('div');
                 graphDiv.id = 'advisor'+i+'graph';
                 graphDiv.className = 'advisor-graph graph';
-                advisorDiv.appendChild(graphDiv);
-                advisorContainer.appendChild(advisorDiv);
+                advisorDiv.firstChild.appendChild(graphDiv);
             }
         }
 
@@ -773,17 +762,18 @@ class advisorChoice extends dotTask {
         // Create the data table.
         let raw = [
             ['Person', 'Accuracy', { role: 'style' }],
-            ['You (pre advice)', judgeAcc.initial[0]*100, 'blue'],
-            ['You (post advice)', judgeAcc.final[0]*100, 'cornflower']
+            ['You (pre advice)', judgeAcc.initial[0]*100, 'black'],
+            ['You (post advice)', judgeAcc.final[0]*100, 'grey']
         ];
 
-        let col = ['silver', '#e5e4e2'];
-        let coli = 0;
         advisors.forEach(function(advisor) {
+            // empirically fetch the computed colour for the advisor
+            let elm = document.querySelector('.jspsych-jas-present-advice-image.' + advisor.styleClass);
+            let bg = window.getComputedStyle(elm).backgroundColor;
             raw.push([
                 advisor.name,
                 advisorChoice.advisorAccuracy(input.trials, advisor.id)[0]*100,
-                col[coli++]
+                bg
             ]);
         });
         let data = google.visualization.arrayToDataTable(raw);
