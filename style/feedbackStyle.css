@@ -94,6 +94,8 @@ li.feedback, a.feedback {
 
 a.feedback {
     text-decoration: none;
+    transition: background-color .2s;
+    border-radius: .25em;
 }
 
 a.feedback.payment-link {

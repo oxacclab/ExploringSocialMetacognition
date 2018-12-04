@@ -42,6 +42,13 @@ jsPsych.plugins['canvas-sliders-response'] = (function() {
                 description: 'The function to be called with the canvas ID. '+
                 'This should handle drawing operations.'
             },
+            hideFunction: {
+                type: jsPsych.plugins.parameterType.FUNCTION,
+                pretty_name: 'Stimulus hide function',
+                default: null,
+                description: 'The function to hide the stimulus. Called with the canvas containing div as a ' +
+                'parameter. If blank, stimulus is masked with applying visibility: hidden to the canvas.'
+            },
             canvasHTML: {
                 type: jsPsych.plugins.parameterType.HTML_STRING,
                 pretty_name: 'Canvas HTML',
@@ -579,10 +586,16 @@ jsPsych.plugins['canvas-sliders-response'] = (function() {
             jsPsych.finishTrial(trialdata);
         }
 
+        let stimOffFun = trial.hideFunction === null?
+            function(canvasContainer) {
+                canvasContainer.style.visibility = 'hidden';
+            } : trial.hideFunction;
+
         if (trial.stimulus_duration !== null) {
             jsPsych.pluginAPI.setTimeout(function() {
-                display_element.querySelector('#jspsych-canvas-sliders-response-stimulus').style.visibility = 'hidden';
+                let result = stimOffFun(display_element.querySelector('#jspsych-canvas-sliders-response-stimulus'));
                 response.stimulusOffTime = performance.now() - response.startTime;
+                response.stimulusOffFunReturned = result;
             }, trial.stimulus_duration);
         }
 

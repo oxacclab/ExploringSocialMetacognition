@@ -166,6 +166,10 @@ class DotTask extends Governor {
         let high = this.dotCount + this.dotDifference;
         let dots = this.currentTrial.whichSide === 0 ? [high, low] : [low, high];
         let grid = new DoubleDotGrid(dots[0], dots[1], {
+            gridWidth: 20,
+            gridHeight: 20,
+            dotWidth: 3,
+            dotHeight: 3,
             spacing: 100
         });
         this.currentTrial.grid = grid;
@@ -173,11 +177,21 @@ class DotTask extends Governor {
         setTimeout(function () {
             self.currentTrial.fixationDrawTime.push(performance.now());
             DotTask.drawFixation(canvasId);
+            self.currentTrial.grid.drawBoundingBoxes(canvasId);
         }, this.preTrialInterval);
         setTimeout(function(){
             self.currentTrial.stimulusDrawTime.push(performance.now());
             grid.draw(canvasId);
         }, this.preTrialInterval+this.preStimulusInterval);
+    }
+
+    /**
+     * Cover the dots in the boxes by redrawing the outer frame boxes
+     * @param {HTMLElement} canvasContainer - div containing the canvas
+     */
+    maskDots(canvasContainer) {
+        let canvas = canvasContainer.querySelector('canvas');
+        this.currentTrial.grid.drawBoundingBoxes(canvas.id);
     }
 
     /**
@@ -453,6 +467,8 @@ class DotTask extends Governor {
 
     endExperiment(saveData = true, clearScreen = true) {
         this.timeEnd = (new Date()).getTime();
+        // Exit fullscreen
+        this.fullscreenMode(false);
         if(saveData === true)
             this.exportGovernor();
         // reset background colour
@@ -641,7 +657,7 @@ class AdvisorChoice extends DotTask {
      * @param {[Advisor[]]} [args.advisorLists] - list of lists of advisors, each one being a set of advisors competing with one another in a block
      * @param {[Advisor[]]} [args.contingentAdvisors] - list of advisors to be used contingent on the confidence category of a response matching the list index
      * @param {[Advisor[]]} [args.questionnaireStack] - stack of advisors about whom questionnaires are to be asked
-     * @param {int} [args.changeTime = 1000] - time to offer advisor change on change trials in ms
+     * @param {int} [args.changeTime = 1500] - time to offer advisor change on change trials in ms
      *
      * @property {Advisor} currentAdvisor - advisor currently in focus
      * @property {Trial} currentTrial - trial currently underway
@@ -656,7 +672,7 @@ class AdvisorChoice extends DotTask {
         this.questionnaireStack = typeof args.questionnaireStack === 'undefined'? null : args.questionnaireStack;
         this.generalisedTrustQuestionnaire = typeof args.generalisedTrustQuestionnaire === 'undefined'?
             null : args.generalisedTrustQuestionnaire;
-        this.changeTime = typeof args.changeTime === 'undefined'? 1000 : args.changeTime;
+        this.changeTime = typeof args.changeTime === 'undefined'? 1500 : args.changeTime;
         this.drawDebriefForm = debriefForm; // why is this in a separate file?
     }
 
@@ -772,6 +788,7 @@ class AdvisorChoice extends DotTask {
                 else
                     advisorId = trialType === trialTypes.force? advisorForceDeck.pop().id : 0;
                 let defaultAdvisor = trialType === trialTypes.change? advisorChangeDeck.pop().id : null;
+                let changes = trialType === trialTypes.change? 0 : null;
                 let r = Math.random() < .5? 1 : 0;
                 let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
                 // let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
@@ -785,6 +802,7 @@ class AdvisorChoice extends DotTask {
                     advisor0id,
                     advisor1id,
                     choice,
+                    changes,
                     answer: [NaN, NaN],
                     confidence: [NaN, NaN],
                     getCorrect: function(finalAnswer = true) {
@@ -990,13 +1008,18 @@ class AdvisorChoice extends DotTask {
             advisorDiv.classList.add(advisor.styleClass);
             if(this.currentTrial.defaultAdvisor === advisor.id) {
                 advisorDiv.classList.add('advisorChoice-change-selected');
-                this.currentTrial.advisorId = advisor.id;
+                // Fill in trial advisor values for the default advisor
+                let a = 'advisor' + i.toString();
+                this.currentTrial.advisorId = this.currentTrial[a + 'id'];
+                this.currentTrial.advice = this.currentTrial[a + 'advice'];
+                this.currentTrial.advisorAgrees = this.currentTrial[a + 'agrees'];
             }
             else
                 advisorDiv.classList.add('advisorChoice-change-unselected');
             advisorDiv.changeTimes = [];
             advisorDiv.nth = i;
         }
+        // Add the timer and instructions
         let instructionsDiv = display_element.appendChild(document.createElement('div'));
         instructionsDiv.id = 'advisorChoice-change-instructions';
         instructionsDiv.classList.add('advisorChoice-change-instructions');
@@ -1014,6 +1037,7 @@ class AdvisorChoice extends DotTask {
         };
         progressAnimation(instructionsDiv);
 
+        // Add the keyboard response to the divs
         div.tabIndex = 1;
         div.classList.add('advisorChoice-change-noOutline');
         div.focus();
@@ -1037,6 +1061,7 @@ class AdvisorChoice extends DotTask {
                         div.governor.currentTrial.advisorId = div.governor.currentTrial[a + 'id'];
                         div.governor.currentTrial.advice = div.governor.currentTrial[a + 'advice'];
                         div.governor.currentTrial.advisorAgrees = div.governor.currentTrial[a + 'agrees'];
+                        div.governor.currentTrial.changes++;
                     }
                     d.changeTimes.push(performance.now());
                 }
@@ -1250,18 +1275,6 @@ class AdvisorChoice extends DotTask {
             data = this;
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(function(){advisorChoice.showFeedback(data, includePayment)});
-    }
-
-    endExperiment(saveData = true, clearScreen = true) {
-        this.timeEnd = (new Date()).getTime();
-        if(saveData === true)
-            this.exportGovernor();
-        // reset background colour
-        if(clearScreen === true) {
-            document.querySelector('body').style.backgroundColor = '';
-            document.body.innerHTML = "<div id='jspsych-content'></div>";
-        }
-        this.feedback(this, (saveData && this.completionURL !== ''));
     }
 }
 

@@ -108,8 +108,8 @@
             }
         ],
         practiceBlockStructure: [],
-        preTrialInterval: 200,
-        preStimulusInterval: 500,
+        preTrialInterval: 0,
+        preStimulusInterval: 600,
         questionnaireStack: [
             advisorListA[0], advisorListA[1],
             advisorListA[1], advisorListA[0]
@@ -127,6 +127,9 @@
 
     /* create timeline */
     let timeline = [];
+    let testCanvas =(new DoubleDotGrid(0,0,{dotWidth: 3, dotHeight:3, spacing: 100}));
+    testCanvas.w = testCanvas.displayWidth * 2 + testCanvas.spacing;
+    testCanvas.h = testCanvas.displayHeight;
 
     /* define welcome message trial */
     const welcome = {
@@ -139,11 +142,15 @@
             "wrong the screen will go <span style='color: black; font-weight: bold;'>black</span> temporarily. " +
             "If you get the decision right, it will go <span style='color: white; font-weight: bold;'>white</span>. " +
             "Click one of the boxes and then press the 'continue' button.</p>" +
-            "<p>Click 'next' to proceed.</p>"
+            "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
+            "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
         ],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
-        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+        on_finish: (trial)=>{
+            gov.fullscreenMode();
+            gov.storeMiscTrialData(trial);
+        }
     };
 
     const introCatch = {
@@ -223,6 +230,7 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        hideFunction: (canvasContainer)=>gov.maskDots(canvasContainer),
         prompt: '',
         sliderCount: 1,
         slider_prompt: [
@@ -236,8 +244,8 @@
         slider_col_spacing: [0],
         exclusive_group: [1],
         require_change: [1],
-        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: testCanvas.w,
+        canvasHeight: testCanvas.h,
         on_load: ()=>gov.setSliderClick(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.initialResponse(trial)
@@ -292,8 +300,8 @@
         slider_col_spacing: [0],
         exclusive_group: [1],
         require_change: [1],
-        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: testCanvas.w,
+        canvasHeight: testCanvas.h,
         on_load: ()=>gov.showAdvice(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.finalResponse(trial)
@@ -391,7 +399,6 @@
     // intro and training
     timeline.push(welcome);
     gov.currentTrialIndex = 0
-    gov.changeTime = 2000
     timeline.push(introCatch);
     timeline.push(catchTrial);
     timeline.push(introForce);

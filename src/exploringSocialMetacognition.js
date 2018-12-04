@@ -48,6 +48,7 @@ class DoubleDotGrid {
             gridBorderColor: '#ffffff',
             gridBorderWidth: '3',
             dotColor: '#ffffff',
+            backgroundColor: '#858585',
             dotLineWidth: '1'
         };
     };
@@ -85,6 +86,25 @@ class DoubleDotGrid {
         return grid;
     };
 
+    /** Draw the grid outline onto an HTML canvas
+     * @param {int[]} grid - grid to draw
+     * @param {object} ctx - HTML canvas on which to draw
+     * @param {boolean} offset - if *true*, draw offset horizontally by *this.spacing*
+     * @param {boolean} [fillStyle=false] - whether to fill the frame with this.style.backgroundColor
+     */
+    drawFrame(grid, ctx, offset, fill = false) {
+        let xMin = (offset)? this.spacing+this.displayWidth : 0;
+        ctx.beginPath();
+        ctx.lineWidth = this.style.gridBorderWidth;
+        ctx.strokeStyle = this.style.gridBorderColor;
+        if(fill) {
+            ctx.fillStyle = this.style.backgroundColor;
+            ctx.fillRect(xMin, 0, this.displayWidth, this.displayHeight);
+        }
+        ctx.rect(xMin, 0, this.displayWidth, this.displayHeight);
+        ctx.stroke();
+    }
+
     /** Draw a grid onto an HTML canvas
      * @param {int[]} grid - grid to draw
      * @param {object} ctx - HTML canvas on which to draw
@@ -93,11 +113,7 @@ class DoubleDotGrid {
     drawGrid(grid, ctx, offset) {
         let xMin = (offset)? this.spacing+this.displayWidth : 0;
         // Draw frame
-        ctx.beginPath();
-        ctx.lineWidth = this.style.gridBorderWidth;
-        ctx.strokeStyle = this.style.gridBorderColor;
-        ctx.rect(xMin, 0, this.displayWidth, this.displayHeight);
-        ctx.stroke();
+        this.drawFrame(grid, ctx, offset);
         // Draw dots
         ctx.lineWidth = this.style.dotLineWidth;
         ctx.fillStyle = this.style.dotColor;
@@ -121,6 +137,13 @@ class DoubleDotGrid {
         this.drawGrid(this.gridL, ctx, false);
         this.drawGrid(this.gridR, ctx, true);
     };
+
+    drawBoundingBoxes(canvasId) {
+        let canvas = document.getElementById(canvasId);
+        let ctx = canvas.getContext('2d');
+        this.drawFrame(this.gridL, ctx, false, true);
+        this.drawFrame(this.gridR, ctx, true, true);
+    }
 }
 
 
@@ -711,6 +734,36 @@ class Governor {
      * @return {Trial} - the current trial
      */
     get currentTrial() {return this.trials[this.currentTrialIndex];}
+
+    /** Enable or disable fullscreen display
+     * Adapted from: https://www.w3schools.com/howto/howto_js_fullscreen.asp
+     * @param {boolean} [enter=true] - whether to enter fullscreen
+     */
+    fullscreenMode(enter = true) {
+        /* Get the documentElement (<html>) to display the page in fullscreen */
+        let elem = document.documentElement;
+
+        /* View in fullscreen */
+        if(enter) {
+            if (elem.requestFullscreen)
+                elem.requestFullscreen();
+            else if (elem.mozRequestFullScreen)  /* Firefox */
+                elem.mozRequestFullScreen();
+            else if (elem.webkitRequestFullscreen)  /* Chrome, Safari and Opera */
+                elem.webkitRequestFullscreen();
+            else if (elem.msRequestFullscreen) /* IE/Edge */
+                elem.msRequestFullscreen();
+        } else {
+            if (document.exitFullscreen)
+                document.exitFullscreen();
+            else if (document.mozCancelFullScreen)  /* Firefox */
+                document.mozCancelFullScreen();
+            else if (document.webkitExitFullscreen)  /* Chrome, Safari and Opera */
+                document.webkitExitFullscreen();
+            else if (document.msExitFullscreen)  /* IE/Edge */
+                document.msExitFullscreen();
+        }
+    }
 
     /**
      * Compile the data in this governor ready for sending, including a processed form
