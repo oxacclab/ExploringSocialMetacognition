@@ -52,9 +52,6 @@
     let args = {skipAudioPreload: true};
     // Each advisor in a pair has one of the two colour schemes (assigned randomly)
     let styleClassDeck = utils.shuffle(utils.getSequence(1,5));
-    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0],
-        advisorVoiceDeck[0], advisorPicDeck[0],
-        styleClassDeck[0].toString(), args);
     let advisorListA = [
         new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1],
             styleClassDeck[1].toString(), args),
@@ -81,10 +78,8 @@
             nReversals: 2
         },
         minimumBlockScore: 0.10,
-        practiceAdvisor,
         advisorLists: [advisorListA],
         advisors: [
-            practiceAdvisor,
             advisorListA[0],
             advisorListA[1]
         ],
@@ -264,7 +259,7 @@
             }
             let a = gov.currentAdvisor;
             if (typeof a === 'undefined' && choice > 0 && choice < gov.advisors.length)
-                a = gov.advisors[gov.getAdvisorIndex(choice)];
+                a = gov.getAdvisorById(choice);
             if(typeof a === 'undefined')
                 return -1; // special value which tells the present-advice plugin to end early
             gov.drawAdvice(div, a.id);

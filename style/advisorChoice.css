@@ -6,12 +6,10 @@
     --advisorChoice-advisor-3: #3FBFBF;
     --advisorChoice-advisor-4: #D1CC37;
     --advisorChoice-advisor-5: #3F3FBF;
+    --advisorChoice-advisor-6: #bf4aaa;
 }
 body {
     background-color: #858585;
-}
-div.jspsych-content.advisorChoice-minHeight {
-    min-height: 500px;
 }
 div.advisorChoice-marker {
     position: absolute;
@@ -236,6 +234,13 @@ div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-5 {
     background-color: var(--advisorChoice-advisor-5);
+}
+
+.jspsych-jas-present-advice-arrow.advisorChoice-advisor-6 {
+    border-color: var(--advisorChoice-advisor-6);
+}
+.jspsych-jas-present-advice-image.advisorChoice-advisor-6 {
+    background-color: var(--advisorChoice-advisor-6);
 }
 
 .advisorChoice-change-noOutline:focus {

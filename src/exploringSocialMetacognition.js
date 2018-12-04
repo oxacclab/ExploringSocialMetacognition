@@ -131,18 +131,33 @@ class DoubleDotGrid {
         }
     };
 
-    draw(canvasId) {
+    /**
+     * Draw the filled boxes
+     * @param {string} canvasId
+     * @param {null|int} [drawOnly=null] - whether to draw only one box, if not null must be 0 for left or 1 for right
+     */
+    draw(canvasId, drawOnly = null) {
         let canvas = document.getElementById(canvasId);
         let ctx = canvas.getContext('2d');
-        this.drawGrid(this.gridL, ctx, false);
-        this.drawGrid(this.gridR, ctx, true);
+        let draw = [true, true];
+        if(drawOnly !== null)
+            draw = [drawOnly === 0, drawOnly === 1];
+        if(draw[0])
+            this.drawGrid(this.gridL, ctx, false);
+        if(draw[1])
+            this.drawGrid(this.gridR, ctx, true);
     };
 
-    drawBoundingBoxes(canvasId) {
+    drawBoundingBoxes(canvasId, drawOnly = null) {
         let canvas = document.getElementById(canvasId);
         let ctx = canvas.getContext('2d');
-        this.drawFrame(this.gridL, ctx, false, true);
-        this.drawFrame(this.gridR, ctx, true, true);
+        let draw = [true, true];
+        if(drawOnly !== null)
+            draw = [drawOnly === 0, drawOnly === 1];
+        if(draw[0])
+            this.drawFrame(this.gridL, ctx, false, true);
+        if(draw[1])
+            this.drawFrame(this.gridR, ctx, true, true);
     }
 }
 
@@ -281,30 +296,30 @@ class Voice {
         if(id === null)
             id = Math.floor(Math.random()*10)+1; // random name from the full list
         return 'User ' + Math.floor(Math.pow(Math.E, id)).toString();
-        switch(id) {
-            case 1:
-                return "Annie";
-            case 2:
-                return "Bea";
-            case 3:
-                return "Kate";
-            case 4: // Names below do not have voice lines; they're only selected by silent advisors
-                return "Sarah";
-            case 5:
-                return "Lisa";
-            case 6:
-                return "Heather";
-            case 7:
-                return "Julie";
-            case 8:
-                return "Beth";
-            case 9:
-                return "Pam";
-            case 10:
-                return "Emma";
-            default:
-                return "Name not found!"
-        }
+        // switch(id) {
+        //     case 1:
+        //         return "Annie";
+        //     case 2:
+        //         return "Bea";
+        //     case 3:
+        //         return "Kate";
+        //     case 4: // Names below do not have voice lines; they're only selected by silent advisors
+        //         return "Sarah";
+        //     case 5:
+        //         return "Lisa";
+        //     case 6:
+        //         return "Heather";
+        //     case 7:
+        //         return "Julie";
+        //     case 8:
+        //         return "Beth";
+        //     case 9:
+        //         return "Pam";
+        //     case 10:
+        //         return "Emma";
+        //     default:
+        //         return "Name not found!"
+        // }
     }
 
     /**

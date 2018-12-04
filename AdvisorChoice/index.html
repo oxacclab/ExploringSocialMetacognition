@@ -51,21 +51,25 @@
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
 
     /* Advice types:
+        0   = balanced
         1|2 = metacog
         3|4 = strong metacog
         5|6 = acc
         7|8 = agg
     */
-    let adviceTypes = [0,7,8,7,8];
-    let advisorIdDeck = utils.shuffle(utils.getSequence(1,5));
+    let adviceTypes = [0, 0, 7,8,7,8];
+    let advisorIdDeck = utils.shuffle(utils.getSequence(1,6));
     let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
-    let advisorPicDeck = utils.shuffle(utils.getSequence(1,5));
+    let advisorPicDeck = utils.shuffle(utils.getSequence(1,6));
     let args = {skipAudioPreload: true};
     // Each advisor in a pair has one of the two colour schemes (assigned randomly)
-    let styleClassDeck = utils.shuffle(utils.getSequence(1,5));
-    let practiceAdvisor = new Advisor(advisorIdDeck[0], adviceTypes[0],
+    let styleClassDeck = utils.shuffle(utils.getSequence(1,6));
+    let practiceAdvisor0 = new Advisor(advisorIdDeck[0], adviceTypes[0],
         advisorVoiceDeck[0], advisorPicDeck[0],
         styleClassDeck[0].toString(), args);
+    let practiceAdvisor1 = new Advisor(advisorIdDeck[5], adviceTypes[5],
+        advisorVoiceDeck[5], advisorPicDeck[5],
+        styleClassDeck[5].toString(), args);
     let advisorListA = [
         new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1],
             styleClassDeck[1].toString(), args),
@@ -100,13 +104,15 @@
             nReversals: 2
         },
         minimumBlockScore: 0.10,
-        practiceAdvisor,
         advisorLists: [
             advisorListA,
             advisorListB
         ],
+        practiceAdvisors: [
+            practiceAdvisor0,
+            practiceAdvisor1
+        ],
         advisors: [
-            practiceAdvisor,
             advisorListA[0],
             advisorListA[1],
             advisorListB[0],
@@ -116,41 +122,26 @@
         blockCount: 2,
         blockStructure: [
             {
-                [trialTypes.catch]: 1,
-                [trialTypes.choice]: 1,
-                [trialTypes.force]: 1,
-                [trialTypes.dual]: 1, //60,
-                [trialTypes.change]: 1
+                [trialTypes.dual]: 6
             },
             {
-                [trialTypes.catch]: 0,
-                [trialTypes.choice]: 0,//60,
-                [trialTypes.force]: 0,
-                [trialTypes.dual]: 0,
-                [trialTypes.change]: 3
+                [trialTypes.change]: 6
             }
         ],
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 0,//63, // intro trials need to be accommodated in the first practice block
-                [trialTypes.choice]: 0,
-                [trialTypes.force]: 0,
-                [trialTypes.dual]: 0,
-                [trialTypes.change]: 0
+                [trialTypes.catch]: 3,//63, // intro trials need to be accommodated in the first practice block
             },
             {
-                [trialTypes.catch]: 0,//60,
-                [trialTypes.choice]: 0,
-                [trialTypes.force]: 0,
-                [trialTypes.dual]: 0,
-                [trialTypes.change]: 0
+                [trialTypes.catch]: 3,//60,
             },
             {
-                [trialTypes.catch]: 0,
-                [trialTypes.choice]: 0,
-                [trialTypes.force]: 0,//5
-                [trialTypes.dual]: 0,
-                [trialTypes.change]: 0
+                [trialTypes.dual]: 1,
+                [trialTypes.change]: 1
+            },
+            {
+                [trialTypes.dual]: 3,
+                [trialTypes.change]: 3
             }
         ],
         preTrialInterval: 200,
@@ -175,6 +166,9 @@
 
     /* create timeline */
     let timeline = [];
+    let testCanvas =(new DoubleDotGrid(0,0,{dotWidth: 3, dotHeight:3, spacing: 100}));
+    testCanvas.w = testCanvas.displayWidth * 2 + testCanvas.spacing;
+    testCanvas.h = testCanvas.displayHeight;
 
     /* define welcome message trial */
     const welcome = {
@@ -187,11 +181,15 @@
             "wrong the screen will go <span style='color: black; font-weight: bold;'>black</span> temporarily. " +
             "If you get the decision right, it will go <span style='color: white; font-weight: bold;'>white</span>. " +
             "Click one of the boxes and then press the 'continue' button.</p>" +
-            "<p>Click 'next' to proceed.</p>"
+            "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
+            "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
         ],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
-        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+        on_finish: (trial)=>{
+            gov.fullscreenMode();
+            gov.storeMiscTrialData(trial);
+        }
     };
 
     const sliderInstructions = {
@@ -295,8 +293,7 @@
         canvasHeight: testCanvas.h,
         on_load: ()=>gov.setSliderClick(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
-        on_finish: (trial)=>gov.checkIntroResponse(trial),
-        post_trial_gap: gov.feedbackDuration
+        on_finish: (trial)=>gov.checkIntroResponse(trial)
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -324,8 +321,7 @@
         canvasHeight: testCanvas.h,
         on_load: ()=>gov.setSliderClick(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
-        on_finish: (trial)=>gov.initialResponse(trial),
-        post_trial_gap: gov.feedbackDuration
+        on_finish: (trial)=>gov.initialResponse(trial)
     };
 
     /* Initial response: ensure advisor will always give correct answer */
@@ -394,7 +390,7 @@
             }
             let a = gov.currentAdvisor;
             if (typeof a === 'undefined' && choice > 0 && choice < gov.advisors.length)
-                a = gov.advisors[gov.getAdvisorIndex(choice)];
+                a = gov.getAdvisorById(choice);
             if(typeof a === 'undefined')
                 return -1; // special value which tells the present-advice plugin to end early
             gov.drawAdvice(div, a.id);
@@ -435,6 +431,17 @@
         on_load: ()=>gov.showAdvice(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.finalResponse(trial)
+    };
+
+    /* Feedback shows a tick on the target box */
+    const feedbackDisplay = {
+        type: "canvas-sliders-response",
+        stimulus: (canvasId)=>{gov.showTrialFeedback(canvasId);},
+        prompt: '',
+        sliderCount: 0,
+        canvasWidth: testCanvas.w,
+        canvasHeight: testCanvas.h,
+        trial_duration: gov.feedbackDuration
     };
 
     /* Questionnaires to ask about how the judge feels about the advisors */
@@ -543,55 +550,89 @@
         on_finish: (trial)=>gov.genTrustQuestionnaireResponse(trial)
     };
 
-    const practice_procedure = [practiceInitialDecision];
 
-    const advisor_practice_procedure = {
-        timeline: [initialDecision, advice, finalDecision],
-        randomize_order: false,
-        repetitions: utils.sumList(gov.practiceBlockStructure[gov.practiceBlockStructure.length-1])-1
+    const procedures_feedback = {
+        [trialTypes.catch]: [initialDecision, feedbackDisplay],
+        [trialTypes.force]: [initialDecision, advice, finalDecision, feedbackDisplay],
+        [trialTypes.choice]: [initialDecision, advice, finalDecision, feedbackDisplay],
+        [trialTypes.dual]: [initialDecision, advice, finalDecision, feedbackDisplay],
+        [trialTypes.change]: [initialDecision, advice, finalDecision, feedbackDisplay]
+    };
+    const procedures = {
+        [trialTypes.catch]: [initialDecision],
+        [trialTypes.force]: [initialDecision, advice, finalDecision],
+        [trialTypes.choice]: [initialDecision, advice, finalDecision],
+        [trialTypes.dual]: [initialDecision, advice, finalDecision],
+        [trialTypes.change]: [initialDecision, advice, finalDecision]
     };
 
-    const test_procedure = [initialDecision, advice, finalDecision];
+    let trainingTrials = utils.getMatches(gov.trials, function(trial) {
+        return trial.block < 2;
+    });
 
+    gov.currentTrialIndex = 0
     // intro and training
     timeline.push(welcome);
-    gov.currentTrialIndex = 0
-    gov.changeTime = 2000
-    // timeline.push({timeline: test_procedure})
-    // timeline.push(introInitialDecision);
-    // timeline.push(sliderInstructions);
-    // timeline.push(introInitialDecision);
-    // timeline.push(quickStimInstructions);
-    // timeline.push(practiceInitialDecision);
-    //
-    // // practice with feedback
-    // timeline.push(practiceInstructions);
-    // // non-advisor practice blocks
-    // for(let b=0; b<gov.practiceBlockStructure.length-1; b++) {
-    //     let repetitions = utils.sumList(gov.practiceBlockStructure[b]);
-    //     if(b === 0)
-    //         repetitions -= 3;
-    //     timeline.push({timeline: practice_procedure, repetitions, randomize_order: false});
-    //     timeline.push(blockBreak);
-    // }
-    // timeline.pop(); // remove last break screen
-    //
-    // // practice with advisor
-    // timeline.push(adviceInstructions);
-    // timeline.push({timeline: [advisorIntroInitialDecision, advice, finalDecision]});
-    // timeline.push(advisor_practice_procedure);
-    //
-    // timeline.push(finalInstructions);
+    timeline.push({timeline: [introInitialDecision, feedbackDisplay]});
+    trainingTrials.shift();
+    timeline.push(sliderInstructions);
+    timeline.push({timeline: [introInitialDecision, feedbackDisplay]});
+    trainingTrials.shift();
+    timeline.push(quickStimInstructions);
+    timeline.push({timeline: [practiceInitialDecision, feedbackDisplay]});
+    trainingTrials.shift();
+
+    // practice with feedback
+    timeline.push(practiceInstructions);
+    // fill in the remaining non-advisor practice blocks
+    for(let b=0; b < 2; b++) {
+        // find trials in this block
+        let trials = utils.getMatches(trainingTrials, function(trial) {
+            return trial.block === b;
+        });
+        // add the trials selecting the appropriate procedure for the trial type
+        while(trials.length)
+            timeline.push({timeline: procedures_feedback[trials.shift().type]});
+        timeline.push(blockBreak);
+    }
+    timeline.pop(); // remove last break screen
+
+    // practice with advisor
+    let advisorTrainingTrials = utils.getMatches(gov.trials, function(trial) {
+        return trial.block >= 2 && trial.practice;
+    });
+    timeline.push(adviceInstructions);
+    timeline.push({timeline: [advisorIntroInitialDecision, advice, finalDecision]});
+    advisorTrainingTrials.shift();
+    // fill in the rest
+    for(let b=2; b < gov.practiceBlockStructure.length; b++) {
+        // find trials in this block
+        let trials = utils.getMatches(advisorTrainingTrials, function(trial) {
+            return trial.block === b;
+        });
+        // add the trials selecting the appropriate procedure for the trial type
+        while(trials.length)
+            timeline.push({timeline: procedures_feedback[trials.shift().type]});
+        timeline.push(blockBreak);
+    }
+    timeline.pop(); // remove last break screen
+
+    timeline.push(finalInstructions);
 
     // real experiment
     for (let a=0; a<gov.advisorLists.length; a++) {
-        // timeline.push(questionnaireProspective);
-        // timeline.push(questionnaireProspective);
+        timeline.push(questionnaireProspective);
+        timeline.push(questionnaireProspective);
 
         // real experiment
         for (let b=0; b<gov.blockStructure.length; b++) {
-            let repetitions = utils.sumList(gov.blockStructure[b]);
-            timeline.push({timeline: test_procedure, repetitions, randomize_order: false});
+            // find trials in this block
+            let trials = utils.getMatches(gov.trials, function(trial) {
+                return trial.block === b + gov.practiceBlockStructure.length;
+            });
+            // add the trials selecting the appropriate procedure for the trial type
+            while(trials.length)
+                timeline.push({timeline: procedures[trials.shift().type]});
             timeline.push(blockBreak);
         }
 
@@ -607,7 +648,6 @@
     
     // Trust questionnaire
     timeline.push(genTrustQuestionnaire);
-
 
     /* start the experiment */
     // browser check

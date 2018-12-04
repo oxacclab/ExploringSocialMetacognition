@@ -484,7 +484,6 @@ class advisorChoice extends dotTask {
      */
     static showFeedback(g, includePayment = false) {
         let advisors = utils.copyArray(g.advisors);
-        advisors.shift(); // drop the practice advisor
         let body = document.querySelector('body');
         // Nav
         let nav = document.createElement('nav');

@@ -95,11 +95,14 @@ function flattenTrialData(trial, id) {
 
     out.advisorId = trial.advisorId;
     out.advisorAgrees = trial.advisorAgrees;
-    if (trial.advisorId !== 0 && trial.advisorId !== null)
+    if (trial.advice !== null) {
         out.adviceSide = trial.advice.side;
-    else
+        out.adviceString = trial.advice.string;
+    }
+    else {
         out.adviceSide = null;
-    out.adviceString = trial.advice === null? "" : trial.advice.string;
+        out.adviceString = null;
+    }
     // and for individual advisors in the dual advice paradigm
     for(let i = 0; i < 2; i++) {
         let index = 'advisor' + i.toString();

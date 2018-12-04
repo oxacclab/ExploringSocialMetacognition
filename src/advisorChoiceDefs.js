@@ -574,14 +574,6 @@ class DotTask extends Governor {
      * @param {Object} trial - jsPsych plugin response
      */
     closeTrial(trial) {
-        // Feedback
-        if (this.currentTrial.feedback) {
-            if (this.currentTrial.answer[1] === this.currentTrial.whichSide ||
-                (isNaN(this.currentTrial.answer[1]) && this.currentTrial.whichSide === this.currentTrial.answer[0]))
-                document.querySelector('body').style.backgroundColor = 'white';
-            else
-                document.querySelector('body').style.backgroundColor = 'black';
-        }
         // Staircasing stuff
         let warning = "";
         if (this.currentTrialIndex > 1) {
@@ -653,10 +645,11 @@ class AdvisorChoice extends DotTask {
      * @param {int} [args.feedbackDuration] - duration of the feedback screen
      *
      * @param {Advisor[]} [args.advisors=[]] - list of advisors
-     * @param {Advisor} [args.practiceAdvisor] - practice advisor
+     * @param {Advisor[]} [args.practiceAdvisors=[]] - practice advisor
      * @param {[Advisor[]]} [args.advisorLists] - list of lists of advisors, each one being a set of advisors competing with one another in a block
      * @param {[Advisor[]]} [args.contingentAdvisors] - list of advisors to be used contingent on the confidence category of a response matching the list index
      * @param {[Advisor[]]} [args.questionnaireStack] - stack of advisors about whom questionnaires are to be asked
+     * @param {Object} [args.generalisedTrustQuestionnaire=null] - Generalised Trust Questionnaire response
      * @param {int} [args.changeTime = 1500] - time to offer advisor change on change trials in ms
      *
      * @property {Advisor} currentAdvisor - advisor currently in focus
@@ -665,8 +658,8 @@ class AdvisorChoice extends DotTask {
     constructor(args = {}) {
         super(args);
 
-        this.advisors = typeof args.advisors === 'undefined'? null : AdvisorChoice.addAdvisors(args.advisors);
-        this.practiceAdvisor = typeof args.practiceAdvisor === 'undefined'? null : args.practiceAdvisor;
+        this.advisors = typeof args.advisors === 'undefined'? [] : AdvisorChoice.addAdvisors(args.advisors);
+        this.practiceAdvisors = typeof args.practiceAdvisors === 'undefined'? [] : args.practiceAdvisors;
         this.advisorLists = typeof args.advisorLists === 'undefined'? null : args.advisorLists;
         this.contingentAdvisors = typeof args.contingentAdvisors === 'undefined'? null : args.contingentAdvisors;
         this.questionnaireStack = typeof args.questionnaireStack === 'undefined'? null : args.questionnaireStack;
@@ -696,7 +689,11 @@ class AdvisorChoice extends DotTask {
      * @return {Advisor} - The advisor registered for the current trial
      */
     get currentAdvisor() {
-        return this.advisors[this.getAdvisorIndex(this.currentTrial.advisorId)];
+        return this.getAdvisorById(this.currentTrial.advisorId);
+    }
+
+    get practiceAdvisor() {
+        return this.practiceAdvisors[0];
     }
 
     /**
@@ -707,13 +704,27 @@ class AdvisorChoice extends DotTask {
     }
 
     /**
+     * @param {int} advisorId
+     * @return {Advisor} with the specified id
+     */
+    getAdvisorById(advisorId) {
+        let advisor = this.advisors[this.getAdvisorIndex(advisorId)];
+        if(typeof advisor === 'undefined')
+            return this.practiceAdvisors[this.getAdvisorIndex(advisorId, true)];
+        else
+            return advisor;
+    }
+
+    /**
      * Return the index of an advisor in the advisors list
      * @param {int} id - id of the advisor whose index is required
+     * @param {boolean} [practiceAdvisor=false] whether the sought advisor is a practice advisor
      * @return {int|null} - index of the advisor in the advisors list
      */
-    getAdvisorIndex(id) {
-        for (let i=0; i<this.advisors.length; i++) {
-            if (this.advisors[i].id === id)
+    getAdvisorIndex(id, practiceAdvisor = false) {
+        let arr = practiceAdvisor? this.practiceAdvisors : this.advisors;
+        for (let i=0; i<arr.length; i++) {
+            if (arr[i].id === id)
                 return i;
         }
         return null;
@@ -749,32 +760,34 @@ class AdvisorChoice extends DotTask {
             let advisorSet = 0;
             let advisor0id = null;
             let advisor1id = null;
-            let blockIndex = b;
+            let blockStructure = null;
             let advisorChoices = [];
             let advisorForceDeck = null;
             let advisorChangeDeck = null;
             if (b >= practiceBlockCount) {
                 advisorSet = Math.floor((b-practiceBlockCount) / this.blockStructure.length);
-                blockIndex = (b-practiceBlockCount)%this.blockStructure.length;
+                blockStructure = this.blockStructure[(b-practiceBlockCount)%this.blockStructure.length];
                 advisorChoices = this.advisorLists[advisorSet];
-                advisor0id = advisorChoices[0].adviceType % 2? advisorChoices[1].id : advisorChoices[0].id;
-                advisor1id = advisorChoices[0].adviceType % 2? advisorChoices[0].id : advisorChoices[1].id;
-                    // Shuffle advisors so they appear an equal number of times
-                advisorForceDeck = utils.shuffleShoe(advisorChoices,
-                    this.blockStructure[blockIndex][trialTypes.force]/advisorChoices.length);
-                advisorChangeDeck = utils.shuffleShoe(advisorChoices,
-                    this.blockStructure[blockIndex][trialTypes.change]/advisorChoices.length);
             } else {
-                advisorSet = NaN;
+                advisorSet = 0;
+                blockStructure = this.practiceBlockStructure[b];
+                advisorChoices = this.practiceAdvisors;
             }
-            let blockLength = b<practiceBlockCount? utils.sumList(gov.practiceBlockStructure[blockIndex]) :
-                utils.sumList(this.blockStructure[blockIndex]);
+            advisor0id = advisorChoices[0].adviceType % 2? advisorChoices[1].id : advisorChoices[0].id;
+            if(advisorChoices.length > 1)
+                advisor1id = advisorChoices[0].adviceType % 2? advisorChoices[0].id : advisorChoices[1].id;
+            else
+                advisor1id = advisor0id;
+            // Shuffle advisors so they appear an equal number of times
+            advisorForceDeck = utils.shuffleShoe(advisorChoices,
+                blockStructure[trialTypes.force]/advisorChoices.length);
+            advisorChangeDeck = utils.shuffleShoe(advisorChoices,
+                blockStructure[trialTypes.change]/advisorChoices.length);
+            let blockLength = utils.sumList(blockStructure);
             // Work out what type of trial to be
             let trialTypeDeck = [];
-            let structure = b<practiceBlockCount?
-                this.practiceBlockStructure[blockIndex] : this.blockStructure[blockIndex];
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
-                for (let i=0; i<structure[tt]; i++)
+                for (let i=0; i<blockStructure[tt]; i++)
                     trialTypeDeck.push(tt);
             }
             trialTypeDeck = utils.shuffle(trialTypeDeck);
@@ -913,7 +926,7 @@ class AdvisorChoice extends DotTask {
      */
     drawAdvice(div, advisorId, textAboveImage = false) {
         let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
-        let a = this.advisors[this.getAdvisorIndex(advisorId)];
+        let a = this.getAdvisorById(advisorId);
         let advisorDiv = this.drawAdvisor(div, a, idSuffix);
         let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
         arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
@@ -954,7 +967,7 @@ class AdvisorChoice extends DotTask {
         let choiceImgs = [];
         let self = this;
         for (let a=0; a<choices.length; a++) {
-            let advisor = this.advisors[this.getAdvisorIndex(choices[a])];
+            let advisor = this.getAdvisorById(choices[a]);
             let advisorDiv = this.drawAdvisor(display_element, advisor, a);
             advisorDiv.classList.add('advisorChoice-choice');
             let img = advisorDiv.querySelector('img');
@@ -988,7 +1001,7 @@ class AdvisorChoice extends DotTask {
         let div = display_element.appendChild(document.createElement('div'));
         div.id = 'jspsych-jas-change-advisors-wrapper';
         for(let i = 0; i < 2; i++) {
-            let advisor = this.advisors[this.getAdvisorIndex(this.currentTrial['advisor' + i.toString() + 'id'])];
+            let advisor = this.getAdvisorById(this.currentTrial['advisor' + i.toString() + 'id']);
             advisorIDs.push(advisor.id);
             let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
             let advisorDiv = div.appendChild(document.createElement('div'));
@@ -1102,16 +1115,19 @@ class AdvisorChoice extends DotTask {
      * @param [alwaysCorrect=false] - whether the advisor is always correct
      */
     setAgreementVars(alwaysCorrect = false) {
-        if(typeof this.currentAdvisor !== 'undefined')
-            this.setAdvisorAgreement(this.currentAdvisor.id, alwaysCorrect);
-        else if(this.currentTrial.type === trialTypes.dual || this.currentTrial.type === trialTypes.change) {
-            for(let i = 0; i < 2; i++)
-                this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect, false);
+        switch(this.currentTrial.type) {
+            case trialTypes.choice:
+            case trialTypes.force:
+                this.setAdvisorAgreement(this.currentAdvisor.id, alwaysCorrect);
+            case trialTypes.choice:
+            case trialTypes.dual:
+                for(let i = 0; i < 2; i++)
+                    this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect, false);
         }
     }
 
     setAdvisorAgreement(advisorId, alwaysCorrect = false, isCurrentAdvisor = true) {
-        let advisor = this.advisors[this.getAdvisorIndex(advisorId)];
+        let advisor = this.getAdvisorById(advisorId);
         let self = this;
         let agree = false;
         if(alwaysCorrect === true)
@@ -1197,6 +1213,20 @@ class AdvisorChoice extends DotTask {
             this.currentTrial.confidence[1] = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[1]);
         }
         this.closeTrial(trial);
+    }
+
+    /**
+     * Show feedback for the current trial.
+     * Called by jspsych-canvas-sliders-response
+     * @param {string} canvasId - id of the canvas to draw on
+     */
+    showTrialFeedback(canvasId) {
+        let canvas = document.getElementById(canvasId);
+        // give feedback on previous trial
+        let trial = this.trials[this.currentTrialIndex-1];
+        AdvisorChoice.drawFixation(canvasId);
+        trial.grid.drawBoundingBoxes(canvasId);
+        trial.grid.draw(canvasId, trial.whichSide);
     }
 
     /**
