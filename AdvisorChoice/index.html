@@ -67,20 +67,20 @@
     let practiceAdvisor0 = new Advisor(advisorIdDeck[0], adviceTypes[0],
         advisorVoiceDeck[0], advisorPicDeck[0],
         styleClassDeck[0].toString(), args);
-    let practiceAdvisor1 = new Advisor(advisorIdDeck[5], adviceTypes[5],
-        advisorVoiceDeck[5], advisorPicDeck[5],
-        styleClassDeck[5].toString(), args);
+    let practiceAdvisor1 = new Advisor(advisorIdDeck[1], adviceTypes[1],
+        advisorVoiceDeck[1], advisorPicDeck[1],
+        styleClassDeck[1].toString(), args);
     let advisorListA = [
-        new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1],
-            styleClassDeck[1].toString(), args),
         new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2],
-            styleClassDeck[2].toString(), args)
+            styleClassDeck[2].toString(), args),
+        new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3],
+            styleClassDeck[3].toString(), args)
     ];
     let advisorListB = [
-        new Advisor(advisorIdDeck[3], adviceTypes[3], advisorVoiceDeck[3], advisorPicDeck[3],
-            styleClassDeck[3].toString(), args),
         new Advisor(advisorIdDeck[4], adviceTypes[4], advisorVoiceDeck[4], advisorPicDeck[4],
-            styleClassDeck[4].toString(), args)
+            styleClassDeck[4].toString(), args),
+        new Advisor(advisorIdDeck[5], adviceTypes[5], advisorVoiceDeck[5], advisorPicDeck[5],
+            styleClassDeck[5].toString(), args)
     ];
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];
@@ -177,9 +177,8 @@
             "Welcome to the experiment. Click 'next' to begin.",
             "<p>You will see two boxes containing dots either side of the centre of the screen. " +
             "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
-            "<p>You make your decision by using the grey bars below the boxes. If you get the decision " +
-            "wrong the screen will go <span style='color: black; font-weight: bold;'>black</span> temporarily. " +
-            "If you get the decision right, it will go <span style='color: white; font-weight: bold;'>white</span>. " +
+            "<p>You make your decision by using the grey bars below the boxes. Once you've made your" +
+            " decision you'll see the dots in the correct box reappear briefly.</p>" +
             "Click one of the boxes and then press the 'continue' button.</p>" +
             "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
             "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
@@ -198,10 +197,10 @@
         "You do this by moving the slider more towards the edges if you are sure, and more towards the " +
         "middle if you are unsure.</p>" +
         "<p>E.g. if you were <strong>sure</strong> there were more dots on the <strong>left</strong>, you would move the " +
-        "<strong>left</strong> slider all the way to the <strong>left</strong>.</p>" +
+        "slider all the way to the <strong>left</strong>.</p>" +
         "<p>If you thought there were more dots on the <strong>right</strong>, but you were " +
-        "<strong>guessing</strong>, you would move the <strong>right</strong> slider, but you would move it as " +
-        "far <strong>left</strong> as it will go.</p>" +
+        "<strong>guessing</strong>, you would move the slider, just to the <strong>right</strong> " +
+        "of the centre.</p>" +
         "<p>Try using the slider to indicate your confidence now.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -223,15 +222,16 @@
 
     const adviceInstructions = {
         type: 'instructions',
-        pages: ["<p>Most of the time you will get <strong>advice</strong> from an advisor to help you make your " +
+        pages: ["<p>Most of the time you will get <strong>advice</strong> from advisors to help you make your " +
         "decision.</p>" +
         "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
         "perform better on the task.</p>" +
         "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
         "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
         "that you are more or less sure, and even to change which box you think had most dots.</p>" +
-        "<p><strong>The screen will no longer change colour to inidicate whether or not your response " +
-        "was correct.</strong></p>" +
+        "<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
+        "which advisor is going to be providing you with advice. Press the spacebar to change to the other " +
+        "advisor.</p>" +
         "<p>Click 'next' to practice a few with advice.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -251,10 +251,9 @@
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
-        "<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
-        "two advisors and you will click one to hear their advice.</p>" +
         "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
-        "ready to begin.</p>"],
+        "ready to begin.</p>" +
+        "<p>You will no longer receive feedback on the task.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
@@ -472,7 +471,10 @@
         ], order),
         special_class_names: ['questionnaire'],
         max_warnings: 1,
-        on_load: ()=>gov.setSliderClick(false),
+        on_load: ()=>{
+            gov.setSliderClick(false);
+            AdvisorChoice.hackQuestionnaire();
+        },
         on_finish: (trial)=>gov.questionnaireResponse(trial)
     };
 
@@ -501,7 +503,10 @@
         ], order),
         special_class_names: ['questionnaire'],
         max_warnings: 1,
-        on_load: ()=>gov.setSliderClick(false),
+        on_load: ()=>{
+            gov.setSliderClick(false);
+            AdvisorChoice.hackQuestionnaire();
+        },
         on_finish: (trial)=>gov.questionnaireResponse(trial)
     };
 
@@ -546,7 +551,10 @@
         ],
         special_class_names: ['genTrustQ'],
         max_warnings: 1,
-        on_load: ()=>gov.setSliderClick(false),
+        on_load: ()=>{
+            gov.setSliderClick(false);
+            AdvisorChoice.hackQuestionnaire();
+        },
         on_finish: (trial)=>gov.genTrustQuestionnaireResponse(trial)
     };
 
@@ -645,7 +653,7 @@
     }
 
     timeline.pop();
-    
+
     // Trust questionnaire
     timeline.push(genTrustQuestionnaire);
 

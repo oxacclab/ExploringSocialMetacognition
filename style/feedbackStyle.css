@@ -139,6 +139,8 @@ p.feedback {
 }
 
 div.permalink-container {
+    width: 100%;
+    position: relative;
     margin: auto;
     margin-top: 1em;
     border: 5px solid black;
@@ -167,6 +169,8 @@ div.permalink-link {
 }
 
 div.permalink-copy {
+    position: absolute;
+    right: 0;
     margin-right: 0.5em;
     min-width: 1em;
     min-height: 2em;

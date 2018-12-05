@@ -453,7 +453,7 @@ class Advisor {
         if(this.styleClass !== '')
             this.portrait.classList.add(this.styleClass);
         this.portrait.id = 'advisor-portrait-' + this.portraitId;
-        this.chooseRight = null; // the advisor's advice
+        this.lastAdvice = null; // the advisor's most recent advice
     }
 
     /** Hoist the name for ease-of-access */

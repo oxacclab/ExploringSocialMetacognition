@@ -927,11 +927,16 @@ class AdvisorChoice extends DotTask {
     drawAdvice(div, advisorId, textAboveImage = false) {
         let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
         let a = this.getAdvisorById(advisorId);
+        if(!(a.lastAdvice instanceof Line)) {
+            let warning = 'No advice where advice expected (advisorID=' + advisorId +')';
+            this.currentTrial.warnings.push(warning);
+            console.warn(warning);
+        }
         let advisorDiv = this.drawAdvisor(div, a, idSuffix);
         let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
         arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
         arrowDiv.classList.add('jspsych-jas-present-advice-arrow');
-        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.chooseRight? 'right' : 'left'));
+        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.lastAdvice.side? 'right' : 'left'));
         arrowDiv.innerText = a.lastAdvice.string;
         // Add advisor class to relevant divs
         arrowDiv.classList.add(a.styleClass);
@@ -1100,14 +1105,19 @@ class AdvisorChoice extends DotTask {
         this.currentTrial.answer[0] = AdvisorChoice.getAnswerFromResponse(trial.response);
         this.currentTrial.confidence[0]  = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[0]);
 
-        if (this.currentTrial.type === trialTypes.catch ||
-            (typeof this.currentAdvisor === 'undefined' && this.currentTrial.type === trialTypes.force)) {
-            this.closeTrial(trial);
+        switch(this.currentTrial.type) {
+            case trialTypes.catch:
+                this.closeTrial(trial);
+                break;
+            case trialTypes.force:
+            case trialTypes.choice:
+            case trialTypes.dual:
+            case trialTypes.change:
+                if(args.advisorAlwaysCorrect === true)
+                    this.setAgreementVars(true);
+                else
+                    this.setAgreementVars();
         }
-        if(typeof args.advisorAlwaysCorrect !== "undefined" && args.advisorAlwaysCorrect === true)
-            this.setAgreementVars(true);
-        else
-            this.setAgreementVars();
     }
 
     /**
@@ -1116,13 +1126,17 @@ class AdvisorChoice extends DotTask {
      */
     setAgreementVars(alwaysCorrect = false) {
         switch(this.currentTrial.type) {
+            case trialTypes.catch:
+                break;
             case trialTypes.choice:
             case trialTypes.force:
                 this.setAdvisorAgreement(this.currentAdvisor.id, alwaysCorrect);
-            case trialTypes.choice:
+                break;
+            case trialTypes.change:
             case trialTypes.dual:
                 for(let i = 0; i < 2; i++)
-                    this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect, false);
+                    this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect,
+                        false);
         }
     }
 
@@ -1149,14 +1163,19 @@ class AdvisorChoice extends DotTask {
             this.currentTrial.advisorAgrees = agree;
             this.currentTrial.advice = advisor.lastAdvice;
         }
-        // note the advisor's decision in the advisor object
-        advisor.chooseRight = agree? this.currentTrial.answer[0] : [1,0][this.currentTrial.answer[0]];
 
         // Update the advisor's individual decision in the trial.
         // Advisors are identified by whether their adviceType is even.
         // This is done because R doesn't really want to be sorting through object representations,
         // so instead we provide a predictable column name.
-        let index = 'advisor' + (advisor.adviceType % 2).toString();
+        let index = '';
+        if(this.currentTrial.advisor0id === advisor.id)
+            index = 'advisor0';
+        else if(this.currentTrial.advisor1id === advisor.id)
+            index = 'advisor1';
+        else
+            return;
+
         this.currentTrial[index + 'agrees'] = agree;
         this.currentTrial[index + 'advice'] = advisor.lastAdvice;
     }

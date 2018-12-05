@@ -5,8 +5,10 @@
  * Javascript library for running social metacognition analyses.
  */
 
+
 "use strict";
 import {Trial, Advisor, utils} from "./exploringSocialMetacognition.js";
+import {trialTypes} from "./advisorChoiceDefs.js";
 
 /**
  * @class dotTask
@@ -323,18 +325,57 @@ class advisorChoice extends dotTask {
     }
 
     /**
-     * Return true if the advice offered on *trial* was correct
+     * Return true if the advice offered by *advisor* on *trial* was correct
      * @param {Trial} trial
+     * @param {int} [advisorId=-1]
      * @returns {boolean}
      */
-    static isGoodAdvice(trial) {
-        if (trial.advisorAgrees === null || trial.whichSide === null
-            || trial.answer === null || isNaN(trial.answer[0]))
-            return false;
-        if (trial.answer[0] === trial.whichSide && trial.advisorAgrees)
-            return true;
-        return trial.answer[0] !== trial.whichSide && !trial.advisorAgrees;
+    static isGoodAdvice(trial, advisorId = -1) {
+        let advice = null;
+        if(advisorId === -1)
+            advice = trial.advice.side;
+        else
+            advice = advisorChoice.advisorAdviceOnTrial(trial, advisorId);
 
+        return trial.whichSide === advice;
+    }
+
+    /**
+     * Return true if the advice offered by *advisor* on *trial* was agreed with the initial decision
+     * @param {Trial} trial
+     * @param {int} [advisorId=-1]
+     * @returns {boolean}
+     */
+    static isAgreeingAdvice(trial, advisorId = -1) {
+        let advice = null;
+        if(advisorId === -1)
+            advice = trial.advice.side;
+        else
+            advice = advisorChoice.advisorAdviceOnTrial(trial, advisorId);
+
+        return trial.answer[0] === advice;
+    }
+
+    /**
+     * @param {Trial} trial
+     * @param {int} advisorId
+     * @return {boolean|int} advisor's advice seen by the participant on the trial, or false if no advice seen
+     */
+    static advisorAdviceOnTrial(trial, advisorId) {
+        switch(trial.type) {
+            case trialTypes.force:
+            case trialTypes.choice:
+            case trialTypes.change:
+                return trial.advisorId === advisorId? trial.advice.side : false;
+            case trialTypes.dual:
+                if(trial.advisor0id === advisorId)
+                    return trial.advisor0advice.side;
+                if(trial.advisor1id === advisorId)
+                    return trial.advisor1advice.side;
+                else
+                    return false;
+        }
+        return false;
     }
 
     /**
@@ -345,10 +386,11 @@ class advisorChoice extends dotTask {
      */
     static advisorAccuracy(trials, advisorId) {
         let hits = utils.getMatches(trials, function(trial) {
-            return (trial.advisorId === advisorId && advisorChoice.isGoodAdvice(trial));
+            return advisorChoice.advisorAdviceOnTrial(trial, advisorId) === trial.whichSide;
         }).length;
         let misses = utils.getMatches(trials, function(trial) {
-            return (trial.advisorId === advisorId && !advisorChoice.isGoodAdvice(trial));
+            return advisorChoice.advisorAdviceOnTrial(trial, advisorId) !== trial.whichSide
+                && advisorChoice.advisorAdviceOnTrial(trial, advisorId) !== false;
         }).length;
 
         if (misses === 0 && hits === 0)
@@ -359,16 +401,17 @@ class advisorChoice extends dotTask {
     }
 
     /**
-     * Return the influence rating of the advice on *trial*
+     * Return the influence rating of the advisor's advice on *trial*
      * @param {Trial} trial
-     * @returns {number}
+     * @param {int} advisorId
+     * @returns {boolean|number}
      */
-    static getInfluence(trial) {
-        if (trial.advisorId === null || trial.advisorAgrees === null
-            || trial.confidence === null || isNaN(trial.confidence[0]))
-            return 0;
+    static getInfluence(trial, advisorId) {
+        let advice = advisorChoice.advisorAdviceOnTrial(trial, advisorId);
+        if(advice === false || trial.confidence === null || isNaN(trial.confidence[0]))
+            return false;
         // advisor agrees; influence is the increase in confidence
-        if (trial.advisorAgrees)
+        if (advisorChoice.isAgreeingAdvice(trial, advisorId))
             return trial.confidence[1] - trial.confidence[0];
         else if (trial.answer[0] === trial.answer[1]) {
             // advisor disagrees, and the answer stays the same. Influence is decrease in confidence
@@ -382,14 +425,14 @@ class advisorChoice extends dotTask {
     /**
      * Return the maximum influence the advisor could have had on *trial* given the initial confidence
      * @param {Trial} trial
-     * @returns {number}
+     * @returns {boolean|number}
      */
     static getMaxInfluence(trial) {
-        if (trial.advisorId === null || trial.advisorAgrees === null
-            || trial.confidence === null || isNaN(trial.confidence[0]))
-            return 0;
+        let advice = advisorChoice.advisorAdviceOnTrial(trial, advisorId);
+        if(advice === false || trial.confidence === null || isNaN(trial.confidence[0]))
+            return false;
         // advisor agrees; max influence 100-confidence
-        if (trial.advisorAgrees)
+        if (advisorChoice.isAgreeingAdvice(trial, advisorId))
             return 100 - trial.confidence[0];
         else // advisor disagrees; max influence is 100+confidence
             return 100 + trial.confidence[0];
@@ -398,9 +441,9 @@ class advisorChoice extends dotTask {
     static getTotalInfluence(trials, advisorId) {
         let influence = [];
         trials.forEach(function (trial){
-            if (trial.advisorId !== advisorId)
-                return;
-            influence.push(advisorChoice.getInfluence(trial));
+            let i = advisorChoice.getInfluence(trial, advisorId);
+            if(i !== false)
+                influence.push(i);
         });
         if (!influence.length)
             return NaN;
@@ -429,11 +472,11 @@ class advisorChoice extends dotTask {
         // Judge accrues points for heeding good advice
         goodAdviceTrials.forEach(function (trial) {
             maxInfluence += advisorChoice.getMaxInfluence(trial);
-            influence += advisorChoice.getInfluence(trial);
+            influence += advisorChoice.getInfluence(trial, advisorId);
         });
         // Judge looses points for heeding bad advice
         badAdviceTrials.forEach(function (trial) {
-            influence -= advisorChoice.getInfluence(trial);
+            influence -= advisorChoice.getInfluence(trial, advisorId);
         });
 
         return [influence/maxInfluence, influence, maxInfluence];
@@ -441,12 +484,13 @@ class advisorChoice extends dotTask {
 
     static adviceAnswerChanges(trials, advisorId) {
         let advisorChangedTrials = utils.getMatches(trials, function (trial) {
-            if (trial.advisorId !== advisorId)
+            if (advisorChoice.advisorAdviceOnTrial(trial, advisorId) === false)
                 return false;
             if (trial.answer[0] === trial.answer[1])
                 return false;
-            return trial.advisorAgrees;
+            return advisorChoice.isAgreeingAdvice(trial, advisorId);
         });
+
         if (advisorChangedTrials.length === 0)
             return [NaN, 0, 0];
         let hits = utils.getMatches(advisorChangedTrials, function(trial) {
@@ -467,9 +511,15 @@ class advisorChoice extends dotTask {
      */
     static advisorChoiceRate(trials, advisorId) {
         let choiceTrials = utils.getMatches(trials, function(trial) {
-            return trial.choice.length && trial.choice.indexOf(advisorId) !== -1;
+            switch(trial.type) {
+                case trialTypes.choice:
+                    return trial.choice.indexOf(advisorId) !== -1;
+                case trialTypes.change:
+                    return trial.advisor0id === advisorId || trial.advisor1id === advisorId;
+            }
+            return false;
         });
-        if (!choiceTrials.length)
+        if(!choiceTrials.length)
             return [NaN];
         let chosenTrials = utils.getMatches(choiceTrials, function(trial) {
             return trial.advisorId === advisorId;
