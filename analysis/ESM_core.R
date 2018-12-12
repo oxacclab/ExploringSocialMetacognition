@@ -9,7 +9,191 @@ source('miscFunctions.R') # neat printing, etc
 dodge.width.agreements <- .8
 dodge.width.influence <- .4
 
+
+# Load and prepare data ---------------------------------------------------
+
+loadFilesFromFolder <- function(folderName) {
+  files <- list.files(folderName)
+  participants <- NULL
+  trials <- NULL
+  advisors <- NULL
+  questionnaires <- NULL
+  genTrustQ <- NULL
+  for (i in seq(length(files))) {
+    fileName <- paste(folderName, files[[i]], sep='/')
+    json <- readChar(fileName, file.info(fileName)$size)
+    jsonData <- fromJSON(json, simplifyVector = T, simplifyMatrix = T, simplifyDataFrame = T)
+    # store all columns in participants table except the special cases  
+    # (trials, advisors, and questionnaires (including GTQ) are stored separately)
+    participants <- rbind(participants, 
+                          as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors', 
+                                                                           'questionnaires', 
+                                                                           'trials',
+                                                                           'generalisedTrustQuestionnaire')])))
+    # store the trials in the trials table
+    trials <- rbind(trials, jsonData$trials)
+    advisors <- rbind(advisors, jsonData$advisors)
+    questionnaires <- rbind(questionnaires, jsonData$questionnaires)
+    if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
+      genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
+  }
+  return(list(participants = participants, 
+              trials = trials,
+              advisors = advisors,
+              questionnaires = questionnaires,
+              genTrustQ = genTrustQ))
+}
+
+#' @param results from \link{loadFilesFromFolder}
+#' @param replaceWithPID whether to add a pid field instead. If NULL, adds a pid
+#'   field if it doesn't already exist.
+#' @return results with each participantId field removed
+removeParticipantIds <- function(results, replaceWithPID = NULL) {
+  
+  pids <- as.data.frame(unique(results[['participants']]$id))
+  
+  for(dfName in names(results)) {
+    df <- results[[dfName]]
+    idColName <- ifelse(dfName == 'participants', 'id', 'participantId')
+    if(!(idColName %in% names(df)))
+      next()
+    addPID <- (replaceWithPID == T || (is.null(replaceWithPID) && !('pid' %in% names(df))))
+    if(addPID) {
+      pid <- sapply(df[ , idColName], function(x) which(pids == x))
+      df <- cbind(pid, df)
+    }
+    df[ , idColName] <- NULL
+    results[[dfName]] <- df
+  }
+  return(results)
+}
+
+
+# Clean data --------------------------------------------------------------
+
+trialUtilityVariables <- function(results) {
+  # unpack results
+  for(i in 1:length(results))
+    assign(names(results)[i], results[i][[1]])
+  
+  out <- data.frame(trials$id)
+  
+  
+  # sometimes it helps to see confidence arranged from sure left to sure right (-100 to 100)
+  out$initialConfSpan <- ifelse(trials$initialAnswer==0,trials$initialConfidence*-1,trials$initialConfidence)
+  out$finalConfSpan <- ifelse(trials$finalAnswer==0,trials$finalConfidence*-1,trials$finalConfidence)
+  
+  # confidence changes
+  out$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
+  out$confidenceShiftRaw <- getConfidenceShift(trials,T,T) # as above, without symmetry adjustment
+  out$switch <- trials$initialAnswer != trials$finalAnswer # whether participant switched response
+  
+  # trial correctness
+  out$initialCorrect <- trials$initialAnswer == trials$correctAnswer # whether the initial answer is correct
+  out$finalCorrect <- trials$finalAnswer == trials$correctAnswer # whether the final answer is correct
+  
+  # advisor ids
+  out$adviceType <- findAdviceType(trials$advisorId, trials$pid, advisors) # adviceType > trials table
+  out$advisor0type <- findAdviceType(trials$advisor0id, trials$pid, advisors)
+  out$advisor1type <- findAdviceType(trials$advisor1id, trials$pid, advisors)
+  
+  # advisor influence
+  # amount the confidence changes in the direction of the advice
+  out$advisorInfluence <- NA
+  out$advisor0influence <- NA
+  out$advisor1influence <- NA
+  
+  # as above, without symmetry adjustment
+  out$advisorInfluenceRaw <- NA
+  out$advisor0influenceRaw <- NA
+  out$advisor1influenceRaw <- NA
+  
+  for(tt in unique(trials$type)) {
+    m <- trials$type == tt
+    if(tt == trialTypes$force || tt == trialTypes$choice || tt == trialTypes$change) {
+      out$advisorInfluence[m] <- findInfluence(trials$advisorAgrees,
+                                               out$confidenceShift)[m]
+      out$advisorInfluenceRaw[m] <- findInfluence(trials$advisorAgrees,
+                                                  out$confidenceShiftRaw)[m]
+    }
+    if(tt == trialTypes$dual) {
+      out$advisor0influence[m] <- findInfluence(trials$advisor0agrees,
+                                                out$confidenceShift)[m]
+      out$advisor0influenceRaw[m] <- findInfluence(trials$advisor0agrees,
+                                                   out$confidenceShiftRaw)[m]
+      out$advisor1influence[m] <- findInfluence(trials$advisor1agrees,
+                                                out$confidenceShift)[m]
+      out$advisor1influenceRaw[m] <- findInfluence(trials$advisor1agrees,
+                                                   out$confidenceShiftRaw)[m]
+    }
+  }
+  
+  return(out[ ,-1])
+}
+
 # Manipulation check functions ----------------------------------------------
+
+#' @param trials data frame
+#' @return a list of by-participant advisor interaction data frames and summary
+#'   tables
+advisorManipulationData <- function(trials) {
+  pairs <- getAdviceTypePairs(c(trials$adviceType, trials$advisor0type, trials$advisor1type))
+  full <- data.frame(pid = unique(trials$pid))
+    
+  for(advisorTypes in pairs) {
+    advisorTypes <- advisorTypes[order(advisorTypes)]
+    # make a table of the advice for each trial
+    advice <- data.frame(trials$id)
+    for(a in advisorTypes)
+      advice <- cbind(advice, data.frame(getAdviceByType(trials, a)))
+    names(advice)[2:3] <- getAdviceTypeName(advisorTypes)
+    
+    if(advisorTypes[1] == adviceTypes$AiC) {
+      # Agree-in-Confidence/Uncertainty - compare agreement at different confidence categories
+      df <- data.frame(pid = unique(trials$pid))
+      for(x in 1:6) {
+        cc <- list(0, 1, 2, c(0:2), c(0:2), c(0:2))[[x]]
+        right <- list(T, T, T, T, F, T)[[x]]
+        ccName <- list('low', 'med', 'high', 'right', 'wrong', 'all')[[x]]
+        m <- trials$confidenceCategory %in% cc & trials$initialCorrect == right
+        for(a in advisorTypes) {
+          df[ , paste0(getAdviceTypeName(a), ccName)] <- 
+            sapply(df$pid, 
+                   function(pid) 
+                     mean(advice[m & trials$pid == pid, getAdviceTypeName(a)] == 
+                            trials$initialAnswer[m & trials$pid == pid], 
+                          na.rm = T))
+        }
+      }
+    }
+    if(advisorTypes[1] == adviceTypes$HighAcc) {
+      # High/Low Accuracy - compare objective accuracy
+      for(a in advisorTypes) {
+        v <- paste0(getAdviceTypeName(a), 'Correct')
+        advice[ , v] <- advice[ , getAdviceTypeName(a)] == trials$correctAnswer
+      }
+      tmp <- cbind(data.frame(pid = trials$pid), advice)
+      df <- aggregate(cbind(HighAccCorrect, LowAccCorrect) ~ pid, tmp, mean)
+    }
+    if(advisorTypes[1] == adviceTypes$HighAgr) {
+      # High/Low Agreement - compare agreement
+      for(a in advisorTypes) {
+        v <- paste0(getAdviceTypeName(a), 'Agrees')
+        advice[ , v] <- advice[ , getAdviceTypeName(a)] == trials$initialAnswer
+      }
+      tmp <- cbind(data.frame(pid = trials$pid), advice)
+      df <- aggregate(cbind(HighAgrAgrees, LowAgrAgrees) ~ pid, tmp, mean)
+    }
+    full <- cbind(full, df[ ,-1])
+  }
+  short <- data.frame(mean = colMeans(full[ ,-1]),
+                      sd = apply(full[ ,-1], 2, sd, na.rm = T),
+                      ciLow = apply(full[ ,-1], 2, function(x) mean_cl_normal(x)$ymin),
+                      ciHigh = apply(full[ ,-1], 2, function(x) mean_cl_normal(x)$ymax),
+                      rangeLow = apply(full[ ,-1], 2, function(x) range(x, na.rm = T)[1]),
+                      rangeHigh = apply(full[ ,-1], 2, function(x) range(x, na.rm = T)[2]))
+  return(list(data = full, summary = short))
+}
 
 #' Aggregate trial agreement by confidence, advisor, and initial correctness
 #' @param trials trial set

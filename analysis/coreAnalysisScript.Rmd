@@ -1,0 +1,520 @@
+---
+title: "Exploring Social Metacognition"
+author: Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)
+output: 
+  html_document:
+    toc: false
+    toc_depth: 3
+    css: tabs.css
+editor_options: 
+  chunk_output_type: console
+---
+December 2018  
+[Script run `r Sys.time()`]
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+startTime <- Sys.time()
+source('ESM_core.R')
+```
+
+# Core Analysis Script {.tabset .tabset-fade .tabset-pills}
+
+## Descriptives 
+
+### Introduction 
+
+This is the core analysis script for the Advisor Choice version 2 experiments. This script is designed to be agnostic as to the specific experiment run, i.e. it does not expect any particular advisor profiles. 
+
+The basic structure is:  
+
+* Load data
+
+* Describe data
+
+* Test primary hypothesis (pick rates are not equal) 
+
+* Test secondary hypothesis (influence is not equal)
+
+* Exploration
+
+Tests and explorations which depend on a specific advisor set are not included because they are out of scope for this script. 
+
+### Load data  
+
+```{r}
+# folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
+
+# results <- loadFilesFromFolder(folderName)
+# results <- removeParticipantIds(results)
+
+folderName <- 'ESM_sim.R'
+source('ESM_sim.R')
+results <- simulateAdvisorChoice(5)
+
+# unpack results
+for(i in 1:length(results))
+  assign(names(results)[i], results[i][[1]])
+
+cat(paste('Loaded data from', folderName))
+```
+
+```{r}
+trials <- cbind(trials, trialUtilityVariables(results))
+all.trials <- trials
+trials <- trials[trials$practice == F, ]
+cat('Generated utility variables')
+```
+
+### Describe data 
+
+#### Metadata
+
+Responses (`r paste('*N* =', length(unique(participants$pid)))`) were collected between `r as.POSIXct(min(unlist(participants$timeStart))/1000, tz = '', origin = '1970-01-01')` and `r as.POSIXct(max(unlist(participants$timeEnd))/1000, tz = '', origin = '1970-01-01')`.
+
+Demographic data are not collected and therefore not analysed. Participants must be over 18 years old to use the Prolific recruitment platform.
+
+#### Task performance
+
+##### Type 1 performance
+
+Participants initial performance was held at 71% by design. Participants' mean percentage correct on initial decisions was `r md.mean(aggregate(initialCorrect ~ pid, trials, mean)$initialCorrect, isProportion = T)`. We would expect final decisions to be more accurate due to the presence of advice: 
+
+```{r results = 'asis'} 
+tmp <- aggregate(cbind(initialCorrect, finalCorrect) ~ pid, trials, mean) 
+cat(md.ttest(tmp$initialCorrect, tmp$finalCorrect, 
+             labels = c('*M*|initial', '*M*|final'), 
+             isProportion = T, paired = T))
+```
+
+##### Type 2 performance
+
+Type 2 (metacognitive) performance is characterised using Type 2 ROC.
+
+```{r results = 'asis'}
+df.type2 <- NULL
+for(p in unique(trials$pid)) {
+  for(d in c('initial', 'final')) {
+    tmp <- trials[trials$pid == p, c(paste0(d, 'Correct'), paste0(d, 'Confidence'))]
+    # remove NA values which appear in final judgements which are never made
+    tmp <- tmp[!is.na(tmp[ ,1]), ]
+    roc <- type2ROC(tmp[ ,1], tmp[ ,2])
+    df.type2 <- rbind(df.type2, data.frame(pid = factor(p), decision = d, conf = roc$x, pCorrect = roc$y))
+  }
+}
+
+tmp <- aggregate(. ~ pid + decision, df.type2, mean)
+tmp <- tmp[order(tmp$pid),]
+# print neatly with rounding
+kable(prop2str(aggregate(pCorrect ~ decision, tmp, mean)))
+```
+
+Participants' ROC curves:
+
+```{r}
+ggplot(df.type2, aes(x = conf, y = pCorrect, colour = pid)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~decision, labeller = label_both) +
+  coord_fixed() +
+  style
+```
+
+#### Exclusions
+
+```{r}
+participants$excluded <- sapply(participants$pid, function(pid){
+  ts <- all.trials[all.trials$pid == pid,]
+  # overall accuracy of initial decisions
+  m <- mean(ts$initialCorrect, na.rm = T)
+  if(m < .6 | m > .85) return('Accuracy')
+  # varied use of confidence scale
+  cCs <- aggregate(pid ~ confidenceCategory, data = ts, FUN = length)
+  # All confidence categories must be used
+  if(nrow(cCs) < 3) return ('Confident')
+  # All confidence categories must have at least 5% of the number of trials
+  if(any(cCs$pid < length(ts)*.05)) return('<5%')
+  return(F)
+  })
+# exclude on the basis of collecting too much data
+if(sum(participants$excluded == F) > 50) {
+  tmp <- participants[participants$excluded == F, c('id', 'timeStart')]
+  tmp <- tmp$id[order(tmp$timeStart)]
+  tmp <- tmp[1:50]
+  participants$excluded[!(participants$id %in% tmp)] <- 'Excess'
+}
+```
+
+We exclude participants for:
+
+* Proportion of correct initial judgements must be (.60 < cor1/n < .90) (*N* = `r sum(participants$excluded == 'Accuracy')`)
+
+* Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confidence')`)
+
+* Having fewer than 5% of trials in each confidence category (*N* = `r sum(participants$excluded == '<5%')`)
+
+* There being more data collected than specified in pre-registration (*N* = `r sum(participants$excluded == 'Excess')`)
+
+*NB: **practice trials are included** in this since they are used in part for determining confidence calibration*
+
+The number of participants analysed after exclusions (total *N* = `r sum(participants$excluded != F)`) have taken place is `r sum(participants$excluded == F)`.
+
+```{r}
+# Perform exclusions
+participants <- participants[participants$excluded==F, ]
+# Remove excluded participants' data from other data frames
+all.trials <- all.trials[all.trials$pid %in% participants$pid, ]
+trials <- trials[trials$pid %in% participants$pid, ]
+advisors <- advisors[advisors$pid %in% participants$pid, ]
+questionnaires <- questionnaires[questionnaires$pid %in% participants$pid, ]
+genTrustQ <- genTrustQ[genTrustQ$pid %in% participants$pid, ]
+```
+
+#### Advisor performance
+
+##### Manipulation checks
+
+The advisors need to differ appropriately. How they differ depends on the advisors being compared, but in each case we need to check the participants' experience of the advisors matched the specifications for the advisors.
+
+```{r results = 'asis'}
+tmp <- advisorManipulationData(trials)
+l.advisorDiff <- tmp
+tmp <- prop2str(l.advisorDiff$summary, 3)
+rownames(tmp) <- rownames(l.advisorDiff$summary)
+kable(tmp)
+
+# significane tests
+for(i in 1:ncol(l.advisorDiff$data[ ,-1])) {
+  if(i %% 2 == 1) {
+    cat('\n\n')
+    next()
+  }
+  cat(md.ttest(l.advisorDiff$data[ ,i], l.advisorDiff$data[ ,i+1], 
+                 labels = paste0('*M*|', names(l.advisorDiff$data[i:(i+1)])), 
+                 isProportion = T, paired = T)) 
+}
+```
+
+##### Initial decision comparability
+
+The participants' initial decisions should be equivalent (BF < .333) between advisors. Comparing initial decision by advice profile we can see whether this was the case:
+
+```{r results = 'asis'} 
+tmp <- aggregate(initialCorrect ~ pid + adviceType, trials, mean) 
+for(a in c(adviceTypes$AiC, adviceTypes$HighAcc, adviceTypes$HighAgr)) {
+  cat(md.ttestBF(tmp$initialCorrect[tmp$adviceType == a], 
+                 tmp$initialCorrect[tmp$adviceType == a+1], 
+                 labels = paste0('*M*|', getAdviceTypeName(c(a, a+1))),
+                 isProportion = T, paired = T))
+  cat('\n\n')
+}
+```
+
+## 1: Pick rate differences
+
+The primary outcome is the relative frequencies of advisor picking on trials where there is a choice of advisor. There are two kinds of choice of advisor. *Choice* trials show participants two advisors and wait until the participant selects one. *Change* trials provide a default advisor and allow the participant to hear advice from the other advisor instead by pressing a key within a selection window (`r unique(participants$changeDuration)`ms). These choices are distinct from one another, and are thus analysed separately.
+
+### Choice trials
+
+Analysis for choice trials is conducted by comparing the proportion of choices for a reference advisor to the null hypothesis of .50 using a one-sample t-test. 
+
+```{r results = 'asis'}
+df.choice <- NULL
+pairs <- getAdviceTypePairs(c(trials$choice0, trials$choice1))
+if(length(pairs) < 1) {
+  cat('*No choice trials in the current dataset.*')
+} else {
+  df.choice <- data.frame(pid = unique(trials$pid))
+  for(pair in pairs) {
+    refAdvisor <- pair[1]
+    # Calculate choice proportions favouring reference advisor for each participant
+    choices <- sapply(df.choice$pid, function(pid) {
+      tmp <- trials[trials$pid == pid, ]
+      tmp <- tmp$advisorId[(tmp$choice0 == pair[1] | tmp$choice1 == pair[1])
+                           & (tmp$choice0 == pair[2] | tmp$choice1 == pair[2])]
+      return(mean(tmp == refAdvisor, na.rm = T))
+      })
+    
+    cat(md.ttest(choices, mu = .5, labels = paste0('*M*|', getAdviceTypeName(refAdvisor)), isProportion = T))
+    cat('\n\n')
+    tmp <- data.frame(choices)
+    colnames(tmp) <- getAdviceTypeName(refAdvisor)
+    df.choice <- cbind(df.choice, tmp);
+  } 
+}
+```
+
+```{r}
+# forest plot for choice trials
+if(!is.null(df.choice)) {
+  tmp <- gather(df.choice, key = advisor, value = pickRate, -pid)
+  
+  # calculate confidence intervals
+  tmp.CI <- NULL
+  for(pair in pairs) {
+    cis <- mean_cl_normal(tmp$pickRate[tmp$advisor == getAdviceTypeName(pair[1])])
+    tmp.CI <- rbind(tmp.CI, data.frame(advisor = getAdviceTypeName(pair[1]),
+                                       ymin = cis$ymin,
+                                       ymax = cis$ymax,
+                                       labelsL = getAdviceTypeName(pair[2], long = T),
+                                       labelsR = getAdviceTypeName(pair[1], long = T)))
+  }
+  
+  ggplot(tmp, aes(x = pickRate, y = advisor)) +
+    geom_vline(linetype = 'dashed', xintercept = .5) +
+    geom_point(alpha = 0.5, col = 'black',
+               position = position_nudge(x = 0, y = -0.05)) +
+    geom_density_ridges(panel_scaling = F, scale = .5, 
+                        col = NA, fill = '#2299DD', alpha = .75) +
+    geom_segment(data = tmp.CI,
+                 aes(y = advisor, yend = advisor, 
+                     x = ymin, xend = ymax),
+                 size = 1, colour = '#2299DD',
+                 position = position_nudge(x = 0, y = -0.2)) +
+    geom_point(data = aggregate(pickRate ~ advisor, tmp, mean), size = 4, shape = 18,
+               position = position_nudge(x = 0, y = -0.2)) +
+    scale_x_continuous(name = 'Pick rate', limits = c(-.5,1.5), expand = c(0,0),
+                       breaks = seq(0,1,.5)) +
+    # label hack
+    geom_text(data = tmp.CI, aes(x = 0, label = labelsL), nudge_x = -.1, nudge_y = .15, hjust = 1) +
+    geom_text(data = tmp.CI, aes(x = 1, label = labelsR), nudge_x = .1, nudge_y = .15, hjust = 0) +
+    annotate(geom = 'rect', xmin = 0, xmax = 1, ymin = -Inf, ymax = Inf,
+             alpha = .025, linetype = 'solid', col = 'black') +
+    theme_light() +
+    theme(panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.line.x = element_line(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = 'top')
+}
+```
+
+### Change trials
+
+Change trials are analysed by looking at the proportion of changed trials where the selected advisor is the reference advisor. 
+
+```{r results = 'asis'}
+df.change <- NULL
+pairs <- getAdviceTypePairs(c(trials$advisor0id, trials$advisor1id))
+if(length(pairs) < 1) {
+  cat('*No change trials in the current dataset.*')
+} else {
+  df.change <- data.frame(pid = unique(trials$pid))
+  for(pair in pairs) {
+    refAdvisor <- pair[1]
+    changes <- NULL
+    # Calculate change proportions favouring reference advisor for each participant
+    for(pid in unique(trials$pid)) {
+      tmp <- trials[trials$pid == pid & trials$type == trialTypes$change, ]
+      tmp <- tmp[tmp$advisor0id %in% pair & tmp$advisor1id %in% pair, ]
+      changed <- tmp$advisorId[tmp$defaultAdvisor != tmp$advisorId]
+      changes <- rbind(changes, data.frame(m = mean(changed == refAdvisor, na.rm = T),
+                                           p = sum(!is.na(changed)) / nrow(tmp)))
+                                           
+    }
+    
+    cat(md.ttest(changes$m, mu = .5, labels = getAdviceTypeName(refAdvisor), isProportion = T))
+    cat('\n\n')
+    colnames(changes) <- c(getAdviceTypeName(refAdvisor), paste0('PChange_', getAdviceTypeName(refAdvisor)))
+    df.change <- cbind(df.change, changes);
+  }
+}
+```
+
+```{r}
+# forest plot for change trials
+if(!is.null(df.change)) {
+  # shuffle the data a bit
+  tmp <- gather(df.change, key = advisor, value = pickRate, -pid)
+  tmp <- tmp[!grepl('_', tmp$advisor), ]
+  tmp$pChanged <- sapply(1:nrow(tmp), function(i) mean(df.change[df.change$pid == tmp$pid[i],
+                                                          paste0('PChange_', tmp$advisor[i])]))
+  
+  # calculate confidence intervals
+  tmp.CI <- NULL
+  for(pair in pairs) {
+    cis <- mean_cl_normal(tmp$pickRate[tmp$advisor == getAdviceTypeName(pair[1])])
+    tmp.CI <- rbind(tmp.CI, data.frame(advisor = getAdviceTypeName(pair[1]),
+                                       ymin = cis$ymin,
+                                       ymax = cis$ymax,
+                                       labelsL = getAdviceTypeName(pair[2], long = T),
+                                       labelsR = getAdviceTypeName(pair[1], long = T)))
+  }
+  
+  ggplot(tmp, aes(x = pickRate, y = advisor)) +
+    geom_vline(linetype = 'dashed', xintercept = .5) +
+    geom_point(alpha = 0.5, col = 'black', aes(size = pChanged),
+               position = position_nudge(x = 0, y = -0.05)) +
+    geom_density_ridges(panel_scaling = F, scale = .5, 
+                        col = NA, fill = '#2299DD', alpha = .75) +
+    geom_segment(data = tmp.CI,
+                 aes(y = advisor, yend = advisor, 
+                     x = ymin, xend = ymax),
+                 size = 1, colour = '#2299DD',
+                 position = position_nudge(x = 0, y = -0.2)) +
+    geom_point(data = aggregate(pickRate ~ advisor, tmp, mean), size = 4, shape = 18,
+               position = position_nudge(x = 0, y = -0.2)) +
+    scale_x_continuous(name = 'Balance of changes', limits = c(-.5,1.5), expand = c(0,0),
+                       breaks = seq(0,1,.5)) +
+    # label hack
+    geom_text(data = tmp.CI, aes(x = 0, label = labelsL), nudge_x = -.1, nudge_y = .15, hjust = 1) +
+    geom_text(data = tmp.CI, aes(x = 1, label = labelsR), nudge_x = .1, nudge_y = .15, hjust = 0) +
+    annotate(geom = 'rect', xmin = 0, xmax = 1, ymin = -Inf, ymax = Inf,
+             alpha = .025, linetype = 'solid', col = 'black') +
+    theme_light() +
+    theme(panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.line.x = element_line(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = 'top')
+}
+```
+
+For completeness we also check the proportion of trials on which the reference advisor is the default advisor is equivalent to .5.
+
+```{r results = 'asis'}
+if(length(pairs) < 1) {
+  cat('*No change trials in the current dataset.*')
+} else {
+  for(pair in pairs) {
+    refAdvisor <- pair[1]
+   # Calculate default advisor = reference advisor proportions for each participant
+    defaults <- sapply(unique(trials$pid), function(pid) {
+      tmp <- trials[trials$pid == pid, ]
+      tmp <- tmp$advisorId[tmp$defaultAdvisor %in% pair]
+      return(mean(tmp == refAdvisor, na.rm = T))
+    })
+    
+    cat(md.ttestBF(defaults, mu = .5, labels = getAdviceTypeName(refAdvisor), isProportion = T))
+    cat('\n\n')
+  }
+}
+```
+
+## 2: Influence differences  
+
+Influence, defined as the extent to which a participant adjusts their answer in the direction of an advisor's advice, can be compared between advisors. Note that the experimental design is not optimised for measuring this outcome because influence may vary systematically with choices, and the trials without choices constitute a learning phase wherein preferences cannot be expected to have crystalised. 
+
+Influence scores are compared for trials on which a choice is not presented. For the Agree-in-Confidence/Uncertainty advisors an analysis is limited to trials where the initial decision was correct and given with medium confidence to avoid confounds of confidence \* agreement. For forced trials analysis is a simple ANOVA of agreement \* advice profile:
+
+```{r}
+pairs <- getAdviceTypePairs(trials$adviceType[trials$type == trialTypes$force])
+for(pair in pairs) {
+  meta <- adviceTypes$AiC %in% pair
+  
+  # subset data
+  tmp <- trials[trials$type == trialTypes$force
+                & trials$adviceType %in% pair, ]
+  if(meta)
+    tmp <- tmp[tmp$initialCorrect == T
+               & tmp$confidenceCategory == confidenceCategories$medium, ]
+  
+  if(nrow(tmp) <= 0)
+    next()
+  
+  # aggregate and factorize
+  tmp <- aggregate(advisorInfluence ~ adviceType + advisorAgrees + pid, tmp, mean)
+  for(v in names(tmp[ , -ncol(tmp)])) tmp[ ,v] <- factor(tmp[ ,v])
+  
+  # check data are complete
+  if(nrow(tmp) != 2 * 2 * length(unique(tmp$pid))) {
+    print(paste('Incomplete data for ', getAdviceTypeName(pair[1], long = T),
+                'vs', getAdviceTypeName(pair[2], long = T), '- skipping.'))
+    next()
+  }
+  
+  # analyse and print
+  x <- ezANOVA(data = tmp, dv = advisorInfluence, wid = pid, 
+                     within = .(adviceType, advisorAgrees), 
+                     return_aov = T)
+  print(paste('ANOVA results for', getAdviceTypeName(pair[1], long = T),
+              'vs', getAdviceTypeName(pair[2], long = T)))
+  print(prettifyEZ(x))
+  assign(paste0('inf.', getAdviceTypeName(pair[1])), x)
+}
+```
+
+For dual trials the confidence shift is modelled using a linear model in which the initial confidence and the agreement of each advisor (and their interaction) are used as predictors:
+
+```{r}
+tmp <- trials[trials$type == trialTypes$dual, ]
+
+for(pair in pairs) {
+  aNames <- paste0(getAdviceTypeName(pair), '_agrees')
+  # rearrange data so advisors are separated by type rather than order
+  df <- tmp[tmp$advisor0type %in% pair & tmp$advisor1type %in% pair, ]
+  df[ , aNames[1]] <- ifelse(df$advisor0type == pair[1], df$advisor0agrees, df$advisor1agrees)
+  df[ , aNames[2]] <- ifelse(df$advisor0type == pair[2], df$advisor0agrees, df$advisor1agrees)
+  
+  if(nrow(df) == 0)
+    next()
+  
+  print(paste('LM results for', getAdviceTypeName(pair[1], long = T),
+              'vs', getAdviceTypeName(pair[2], long = T)))
+  
+  f <- as.formula(paste0("confidenceShift ~ pid + initialConfidence + (", aNames[1],
+                        ' * ', aNames[2], ')'))
+  model <- lm(f, data = df)
+  print(summary(model))
+}
+```
+
+## 3. Pick rate x Influence
+
+If picking and influence measure a single latent 'trust' estimation for an advisor, the ratings should be correlated. The analysis is by advisor ID rather than advice profile, because individual advisors should have pick rates and influences which are more tightly correlated than advice profiles which average over multiple advisors. 
+
+Forced trials are used for the influence calculations, and choice trials for the pick rate calculations. 
+
+## 4. Modelling 
+
+### Trust modelling
+
+Models fit to the data build up by parameters to the full model:
+
+$$C_{final} = C_{initial} + I_a * sign(A)$$
+Where $A$ gives the agreement of the advice (+1 for agreement, -1 for disagreement), and the influence of an advisor $I_a$ is updated on each trial according to the rule:
+$$I_{a,t} = I_{a,t-1} + \lambda C_{initial} * sign(A) - \tau$$
+$\lambda$ and $\tau$ are participant-specific parameters which represent the learning rate and trust decay rates, respectively.
+
+## 5. Exploration 
+
+## Credits 
+
+### Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+### R Packages:
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% rownames(installed.packages(priority="base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for(p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+### Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+### Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```

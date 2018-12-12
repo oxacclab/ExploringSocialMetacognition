@@ -27,6 +27,7 @@ export default function processData(data, test = false) {
         preStimulusInterval: data.preStimulusInterval,
         stimulusDuration: data.stimulusDuration,
         feedbackDuration: data.feedbackDuration,
+        changeDuration: data.changeTime,
         timeStart: data.timeStart,
         timeEnd: data.timeEnd,
         experimentDuration: data.timeEnd - data.timeStart,
@@ -42,6 +43,9 @@ export default function processData(data, test = false) {
     if(typeof data.advisors !== 'undefined')
         for (let a=0; a<data.advisors.length; a++)
             advisorData.push(flattenAdvisorData(data.advisors[a], participantData.id));
+    if(typeof data.practiceAdvisors !== 'undefined')
+        for(let a = 0; a < data.practiceAdvisors.length; a++)
+            advisorData.push(flattenAdvisorData(data.practiceAdvisors[a], participantData.id));
     participantData.advisors = advisorData;
 
     // Questionnaires
@@ -117,6 +121,7 @@ function flattenTrialData(trial, id) {
             out[index + 'adviceString'] = trial[index + 'adviceString'];
         }
     }
+    out.defaultAdvisor = trial.defaultAdvisor;
 
     out.feedback = trial.feedback;
     out.warnings = trial.warnings.join("\n");

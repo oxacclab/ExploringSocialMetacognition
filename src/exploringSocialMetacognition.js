@@ -408,6 +408,7 @@ class Advisor {
      * @param {int} [args.portraitId] - the portrait ID
      * @param {string} [args.portraitSrc] - the portrait img src (nothing else needed to regenerate portrait)
      * @param {string} [args.styleClass] - the (full) style class string
+     * @param {boolean} [args.practice=false] - whether this advisor is a practice advisor
      */
     constructor(id, adviceType, voice = null, portrait = 0, styleClass = '', args = {}) {
         if(typeof id !== 'object') {
@@ -454,6 +455,7 @@ class Advisor {
             this.portrait.classList.add(this.styleClass);
         this.portrait.id = 'advisor-portrait-' + this.portraitId;
         this.lastAdvice = null; // the advisor's most recent advice
+        this.practice = typeof args.practice === 'undefined'? false : args.practice;
     }
 
     /** Hoist the name for ease-of-access */
@@ -654,6 +656,7 @@ class Trial {
         this.advisorId = typeof args.advisorId === 'undefined'? null : args.advisorId;
         this.advisor0id = typeof args.advisor0id === 'undefined'? null : args.advisor0id;
         this.advisor1id = typeof args.advisor1id === 'undefined'? null : args.advisor1id;
+        this.defaultAdvisor = typeof args.defaultAdvisor === 'undefined'? null : args.defaultAdvisor;
         this.choice = typeof args.choice === 'undefined'? null : args.choice;
         this.answer = typeof args.answer  === 'undefined'? null : args.answer ;
         this.confidence = typeof args.confidence === 'undefined'? null : args.confidence;

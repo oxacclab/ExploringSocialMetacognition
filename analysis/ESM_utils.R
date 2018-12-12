@@ -19,11 +19,16 @@ if(!require(tidyverse)) {
   install.packages('tidyverse')
   library(tidyverse)
 }
-# Long-to-wide conversions
-if(!require(reshape2)) {
-  install.packages('reshape2')
-  library(reshape2)
+# Forest plots
+if(!require(ggridges)) {
+  install.packages('ggridges')
+  library(ggridges)
 }
+# # Long-to-wide conversions
+# if(!require(reshape2)) {
+#   install.packages('reshape2')
+#   library(reshape2)
+# }
 # Linear modelling
 if(!require(lme4)) {
   install.packages('lme4')
@@ -56,6 +61,89 @@ if(!require(scoring)) {
 }
 
 # Reference and mapping functions -----------------------------------------
+
+#' Return an Advisor's adviceType from their ID for a given participant. Updated version of getAdviceType
+#' @param advisorId
+#' @param participantId will be joined to advisorId as a data.frame, so must be of the same length
+#' @param advisors data frame of advisors
+#' @return adviceType of specified advisor
+findAdviceType <- function(advisorId, participantId, advisors) {
+  df <- data.frame(advisorId, participantId, type = NA)
+  if(any(!is.na(df$advisorId))) {
+    tmp <- df[!is.na(df$advisorId), ]
+    tmp$type <- sapply(1:nrow(tmp),
+                       function(i) advisors$adviceType[advisors$pid == tmp$participantId[i] 
+                                                       & advisors$id == tmp$advisorId[i]])
+    df[!is.na(df$advisorId), ] <- tmp
+  }
+  
+  return(unlist(df$type))
+}
+
+#' Return a vector of length \code{trials} containing the advice from an advisor
+#' with advice profile \code{type} on each trial
+#' @param trials data frame of trials to search
+#' @param type advice type to search for
+#' @requireSeen whether the advice must have been visible to the participant. If
+#'   TRUE, unseen advice is replaced with NA
+getAdviceByType <- function(trials, type, requireSeen = T) {
+  out <- NULL
+  for(i in 1:nrow(trials)) {
+    tr <- trials[i, ]
+    if(tr$adviceType == type && !is.na(tr$adviceSide))
+      out <- c(out, tr$adviceSide)
+    else {
+      if(tr$advisor0type == type && !is.na(tr$advisor0adviceSide))
+        out <- c(out, tr$advisor0adviceSide)
+      else {
+        if(tr$advisor1type == type && !is.na(tr$advisor1adviceSide))
+          out <- c(out, tr$advisor1adviceSide)
+        else
+          out <- c(out, NA)
+      }
+    }
+  }
+  if(requireSeen)
+    out[!getAdviceSeen(trials, type)] <- NA
+  return(out)
+}
+
+#' @param trials data frame containing trials
+#' @param type advisor's advice type
+#' @return boolean vector of length \code{trials} with TRUE where the advice was
+#'   seen on a trial
+getAdviceSeen <- function(trials, type) {
+  out <- NULL
+  for(i in 1:nrow(trials)) {
+    tr <- trials[i, ]
+    if(tr$type %in% c(trialTypes$force, trialTypes$choice, trialTypes$change))
+      out <- c(out, tr$adviceType == type)
+    else {
+      if(tr$type %in% c(trialTypes$dual))
+        out <- c(out, type %in% c(tr$advisor0type, tr$advisor1type))
+      else
+        out <- c(out, F)
+    }
+  }
+  return(out)
+}
+
+#' @param adviceTypeVector vector of advisor's adviceTypes
+#' @param allowNeutral whether to allow neutral advisors as a type
+#' @return list of pairs of adviceTypes which complement one another
+getAdviceTypePairs <- function(adviceTypeVector, allowNeutral = F) {
+  types <- unique(adviceTypeVector)
+  if(!allowNeutral)
+    types <- types[types != adviceTypes$neutral]
+  types <- types[!is.na(types)]
+  types <- types[order(types)]
+  pairs <- list()
+  if(length(types) < 2)
+    return(list())
+  for(i in 1:(length(types)/2)) 
+    pairs[[i]] <- c(types[2*(i-1)+1], types[2*(i-1)+2])
+  return(pairs)
+}
 
 # Return the advice type of an advisor for participant with row number=pid
 getAdviceTypeById <- function(aid, pid, advisor.data.frame) {
@@ -109,6 +197,24 @@ getConfidenceShift <- function (t, rawShift = FALSE, forceRecalculate = FALSE) {
   return(out)
 }
 
+#' Return a vector of influences of advisors. Influence is +confidenceShift
+#' where the advisor agrees, and -confidenceShift where the advisor disagrees.
+#' @param advisorIds
+#' @param advisorAgreements
+#' @param confidenceShifts the parameters are all bound together into a
+#'   dataframe so must all be the same length
+#' @return vector of influences of the advisors. NA where advisorId is NA
+findInfluence <- function(advisorAgreements, confidenceShift) {
+  out <- NA
+  out[advisorAgreements == T 
+      & !is.na(advisorAgreements)] <- confidenceShift[advisorAgreements == T
+                                                       & !is.na(advisorAgreements)]
+  out[advisorAgreements == F 
+      & !is.na(advisorAgreements)] <- -1 * confidenceShift[advisorAgreements == F 
+                                                            & !is.na(advisorAgreements)]
+  return(out)
+}
+
 # Return a vector of influence for trial list t
 #' @param t trial list
 #' @param rawShift whether to report the influence without adjusting for the assymetric scale
@@ -140,7 +246,7 @@ getAdviceTypeName <- function(adviceType, long = FALSE) {
   if(length(adviceType)>1) {
     out <- NULL
     for(aT in adviceType)
-      out <- c(out, getAdviceTypeName(aT))
+      out <- c(out, getAdviceTypeName(aT, long = long))
     return(out)
   }
   if(adviceType==adviceTypes$neutral)
@@ -160,6 +266,27 @@ getAdviceTypeName <- function(adviceType, long = FALSE) {
   return(ifelse(long, 'None', NA))
 }
 
+#' Get the name of a trial type
+#' @param type of trial
+getTrialTypeName <- function(type) {
+  names(trialTypes)[trialTypes == type]
+}
+
+
+# Type2 ROC ---------------------------------------------------------------
+
+#' @param correctness vector of correctness of judgements
+#' @param confidence vector of the confidence of judgements
+#' @return type 2 receiver operator characterisitc curve points
+type2ROC <- function(correctness, confidence) {
+  points <- data.frame(x = unique(confidence), y = NA)
+  for(i in 1:nrow(points)) {
+    points$y[i] <- mean(correctness[confidence == points$x[i]])
+  }
+  # scale x values
+  points$x <- points$x / max(points$x)
+  return(points)
+}
 
 # Global variables --------------------------------------------------------
 
@@ -169,7 +296,7 @@ adviceTypes <- list(neutral=0,
                     HighAcc=5, LowAcc=6,
                     HighAgr=7, LowAgr=8)
 
-trialTypes <- list(catch=0, force=1, choice=2)
+trialTypes <- list(catch=0, force=1, choice=2, dual=3, change=4)
 confidenceCategories <- list(low=0, medium=1, high=2)
 
 # Advisor questionnaire dimensions
