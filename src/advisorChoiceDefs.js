@@ -4,7 +4,7 @@
  */
 "use strict";
 
-import {DoubleDotGrid, Trial, Governor, Advisor, utils} from './exploringSocialMetacognition.js';
+import {DoubleDotGrid, Trial, Governor, Advisor, Line, utils} from './exploringSocialMetacognition.js';
 import {dotTask, advisorChoice} from "./analysis.js";
 import debriefForm from "./debriefForm.js";
 //import processData from "./saveData.js";

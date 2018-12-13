@@ -137,7 +137,9 @@
                 [trialTypes.catch]: 3,//60,
             },
             {
-                [trialTypes.dual]: 1,
+                [trialTypes.dual]: 1
+            },
+            {
                 [trialTypes.change]: 1
             },
             {
@@ -179,7 +181,7 @@
             "<p>You will see two boxes containing dots either side of the centre of the screen. " +
             "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
             "<p>You make your decision by using the grey bars below the boxes. Once you've made your" +
-            " decision you'll see the dots in the correct box reappear briefly.</p>" +
+            " decision you'll see <strong>the dots in the correct box reappear</strong> briefly.</p>" +
             "Click one of the boxes and then press the 'continue' button.</p>" +
             "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
             "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
@@ -221,24 +223,6 @@
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
-    const adviceInstructions = {
-        type: 'instructions',
-        pages: ["<p>Most of the time you will get <strong>advice</strong> from advisors to help you make your " +
-        "decision.</p>" +
-        "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
-        "perform better on the task.</p>" +
-        "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
-        "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
-        "that you are more or less sure, and even to change which box you think had most dots.</p>" +
-        "<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
-        "which advisor is going to be providing you with advice. Press the spacebar to change to the other " +
-        "advisor.</p>" +
-        "<p>Click 'next' to practice a few with advice.</p>"],
-        show_clickable_nav: true,
-        on_load: ()=>gov.drawProgressBar(),
-        on_finish: (trial)=>gov.storeMiscTrialData(trial)
-    };
-
     const practiceInstructions = {
         type: 'instructions',
         pages: ["<p>Good.</p>" +
@@ -249,12 +233,52 @@
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
+    const dualAdviceInstructions = {
+        type: 'instructions',
+        pages: ["<p>Most of the time you will get <strong>advice</strong> from advisors to help you make your " +
+        "decision.</p>" +
+        "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
+        "perform better on the task.</p>" +
+        "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
+        "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
+        "that you are more or less sure, and even to change which box you think had most dots.</p>",
+        "<p>Sometimes you will get advice from two advisors at the same time.</p>" +
+        "<p>Click 'next' to see an example.</p>"],
+        show_clickable_nav: true,
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+    };
+
+    const changeAdviceInstructions = {
+        type: 'instructions',
+        pages: ["<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
+        "which advisor is going to be providing you with advice. Press the <strong>spacebar</strong> to " +
+        "change to the other advisor.</p>" +
+        "<p>Click 'next' to see an example.</p>"],
+        show_clickable_nav: true,
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+    };
+
+    const adviceInstructions = {
+        type: 'instructions',
+        pages: ["<p>The experiment will begin after you have practiced a little with advice.</p>"],
+        show_clickable_nav: true,
+        on_load: ()=>gov.drawProgressBar(),
+        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+    };
+
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
-        "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
-        "ready to begin.</p>" +
-        "<p>You will no longer receive feedback on the task.</p>"],
+        "<p>Please make sure you are in a comfortable, quiet environment, and you are ready to begin.</p>" +
+        "<p>You will be asked some quick questions about the advisors you're about to work with, and then " +
+        "you will do a block of the task seeing both advisors followed by a block where you have to choose.</p>" +
+        "<p>This will happen for two pairs of advisors, so there are four experimental blocks for you to do.</p>",
+        "<p>You will no longer receive feedback on the task.</p>",
+        "<p>Remember your <strong>bonus</strong> will depend on giving " +
+        "<strong>correct answers after hearing advice</strong>, " +
+        "and on how well you use the confidence scale.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
@@ -301,6 +325,7 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        hideFunction: (canvasContainer)=>gov.maskDots(canvasContainer),
         prompt: '',
         sliderCount: 1,
         labels: [
@@ -329,6 +354,7 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        hideFunction: (canvasContainer)=>gov.maskDots(canvasContainer),
         prompt: '',
         sliderCount: 1,
         labels: [
@@ -357,6 +383,7 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        hideFunction: (canvasContainer)=>gov.maskDots(canvasContainer),
         prompt: '',
         sliderCount: 1,
         slider_prompt: [
@@ -610,19 +637,27 @@
     let advisorTrainingTrials = utils.getMatches(gov.trials, function(trial) {
         return trial.block >= 2 && trial.practice;
     });
-    timeline.push(adviceInstructions);
+    timeline.push(dualAdviceInstructions);
     timeline.push({timeline: [advisorIntroInitialDecision, advice, finalDecision]});
     advisorTrainingTrials.shift();
+
+    timeline.push(changeAdviceInstructions);
+    timeline.push({timeline: [advisorIntroInitialDecision, advice, finalDecision]});
+    advisorTrainingTrials.shift();
+
+    timeline.push(adviceInstructions);
     // fill in the rest
     for(let b=2; b < gov.practiceBlockStructure.length; b++) {
         // find trials in this block
         let trials = utils.getMatches(advisorTrainingTrials, function(trial) {
             return trial.block === b;
         });
-        // add the trials selecting the appropriate procedure for the trial type
-        while(trials.length)
-            timeline.push({timeline: procedures_feedback[trials.shift().type]});
-        timeline.push(blockBreak);
+        if(trials != null && trials.length > 0) {
+            // add the trials selecting the appropriate procedure for the trial type
+            while(trials.length)
+                timeline.push({timeline: procedures_feedback[trials.shift().type]});
+            timeline.push(blockBreak);
+        }
     }
     timeline.pop(); // remove last break screen
 

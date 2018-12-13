@@ -1,43 +1,63 @@
 ---
 title: "Test"
 author: "Matt Jaquiery"
-date: "14 November 2018"
-output: html_document
+date: "13 December 2018"
+output: 
+  html_document:
+    includes:
+      after_body: toc_menu.html
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
 ```
 
-# First we generate spurious data
+# Tabset 
 
-```{r}
-library(ggplot2)
-source('miscFunctions.R')
+## First Tab
 
-data <- data.frame(x = rnorm(100), y = rnorm(100,0.3))
-p = T
+### Tab 1.1
 
-result.t <- t.test(data$x, data$y, paired = p)
-result.d <- lsr::cohensD(data$x, data$y)
-result.bf <- BayesFactor::ttestBF(data$x, data$y, paired = p)
-```
+## Second Tab 
+
+### Tab 2.1
+
+### Tab 2.2
+
+### Tab 2.3
+
+## Third Tab 
+
+# Another Page
+
+# Another Tabset  
+
+## Another First Tab 
+
+## Second Second Tab
+
+## Second Third Tab
+
+## And
+
+## We
+
+## Can
+
+## Keep
+
+## Going
+
+### Down to Level 3
+
+### Where We Stop
+
+### By default
+
+#### So level 4 headings are there 
+
+#### But not listed!
+
+#### See the 'maxHeadingLevel' argument
 
 
-# Here we test stuff  
-
-Formatting test: 
-```{r results='asis'}
-md.t(result.t)
-```
-
-The whole test:  
-```{r results='asis'}
-md.ttest(data$x, data$y, paired = p)
-```
-
-...and as a proportion:
-```{r results='asis'}
-md.ttest(data$x, data$y, paired = p, isProportion = T)
-```

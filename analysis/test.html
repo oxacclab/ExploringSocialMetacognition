@@ -11,7 +11,7 @@
 
 <meta name="author" content="Matt Jaquiery" />
 
-<meta name="date" content="2018-11-14" />
+<meta name="date" content="2018-12-13" />
 
 <title>Test</title>
 
@@ -98,6 +98,9 @@ img {
 button.code-folding-btn:focus {
   outline: none;
 }
+summary {
+  display: list-item;
+}
 </style>
 
 
@@ -105,14 +108,74 @@ button.code-folding-btn:focus {
 <div class="container-fluid main-container">
 
 <!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
 <script>
 $(document).ready(function () {
   window.buildTabsets("TOC");
 });
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
 </script>
 
 <!-- code folding -->
-
 
 
 
@@ -124,36 +187,211 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Test</h1>
 <h4 class="author"><em>Matt Jaquiery</em></h4>
-<h4 class="date"><em>14 November 2018</em></h4>
+<h4 class="date"><em>13 December 2018</em></h4>
 
 </div>
 
 
-<div id="first-we-generate-spurious-data" class="section level1">
-<h1>First we generate spurious data</h1>
-<pre class="r"><code>library(ggplot2)
-source('miscFunctions.R')
-
-data &lt;- data.frame(x = rnorm(100), y = rnorm(100,0.3))
-p = T
-
-result.t &lt;- t.test(data$x, data$y, paired = p)
-result.d &lt;- lsr::cohensD(data$x, data$y)
-result.bf &lt;- BayesFactor::ttestBF(data$x, data$y, paired = p)</code></pre>
+<div id="tabset" class="section level1">
+<h1>Tabset</h1>
+<div id="first-tab" class="section level2">
+<h2>First Tab</h2>
+<div id="tab-1.1" class="section level3">
+<h3>Tab 1.1</h3>
 </div>
-<div id="here-we-test-stuff" class="section level1">
-<h1>Here we test stuff</h1>
-<p>Formatting test:</p>
-<pre class="r"><code>md.t(result.t)</code></pre>
-<p>[1] “<em>t</em>(99) = -1.88, <em>p</em> = .063”</p>
-<p>The whole test:</p>
-<pre class="r"><code>md.ttest(data$x, data$y, paired = p)</code></pre>
-<p>[1] “<em>t</em>(99) = -1.88, <em>p</em> = .063, <em>d</em> = 0.25; <em>M1</em> = 0.04 [-0.14, 0.23], <em>M2</em> = 0.28 [0.09, 0.47]”</p>
-<p>…and as a proportion:</p>
-<pre class="r"><code>md.ttest(data$x, data$y, paired = p, isProportion = T)</code></pre>
-<p>[1] “<em>t</em>(99) = -1.88, <em>p</em> = .063, <em>d</em> = .25; <em>M1</em> = .04 [-0.14, 0.23], <em>M2</em> = .28 [0.09, 0.47]”</p>
+</div>
+<div id="second-tab" class="section level2">
+<h2>Second Tab</h2>
+<div id="tab-2.1" class="section level3">
+<h3>Tab 2.1</h3>
+</div>
+<div id="tab-2.2" class="section level3">
+<h3>Tab 2.2</h3>
+</div>
+<div id="tab-2.3" class="section level3">
+<h3>Tab 2.3</h3>
+</div>
+</div>
+<div id="third-tab" class="section level2">
+<h2>Third Tab</h2>
+</div>
+</div>
+<div id="another-page" class="section level1">
+<h1>Another Page</h1>
+</div>
+<div id="another-tabset" class="section level1">
+<h1>Another Tabset</h1>
+<div id="another-first-tab" class="section level2">
+<h2>Another First Tab</h2>
+</div>
+<div id="second-second-tab" class="section level2">
+<h2>Second Second Tab</h2>
+</div>
+<div id="second-third-tab" class="section level2">
+<h2>Second Third Tab</h2>
+</div>
+<div id="and" class="section level2">
+<h2>And</h2>
+</div>
+<div id="we" class="section level2">
+<h2>We</h2>
+</div>
+<div id="can" class="section level2">
+<h2>Can</h2>
+</div>
+<div id="keep" class="section level2">
+<h2>Keep</h2>
+</div>
+<div id="going" class="section level2">
+<h2>Going</h2>
+<div id="down-to-level-3" class="section level3">
+<h3>Down to Level 3</h3>
+</div>
+<div id="where-we-stop" class="section level3">
+<h3>Where We Stop</h3>
+</div>
+<div id="by-default" class="section level3">
+<h3>By default</h3>
+<div id="so-level-4-headings-are-there" class="section level4">
+<h4>So level 4 headings are there</h4>
+</div>
+<div id="but-not-listed" class="section level4">
+<h4>But not listed!</h4>
+</div>
+<div id="see-the-maxheadinglevel-argument" class="section level4">
+<h4>See the ‘maxHeadingLevel’ argument</h4>
+</div>
+</div>
+</div>
 </div>
 
+
+<style>
+    /* Bump the main content to make room for the fixed menu */
+    .main-container {
+        padding-top: 2em;
+    }
+
+    #toc_menu {
+        position: fixed;
+        width: 100%;
+        display: inline-flex;
+        /*background-color: #2196F3;*/
+        border: none;
+    }
+
+    #toc_menu > li.toc_menu {
+        display: block;
+    }
+
+    #toc_menu > li.toc_menu:hover {
+    }
+
+    /* dropdown stuff */
+    ul.toc_menu {
+        margin-top: 1em;
+    }
+
+    li.toc_menu {
+        position: relative;
+        float: left;
+        display: block;
+    }
+
+    li.toc_menu a {
+        padding: 1em;
+    }
+
+    li.toc_menu:hover {
+        /*background-color: #a7d2de;*/
+    }
+
+    li.toc_menu ul.toc_menu {
+        display: none;
+        position: fixed;
+        width: 100%;
+        /*background: #70dfff;*/
+        left: 0;
+        top: unset;
+        padding: 0;
+        margin: 0;
+    }
+
+    li.toc_menu:hover > ul.toc_menu, ul.toc_menu:hover {
+        display: block;
+        /*border-top: 2px solid #a7d2de;*/
+    }
+
+</style>
+  
+<script type="text/javascript">
+  // Come up with a structural list of sections
+  const maxDepth = 2;
+
+  function getSectionParent(elm) {
+      let parent = elm.parentElement;
+      while(parent !== null) {
+          if(parent.classList.contains('section'))
+              return parent;
+          parent = parent.parentElement;
+      }
+      return null;
+  }
+
+  function getSectionChidren(parentSection = null) {
+      let heirachy = [];
+      let sections = document.querySelectorAll('div.section');
+      for(let i = 0; i < sections.length; i++) {
+          let section = sections[i];
+          if(getSectionParent(section) === parentSection) {
+
+              heirachy.push(section);
+          }
+      }
+      return heirachy;
+  }
+
+  function createSectionList(section = null, maxHeadingLevel = Infinity, first = true) {
+      let nav = null;
+      let elm = document.createElement('ul');
+      if(first) {
+          maxHeadingLevel--; // make heading level match Markdown heading level
+          nav = document.createElement('nav');
+          nav.id = 'toc_menu-nav';
+          nav.classList.add('navbar', 'navbar-default', 'navbar-fixed-top');
+          nav.appendChild(elm);
+      }
+      if(section === null) {
+          elm.id = 'toc_menu';
+          elm.className = 'toc_menu navbar-header';
+      } else {
+          elm.id = 'toc_menu-' + section.id;
+          elm.className = section.className;
+          elm.classList.add('toc_menu', 'dropdown-menu');
+      }
+      let sectionChildren = getSectionChidren(section);
+      for(let i = 0; i < sectionChildren.length; i++) {
+          let child = sectionChildren[i];
+          let li = elm.appendChild(document.createElement('li'));
+          li.id = 'toc_menu_li-' + child.id;
+          li.className = child.className;
+          li.classList.add('toc_menu');
+          let a = li.appendChild(document.createElement('a'));
+          a.href = '#' + child.id;
+          a.innerHTML = child.children[0].innerText; // grab the label from the section header text
+          let children = getSectionChidren(child);
+          if(children !== null && children.length > 0) {
+              a.innerHTML += " <span class=\"caret\"></span>";
+              li.classList.add('toc_menu-has-child');
+              if(maxHeadingLevel > 0)
+                  li.appendChild(createSectionList(child, maxHeadingLevel-1, false));
+          }
+      }
+      return first? nav : elm;
+  }
+
+  document.body.insertBefore(createSectionList(null, 3), document.body.firstChild);
+</script>
 
 
 

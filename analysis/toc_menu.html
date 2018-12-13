@@ -1,0 +1,150 @@
+<style>
+    /* Bump the main content to make room for the fixed menu */
+    .main-container {
+        padding-top: 2em;
+    }
+
+    #toc_menu {
+        position: fixed;
+        width: 100%;
+        display: inline-flex;
+        /*background-color: #2196F3;*/
+        border: none;
+    }
+
+    #toc_menu > li.toc_menu {
+        display: block;
+    }
+
+    #toc_menu > li.toc_menu:hover {
+    }
+
+    /* dropdown stuff */
+    ul.toc_menu {
+        margin-top: 1em;
+    }
+
+    li.toc_menu {
+        position: relative;
+        float: left;
+        display: block;
+    }
+
+    li.toc_menu a {
+        padding: 1em;
+    }
+
+    li.toc_menu:hover {
+        /*background-color: #a7d2de;*/
+    }
+
+    li.toc_menu ul.toc_menu {
+        display: none;
+        position: fixed;
+        width: 100%;
+        /*background: #70dfff;*/
+        left: 0;
+        top: unset;
+        padding: 0;
+        margin: 0;
+    }
+
+    li.toc_menu:hover > ul.toc_menu, ul.toc_menu:hover {
+        display: block;
+        /*border-top: 2px solid #a7d2de;*/
+    }
+
+</style>
+  
+<script type="text/javascript">
+  // Come up with a structural list of sections
+
+  // Maximum heading level to process. Should eventually grab this value from Rmd file's headers somehow
+  const maxHeadingLevel = 3;
+
+  /**
+   * Return the first element in elm's parents which has the class className.
+   * Don't use elm.closest() because that can return the element itself.
+   *
+   * @param elm {HTMLElement}
+   * @return {HTMLElement|null} First parent element of elm with class 'className', or null if no parents qualify
+   */
+  function getParentWithClass(elm, className) {
+      let parent = elm.parentElement;
+      while(parent !== null) {
+          if(parent.classList.contains(className))
+              return parent;
+          parent = parent.parentElement;
+      }
+      return null;
+  }
+
+  /**
+   * Return a list of children of parentSection with the class 'section'
+   * @param [parentSection=null] {HTMLElement|null}
+   * @return {HTMLElement[]|Array}
+   */
+  function getSectionChidren(parentSection = null) {
+      let heirachy = [];
+      let sections = document.querySelectorAll('div.section');
+      for(let i = 0; i < sections.length; i++) {
+          let section = sections[i];
+          if(getParentWithClass(section, 'section') === parentSection) {
+              heirachy.push(section);
+          }
+      }
+      return heirachy;
+  }
+
+  /**
+   * Return a <nav> or <ul> element. The menu produced uses Bootstrap nav classes so it
+   * should fit in well with any custom themes.
+   *
+   * Should be called with 0 or 1 arguments to produce a nav menu.
+   *
+   * @param [maxHeadingLevel=Infinity] the maximum heading level to list
+   * @param [section=null] {HTMLElement|null} element to start the listings from
+   * @param [first=true] {boolean} whether this is an original rather than recursive call
+   * @return {HTMLElement} navigation menu or a part of the same
+   */
+  function createSectionList(maxHeadingLevel = Infinity, section = null, first = true) {
+      let nav = null;
+      let elm = document.createElement('ul');
+      if(first) {
+          maxHeadingLevel--; // make heading level match Markdown heading level
+          nav = document.createElement('nav');
+          nav.id = 'toc_menu-nav';
+          nav.classList.add('navbar', 'navbar-default', 'navbar-fixed-top');
+          nav.appendChild(elm);
+      }
+      if(section === null) {
+          elm.id = 'toc_menu';
+          elm.className = 'toc_menu navbar-header';
+      } else {
+          elm.id = 'toc_menu-' + section.id;
+          elm.className = section.className;
+          elm.classList.add('toc_menu', 'dropdown-menu');
+      }
+      let sectionChildren = getSectionChidren(section);
+      for(let i = 0; i < sectionChildren.length; i++) {
+          let child = sectionChildren[i];
+          let li = elm.appendChild(document.createElement('li'));
+          li.id = 'toc_menu_li-' + child.id;
+          li.className = child.className;
+          li.classList.add('toc_menu');
+          let a = li.appendChild(document.createElement('a'));
+          a.href = '#' + child.id;
+          a.innerHTML = child.children[0].innerText; // grab the label from the section header text
+          let children = getSectionChidren(child);
+          if(children !== null && children.length > 0 && maxHeadingLevel > 0) {
+              a.innerHTML += " <span class=\"caret\"></span>";
+              li.classList.add('toc_menu-has-child');
+              li.appendChild(createSectionList(maxHeadingLevel-1, child, false));
+          }
+      }
+      return first? nav : elm;
+  }
+
+  // Create a nav list menu and insert it as the first child of the document body
+  document.body.insertBefore(createSectionList(maxHeadingLevel), document.body.firstChild);
+</script>

@@ -5,7 +5,8 @@ output:
   html_document:
     toc: false
     toc_depth: 3
-    css: tabs.css
+    includes:
+      after_body: toc_menu.html
 editor_options: 
   chunk_output_type: console
 ---
@@ -18,11 +19,9 @@ startTime <- Sys.time()
 source('ESM_core.R')
 ```
 
-# Core Analysis Script {.tabset .tabset-fade .tabset-pills}
+# Descriptives 
 
-## Descriptives 
-
-### Introduction 
+## Introduction 
 
 This is the core analysis script for the Advisor Choice version 2 experiments. This script is designed to be agnostic as to the specific experiment run, i.e. it does not expect any particular advisor profiles. 
 
@@ -40,7 +39,7 @@ The basic structure is:
 
 Tests and explorations which depend on a specific advisor set are not included because they are out of scope for this script. 
 
-### Load data  
+## Load data  
 
 ```{r}
 # folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
@@ -66,17 +65,17 @@ trials <- trials[trials$practice == F, ]
 cat('Generated utility variables')
 ```
 
-### Describe data 
+## Describe data 
 
-#### Metadata
+### Metadata
 
 Responses (`r paste('*N* =', length(unique(participants$pid)))`) were collected between `r as.POSIXct(min(unlist(participants$timeStart))/1000, tz = '', origin = '1970-01-01')` and `r as.POSIXct(max(unlist(participants$timeEnd))/1000, tz = '', origin = '1970-01-01')`.
 
 Demographic data are not collected and therefore not analysed. Participants must be over 18 years old to use the Prolific recruitment platform.
 
-#### Task performance
+### Task performance
 
-##### Type 1 performance
+#### Type 1 performance
 
 Participants initial performance was held at 71% by design. Participants' mean percentage correct on initial decisions was `r md.mean(aggregate(initialCorrect ~ pid, trials, mean)$initialCorrect, isProportion = T)`. We would expect final decisions to be more accurate due to the presence of advice: 
 
@@ -87,7 +86,7 @@ cat(md.ttest(tmp$initialCorrect, tmp$finalCorrect,
              isProportion = T, paired = T))
 ```
 
-##### Type 2 performance
+#### Type 2 performance
 
 Type 2 (metacognitive) performance is characterised using Type 2 ROC.
 
@@ -120,7 +119,7 @@ ggplot(df.type2, aes(x = conf, y = pCorrect, colour = pid)) +
   style
 ```
 
-#### Exclusions
+### Exclusions
 
 ```{r}
 participants$excluded <- sapply(participants$pid, function(pid){
@@ -170,9 +169,9 @@ questionnaires <- questionnaires[questionnaires$pid %in% participants$pid, ]
 genTrustQ <- genTrustQ[genTrustQ$pid %in% participants$pid, ]
 ```
 
-#### Advisor performance
+### Advisor performance
 
-##### Manipulation checks
+#### Manipulation checks
 
 The advisors need to differ appropriately. How they differ depends on the advisors being compared, but in each case we need to check the participants' experience of the advisors matched the specifications for the advisors.
 
@@ -195,7 +194,7 @@ for(i in 1:ncol(l.advisorDiff$data[ ,-1])) {
 }
 ```
 
-##### Initial decision comparability
+#### Initial decision comparability
 
 The participants' initial decisions should be equivalent (BF < .333) between advisors. Comparing initial decision by advice profile we can see whether this was the case:
 
@@ -210,11 +209,11 @@ for(a in c(adviceTypes$AiC, adviceTypes$HighAcc, adviceTypes$HighAgr)) {
 }
 ```
 
-## 1: Pick rate differences
+# Pick rate differences
 
 The primary outcome is the relative frequencies of advisor picking on trials where there is a choice of advisor. There are two kinds of choice of advisor. *Choice* trials show participants two advisors and wait until the participant selects one. *Change* trials provide a default advisor and allow the participant to hear advice from the other advisor instead by pressing a key within a selection window (`r unique(participants$changeDuration)`ms). These choices are distinct from one another, and are thus analysed separately.
 
-### Choice trials
+## Choice trials
 
 Analysis for choice trials is conducted by comparing the proportion of choices for a reference advisor to the null hypothesis of .50 using a one-sample t-test. 
 
@@ -290,7 +289,7 @@ if(!is.null(df.choice)) {
 }
 ```
 
-### Change trials
+## Change trials
 
 Change trials are analysed by looking at the proportion of changed trials where the selected advisor is the reference advisor. 
 
@@ -393,7 +392,7 @@ if(length(pairs) < 1) {
 }
 ```
 
-## 2: Influence differences  
+# Influence differences  
 
 Influence, defined as the extent to which a participant adjusts their answer in the direction of an advisor's advice, can be compared between advisors. Note that the experimental design is not optimised for measuring this outcome because influence may vary systematically with choices, and the trials without choices constitute a learning phase wherein preferences cannot be expected to have crystalised. 
 
@@ -461,15 +460,15 @@ for(pair in pairs) {
 }
 ```
 
-## 3. Pick rate x Influence
+# Pick rate x Influence
 
 If picking and influence measure a single latent 'trust' estimation for an advisor, the ratings should be correlated. The analysis is by advisor ID rather than advice profile, because individual advisors should have pick rates and influences which are more tightly correlated than advice profiles which average over multiple advisors. 
 
 Forced trials are used for the influence calculations, and choice trials for the pick rate calculations. 
 
-## 4. Modelling 
+# Modelling 
 
-### Trust modelling
+## Trust modelling
 
 Models fit to the data build up by parameters to the full model:
 
@@ -478,15 +477,15 @@ Where $A$ gives the agreement of the advice (+1 for agreement, -1 for disagreeme
 $$I_{a,t} = I_{a,t-1} + \lambda C_{initial} * sign(A) - \tau$$
 $\lambda$ and $\tau$ are participant-specific parameters which represent the learning rate and trust decay rates, respectively.
 
-## 5. Exploration 
+# Exploration 
 
-## Credits 
+# Credits 
 
-### Acknowledgements
+## Acknowledgements
 
 Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
 
-### R Packages:
+## R Packages
 
 ```{r results = 'asis'}
 # list packages
@@ -505,11 +504,11 @@ for(p in packageNames) {
 kable(out)
 ```
 
-### Funding
+## Funding
 
 Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
 
-### Technical details  
+## Technical details  
 
 ```{r results = 'hold'}
 cat(paste('Time stamp:', Sys.time(), '\n\n'))
