@@ -36,7 +36,7 @@
         </div>
     </div>
 <script type="module">
-    import {DoubleDotGrid, Advisor, utils} from '../src/exploringSocialMetacognition.js';
+    import {DoubleDotGrid, Advisor, Cue, utils} from '../src/exploringSocialMetacognition.js';
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
 
     /* Advice types:
@@ -55,7 +55,7 @@
     let advisorListA = [
         new Advisor(advisorIdDeck[1], adviceTypes[1], advisorVoiceDeck[1], advisorPicDeck[1],
             styleClassDeck[1].toString(), args),
-        new Advisor(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2],
+        new Cue(advisorIdDeck[2], adviceTypes[2], advisorVoiceDeck[2], advisorPicDeck[2],
             styleClassDeck[2].toString(), args)
     ];
     if (Math.random() < .5)
@@ -138,6 +138,7 @@
             "If you get the decision right, it will go <span style='color: white; font-weight: bold;'>white</span>. " +
             "Click one of the boxes and then press the 'continue' button.</p>" +
             "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
+            "<p>One of the advisors in this set is designated as a non-social advisor (a 'cue').</p>" +
             "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
         ],
         show_clickable_nav: true,

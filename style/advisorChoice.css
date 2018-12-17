@@ -57,6 +57,12 @@ img.advisor-portrait {
     border-radius: 100%;
     margin-top: .5em;
 }
+div.jspsych-jas-present-advice-image.jspsych-jas-present-advice-image-arrow {
+    min-height: 3em;
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
 span.advisor-name {
     text-transform: uppercase;
     font-weight: bold;

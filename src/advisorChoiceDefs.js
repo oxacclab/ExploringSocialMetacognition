@@ -677,7 +677,7 @@ class AdvisorChoice extends DotTask {
     static addAdvisors(advisors) {
         let out = [];
         for(let i=0; i<advisors.length; i++) {
-            if(advisors[i].constructor.name === "Advisor")
+            if(advisors[i] instanceof Advisor)
                 out[i] = advisors[i];
             else
                 out[i] = new Advisor(advisors[i]);
@@ -887,59 +887,23 @@ class AdvisorChoice extends DotTask {
     }
 
     /**
-     * Draw an advisor in a div
-     * @param {HTMLElement} div in which to draw
-     * @param {Advisor} advisor to draw
-     * @param {{}} [options={}] styling options
-     * @param {int} [options.nth=0] whether advisor is a top or bottom position, also used for uniquely specifying HTML element ids
-     * @param {boolean} [options.textAboveImage=false] whether to put the username above the image
-     * @return {HTMLElement} the wrapper div placed within the input div
-     */
-    drawAdvisor(div, advisor, options = {}) {
-        let idSuffix = typeof options.nth === 'undefined'? 0 : options.nth;
-        let advisorDiv = div.appendChild(document.createElement('div'));
-        advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
-        advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
-        let picDiv = advisorDiv.appendChild(document.createElement('div'));
-        picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
-        picDiv.classList.add('jspsych-jas-present-advice-image');
-        let portrait = picDiv.appendChild(advisor.portrait);
-        let textDiv = {};
-        if(typeof options.textAboveImage !== 'undefined' && options.textAboveImage)
-            textDiv = picDiv.insertBefore(document.createElement('div'), portrait);
-        else
-            textDiv = picDiv.appendChild(document.createElement('div'));
-        textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
-        textDiv.classList.add('jspsych-jas-present-advice-prompt');
-        textDiv.innerHTML = advisor.nameHTML;
-        picDiv.classList.add(advisor.styleClass);
-        textDiv.classList.add(advisor.styleClass);
-        advisorDiv.classList.add(advisor.styleClass);
-        return advisorDiv;
-    }
-
-    /**
      * Draw the advisor portrait, advice, and advice text
      * @param div {HTMLElement} div in which to draw
      * @param advisorId {int} ID of the advisor to draw
      * @param textAboveImage {boolean} whether to draw the advice text above the image
      */
     drawAdvice(div, advisorId, textAboveImage = false) {
-        let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
+
+        this.setAdvisorAgreement(advisorId);
+
         let a = this.getAdvisorById(advisorId);
         if(!(a.lastAdvice instanceof Line)) {
             let warning = 'No advice where advice expected (advisorID=' + advisorId +')';
             this.currentTrial.warnings.push(warning);
             console.warn(warning);
         }
-        let advisorDiv = this.drawAdvisor(div, a, idSuffix);
-        let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
-        arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
-        arrowDiv.classList.add('jspsych-jas-present-advice-arrow');
-        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (a.lastAdvice.side? 'right' : 'left'));
-        arrowDiv.innerText = a.lastAdvice.string;
-        // Add advisor class to relevant divs
-        arrowDiv.classList.add(a.styleClass);
+
+        a.drawAdvice(div, textAboveImage);
     }
 
     /**
@@ -973,15 +937,14 @@ class AdvisorChoice extends DotTask {
         let self = this;
         for (let a=0; a<choices.length; a++) {
             let advisor = this.getAdvisorById(choices[a]);
-            let advisorDiv = this.drawAdvisor(display_element, advisor, a);
+            let advisorDiv = advisor.draw(display_element);
             advisorDiv.classList.add('advisorChoice-choice');
             let img = advisorDiv.querySelector('img');
-            img.className = 'advisorChoice-choice advisor-portrait';
+            img.classList.add('advisorChoice-choice', 'advisor-portrait');
             img.id = 'advisorChoice-choice-' + a.toString();
             img.src = advisor.portrait.src;
             advisorDiv.addEventListener('click', function () {
                 self.currentTrial.advisorId = choices[a];
-                self.setAgreementVars();
                 callback(choices[a]);
             });
             choiceImgs.push(img);
@@ -1009,21 +972,22 @@ class AdvisorChoice extends DotTask {
             let advisor = this.getAdvisorById(this.currentTrial['advisor' + i.toString() + 'id']);
             advisorIDs.push(advisor.id);
             let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
-            let advisorDiv = div.appendChild(document.createElement('div'));
-            advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
-            advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
-            let picDiv = advisorDiv.appendChild(document.createElement('div'));
-            picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
-            picDiv.classList.add('jspsych-jas-present-advice-image');
-            picDiv.appendChild(advisor.portrait);
-            let textDiv = picDiv.appendChild(document.createElement('div'));
-            textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
-            textDiv.classList.add('jspsych-jas-present-advice-prompt');
-            textDiv.innerHTML = advisor.nameHTML;
-            // Add advisor class to relevant divs
-            picDiv.classList.add(advisor.styleClass);
-            textDiv.classList.add(advisor.styleClass);
-            advisorDiv.classList.add(advisor.styleClass);
+            let advisorDiv = advisor.draw(div, {nth: idSuffix});
+            // let advisorDiv = div.appendChild(document.createElement('div'));
+            // advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
+            // advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
+            // let picDiv = advisorDiv.appendChild(document.createElement('div'));
+            // picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
+            // picDiv.classList.add('jspsych-jas-present-advice-image');
+            // picDiv.appendChild(advisor.portrait);
+            // let textDiv = picDiv.appendChild(document.createElement('div'));
+            // textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
+            // textDiv.classList.add('jspsych-jas-present-advice-prompt');
+            // textDiv.innerHTML = advisor.nameHTML;
+            // // Add advisor class to relevant divs
+            // picDiv.classList.add(advisor.styleClass);
+            // textDiv.classList.add(advisor.styleClass);
+            // advisorDiv.classList.add(advisor.styleClass);
             if(this.currentTrial.defaultAdvisor === advisor.id) {
                 advisorDiv.classList.add('advisorChoice-change-selected');
                 // Fill in trial advisor values for the default advisor
@@ -1105,46 +1069,29 @@ class AdvisorChoice extends DotTask {
         this.currentTrial.answer[0] = AdvisorChoice.getAnswerFromResponse(trial.response);
         this.currentTrial.confidence[0]  = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[0]);
 
-        switch(this.currentTrial.type) {
-            case trialTypes.catch:
-                this.closeTrial(trial);
-                break;
-            case trialTypes.force:
-            case trialTypes.choice:
-            case trialTypes.dual:
-            case trialTypes.change:
-                if(args.advisorAlwaysCorrect === true)
-                    this.setAgreementVars(true);
-                else
-                    this.setAgreementVars();
+        if(this.currentTrial.type === trialTypes.catch) {
+            this.closeTrial(trial);
+            return;
         }
+
+        if(args.advisorAlwaysCorrect === true)
+            this.advisorAlwaysCorrect = true;
+        else
+            this.advisorAlwaysCorrect = false;
     }
 
-    /**
-     * Determine whether the advisors in this trial agree or disagree with the judge
-     * @param [alwaysCorrect=false] - whether the advisor is always correct
-     */
-    setAgreementVars(alwaysCorrect = false) {
-        switch(this.currentTrial.type) {
-            case trialTypes.catch:
-                break;
-            case trialTypes.choice:
-            case trialTypes.force:
-                this.setAdvisorAgreement(this.currentAdvisor.id, alwaysCorrect);
-                break;
-            case trialTypes.change:
-            case trialTypes.dual:
-                for(let i = 0; i < 2; i++)
-                    this.setAdvisorAgreement(this.currentTrial['advisor' + i.toString() + 'id'], alwaysCorrect,
-                        false);
-        }
-    }
-
-    setAdvisorAgreement(advisorId, alwaysCorrect = false, isCurrentAdvisor = true) {
+    setAdvisorAgreement(advisorId) {
         let advisor = this.getAdvisorById(advisorId);
+
+        // Check if advisor already made up their mind on this trial
+        if(advisor.lastAdvisedTrial === this.currentTrialIndex)
+            return;
+        else
+            advisor.lastAdvisedTrial = this.currentTrialIndex;
+
         let self = this;
         let agree = false;
-        if(alwaysCorrect === true)
+        if(gov.alwaysCorrect === true)
             agree = this.currentTrial.getCorrect(false);
         else
             agree = advisor.agrees(this.currentTrial.getCorrect(false), this.getLastConfidenceCategory());
@@ -1159,7 +1106,7 @@ class AdvisorChoice extends DotTask {
                 return line.side === side;
             });
         }
-        if(isCurrentAdvisor) {
+        if(this.currentTrial.type !== trialTypes.dual) {
             this.currentTrial.advisorAgrees = agree;
             this.currentTrial.advice = advisor.lastAdvice;
         }
@@ -1198,8 +1145,6 @@ class AdvisorChoice extends DotTask {
         }
         // Store advisor
         this.currentTrial.advisorId = a.id;
-        // Recalculate agreement variables
-        this.setAgreementVars();
     }
 
     /**
@@ -1258,7 +1203,7 @@ class AdvisorChoice extends DotTask {
         display_element.classList.add('advisorChoice-questionnaire');
         let advisor = this.questionnaireStack.pop();
         this.lastQuestionnaireAdvisorId = advisor.id;
-        this.drawAdvisor(display_element, advisor);
+        advisor.draw(display_element);
         callback(advisor.portrait.src);
     }
 

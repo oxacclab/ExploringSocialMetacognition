@@ -280,8 +280,13 @@ class Voice {
     constructor(voiceId, skipAudioPreload = false) {
         this.basePath = "";
         this.id = voiceId;
-        this.name = Voice.getName(this.id);
-        this.nameHTML = '<span class="advisor-name">' + this.name + '</span>';
+        if(voiceId === null) {
+            this.nameHTML = "";
+            this.name = "";
+        } else {
+            this.name = Voice.getName(this.id);
+            this.nameHTML = '<span class="advisor-name">' + this.name + '</span>';
+        }
         this.skipAudioPreload = skipAudioPreload;
         this.lines = this.getLines();
     }
@@ -293,8 +298,8 @@ class Voice {
      * @returns {string} - name with which the voice introduces themself
      */
     static getName(id) {
-        if(id === null)
-            id = Math.floor(Math.random()*10)+1; // random name from the full list
+        // if(id === null)
+        //     id = Math.floor(Math.random()*10)+1; // random name from the full list
         return 'User ' + Math.floor(Math.pow(Math.E, id)).toString();
         // switch(id) {
         //     case 1:
@@ -448,12 +453,14 @@ class Advisor {
             this.portraitSrc = args.portraitSrc;
             this.styleClass = args.styleClass;
         }
+
         this.portrait = new Image();
         this.portrait.src = this.portraitSrc;
         this.portrait.classList.add('advisor-portrait');
         if(this.styleClass !== '')
             this.portrait.classList.add(this.styleClass);
         this.portrait.id = 'advisor-portrait-' + this.portraitId;
+
         this.lastAdvice = null; // the advisor's most recent advice
         this.practice = typeof args.practice === 'undefined'? false : args.practice;
     }
@@ -635,6 +642,136 @@ class Advisor {
      */
     agrees(judgeCorrect, judgeConfidenceCategory) {
         return Math.random() < this.agreementFunction(judgeCorrect, judgeConfidenceCategory);
+    }
+
+
+    /**
+     * Draw the advisor's portrait in a div
+     * @param {HTMLElement} div in which to draw
+     * @param {{}} [options={}] styling options
+     * @param {int} [options.nth=0] whether advisor is a top or bottom position, also used for uniquely specifying HTML element ids
+     * @param {boolean} [options.textAboveImage=false] whether to put the username above the image
+     * @return {HTMLElement} the wrapper div placed within the input div
+     */
+    draw(div, options = {}) {
+        let idSuffix = typeof options.nth === 'undefined'? 0 : options.nth;
+        let advisorDiv = div.appendChild(document.createElement('div'));
+        advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
+        advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
+        let picDiv = advisorDiv.appendChild(document.createElement('div'));
+        picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
+        picDiv.classList.add('jspsych-jas-present-advice-image');
+        let portrait = picDiv.appendChild(this.portrait);
+        let textDiv = {};
+        if(typeof options.textAboveImage !== 'undefined' && options.textAboveImage)
+            textDiv = picDiv.insertBefore(document.createElement('div'), portrait);
+        else
+            textDiv = picDiv.appendChild(document.createElement('div'));
+        textDiv.id = 'jspsych-jas-present-advice-prompt' + idSuffix;
+        textDiv.classList.add('jspsych-jas-present-advice-prompt');
+        textDiv.innerHTML = this.nameHTML;
+        picDiv.classList.add(this.styleClass);
+        textDiv.classList.add(this.styleClass);
+        advisorDiv.classList.add(this.styleClass);
+        return advisorDiv;
+    }
+
+    /**
+     * Draw the advisor portrait, advice, and advice text
+     * @param div {HTMLElement} div in which to draw
+     * @param advisorId {int} ID of the advisor to draw
+     * @param textAboveImage {boolean} whether to draw the advice text above the image
+     */
+    drawAdvice(div, textAboveImage = false) {
+
+        let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
+
+        let advisorDiv = this.draw(div, {nth: idSuffix});
+        let arrowDiv = advisorDiv.appendChild(document.createElement('div'));
+        arrowDiv.id = 'jspsych-jas-present-advice-arrow' + idSuffix;
+        arrowDiv.classList.add('jspsych-jas-present-advice-arrow');
+        arrowDiv.classList.add('jspsych-jas-present-advice-arrow-' + (this.lastAdvice.side? 'right' : 'left'));
+        arrowDiv.innerText = this.lastAdvice.string;
+        // Add advisor class to relevant divs
+        arrowDiv.classList.add(this.styleClass);
+    }
+}
+
+/**
+ * The Cue class is a non-social version of the advisor class
+ */
+class Cue extends Advisor {
+    /**
+     * @constructor
+     *
+     * @param {int|Object} id - identification number for this advisor, or a deparsed Advisor object to be regenerated
+     * @param {int} [adviceType] - advice profile for this advisor. 0=default, 1=agree-in-confidence;
+     *  2=agree-in-uncertainty
+     * @param {Object|int} [voice=null] - voice object for the advisor. Either a voice object, or an int to pass
+     *  to the Voice constructor. If blank, *id* is passed to the Voice constructor instead.
+     * @param {int|string} [portrait=0] - identifier for the portrait image. If 0, *id* is used instead.
+     * @param {string} [styleClass=''] - class to be added to advisor's HTML representations, if non-blank prepended with advisorChoice-advisor-
+     * @param {Object} [args] - optional arguments
+     * @param {boolean} [args.skipAudioPreload = false] - whether to skip preloading voice audio files
+     * @param {int} [args.id]
+     * @param {int} [args.adviceType]
+     * @param {int} [args.voice.id] - the voice ID (nothing else needed to regenerate the voice)
+     * @param {int} [args.portraitId] - the portrait ID
+     * @param {string} [args.portraitSrc] - the portrait img src (nothing else needed to regenerate portrait)
+     * @param {string} [args.styleClass] - the (full) style class string
+     * @param {boolean} [args.practice=false] - whether this advisor is a practice advisor
+     */
+    constructor(id, adviceType, voice = null, portrait = 0, styleClass = '', args = {}) {
+        super(id, adviceType, null, portrait, styleClass, args);
+
+        this.portraitSrc = 'assets/image/arrow.svg';
+
+        this.portrait= new Image();
+        this.portrait.src = this.portraitSrc;
+        this.portrait.classList.add('advisor-portrait', 'advisor-portrait-arrow');
+        if(this.styleClass !== '')
+            this.portrait.classList.add(this.styleClass);
+        this.portrait.id = 'advisor-portrait-arrow' + this.portraitId;
+    }
+
+    /**
+     * Draw the advisor's portrait in a div
+     * @param {HTMLElement} div in which to draw
+     * @param {{}} [options={}] styling options
+     * @param {boolean} [options.showAdvice=false] whether the advice indicates the right side
+     * @param {int} [options.nth=0] whether advisor is a top or bottom position, also used for uniquely specifying HTML element ids
+     * @return {HTMLElement} the wrapper div placed within the input div
+     */
+    draw(div, options = {}) {
+        let idSuffix = typeof options.nth === 'undefined'? 0 : options.nth;
+        let advisorDiv = div.appendChild(document.createElement('div'));
+        advisorDiv.id = 'jspsych-jas-present-advice-wrapper' + idSuffix;
+        advisorDiv.classList.add('jspsych-jas-present-advice-wrapper');
+        let picDiv = advisorDiv.appendChild(document.createElement('div'));
+        picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
+        picDiv.classList.add('jspsych-jas-present-advice-image', 'jspsych-jas-present-advice-image-arrow');
+        let portrait = picDiv.appendChild(this.portrait);
+        if(options.showAdvice === true) {
+            portrait.style.display = 'inline-block';
+            if(this.lastAdvice.side)
+                portrait.style.transform = 'rotateY(180deg)';
+        } else {
+            portrait.style.display = 'none';
+        }
+        picDiv.classList.add(this.styleClass);
+        advisorDiv.classList.add(this.styleClass);
+        return advisorDiv;
+    }
+
+    /**
+     * Draw the advisor portrait, advice, and advice text
+     * @param div {HTMLElement} div in which to draw
+     * @param advisorId {int} ID of the advisor to draw
+     * @param textAboveImage {boolean} whether to draw the advice text above the image
+     */
+    drawAdvice(div, textAboveImage = false) {
+        let idSuffix =  document.querySelector('#jspsych-jas-present-advice-wrapper0') !== null? '1' : '0';
+        this.draw(div, {nth: idSuffix, showAdvice: true});
     }
 }
 
@@ -866,4 +1003,4 @@ class Governor {
     }
 }
 
-export {DoubleDotGrid, Advisor, Trial, Line, Voice, Governor, utils};
+export {DoubleDotGrid, Advisor, Cue, Trial, Line, Voice, Governor, utils};

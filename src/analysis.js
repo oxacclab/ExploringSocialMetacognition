@@ -649,7 +649,7 @@ class advisorChoice extends dotTask {
             for(let a=aS*2; a<aS*2+2; a++) {
                 let advisor = advisors[a];
                 let i = advisor.id;
-                let advisorDiv = g.drawAdvisor(advisorContainer, advisor);
+                let advisorDiv = advisor.draw(advisorContainer);
                 let statsDiv = document.createElement('div');
                 statsDiv.id = 'advisor'+i+'statsWrapper';
                 statsDiv.className = 'advisor-stats-wrapper';
