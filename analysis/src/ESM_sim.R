@@ -50,6 +50,7 @@ simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTria
   behaviours <- NULL
   for(pid in 1:nParticipants) {
     tId <- 0
+    block <- 0
     # generate participant behaviour from normal distributions around the population values
     behaviour <- data.frame(pid,
                             adviceType = populationPickRate$adviceType,
@@ -73,13 +74,12 @@ simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTria
       advisors <- rbind(advisors, simulateAdvisor(pid, pair))
       questionnaires <- rbind(questionnaires, simulateQuestionnaire(pid, pair))
       for(type in tTypes) {
+        block <- block + 1
         for(i in 1:nTrials) {
           # trials data
-          trials <- rbind(trials, 
-                          cbind(data.frame(pid, id = tId),
-                                simulateTrial(type, pair, pair[(i%%2)+1], 
-                                              behaviour,
-                                              trials$initialConfidence[trials$pid == pid])))
+          trials <- rbind(trials, simulateTrial(pid, tId, block, type, pair, pair[(i%%2)+1], 
+                                                behaviour,
+                                                trials$initialConfidence[trials$pid == pid]))
           tId <- tId + 1
         }
       }
@@ -185,18 +185,21 @@ simulateQuestionnaire <- function(pid, advisor) {
 }
 
 #' Returns a data frame of simulated data for a trial
+#' @param pid participant id
+#' @param tid trial id
+#' @param block trial block
 #' @param type of trial
 #' @param pair of advisors
 #' @param defaultAdvisor the advisor offered by the experiment on forced and change trials
 #' @param pickRateMean the mean pick rate for the participant on this trial type
 #' @param prevConf previous confidence rating given by this participant (used for confidenceCategory)
-simulateTrial <- function(type, pair, defaultAdvisor, participantBehaviour, prevConf) {
+simulateTrial <- function(pid, tid, block, type, pair, defaultAdvisor, participantBehaviour, prevConf) {
   disagreeBuffMean <- 1.25
   disagreeBuffSD <- 0.1
   # pre-trial values
   ans <- runif(1) < .5
   theTime <- as.numeric(Sys.time())*1000
-  out <- data.frame(block = 1, practice = F, type, typeName = getTrialTypeName(type),
+  out <- data.frame(pid, id = tid, block, practice = F, type, typeName = getTrialTypeName(type),
                     dotDifference = 10, correctAnswer = ans, initialAnswer = NA,
                     finalAnswer = NA, initialConfidence = NA, finalConfidence = NA,
                     confidenceCategory = NA, hasChoice = NA, choice0 = NA, choice1 = NA,

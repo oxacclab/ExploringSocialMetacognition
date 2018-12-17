@@ -4,6 +4,11 @@
 source('ESM_utils.R') # libraries and some manipulation functions
 source('miscFunctions.R') # neat printing, etc
 
+if(!require(Rcpp)) {
+  install.packages("Rcpp")
+  library(Rcpp)
+}
+
 # Variables ---------------------------------------------------------------
 
 dodge.width.agreements <- .8

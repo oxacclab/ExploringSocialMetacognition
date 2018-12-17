@@ -6,7 +6,7 @@ output:
     toc: false
     toc_depth: 3
     includes:
-      after_body: toc_menu.html
+      after_body: src/toc_menu.html
 editor_options: 
   chunk_output_type: console
 ---
@@ -16,7 +16,7 @@ December 2018
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F)
 startTime <- Sys.time()
-source('ESM_core.R')
+source('src/ESM_core.R')
 ```
 
 # Descriptives 
@@ -48,7 +48,7 @@ Tests and explorations which depend on a specific advisor set are not included b
 # results <- removeParticipantIds(results)
 
 folderName <- 'ESM_sim.R'
-source('ESM_sim.R')
+source('src/ESM_sim.R')
 results <- simulateAdvisorChoice(5)
 
 # unpack results
@@ -466,6 +466,72 @@ If picking and influence measure a single latent 'trust' estimation for an advis
 
 Forced trials are used for the influence calculations, and choice trials for the pick rate calculations. 
 
+```{r echo = F}
+df.prInf <- NULL
+for(pid in unique(trials$pid)) {
+  for(b in unique(trials$block[trials$type %in% c(trialTypes$choice, trialTypes$change)])) {
+    
+    ts <- trials[trials$pid == pid & trials$block == b, ]
+    advisorIds <- unique(ts$advisorId)
+    
+    # preference strength on choice trials
+    prefStrength <- mean(ts$advisorId == advisorIds[1], na.rm = T)
+    
+    # influence difference on forced trials
+    ts <- trials[trials$pid == pid & trials$block == (b-1), ] 
+    inf <- NULL
+    if(ts$type[1] == trialTypes$dual) {
+      for(a in advisorIds)
+        inf <- c(inf, mean(sapply(1:nrow(ts), function(i) {
+          trial <- ts[i, ]
+          if(trial$advisor0id == a) return(trial$advisor0influence)
+          if(trial$advisor1id == a) return(trial$advisor1influence)
+          return(NA)
+        }), na.rm = T))
+    } else {
+      # force trials
+      for(a in advisorIds)
+        inf <- c(inf, mean(ts$advisorInfluence[ts$advisorId == a], na.rm = T))
+    }
+    
+    # key to favourite advisor
+    if(prefStrength < .5) {
+      prefStrength <- 1-prefStrength
+      infDiff <- inf[2] - inf[1]
+      favAdvisorId <- advisorIds[1]
+      nfAdvisorId <- advisorIds[2]
+    } else {
+      infDiff <- inf[1] - inf[2]
+      favAdvisorId <- advisorIds[2]
+      nfAdvisorId <- advisorIds[1]
+    }
+    
+    df.prInf <- rbind(df.prInf, data.frame(pid, prefStrength, infDiff, 
+                                           favAdvisorId, nfAdvisorId, 
+                                           favAdviceType = advisors$adviceType[advisors$pid == pid 
+                                                                               & advisors$id == favAdvisorId], 
+                                           nfAdviceType = advisors$adviceType[advisors$pid == pid 
+                                                                             & advisors$id == nfAdvisorId]))
+  }
+}
+tmp <- aggregate(cbind(prefStrength, infDiff) ~ pid, df.prInf, FUN = mean) # reaggregate
+cor.test(tmp$prefStrength, tmp$infDiff)
+correlationBF(tmp$prefStrength, tmp$infDiff)
+```
+
+```{r echo = F}
+ggplot(tmp, aes(y = prefStrength, x = infDiff)) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = .5, fill = 'grey', alpha = .5) +
+  geom_rect(xmin = -Inf, xmax = Inf, ymin = 1, ymax = Inf, fill = 'grey', alpha = .5) +
+  geom_smooth(method = 'lm', fill = 'lightblue', alpha = 0.5) +
+  geom_point(aes(colour = as.factor(pid))) +
+  labs(title = 'Influence difference and preference strength\nfor preferred advisor',
+       y = 'P(Preferred advisor chosen)',
+       x = 'Mean Influence difference on Forced trials') +
+  scale_x_continuous(expand = c(0,0.2)) +
+  style.long
+```
+
 # Modelling 
 
 ## Trust modelling
@@ -476,6 +542,40 @@ $$C_{final} = C_{initial} + I_a * sign(A)$$
 Where $A$ gives the agreement of the advice (+1 for agreement, -1 for disagreement), and the influence of an advisor $I_a$ is updated on each trial according to the rule:
 $$I_{a,t} = I_{a,t-1} + \lambda C_{initial} * sign(A) - \tau$$
 $\lambda$ and $\tau$ are participant-specific parameters which represent the learning rate and trust decay rates, respectively.
+
+```{r}
+# Fit models using a c++ implementation of a gradient descent algorithm
+rebuild = T
+Rcpp::sourceCpp('src/model.cpp', rebuild = rebuild)
+
+tmp <- anAnswer(); tmp
+
+df.models <- NULL
+
+# Run the models for each participant
+for(pid in unique(trials$pid)) {
+  pair <- getAdviceTypePairs(c(trials[trials$pid == pid, "adviceType"],
+                               trials[trials$pid == pid, "advisor0type"],
+                               trials[trials$pid == pid, "advisor1type"]))
+  for(pair in pairs) {
+    # Mould the data into the format expected by the c++ code
+    ts <- trials[trials$pid == pid & trials$type != trialTypes$catch, ]
+    
+    input <- cbind(scale(ts$initialConfidence), 
+                   getAdviceByType(ts, pair[1]), 
+                   getAdviceByType(ts, pair[2]), 
+                   scale(ts$confidenceShift))
+    
+    # Run the models
+    modelResults <- gradientDescent(input)
+    
+    # Save a summary of the result
+    tmp <- modelResults$parameters
+    tmp$mse <- t(modelResults$MSE)
+  }
+  
+}
+```
 
 # Exploration 
 
