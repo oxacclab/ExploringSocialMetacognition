@@ -803,7 +803,7 @@ class advisorChoice extends dotTask {
      */
     static getAccuracyGraph(input, div) {
         let advisors = [];
-        for (let a=1; a<input.advisors.length; a++) {
+        for (let a=0; a<input.advisors.length; a++) {
             advisors.push(input.advisors[a]);
         }
         let judgeAcc = advisorChoice.accuracySummary(input.trials);
