@@ -460,6 +460,47 @@ for(pair in pairs) {
 }
 ```
 
+This is also done for each participant individually, so that the contribution of each advisor can be compared by performing a paired t-test on the advisors' agreement coefficients. For this, the confidence scores are standardized prior to modelling. 
+
+```{r}
+df.infLM <- NULL
+
+for(pair in pairs) {
+  ts <- tmp[tmp$advisor0type %in% pair & tmp$advisor1type %in% pair, ]
+  x <- NULL
+  
+  for(pid in unique(ts$pid)) {
+    # standardize the confidence scores
+    df <- ts[ts$pid == pid, ]
+    df$confidenceShift <- scale(df$confidenceShift)
+    df$initialConfidence <- scale(df$initialConfidence)
+    
+    # rearrange data so advisors are separated by type rather than order
+    aNames <- paste0(getAdviceTypeName(pair), '_agrees')
+    df[ , aNames[1]] <- ifelse(df$advisor0type == pair[1], df$advisor0agrees, df$advisor1agrees)
+    df[ , aNames[2]] <- ifelse(df$advisor0type == pair[2], df$advisor0agrees, df$advisor1agrees)
+    
+    if(nrow(df) == 0)
+      next()
+    
+    f <- as.formula(paste0("confidenceShift ~ initialConfidence + (", aNames[1], ' * ', aNames[2], ')'))
+    model <- lm(f, data = df)
+    
+    x <- rbind(x, data.frame(pid, refAdvisor = pair[1], otherAdvisor = pair[2],
+                             intercept = model$coefficients[1],
+                             refAdvisorAgrees = model$coefficients[2],
+                             otherAdvisorAgrees = model$coefficients[3],
+                             interaction = model$coefficients[4]))
+  }
+  if(!is.null(x) && nrow(x) > 0) {
+    cat(paste(md.ttest(x$refAdvisorAgrees, x$otherAdvisorAgrees, 
+                     labels = paste0('*M*|',getAdviceTypeName(pair)),
+                     paired = T), '\n'))
+    df.infLM <- rbind(df.infLM, x)
+  }
+}
+```
+
 # Pick rate x Influence
 
 If picking and influence measure a single latent 'trust' estimation for an advisor, the ratings should be correlated. The analysis is by advisor ID rather than advice profile, because individual advisors should have pick rates and influences which are more tightly correlated than advice profiles which average over multiple advisors. 
@@ -545,10 +586,7 @@ $\lambda$ and $\tau$ are participant-specific parameters which represent the lea
 
 ```{r}
 # Fit models using a c++ implementation of a gradient descent algorithm
-rebuild = T
-Rcpp::sourceCpp('src/model.cpp', rebuild = rebuild)
-
-tmp <- anAnswer(); tmp
+sourceCpp('src/models.cpp')
 
 df.models <- NULL
 
@@ -568,13 +606,62 @@ for(pid in unique(trials$pid)) {
     
     # Run the models
     modelResults <- gradientDescent(input)
+
+    # Akaike's Information Criterion
+    # AIC = n * ln(MSE) + 2k
+    # k = number of predictors + 1 (for intercept)
+    n <- sum(!is.na(input[ ,2] | input[ ,3]))
+    AIC <- n * log(modelResults$MSE)
+    AIC <- AIC + 2 * c(2, 4, 5) # model k vales
     
     # Save a summary of the result
-    tmp <- modelResults$parameters
+    tmp <- cbind(data.frame(pid, refAdvisor = pair[1], otherAdvisor = pair[2], n, AIC = t(AIC)),
+                 modelResults$parameters)
     tmp$mse <- t(modelResults$MSE)
+    rownames(tmp) <- NULL
+    df.models <- rbind(df.models, tmp)
   }
-  
 }
+
+# model evaluation
+df.models$refAdvisor <- getAdviceTypeName(df.models$refAdvisor)
+df.models$model <- as.factor(df.models$model)
+ggplot(df.models, aes(x = model, y = AIC, colour = refAdvisor, fill = refAdvisor)) +
+  stat_summary(geom = 'col', fun.y = mean, position = position_dodge(.9), width = .8) +
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_normal, position = position_dodge(.9), colour = 'black', width = .2) +
+  geom_point(alpha = 0.50, position = position_jitterdodge(jitter.width = .15, dodge.width = .9), colour = 'black') +
+  labs(y = "Akaike's Information Criterion") +
+  style
+
+```
+
+The models can also be compared on the basis of absolute best fit counts. 
+
+```{r}
+tmp <- NULL
+for(a in unique(df.models$refAdvisor)) {
+  for(pid in unique(df.models$pid)) {
+    x <- df.models[df.models$pid == pid & df.models$refAdvisor == a, ]
+    bestModel <- factor(x$model[x$AIC == min(x$AIC)])
+    tmp <- rbind(tmp, data.frame(refAdvisor = a, pid,
+                                 bestModel))
+  }
+}
+tmp <- aggregate(pid ~ bestModel + refAdvisor, data = tmp, FUN = length)
+# Fill empty rows
+for(a in unique(df.models$refAdvisor)) {
+  for(m in unique(df.models$model)) {
+    if(nrow(tmp[tmp$refAdvisor == a & tmp$bestModel == m, ]) == 0)
+      tmp <- rbind(tmp, data.frame(bestModel = m, refAdvisor = a, pid = 0))
+  }
+}
+names(tmp)[3] <- "participants"
+
+ggplot(tmp, aes(x = refAdvisor, y = participants, fill = bestModel)) +
+  geom_col(position = position_dodge()) +
+  scale_fill_discrete(limits = c(1:3), name = 'model') +
+  labs(y = "Participants fitted best by model") +
+  style
 ```
 
 # Exploration 

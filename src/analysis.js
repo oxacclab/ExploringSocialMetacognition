@@ -7,7 +7,7 @@
 
 
 "use strict";
-import {Trial, Advisor, utils} from "./exploringSocialMetacognition.js";
+import {Trial, Advisor, Cue, utils} from "./exploringSocialMetacognition.js";
 import {trialTypes} from "./advisorChoiceDefs.js";
 
 /**
@@ -741,9 +741,13 @@ class advisorChoice extends dotTask {
      * @param {Element} div - div to draw the graph in
      */
     static getQuestionnaireGraph(input, advisorId, div) {
+        let isCue = input.getAdvisorById(advisorId) instanceof Cue;
         // Create the data table.
-        let raw = [
-            ['Time', 'Likeable', 'Capable', 'Helping']
+        let raw = isCue? [
+                ['Time', 'Wanted', 'Accurate', 'Helpful']
+            ] :
+            [
+                ['Time', 'Likeable', 'Capable', 'Helping']
         ];
 
         let timepoint = 0;
@@ -758,12 +762,15 @@ class advisorChoice extends dotTask {
             for (let r=0; r<Q.response.length; r++) {
                 switch(Q.response[r].name) {
                     case "Likeability":
+                    case "Desirability":
                         likeable = Q.response[r].answer;
                         break;
                     case "Ability":
+                    case "Accuracy":
                         capable = Q.response[r].answer;
                         break;
                     case "Benevolence":
+                    case "Helpfulness":
                         helping = Q.response[r].answer;
                         break;
                 }

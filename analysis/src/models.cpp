@@ -1,8 +1,13 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+/* 
+  This file should also supply a function to allow surface mapping for 
+ some functions so its functionality can be verified. 
+*/
+
 /**
-* @breif Take a set of trials, run gradient descent on them for a family of models,
+* @brief Take a set of trials, run gradient descent on them for a family of models,
 * and return the parameters which generate the lowest mean squared error for
 * each model, along with the errors associated with those parameters.
 *

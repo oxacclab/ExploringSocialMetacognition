@@ -463,6 +463,8 @@ class Advisor {
 
         this.lastAdvice = null; // the advisor's most recent advice
         this.practice = typeof args.practice === 'undefined'? false : args.practice;
+
+        this.isCue = false;
     }
 
     /** Hoist the name for ease-of-access */
@@ -732,6 +734,8 @@ class Cue extends Advisor {
         if(this.styleClass !== '')
             this.portrait.classList.add(this.styleClass);
         this.portrait.id = 'advisor-portrait-arrow' + this.portraitId;
+
+        this.isCue = true;
     }
 
     /**

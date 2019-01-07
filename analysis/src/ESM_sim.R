@@ -11,6 +11,7 @@
 #'   combo. Uses all defined \code{trialTypes} if NA.
 #' @param nTrials number of trials to simulate for each participant-advisor pair
 #'   combo
+#' @param adviceClasses classes of the advisors (i.e. whether they're represented by arrows or usernames)
 #' @param silent whether to suppress all output
 #'
 #' @note For convenience, all advisors are assumed to have an ID which
@@ -28,7 +29,8 @@
 #'
 #'   Disagreement adjustment is drawn from a constant distribution (mean doesn't
 #'   vary by participant)
-simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTrials = 60, silent = F) {
+simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTrials = 60, 
+                                  adviceClasses = c('Advisor', 'Cue'), silent = F) {
   
   if(is.na(aPairs))
     aPairs <- list('meta' = c(3,4), 'acc' = c(5,6), 'agr' = c(7,8))
@@ -63,27 +65,31 @@ simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTria
                                                                      populationPickRate$influenceMean[i],
                                                                      populationPickRate$influenceSD[i])),
                             influenceSD = sapply(1:nrow(populationPickRate),
-                                                 function(i) rnorm(1, populationPickRate$influenceSD[i])))
+                                                 function(i) rnorm(1, populationPickRate$influenceSD[i])),
+                            advisorClass = populationPickRate$advisorClass)
     
     # participant and generalised trust data
     participants <- rbind(participants, simulateParticipant(pid))
     genTrustQ <- rbind(genTrustQ, simulateGenTrustQ(pid))
     
-    for(pair in aPairs) {
-      # advisors and questionnaires data
-      advisors <- rbind(advisors, simulateAdvisor(pid, pair))
-      questionnaires <- rbind(questionnaires, simulateQuestionnaire(pid, pair))
-      for(type in tTypes) {
-        block <- block + 1
-        for(i in 1:nTrials) {
-          # trials data
-          trials <- rbind(trials, simulateTrial(pid, tId, block, type, pair, pair[(i%%2)+1], 
-                                                behaviour,
-                                                trials$initialConfidence[trials$pid == pid]))
-          tId <- tId + 1
+    for(aC in adviceClasses) {
+      for(pair in aPairs) {
+        # advisors and questionnaires data
+        advisors <- rbind(advisors, simulateAdvisor(pid, pair, aC))
+        questionnaires <- rbind(questionnaires, simulateQuestionnaire(pid, pair, aC))
+        for(type in tTypes) {
+          block <- block + 1
+          for(i in 1:nTrials) {
+            # trials data
+            trials <- rbind(trials, simulateTrial(pid, tId, block, type, pair, pair[(i%%2)+1], 
+                                                  behaviour[behaviour$advisorClass == aC, ],
+                                                  trials$initialConfidence[trials$pid == pid]))
+            tId <- tId + 1
+          }
         }
       }
     }
+    
     behaviours <- rbind(behaviours, behaviour)
   }
   
@@ -140,7 +146,8 @@ simulateGenTrustQ <- function(pid) {
 #' Return a data frame of simulated advisor data
 #' @param pid participant ID
 #' @param advisor advisor advice Type (also functions as ID)
-simulateAdvisor <- function(pid, advisor) {
+#' @param advisorClass advisor's JavaScript class which indicates if it's represented as a cue or advisor
+simulateAdvisor <- function(pid, advisor, advisorClass) {
   if(length(pid) > 1) {
     out <- NULL
     for(i in 1:length(pid))
@@ -155,13 +162,15 @@ simulateAdvisor <- function(pid, advisor) {
   }
   
   return(data.frame(pid, id = advisor, adviceType = advisor,
-                    name = 'NA', portraitSrc = NA, voiceId = NA, styleClass = NA))
+                    name = 'NA', portraitSrc = NA, voiceId = NA, 
+                    styleClass = NA, advisorClass))
 }
 
 #' Return a data frame of simulated questionnaire data
 #' @param pid participant ID
 #' @param advisor advisor advice Type (also functions as ID)
-simulateQuestionnaire <- function(pid, advisor) {
+#' @param advisorClass advisor's JavaScript class which indicates if it's represented as a cue or advisor
+simulateQuestionnaire <- function(pid, advisor, advisorClass) {
   if(length(pid) > 1) {
     out <- NULL
     for(i in 1:length(pid))
@@ -403,4 +412,10 @@ populationPickRate <- data.frame(adviceType = unlist(adviceTypes),
                                  pickRateMean = c(.5, .51, 1-.51, .57, 1-.57, .61, 1-.61),
                                  pickRateSD = .2,
                                  influenceMean = c(5, 10, 0, 15, 0, 20, -5),
-                                 influenceSD = 5)
+                                 influenceSD = 5,
+                                 advisorClass = "Advisor")
+populationPickRate <- rbind(populationPickRate, 
+                            data.frame(cbind(populationPickRate[ ,1:3], 
+                                             influenceMean = round(populationPickRate$influenceMean * .8),
+                                             influenceSD = populationPickRate$influenceSD,
+                                             advisorClass = "Cue")))

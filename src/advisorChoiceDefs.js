@@ -4,7 +4,7 @@
  */
 "use strict";
 
-import {DoubleDotGrid, Trial, Governor, Advisor, Line, utils} from './exploringSocialMetacognition.js';
+import {DoubleDotGrid, Trial, Governor, Advisor, Cue, Line, utils} from './exploringSocialMetacognition.js';
 import {dotTask, advisorChoice} from "./analysis.js";
 import debriefForm from "./debriefForm.js";
 //import processData from "./saveData.js";
@@ -680,7 +680,10 @@ class AdvisorChoice extends DotTask {
             if(advisors[i] instanceof Advisor)
                 out[i] = advisors[i];
             else
-                out[i] = new Advisor(advisors[i]);
+                if(advisors[i].isCue === true)
+                    out[i] = new Cue(advisors[i]);
+                else
+                    out[i] = new Advisor(advisors[i]);
         }
         return out;
     }

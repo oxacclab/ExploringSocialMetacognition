@@ -6,7 +6,7 @@
 
 "use strict";
 
-import {Trial, Advisor} from "./exploringSocialMetacognition.js";
+import {Trial, Advisor, Cue} from "./exploringSocialMetacognition.js";
 
 export default function processData(data, test = false) {
     // Data about the participant
@@ -165,6 +165,7 @@ function flattenAdvisorData(data, id) {
     out.portraitSrc = data.portraitSrc;
     out.voiceId = data.voice.id;
     out.styleClass = data.styleClass;
+    out.advisorClass = data instanceof Cue? "Cue" : "Advisor";
     return out;
 }
 

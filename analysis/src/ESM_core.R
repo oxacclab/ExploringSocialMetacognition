@@ -1,8 +1,8 @@
 
 # Prerequisites -----------------------------------------------------------
 
-source('ESM_utils.R') # libraries and some manipulation functions
-source('miscFunctions.R') # neat printing, etc
+source('src/ESM_utils.R') # libraries and some manipulation functions
+source('src/miscFunctions.R') # neat printing, etc
 
 if(!require(Rcpp)) {
   install.packages("Rcpp")
