@@ -31,9 +31,9 @@ The basic structure is:
 
 * Describe data
 
-* Test primary hypothesis (pick rates are not equal) 
+* Test primary hypothesis (advisor pick rates are not equal) 
 
-* Test secondary hypothesis (influence is not equal)
+* Test secondary hypothesis (advisor influence is not equal)
 
 * Exploration
 
@@ -49,7 +49,7 @@ Tests and explorations which depend on a specific advisor set are not included b
 
 folderName <- 'ESM_sim.R'
 source('src/ESM_sim.R')
-results <- simulateAdvisorChoice(5)
+results <- simulateAdvisorChoice(5, advisorClasses = c("Advisor"))
 
 # unpack results
 for(i in 1:length(results))
@@ -200,7 +200,8 @@ The participants' initial decisions should be equivalent (BF < .333) between adv
 
 ```{r results = 'asis'} 
 tmp <- aggregate(initialCorrect ~ pid + adviceType, trials, mean) 
-for(a in c(adviceTypes$AiC, adviceTypes$HighAcc, adviceTypes$HighAgr)) {
+# sort through using reference advisors appearing in the trial lists
+for(a in adviceTypes[unlist(adviceTypes) %% 2 == 1 & unlist(adviceTypes) %in% trials$adviceType]) {
   cat(md.ttestBF(tmp$initialCorrect[tmp$adviceType == a], 
                  tmp$initialCorrect[tmp$adviceType == a+1], 
                  labels = paste0('*M*|', getAdviceTypeName(c(a, a+1))),

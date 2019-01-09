@@ -277,14 +277,21 @@ getTrialTypeName <- function(type) {
 
 #' @param correctness vector of correctness of judgements
 #' @param confidence vector of the confidence of judgements
+#' @param bins number of bins to use, or NA if data should be judged by each confidence value individually
 #' @return type 2 receiver operator characterisitc curve points
-type2ROC <- function(correctness, confidence) {
+type2ROC <- function(correctness, confidence, bins = NA) {
+  if(!is.na(bins)) 
+    confidence <- cut(confidence, seq(0, 50, length.out = bins))
+  
   points <- data.frame(x = unique(confidence), y = NA)
   for(i in 1:nrow(points)) {
     points$y[i] <- mean(correctness[confidence == points$x[i]])
   }
+  
+  points <- points[order(points$x), ]
+  
   # scale x values
-  points$x <- points$x / max(points$x)
+  #points$x <- points$x / max(points$x)
   return(points)
 }
 

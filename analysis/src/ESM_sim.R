@@ -11,7 +11,9 @@
 #'   combo. Uses all defined \code{trialTypes} if NA.
 #' @param nTrials number of trials to simulate for each participant-advisor pair
 #'   combo
-#' @param adviceClasses classes of the advisors (i.e. whether they're represented by arrows or usernames)
+#' @param adviceClasses classes of the advisors (i.e. whether they're
+#'   represented by arrows or usernames). Assigned randomly from the available
+#'   options.
 #' @param silent whether to suppress all output
 #'
 #' @note For convenience, all advisors are assumed to have an ID which
@@ -30,11 +32,11 @@
 #'   Disagreement adjustment is drawn from a constant distribution (mean doesn't
 #'   vary by participant)
 simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTrials = 60, 
-                                  adviceClasses = c('Advisor', 'Cue'), silent = F) {
+                                  advisorClasses = c('Advisor', 'Cue'), silent = F) {
   
-  if(is.na(aPairs))
+  if(anyNA(aPairs))
     aPairs <- list('meta' = c(3,4), 'acc' = c(5,6), 'agr' = c(7,8))
-  if(is.na(tTypes))
+  if(anyNA(tTypes))
     tTypes <- trialTypes
   
   tStart <- Sys.time()
@@ -66,29 +68,35 @@ simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTria
                                                                      populationPickRate$influenceSD[i])),
                             influenceSD = sapply(1:nrow(populationPickRate),
                                                  function(i) rnorm(1, populationPickRate$influenceSD[i])),
-                            advisorClass = populationPickRate$advisorClass)
+                            advisorClass = populationPickRate$advisorClass,
+                            calibration = min(max(rnorm(1, .71, .2), 0), 1),
+                            bias = min(max(round(rnorm(1, 0, 3)), -10), 10),
+                            volatility = min(max(rnorm(1, 3, 1), 0), 6))
+    
+    # bestween-subjects advisor class is assigned randomly
+    behaviour <- behaviour[behaviour$advisorClass == 
+                             advisorClasses[ceiling(runif(1, max = length(advisorClasses)))], ]
     
     # participant and generalised trust data
-    participants <- rbind(participants, simulateParticipant(pid))
+    participants <- rbind(participants, simulateParticipant(pid, behaviour$advisorClass[1]))
     genTrustQ <- rbind(genTrustQ, simulateGenTrustQ(pid))
     
-    for(aC in adviceClasses) {
-      for(pair in aPairs) {
-        # advisors and questionnaires data
-        advisors <- rbind(advisors, simulateAdvisor(pid, pair, aC))
-        questionnaires <- rbind(questionnaires, simulateQuestionnaire(pid, pair, aC))
-        for(type in tTypes) {
-          block <- block + 1
-          for(i in 1:nTrials) {
-            # trials data
-            trials <- rbind(trials, simulateTrial(pid, tId, block, type, pair, pair[(i%%2)+1], 
-                                                  behaviour[behaviour$advisorClass == aC, ],
-                                                  trials$initialConfidence[trials$pid == pid]))
-            tId <- tId + 1
-          }
+    for(pair in aPairs) {
+      # advisors and questionnaires data
+      advisors <- rbind(advisors, simulateAdvisor(pid, pair, behaviour$advisorClass[1]))
+      questionnaires <- rbind(questionnaires, simulateQuestionnaire(pid, pair, behaviour$advisorClass[1]))
+      for(type in tTypes) {
+        block <- block + 1
+        for(i in 1:nTrials) {
+          # trials data
+          trials <- rbind(trials, simulateTrial(pid, tId, block, type, pair, pair[(runif(1) < .5)+1], 
+                                                behaviour[behaviour$advisorClass == behaviour$advisorClass[1], ],
+                                                trials$initialConfidence[trials$pid == pid]))
+          tId <- tId + 1
         }
       }
     }
+    
     
     behaviours <- rbind(behaviours, behaviour)
   }
@@ -109,14 +117,15 @@ simulateAdvisorChoice <- function(nParticipants, aPairs = NA, tTypes = NA, nTria
 
 #' Returns a data frame of simulated data for a participant
 #' @param pid participant ID
-simulateParticipant <- function(pid) {
+#' @param advisorClass whether this participant saw Advisors or Cues
+simulateParticipant <- function(pid, advisorClass) {
   theTime <- as.numeric(Sys.time())*1000
   return(data.frame(pid, blockCount = NA, catchPerBlock = NA, forcePerBlock = NA, 
                     practiceCatchPerBlock = NA, practiceForcePerBlock = NA, 
                     practiceChoicePerBlock = NA, difficultyStep = NA, dotCount = 200, 
                     preTrialInterval = NA, preStimulusInterval = NA, stimulusDuration = NA, 
                     feedbackDuration = NA, timeStart = theTime, timeEnd = theTime, experimentDuration = 0, 
-                    manipulationQuestion = "I'm a bot", debriefComments = NA))
+                    manipulationQuestion = "I'm a bot", debriefComments = NA, changeDuration = 1500, advisorClass))
 }
 
 #' Returns a data frame of simulated generalised trust questionnaire responses
@@ -151,13 +160,13 @@ simulateAdvisor <- function(pid, advisor, advisorClass) {
   if(length(pid) > 1) {
     out <- NULL
     for(i in 1:length(pid))
-      out <- rbind(out, simulateAdvisor(pid[i], advisor[i]))
+      out <- rbind(out, simulateAdvisor(pid[i], advisor[i], advisorClass[i]))
     return(out)
   }
   if(length(advisor) > 1) {
     out <- NULL
     for(a in advisor)
-      out <- rbind(out, simulateAdvisor(pid, a))
+      out <- rbind(out, simulateAdvisor(pid, a, advisorClass))
     return(out)
   }
   
@@ -174,13 +183,13 @@ simulateQuestionnaire <- function(pid, advisor, advisorClass) {
   if(length(pid) > 1) {
     out <- NULL
     for(i in 1:length(pid))
-      out <- rbind(out, simulateAdvisor(pid[i], advisor[i]))
+      out <- rbind(out, simulateQuestionnaire(pid[i], advisor[i], advisorClass[i]))
     return(out)
   }
   if(length(advisor) > 1) {
     out <- NULL
     for(a in advisor)
-      out <- rbind(out, simulateAdvisor(pid, a))
+      out <- rbind(out, simulateQuestionnaire(pid, a, advisorClass))
     return(out)
   }
   
@@ -200,7 +209,7 @@ simulateQuestionnaire <- function(pid, advisor, advisorClass) {
 #' @param type of trial
 #' @param pair of advisors
 #' @param defaultAdvisor the advisor offered by the experiment on forced and change trials
-#' @param pickRateMean the mean pick rate for the participant on this trial type
+#' @param participantBehaviour the participant's behaviours used to determine performance
 #' @param prevConf previous confidence rating given by this participant (used for confidenceCategory)
 simulateTrial <- function(pid, tid, block, type, pair, defaultAdvisor, participantBehaviour, prevConf) {
   disagreeBuffMean <- 1.25
@@ -225,8 +234,8 @@ simulateTrial <- function(pid, tid, block, type, pair, defaultAdvisor, participa
   iCorrect <- runif(1) < .71
   if(iCorrect) out$initialAnswer <- ans
   else out$initialAnswer <- 1 - ans
-  out$initialConfidence <- rnorm(1, 25, 10)
-  out$initialConfidence <- round(max(1, min(50, out$initialConfidence)))
+  out$initialConfidence <- getConfidence(iCorrect, participantBehaviour$calibration[1],
+                                         participantBehaviour$bias[1], participantBehaviour$volatility[1])
   out$confidenceCategory <- getConfCat(out$initialConfidence, prevConf)
   
   # advice and final decision
@@ -406,7 +415,64 @@ getAdvice <- function(adviceType, initialAnswer = NA, correctAnswer = NA, confid
   return(NA)
 }
 
+#' Calculate the confidence given as a function of correctness. These
+#' confidences will aggregate such that greater confidence will associate with
+#' greater probability of being correct, attendant on calibration.
+#' @param correct whether the decision was correct
+#' @param calibration the metacognitive calibration score for the participant
+#' @param bias the extent to which confidence scores are inflated (+ve) or reduced (-ve)
+#' @param volatility the SD of confidence values
+getConfidence <- function(correct, calibration, bias, volatility) {
+  if(correct && runif(1) < calibration || (!correct && runif(1) >= calibration)) 
+    out <- rnorm(1, 32 + bias, volatility)
+  else
+    out <- rnorm(1, 18 + bias, volatility)
+  round(max(1, min(50, out)))
+}
+
+#' Return the advisor chosen
+#' @param pair advisor pair to choose between
+#' @param refAdvisor advisor to use as the reference
+#' @param behaviour dataframe of behaviour variables for the participant
+getAdvisorChoice <- function(pair, refAdvisor, behaviour) {
+  if(runif(1) < behaviour$trust[behaviour$adviceType == refAdvisor])
+    return(refAdvisor)
+  else
+    return(pair[pair != refAdvisor])
+}
+
+#' Return the updated behaviour dataframe with new values for trust for advisor pair
+#' @param pair oppositional pair of advisors being updated
+#' @param refAdvisor one of the pair whose new trust rating is specified
+#' @param newTrust new trust rating for the refAdvisor
+#' @param behaviour data frame of participant behaviour
+updateAdvisorTrust(pair, refAdvisor, newTrust, behaviour) {
+  behaviour$trust[behaviour$adviceType == refAdvisor] <- newTrust
+  behaviour$trust[behaviour$adviceType == pair[pair != refAdvisor]] <- 1 - newTrust
+  return(behaviour)
+}
+
+#' Return the updated trust in an advisor (trust is essentially the probability of being picked)
+#' @param trust current trust
+#' @param conf initial confidence of participant's answer
+#' @param adviceAgrees boolean whether the advisor agreed with participant's initial decision
+#' @param behaviour data frame of participant behaviour
+#' @param trustModel which of the trustModels to use
+getUpdatedTrust <- function(trust, conf, adviceAgrees, behaviour, trustModel) {
+  
+  if(trustModel == trustModels$flat)
+    return(trust)
+  
+  if(trustModel == trustModels$agreement)
+    behaviour$trustMeta <- 1/conf
+  
+  # deltaTrust = b0 * agree * b1 * conf - decay
+  trust - behaviour$trustDecay + (behaviour$trustAgree * adviceAgrees) * (behaviour$trustMeta * conf)
+}
+
 # Constants ---------------------------------------------------------------
+
+trustModels <- list(flat = 1, agreement = 2, metacog = 3)
 
 populationPickRate <- data.frame(adviceType = unlist(adviceTypes), 
                                  pickRateMean = c(.5, .51, 1-.51, .57, 1-.57, .61, 1-.61),
@@ -415,7 +481,9 @@ populationPickRate <- data.frame(adviceType = unlist(adviceTypes),
                                  influenceSD = 5,
                                  advisorClass = "Advisor")
 populationPickRate <- rbind(populationPickRate, 
-                            data.frame(cbind(populationPickRate[ ,1:3], 
-                                             influenceMean = round(populationPickRate$influenceMean * .8),
-                                             influenceSD = populationPickRate$influenceSD,
-                                             advisorClass = "Cue")))
+                            data.frame(adviceType = populationPickRate$adviceType,
+                                       pickRateMean = .5 + (populationPickRate$pickRateMean - .5) * .8,
+                                       pickRateSD = populationPickRate$pickRateSD * .8,
+                                       influenceMean = round(populationPickRate$influenceMean * .8),
+                                       influenceSD = populationPickRate$influenceSD * .8,
+                                       advisorClass = "Cue"))
