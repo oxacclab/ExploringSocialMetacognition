@@ -11,6 +11,9 @@
 body {
     background-color: #858585;
 }
+.hidden {
+    display: none !important;
+}
 div#jspsych-content.advisorChoice-minHeight {
     min-height: 500px;
 }

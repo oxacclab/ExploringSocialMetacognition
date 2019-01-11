@@ -207,5 +207,64 @@ function sumList(list, recursive = true, ignoreBadValues = true) {
     return sum;
 }
 
-export {shuffle, shuffleShoe, sumList, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round,
-    getSequence}
+/**
+ * The mean of numbers in a list
+ * @param {[]} list
+ * @return {number}
+ */
+function mean(list) {
+    let mean = 0;
+    list.forEach((x)=>mean += parseFloat(x));
+    mean /= list.length;
+    return mean;
+}
+
+/**
+ * The standard deviation of numbers in a list
+ * @param {[]} list
+ * @param {boolean} [population=true] whether to return the population as opposed to the sample standard deviation
+ * @return {number}
+ */
+function stDev(list, population = true) {
+    let m = mean(list);
+    let errors = 0;
+    list.forEach((x)=>errors += Math.pow(parseFloat(x) - m, 2));
+
+    let variance = errors / (population? list.length : list.length - 1);
+
+    return Math.sqrt(variance);
+}
+
+/**
+ * The largest value in a list
+ * @param {[]} list
+ * @param {boolean} [abs=false] whether to check absolute values
+ * @return {number}
+ */
+function max(list, abs = false) {
+    let max = -Infinity;
+    list.forEach(function(x) {
+        x = parseFloat(x);
+        if(x > max || (Math.abs(x) > max && abs))
+            max;
+    });
+    return max;
+}
+
+/**
+ * The smallest value in a list
+ * @param {[]} list
+ * @param {boolean} [abs=false] whether to check absolute values
+ * @return {number}
+ */
+function min(list, abs = false) {
+    let min = Infinity;
+    list.forEach(function(x) {
+        x = parseFloat(x);
+        if(x < min || (Math.abs(x) < min && abs))
+            min;
+    });
+    return min;
+}
+
+export {shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence}

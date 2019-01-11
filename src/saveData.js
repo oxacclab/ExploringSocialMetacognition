@@ -30,9 +30,7 @@ export default function processData(data, test = false) {
         changeDuration: data.changeTime,
         timeStart: data.timeStart,
         timeEnd: data.timeEnd,
-        experimentDuration: data.timeEnd - data.timeStart,
-        manipulationQuestion: data.debrief.manipulationQuestion,
-        debriefComments: data.debrief.comments
+        experimentDuration: data.timeEnd - data.timeStart
     };
 
     if(test)
@@ -62,7 +60,15 @@ export default function processData(data, test = false) {
     participantData.trials = trialData;
 
     // Generalized trust questionnaire
-    participantData.generalisedTrustQuestionnaire = flattenGTQ(data.generalisedTrustQuestionnaire, participantData.id);
+    if(typeof data.generalisedTrustQuestionnaire !== 'undefined')
+        participantData.generalisedTrustQuestionnaire =
+            flattenGTQ(data.generalisedTrustQuestionnaire, participantData.id);
+
+    // Debrief stuff
+    participantData.debrief = [];
+    if(typeof data.debrief !== 'undefined') {
+        participantData = flattenDebriefData(data.debrief, participantData.id);
+    }
 
     return participantData;
 }
@@ -124,6 +130,8 @@ function flattenTrialData(trial, id) {
     out.defaultAdvisor = trial.defaultAdvisor;
 
     out.feedback = trial.feedback;
+    out.grid = sha1.sha1(JSON.stringify(trial.grid)); // store the hash of the grid
+    out.stimulusParent = trial.stimulusParent;
     out.warnings = trial.warnings.join("\n");
     // timings
     if (trial.pluginResponse.length > 0) {
@@ -222,4 +230,29 @@ function flattenGTQ(Q, id) {
         out[r].lastChangedTime = Q.response[r].lastChangedTime;
     }
     return out;
+}
+
+/**
+ * Loop through the keys in all objects in data and pad each object to contain all keys (pad with null)
+ * @param {Object[]} data debrief questions
+ * @param {int} id participant id
+ * @return {Object[]}
+ */
+function flattenDebriefData(data, id) {
+    // List keys
+    let keys = [];
+    data.forEach(function(q) {
+        Object.keys(q).forEach(function(key) {
+            if(q.hasOwnProperty(key) && keys.indexOf(key) === -1)
+                keys.push(key);
+        });
+    });
+
+    // Pad missing keys with null
+    data.forEach(function(q) {
+        q.id = id;
+        keys.forEach((k)=>{if(typeof q[k] === 'undefined') q[k] = null})
+    });
+
+    return data;
 }

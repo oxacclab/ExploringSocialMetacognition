@@ -28,6 +28,7 @@
     <script src="../jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
     <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script-->
     <script src="../src/bowser.min.js"></script>
+    <script src="../src/jspsych-call-function.js"></script>
     <script src="../src/jspsych-function-sliders-response.js"></script>
     <script src="../src/jspsych-jas-present-advice-choice.js"></script>
     <script src="../src/jspsych-canvas-sliders-response.js"></script>
@@ -58,7 +59,7 @@
      * variables which are required for things such as staircasing.
      */
     let gov = new DotTask({
-        experimentCode: 'dot',
+        experimentCode: 'dotRep',
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: {
@@ -76,17 +77,18 @@
                 0: 60
             },
             {
-                0: 60
+                0: 50 // Repetition blocks
             },
             {
-                0: 60
-            }
+                0: 50
+            },
         ],
         practiceBlockStructure: [
             {
                 0: 60
             }
         ],
+        repList: false,
         preTrialInterval: 200,
         preStimulusInterval: 500,
         stimulusDuration: 200,
@@ -99,11 +101,13 @@
 
     gov.participantId = prolificID===null?
         sha1.sha1((gov.timeStart).toString() + Math.random().toString()) : sha1.sha1(prolificID);
-    gov.practiceBlockLength = utils.sumList(gov.practiceBlockStructure);
     gov.trials = gov.getTrials();
 
     /* create timeline */
     let timeline = [];
+    let testCanvas =(new DoubleDotGrid(0,0,{dotWidth: 3, dotHeight:3, spacing: 100}));
+    testCanvas.w = testCanvas.displayWidth * 2 + testCanvas.spacing;
+    testCanvas.h = testCanvas.displayHeight;
 
     /* define welcome message trial */
     const welcome = {
@@ -112,15 +116,18 @@
             "Welcome to the experiment. Click 'next' to begin.",
             "<p>You will see two boxes containing dots either side of the centre of the screen. " +
             "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
-            "<p>You make your decision by using the grey bars below the boxes. If you get the decision " +
-            "wrong the screen will go <span style='color: black; font-weight: bold;'>black</span> temporarily. " +
-            "If you get the decision right, it will go <span style='color: white; font-weight: bold;'>white</span>. " +
+            "<p>You make your decision by using the grey bars below the boxes. Once you've made your" +
+            " decision you'll see <strong>the dots in the correct box reappear</strong> briefly.</p>" +
             "Click one of the boxes and then press the 'continue' button.</p>" +
-            "<p>Click 'next' to proceed.</p>"
+            "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
+            "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
         ],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
-        on_finish: (trial)=>gov.storeMiscTrialData(trial)
+        on_finish: (trial)=>{
+            gov.fullscreenMode();
+            gov.storeMiscTrialData(trial);
+        }
     };
 
     const sliderInstructions = {
@@ -129,10 +136,10 @@
         "You do this by moving the slider more towards the edges if you are sure, and more towards the " +
         "middle if you are unsure.</p>" +
         "<p>E.g. if you were <strong>sure</strong> there were more dots on the <strong>left</strong>, you would move the " +
-        "<strong>left</strong> slider all the way to the <strong>left</strong>.</p>" +
+        "slider all the way to the <strong>left</strong>.</p>" +
         "<p>If you thought there were more dots on the <strong>right</strong>, but you were " +
-        "<strong>guessing</strong>, you would move the <strong>right</strong> slider, but you would move it as " +
-        "far <strong>left</strong> as it will go.</p>" +
+        "<strong>guessing</strong>, you would move the slider, just to the <strong>right</strong> " +
+        "of the centre.</p>" +
         "<p>Try using the slider to indicate your confidence now.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -165,9 +172,8 @@
     const finalInstructions = {
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
-        "<p>The screen will no longer change colour to inidicate whether or not your response was correct.</p>" +
-        "<p>Please make sure you are in a comfortable, quiet environment, and click 'next' when you are " +
-        "ready to begin.</p>"],
+        "<p>Please make sure you are in a comfortable, quiet environment, and you are ready to begin.</p>",
+            "<p>You will no longer receive feedback on the task.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
@@ -202,41 +208,11 @@
         slider_col_spacing: [0],
         exclusive_group: [1],
         require_change: [1],
-        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: testCanvas.w,
+        canvasHeight: testCanvas.h,
         on_load: ()=>gov.setSliderClick(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
-        on_finish: (trial)=>gov.checkIntroResponse(trial),
-        post_trial_gap: gov.feedbackDuration
-    };
-
-    /* Initial response: present an initial stimulus and get a decision */
-    const practiceDecision = {
-        type: "canvas-sliders-response",
-        stimulus: (canvasId)=>gov.drawDots(canvasId),
-        stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
-        prompt: '',
-        sliderCount: 1,
-        labels: [
-            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
-        ],
-        slider_prompt: [
-            'Which box has more dots?'
-        ],
-        slider_name: [
-            'answer'
-        ],
-        reversed: [false],
-        slider_full_width: [true],
-        slider_col_spacing: [0],
-        exclusive_group: [1],
-        require_change: [1],
-        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
-        on_load: ()=>gov.setSliderClick(),
-        check_response: (trialresponse)=>gov.checkResponse(trialresponse),
-        on_finish: (trial)=>gov.initialResponse(trial),
-        post_trial_gap: gov.feedbackDuration
+        on_finish: (trial)=>gov.checkIntroResponse(trial)
     };
 
     /* Initial response: present an initial stimulus and get a decision */
@@ -244,11 +220,9 @@
         type: "canvas-sliders-response",
         stimulus: (canvasId)=>gov.drawDots(canvasId),
         stimulus_duration: gov.preTrialInterval + gov.preStimulusInterval + gov.stimulusDuration,
+        hideFunction: (canvasContainer)=>gov.maskDots(canvasContainer),
         prompt: '',
         sliderCount: 1,
-        labels: [
-            ['Sure LEFT', '&nbsp;50%', 'Sure RIGHT']
-        ],
         slider_prompt: [
             'Which box has more dots?'
         ],
@@ -260,71 +234,34 @@
         slider_col_spacing: [0],
         exclusive_group: [1],
         require_change: [1],
-        canvasWidth: (new DoubleDotGrid(0,0)).displayWidth*2+100,
-        canvasHeight: (new DoubleDotGrid(0,0)).displayHeight,
+        canvasWidth: testCanvas.w,
+        canvasHeight: testCanvas.h,
         on_load: ()=>gov.setSliderClick(),
         check_response: (trialresponse)=>gov.checkResponse(trialresponse),
         on_finish: (trial)=>gov.initialResponse(trial)
     };
 
-    /* Show a black or white screen for in/correct responses */
-    const showFeedback = {};
+    /* Create the repetition list which will allow future trials to repeat stimuli from past trials */
+    const createRepList = {
+        type: "call-function",
+        func: ()=>{gov.repList = gov.createRepetitionList();}
+    };
 
-    const genTrustQuestionnaire = {
-        type: "function-sliders-response",
-        stimulus: (display_element, callback)=>{callback()},
-        sliderCount: 6,
-        slider_name: [
-            "caution",
-            "limits_of_knowledge",
-            "counted_on",
-            "cooperative_working",
-            "experiences_and_abilities",
-            "personal_questions"
-        ],
-        slider_prompt: [
-            "When working with other people",
-            "When talking about the limits of their knowledge most other people",
-            "Most other people",
-            "When there is a choice, one should",
-            "When describing their experiences and abilities",
-            "Most people answer personal questions"
-        ],
-        labels: [
-            ["I have to be cautious", "I do not have to cautious"],
-            ["Tell the truth", "Lie"],
-            ["Can be counted on", "Can't be counted on"],
-            ["Work with other people", "Work alone"],
-            ["Most people tell the truth", "Most people lie"],
-            ["Honestly", "Dishonestly"]
-        ],
-        slider_full_width: [true],
-        slider_arrangement: [0,1,2,3,4,5,6],
-        require_change: [1,2,3,4,5,6,7],
-        require_change_warning: [
-            '<p style="color: red;">Please answer the <em>working with other people</em> question.</p>',
-            '<p style="color: red;">Please answer the <em>knowledge limits</em> question.</p>',
-            '<p style="color: red;">Please answer the <em>reliability</em> question.</p>',
-            '<p style="color: red;">Please answer the <em>cooperative working preference</em> question.</p>',
-            '<p style="color: red;">Please answer the <em>experiences and abilities</em> question.</p>',
-            '<p style="color: red;">Please answer the <em>personal questions</em> question.</p>',
-        ],
-        special_class_names: ['genTrustQ'],
-        max_warnings: 1,
-        on_load: ()=>gov.setSliderClick(false),
-        on_finish: (trial)=>gov.generalisedTrustQuestionnaire = trial
+    /* Feedback shows a tick on the target box */
+    const feedbackDisplay = {
+        type: "canvas-sliders-response",
+        stimulus: (canvasId)=>{gov.showTrialFeedback(canvasId);},
+        prompt: '',
+        sliderCount: 0,
+        canvasWidth: testCanvas.w,
+        canvasHeight: testCanvas.h,
+        trial_duration: gov.feedbackDuration
     };
 
     const practice_procedure = {
-        timeline: [practiceDecision],
+        timeline: [initialDecision, feedbackDisplay],
         randomize_order: false,
         repetitions: utils.sumList(gov.practiceBlockStructure[0])
-    };
-
-    const test_procedure = {
-        timeline: [initialDecision],
-        randomize_order: false,
-        repetitions: utils.sumList(gov.blockStructure)/2
     };
 
     // intro and practice
@@ -333,7 +270,7 @@
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
     timeline.push(quickStimInstructions);
-    timeline.push(initialDecision);
+    timeline.push({timeline: initialDecision, feedbackDisplay});
     timeline.push(practiceInstructions);
 
     for (let b=0; b<gov.practiceBlockStructure.length; b++) {
@@ -349,18 +286,23 @@
 
     // real experiment
     for (let b=0; b<gov.blockStructure.length; b++) {
-        test_procedure.repetitions = utils.sumList(gov.blockStructure[b]);
-        timeline.push(test_procedure);
+        timeline.push({
+            timeline: [initialDecision],
+            randomize_order: false,
+            repetitions: utils.sumList(gov.blockStructure[b])
+        });
+        // Put in the repetition calculation point at the appropriate juncture
+        if(!gov.repList &&
+            utils.sumList(gov.blockStructure[b]) !== utils.sumList(gov.blockStructure[b+1]))
+            timeline.push(createRepList);
+
         timeline.push(blockBreak);
     }
 
     // Remove the last break screen
     timeline.pop();
 
-    
-    // Trust questionnaire
-    timeline.push(genTrustQuestionnaire);
-
+    //console.log(timeline)
 
     /* start the experiment */
     // browser check

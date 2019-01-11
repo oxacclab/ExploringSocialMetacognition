@@ -159,20 +159,23 @@ class DotTask extends Governor {
      * drawing.
      *
      * @param {string} canvasId - id of the canvas on which to draw the dots (supplied by the trial)
+     * @param {boolean} recalculateGrid - whether to recalculate the stimulus grid even if it exists
      */
-    drawDots(canvasId) {
-        this.currentTrial.dotDifference = this.dotDifference;
-        let low = this.dotCount - this.dotDifference;
-        let high = this.dotCount + this.dotDifference;
-        let dots = this.currentTrial.whichSide === 0 ? [high, low] : [low, high];
-        let grid = new DoubleDotGrid(dots[0], dots[1], {
-            gridWidth: 20,
-            gridHeight: 20,
-            dotWidth: 3,
-            dotHeight: 3,
-            spacing: 100
-        });
-        this.currentTrial.grid = grid;
+    drawDots(canvasId, recalculateGrid = false) {
+        if(!(this.currentTrial.grid instanceof DoubleDotGrid) && !recalculateGrid) {
+            this.currentTrial.dotDifference = this.dotDifference;
+            let low = this.dotCount - this.dotDifference;
+            let high = this.dotCount + this.dotDifference;
+            let dots = this.currentTrial.whichSide === 0 ? [high, low] : [low, high];
+            this.currentTrial.grid = new DoubleDotGrid(dots[0], dots[1], {
+                gridWidth: 20,
+                gridHeight: 20,
+                dotWidth: 3,
+                dotHeight: 3,
+                spacing: 100
+            });
+        }
+
         let self = this;
         setTimeout(function () {
             self.currentTrial.fixationDrawTime.push(performance.now());
@@ -181,7 +184,7 @@ class DotTask extends Governor {
         }, this.preTrialInterval);
         setTimeout(function(){
             self.currentTrial.stimulusDrawTime.push(performance.now());
-            grid.draw(canvasId);
+            self.currentTrial.grid.draw(canvasId);
         }, this.preTrialInterval+this.preStimulusInterval);
     }
 
@@ -398,6 +401,76 @@ class DotTask extends Governor {
     }
 
     /**
+     * Take the stimuli from the cleanest previous trials and use them for the forthcoming trials
+     * @param {boolean} [includePractice=false] whether to allow practice trial stimuli to be repeated
+     */
+    createRepetitionList(includePractice = false) {
+
+        // Work out how many trials will be required
+        let index = this.currentTrialIndex + 1;
+        let trialsRemaining = this.trials.length - (index);
+        let trialsAvailable = index;
+        if(!includePractice) trialsAvailable -= utils.sumList(this.practiceBlockStructure);
+
+        if(trialsAvailable < trialsRemaining)
+            this.currentTrial.warnings.push("Repetition list has too few trials for stimuli repetition.");
+
+        // Take the best trials from those available
+        let allowableExclusions = trialsAvailable - trialsRemaining;
+
+        let self = this;
+        let trialPool = utils.getMatches(this.trials, function(trial) {
+            if(!includePractice && trial.practice)
+                return false;
+            return trial.id < index;
+        });
+
+        // remove the worst trial until we're at the limit
+        while(allowableExclusions > 0) {
+            // Worst trial is defined as that with longest RT
+            let RTs = [];
+            trialPool.forEach((trial)=>RTs.push(trial.pluginResponse[0].rt));
+
+            let mean = utils.mean(RTs);
+            let sd = utils.stDev(RTs);
+
+            let Zs = [];
+            RTs.forEach((rt)=>Zs.push((rt - mean) / sd));
+
+            let max = utils.max(Zs, true);
+            if(max < 3) // Less than 3SD is fine, all trials can be included
+                break;
+
+            let rt = max > 0? utils.max(RTs) : utils.min(RTs);
+            let tempPool = utils.getMatches(trialPool, function(trial) {
+                return trial.pluginResponse[0].rt === rt;
+            });
+
+            if(tempPool.length < trialsRemaining)
+                break; // don't over-prune
+
+            trialPool = tempPool;
+            allowableExclusions = trialPool.length - trialsRemaining;
+        }
+
+        // Shuffle stimuli from selected trials and assign them to forthcoming trials
+        trialPool = utils.shuffle(trialPool);
+        for(let i = index; i < this.trials.length; i++) {
+            if(i - index >= trialPool.length)
+                break; // ran out of trials in the pool
+            let trial = trialPool[i - index];
+            this.trials[i].grid = new DoubleDotGrid(trial.grid);
+            this.trials[i].dotDifference = trial.dotDifference;
+            // swap the boxes around if necessary
+            if(this.trials[i].whichSide !== trial.whichSide)
+                this.trials[i].grid.swapSides();
+            this.trials[i].stimulusParent = trial.id;
+        }
+
+        return true;
+    }
+
+    /**
      * Stop the experiment prematurely
      *
      * @param {number} score - score obtained on previous block
@@ -426,23 +499,133 @@ class DotTask extends Governor {
         let form = div.appendChild(document.createElement('form'));
         form.id = 'debriefForm';
         form.className = 'debrief';
-        let comment = form.appendChild(document.createElement('div'));
-        comment.id = 'debriefCommentContainer';
-        comment.className = 'debrief';
-        let commentQ = comment.appendChild(document.createElement('div'));
-        commentQ.id = 'debriefCommentQuestion';
-        commentQ.className = 'debrief';
-        commentQ.innerHTML = 'Do you have any comments or concerns about the experiment? <em>(optional)</em>';
-        let commentA = comment.appendChild(document.createElement('textarea'));
-        commentA.id = 'debriefCommentAnswer';
-        commentA.className = 'debrief';
-        let ok = form.appendChild(document.createElement('button'));
-        ok.innerText = 'submit';
-        ok.className = 'debrief jspsych-btn';
-        ok.onclick = function (e) {
-            e.preventDefault();
-            owner.debriefFormSubmit(form);
-        };
+        let questions = [
+            {
+                prompt: 'Did you notice anything about the dots?',
+                mandatory: true,
+                type: 'text'
+            },
+            {
+                prompt: 'Some of the dot grids were repeated, did you recognise any from previous rounds?',
+                mandatory: true,
+                type: 'scale',
+                labels: [
+                    'No, none',
+                    'Yes, lots'
+                ],
+                nOptions: 7
+            },
+            {
+                prompt: 'Do you have any comments or concerns about the experiment? <em>(optional)</em>',
+                mandatory: false,
+                type: 'text'
+            }
+        ];
+        for(let i = 0; i < questions.length; i++) {
+            let comment = form.appendChild(document.createElement('div'));
+            comment.id = 'debriefCommentContainer'+i;
+            comment.className = 'debrief debrief-container';
+            if(i > 0)
+                comment.classList.add('hidden');
+            let commentQ = comment.appendChild(document.createElement('div'));
+            commentQ.id = 'debriefCommentQuestion'+i;
+            commentQ.className = 'debrief question';
+            commentQ.innerHTML = "<strong>Q"+(i+1)+"/"+(questions.length)+":</strong> " + questions[i].prompt;
+            let commentA = null;
+            switch(questions[i].type) {
+                case 'text':
+                    commentA = comment.appendChild(document.createElement('textarea'));
+                    break;
+                case 'scale':
+                    commentA = comment.appendChild(document.createElement('div'));
+                    let labels = commentA.appendChild(document.createElement('div'));
+                    labels.className = "debrief labels";
+                    for(let L = 0; L < questions[i].labels.length; L++) {
+                        let label = labels.appendChild(document.createElement('div'));
+                        label.innerHTML = questions[i].labels[L];
+                    }
+
+                    let radios = commentA.appendChild(document.createElement('div'));
+                    radios.className = 'radios';
+                    for(let o = 0; o < questions[i].nOptions; o++) {
+                        let radio = radios.appendChild(document.createElement('input'));
+                        radio.type = 'radio';
+                        radio.value = (o + 1).toString();
+                        radio.name = commentQ.id;
+                    }
+                    break;
+            }
+            commentA.id = 'debriefCommentAnswer'+i;
+            commentA.className = 'debrief answer';
+
+            let ok = comment.appendChild(document.createElement('button'));
+            ok.innerText = i === questions.length - 1? 'submit' : 'next';
+            ok.className = 'debrief jspsych-btn';
+
+            let checkResponse;
+            let saveResponse;
+            switch(questions[i].type) {
+                case 'text':
+                    checkResponse = function(form) {
+                        let div = form.querySelector('.debrief-container:not(.hidden)');
+                        let ok = div.querySelector('textarea').value !== "";
+                        if(!ok)
+                            div.classList.add('bad');
+                        else
+                            div.classList.remove('bad');
+                        return ok;
+                    };
+                    saveResponse = function(form) {
+                        let q = questions[i];
+                        q.answer = form.querySelector('.debrief-container:not(.hidden) textarea').value;
+                        gov.debrief.push(q);
+                    };
+                    break;
+                case 'scale':
+                    checkResponse = function(form) {
+                        let div = form.querySelector('.debrief-container:not(.hidden) .radios');
+                        let ok = false;
+                        let radios = div.querySelectorAll('input[type="radio"]');
+                        radios.forEach((r)=>{if(r.checked) ok = true});
+                        if(!ok)
+                            form.querySelector('.debrief-container:not(.hidden)').classList.add('bad');
+                        else
+                            form.querySelector('.debrief-container:not(.hidden)').classList.remove('bad');
+                        return ok;
+                    };
+                    saveResponse = function(form) {
+                        let q = questions[i];
+                        form.querySelectorAll('.debrief-container:not(.hidden) input[type="radio"').forEach(
+                            (r)=>{ if(r.checked) q.answer = r.value}
+                        );
+                        gov.debrief.push(q);
+                    };
+                    break;
+            }
+            if(!questions[i].mandatory)
+                checkResponse = ()=>true;
+
+            if(i === questions.length - 1)
+                ok.onclick = function (e) {
+                    if(!checkResponse(this.form))
+                        return false;
+                    saveResponse(this.form);
+                    e.preventDefault();
+                    owner.debriefFormSubmit(form);
+                };
+            else
+                ok.onclick = function(e) {
+                    if(!checkResponse(this.form))
+                        return false;
+                    saveResponse(this.form);
+                    e.preventDefault();
+                    let div = this.form.querySelector('.debrief-container:not(.hidden)');
+                    div.classList.add('hidden');
+                    div.nextSibling.classList.remove('hidden');
+                }
+        }
+
+        gov.debrief = [];
     }
 
     /**
@@ -450,10 +633,6 @@ class DotTask extends Governor {
      *
      */
     debriefFormSubmit(form) {
-        this.debrief = {
-            manipulationQuestion: "",
-            comments: form.querySelector('#debriefCommentAnswer').value
-        };
         document.querySelector('body').innerHTML = "";
         this.endExperiment();
     }
@@ -567,6 +746,20 @@ class DotTask extends Governor {
         let cc = this.getConfidenceCategory(this.trials[last].id, args);
         this.trials[last].confidenceCategory = cc;
         return cc;
+    }
+
+    /**
+     * Show feedback for the current trial.
+     * Called by jspsych-canvas-sliders-response
+     * @param {string} canvasId - id of the canvas to draw on
+     */
+    showTrialFeedback(canvasId) {
+        let canvas = document.getElementById(canvasId);
+        // give feedback on previous trial
+        let trial = this.trials[this.currentTrialIndex-1];
+        DotTask.drawFixation(canvasId);
+        trial.grid.drawBoundingBoxes(canvasId);
+        trial.grid.draw(canvasId, trial.whichSide);
     }
 
     /**
@@ -1180,20 +1373,6 @@ class AdvisorChoice extends DotTask {
             this.currentTrial.confidence[1] = AdvisorChoice.getConfidenceFromResponse(trial.response, this.currentTrial.answer[1]);
         }
         this.closeTrial(trial);
-    }
-
-    /**
-     * Show feedback for the current trial.
-     * Called by jspsych-canvas-sliders-response
-     * @param {string} canvasId - id of the canvas to draw on
-     */
-    showTrialFeedback(canvasId) {
-        let canvas = document.getElementById(canvasId);
-        // give feedback on previous trial
-        let trial = this.trials[this.currentTrialIndex-1];
-        AdvisorChoice.drawFixation(canvasId);
-        trial.grid.drawBoundingBoxes(canvasId);
-        trial.grid.draw(canvasId, trial.whichSide);
     }
 
     /**

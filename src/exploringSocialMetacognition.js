@@ -17,8 +17,8 @@ import * as utils from "./utils.js";
 class DoubleDotGrid {
     /**
      * @constructor
-     * @param {int} nDotsL - number of dots in the left grid
-     * @param {int} nDotsR - number of dots in the right grid
+     * @param {int|DoubleDotGrid} nDotsL - number of dots in the left grid or a grid to copy
+     * @param {int} [nDotsR] - number of dots in the right grid. Must be specified if nDotsL is not a grid object
      * @param {Object} [args] - additional arguments.
      * @param {int} [args.gridWidth=20] - number of squares in a row
      * @param {int} [args.gridHeight=20] - number of squares in a column
@@ -29,6 +29,23 @@ class DoubleDotGrid {
      * @param {int} [args.spacing=26] - spacing between the boxes
      */
     constructor(nDotsL, nDotsR, args = {}) {
+        if(nDotsL instanceof DoubleDotGrid) {
+            this.dotCountL = nDotsL.dotCountL;
+            this.dotCountR = nDotsL.dotCountR;
+            this.gridWidth = nDotsL.gridWidth;
+            this.gridHeight = nDotsL.gridHeight;
+            this.dotWidth = nDotsL.dotWidth;
+            this.dotHeight = nDotsL.dotHeight;
+            this.paddingX = nDotsL.paddingX;
+            this.paddingY = nDotsL.paddingY;
+            this.gridL = DoubleDotGrid.copyGrid(nDotsL.gridL);
+            this.gridR = DoubleDotGrid.copyGrid(nDotsL.gridR);
+            this.displayWidth = nDotsL.displayWidth;
+            this.displayHeight = nDotsL.displayHeight;
+            this.spacing = nDotsL.spacing;
+            this.style = nDotsL.style;
+            return;
+        }
         this.dotCountL = nDotsL;
         this.dotCountR = nDotsR;
         this.gridWidth = args.gridWidth || 20;
@@ -52,6 +69,7 @@ class DoubleDotGrid {
             dotLineWidth: '1'
         };
     };
+
     /** Create a grid
      * @param {int} dotCount - number of dots to place in the grid
      * @returns {int[]} A matrix of 0s with *dotCount* 1s inserted
@@ -85,6 +103,22 @@ class DoubleDotGrid {
         }
         return grid;
     };
+
+    /**
+     * Get a deep copy of grid
+     * @param {int[]} grid
+     */
+    static copyGrid(grid) {
+        let newGrid = [];
+        for(let i = 0; i < grid.length; i++) {
+            let row = [];
+            for(let j = 0; j < grid[i].length; j++) {
+                row.push(grid[i][j]);
+            }
+            newGrid.push(row);
+        }
+        return newGrid;
+    }
 
     /** Draw the grid outline onto an HTML canvas
      * @param {int[]} grid - grid to draw
@@ -158,6 +192,16 @@ class DoubleDotGrid {
             this.drawFrame(this.gridL, ctx, false, true);
         if(draw[1])
             this.drawFrame(this.gridR, ctx, true, true);
+    }
+
+    swapSides() {
+        let tmp = DoubleDotGrid.copyGrid(this.gridL);
+        this.gridL = DoubleDotGrid.copyGrid(this.gridR);
+        this.gridR = DoubleDotGrid.copyGrid(tmp);
+
+        let x = this.dotCountL;
+        this.dotCountL = this.dotCountR;
+        this.dotCountR = x;
     }
 }
 
@@ -811,6 +855,7 @@ class Trial {
         this.getCorrect = typeof args.getCorrect === 'undefined'? null : args.getCorrect;
         this.dotDifference = typeof args.dotDifference === 'undefined' ? null : args.dotDifference;
         this.whichSide = typeof args.whichSide === 'undefined'? null : args.whichSide;
+        this.grid = typeof args.grid === 'undefined'? null : args.grid;
         this.practice = typeof args.practice === 'undefined'? null : args.practice;
         this.feedback = typeof args.feedback === 'undefined'? null : args.feedback;
         this.warnings = typeof args.warnings === 'undefined'? []: args.warnings;
@@ -818,6 +863,7 @@ class Trial {
         this.stimulusOffTime = typeof args.stimulusOffTime === 'undefined'? null : args.stimulusOffTime;
         this.fixationDrawTime = typeof args.fixationDrawTime === 'undefined'? null : args.fixationDrawTime;
         this.pluginResponse = typeof args.pluginResponse === 'undefined'? [] : args.pluginResponse;
+        this.stimulusParent = typeof args.stimulusParent === 'undefined'? null : args.stimulusParent;
     }
 
     /**
@@ -1000,9 +1046,9 @@ class Governor {
             outer.appendChild(numDiv);
         }
         let inner = document.querySelector('#progressbar-inner');
-        inner.style.width = ((this.trials.indexOf(this.currentTrial)/this.trials.length)*100).toString()+'%';
+        inner.style.width = ((this.currentTrialIndex + 1) / this.trials.length * 100).toString()+'%';
         let numDiv = document.querySelector('#progressbar-number');
-        numDiv.innerHTML = this.currentTrialIndex + ' / ' + this.trials.length;
+        numDiv.innerHTML = (this.currentTrialIndex + 1) + ' / ' + this.trials.length;
         document.querySelector('body').style.backgroundColor = '';
     }
 }

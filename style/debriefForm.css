@@ -1,10 +1,32 @@
 *.debrief {}
-textarea.debrief {
+.debrief-container.bad {
+    background-color: #cd0a0a33;
+}
+.debrief-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex-direction: column;
     width: 100%;
+    padding: 1em;
+    border-radius: 1em;
+    background-color: #F1F1F1;
+}
+textarea.debrief {
+    width: 90%;
     height: 9em;
+    margin: auto auto .5em;
     font-size: 1em;
     line-height: 1.5em;
     border: 1px solid transparent;
+}
+.debrief.labels, .debrief .radios {
+    display: inline-flex;
+    justify-content: space-between;
+    width: 100%;
+}
+.debrief .radios {
+    width: 90%;
 }
 div#debriefManipulationQuestion {
     margin-bottom: 0.5em;
