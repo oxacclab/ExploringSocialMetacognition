@@ -594,7 +594,8 @@ class advisorChoice extends dotTask {
         permalinkLabel.innerText = 'Permanent link:';
         let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
         permalinkLink.className = 'permalink-link';
-        permalinkLink.innerText = 'https://tinyurl.com/mj221?id=' + g.experimentCode + '_' + g.participantId;
+        permalinkLink.innerText = 'https://acclab.psy.ox.ac.uk/~mj221/ESM/AdvisorChoice?id=' +
+            g.experimentCode + '_' + g.participantId;
         let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
         permalinkCopy.className = 'permalink-copy';
         permalinkCopy.onclick = function(){
@@ -641,6 +642,11 @@ class advisorChoice extends dotTask {
         advisorSection.appendChild(advisorWrapper);
         advisorWrapper.appendChild(document.createElement('h2')).innerHTML =
             '<a href="#top" name="advisors">Advisors</a>';
+        if(typeof g.groupId !== 'undefined' && g.groupId !== null) {
+            let group = advisorWrapper.appendChild(document.createElement('p'));
+            group.classList.add('group' + g.groupId.toString());
+            group.innerHTML = "You were assigned to group " + g.groupId.toString();
+        }
         for(let aS=0; aS<advisors.length/2; aS++) {
             let advisorContainer = document.createElement('div');
             advisorContainer.id = 'advisorContainer' + aS.toString();

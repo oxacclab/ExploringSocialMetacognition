@@ -12,6 +12,7 @@ export default function processData(data, test = false) {
     // Data about the participant
     let participantData = {
         id: data.participantId,
+        groupId: typeof data.groupId === 'undefined'? null : data.groupId,
         blockCount: data.blockCount,
         blockLength: data.blockLength,
         catchPerBlock: data.blockStructure[0],
@@ -174,6 +175,7 @@ function flattenAdvisorData(data, id) {
     out.voiceId = data.voice.id;
     out.styleClass = data.styleClass;
     out.advisorClass = data instanceof Cue? "Cue" : "Advisor";
+    out.groupId = data.groupId;
     return out;
 }
 

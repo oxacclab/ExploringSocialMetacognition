@@ -1034,6 +1034,15 @@ class AdvisorChoice extends DotTask {
     }
 
     /**
+     * Apply the appropriate group class to the response container
+     */
+    setGroupVisual() {
+        if(typeof this.groupId === 'undefined')
+            return;
+        document.querySelector('.jspsych-sliders-response-container').classList.add('group' + this.groupId);
+    }
+
+    /**
      * Show a ghost of the previous thumb placement to remind judges of their previous answer.
      * @param {string} [sliderID='#jspsych-canvas-sliders-response-slider0'] - slider to add the marker to
      */
@@ -1438,10 +1447,16 @@ class AdvisorChoice extends DotTask {
             txt.style.border = '1px solid red';
             return;
         }
-        this.debrief = {
-            manipulationQuestion: txt.value,
-            comments: form.querySelector('#debriefCommentAnswer').value
-        };
+        this.debrief = [
+            {
+                question: 'manipulation',
+                answer: txt.value
+            },
+            {
+                question: 'comment',
+                answer: form.querySelector('#debriefCommentAnswer').value
+            }
+        ];
         document.querySelector('body').innerHTML = "";
         this.endExperiment();
     }

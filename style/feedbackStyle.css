@@ -137,6 +137,9 @@ p.feedback {
     font-size: 1.2em;
     margin: 0.5em 0;
 }
+p.feedback.group1, p.feedback.group2 {
+    text-align: center;
+}
 
 div.permalink-container {
     width: 100%;
@@ -226,6 +229,10 @@ div.jspsych-jas-present-advice-wrapper.feedback {
 div.jspsych-jas-present-advice-image.feedback {
     width: unset;
     padding: 1em;
+}
+
+.group1.feedback, .group2.feedback {
+    margin: .5em !important;
 }
 
 img.advisor-portrait.feedback {

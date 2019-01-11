@@ -65,7 +65,7 @@ class DoubleDotGrid {
             gridBorderColor: '#ffffff',
             gridBorderWidth: '3',
             dotColor: '#ffffff',
-            backgroundColor: '#858585',
+            backgroundColor: getComputedStyle(document.body).backgroundColor,
             dotLineWidth: '1'
         };
     };
@@ -458,6 +458,7 @@ class Advisor {
      * @param {string} [args.portraitSrc] - the portrait img src (nothing else needed to regenerate portrait)
      * @param {string} [args.styleClass] - the (full) style class string
      * @param {boolean} [args.practice=false] - whether this advisor is a practice advisor
+     * @param {int} [args.groupId=null] - group to which this advisor belongs
      */
     constructor(id, adviceType, voice = null, portrait = 0, styleClass = '', args = {}) {
         if(typeof id !== 'object') {
@@ -507,6 +508,7 @@ class Advisor {
 
         this.lastAdvice = null; // the advisor's most recent advice
         this.practice = typeof args.practice === 'undefined'? false : args.practice;
+        this.groupId = typeof args.groupId === 'undefined'? null : args.groupId;
 
         this.isCue = false;
     }
@@ -707,6 +709,8 @@ class Advisor {
         let picDiv = advisorDiv.appendChild(document.createElement('div'));
         picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
         picDiv.classList.add('jspsych-jas-present-advice-image');
+        if(this.groupId !== null)
+            picDiv.classList.add('group' + this.groupId.toString());
         let portrait = picDiv.appendChild(this.portrait);
         let textDiv = {};
         if(typeof options.textAboveImage !== 'undefined' && options.textAboveImage)
@@ -798,6 +802,8 @@ class Cue extends Advisor {
         let picDiv = advisorDiv.appendChild(document.createElement('div'));
         picDiv.id = 'jspsych-jas-present-advice-image' + idSuffix;
         picDiv.classList.add('jspsych-jas-present-advice-image', 'jspsych-jas-present-advice-image-arrow');
+        if(this.groupId !== null)
+            picDiv.classList.add('group' + this.groupId.toString());
         let portrait = picDiv.appendChild(this.portrait);
         if(options.showAdvice === true) {
             portrait.style.display = 'inline-block';

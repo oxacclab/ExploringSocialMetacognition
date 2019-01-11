@@ -105,14 +105,15 @@
 <script type="text/javascript">
     // Work out where we're supposed to be going afterwards
     let study = "";
+    let page = "";
     let query = window.location.search.split('&');
     query[0] = query[0].substr(1,query[0].length-1);
     for(let i=0; i<query.length; i++) {
         let pair = query[i].split('=');
-        if(pair[0]=='study') {
+        if(pair[0]==='study')
             study = pair[1];
-            break;
-        }
+        if(pair[0]==='page')
+            page = pair[1] + '.html';
     }
     /**
      * Replace all instances of 'contact us' with an appropriate link wrapper
@@ -151,7 +152,7 @@
         if(prolificID !== null)
             prolificID = prolificID[0].substring(14);
         if(study !== "") {
-            redirectURL = study + "/?consent=true";
+            redirectURL = study + "/" + page + "?consent=true";
             if(prolificID !== null)
                 redirectURL += "&PROLIFIC_PID=" + prolificID;
             window.location.href =  redirectURL; // forward as if user clicked a link

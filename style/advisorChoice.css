@@ -1,15 +1,19 @@
 :root {
     --advisorChoice-change-instructions-background: #ffffffDD;
     --advisorChoice-change-instructions-fill: #ff3510DD;
+
     --advisorChoice-advisor-1: #BF3F3F;
     --advisorChoice-advisor-2: #7FBF3F;
     --advisorChoice-advisor-3: #3FBFBF;
     --advisorChoice-advisor-4: #D1CC37;
     --advisorChoice-advisor-5: #3F3FBF;
     --advisorChoice-advisor-6: #bf4aaa;
+
+    --advisorChoice-group-1: #4a0082;
+    --advisorChoice-group-2: #268200;
 }
 body {
-    background-color: #858585;
+    background-color: #a3a3a3;
 }
 .hidden {
     display: none !important;
@@ -213,6 +217,10 @@ div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
     border-radius: 1em;
 }
 
+tr.jspsych-sliders-response-labels {
+    display: none;
+}
+
 .jspsych-jas-present-advice-arrow.advisorChoice-advisor-1 {
     border-color: var(--advisorChoice-advisor-1);
 }
@@ -253,6 +261,29 @@ div.advisorChoice-change-unselected .jspsych-jas-present-advice-image {
 }
 .jspsych-jas-present-advice-image.advisorChoice-advisor-6 {
     background-color: var(--advisorChoice-advisor-6);
+}
+
+.group1 {
+    border: .5em solid var(--advisorChoice-group-1) !important;
+}
+.group2 {
+    border: .5em solid var(--advisorChoice-group-2) !important;
+}
+.jspsych-sliders-response-container.group1, .jspsych-sliders-response-container.group2 {
+    padding: .5em;
+    margin-bottom: .5em;
+    border-radius: 1em;
+}
+p.group1, p.group2 {
+    border-radius: 1em;
+    color: white;
+    font-weight: bold;
+}
+p.group1 {
+    background-color: var(--advisorChoice-group-1);
+}
+p.group2 {
+    background-color: var(--advisorChoice-group-2);
 }
 
 .advisorChoice-change-noOutline:focus {
