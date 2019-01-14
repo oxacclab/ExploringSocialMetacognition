@@ -94,6 +94,15 @@ div.advisorChoice-choice:hover div.jspsych-jas-present-advice-image {
     width: 100%;
 }
 
+/* Buttons */
+.jspsych-instructions-nav {
+    display: inline-flex;
+    width: 100%;
+}
+.jspsych-btn {
+    width: 100%;
+}
+
 #progressbar-outer {
     width: 80%;
     height: 25px;
