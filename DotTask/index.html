@@ -117,8 +117,7 @@
             "Welcome to the experiment. Click 'next' to begin.",
             "<p>You will see two boxes containing dots either side of the centre of the screen. " +
             "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
-            "<p>You make your decision by using the grey bars below the boxes. Once you've made your" +
-            " decision you'll see <strong>the dots in the correct box reappear</strong> briefly.</p>" +
+            "<p>You make your decision by using the grey bars below the boxes.</p>" +
             "Click one of the boxes and then press the 'continue' button.</p>" +
             "<p>To help reduce distractions, we're going to use <strong>fullscreen mode</strong>.</p>" +
             "<p>Click 'next' to enter fullscreen mode and proceed.</p>"
@@ -154,6 +153,8 @@
         "concentrating or you will miss them. " +
         "The task is difficult at first, but you will get used to it.</p>" +
         "It helps to keep your eyes fixed where the cross appears in the middle of the screen.</p>" +
+        "<p>Once you've made your decision you'll see " +
+        "<strong>the dots in the correct box reappear</strong> briefly.</p>",
         "<p>To try this, press 'next'.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -174,7 +175,7 @@
         type: 'instructions',
         pages: ["<p>Excellent. You are now ready to do the experiment.</p>" +
         "<p>Please make sure you are in a comfortable, quiet environment, and you are ready to begin.</p>",
-            "<p>You will no longer receive feedback on the task.</p>"],
+            "<p>You will no longer receive see the correct answer after responding.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
