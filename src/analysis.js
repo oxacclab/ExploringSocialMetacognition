@@ -112,12 +112,11 @@ class dotTask {
     /**
      * Show feedback based on a Governor object
      * @param {AdvisorChoice} g
-     *
+     * @param {boolean} includePayment whether to include information about payment retrieval
      */
     static showFeedback(g, includePayment = false) {
         let body = document.querySelector('body');
         // Reward link
-        g.completionURL = 'https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4'
         if(includePayment !== false) {
             let paymentSection = body.appendChild(document.createElement('section'));
             let paymentDiv = document.createElement('div');
