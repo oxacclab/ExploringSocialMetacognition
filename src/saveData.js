@@ -8,7 +8,7 @@
 
 import {Trial, Advisor, Cue} from "./exploringSocialMetacognition.js";
 
-export default function processData(data, test = false) {
+export default function processData(data) {
     // Data about the participant
     let participantData = {
         id: data.participantId,
@@ -33,9 +33,6 @@ export default function processData(data, test = false) {
         timeEnd: data.timeEnd,
         experimentDuration: data.timeEnd - data.timeStart
     };
-
-    if(test)
-        return participantData;
 
     // Advisor data
     let advisorData = [];
@@ -68,7 +65,7 @@ export default function processData(data, test = false) {
     // Debrief stuff
     participantData.debrief = [];
     if(typeof data.debrief !== 'undefined') {
-        participantData = flattenDebriefData(data.debrief, participantData.id);
+        participantData.debreif = flattenDebriefData(data.debrief, participantData.id);
     }
 
     return participantData;
