@@ -425,26 +425,62 @@ class DotTask extends Governor {
             return trial.id < index;
         });
 
+        let reactionTime = false;
+        let difficulty = false;
         // remove the worst trial until we're at the limit
         while(allowableExclusions > 0) {
-            // Worst trial is defined as that with longest RT
-            let RTs = [];
-            trialPool.forEach((trial)=>RTs.push(trial.pluginResponse[0].rt));
+            let tempPool = [];
+            if(!reactionTime) {
+                // Worst trial is defined as that with longest RT
+                let RTs = [];
+                trialPool.forEach((trial)=>RTs.push(parseInt(trial.pluginResponse[0].rt)));
 
-            let mean = utils.mean(RTs);
-            let sd = utils.stDev(RTs);
+                let mean = utils.mean(RTs);
+                let sd = utils.stDev(RTs);
 
-            let Zs = [];
-            RTs.forEach((rt)=>Zs.push((rt - mean) / sd));
+                let Zs = [];
+                RTs.forEach((rt)=>Zs.push((rt - mean) / sd));
 
-            let max = utils.max(Zs, true);
-            if(max < 3) // Less than 3SD is fine, all trials can be included
-                break;
+                let max = utils.max(Zs, true);
+                if(max < 3) // Less than 3SD is fine, all remaining trials can be included
+                    reactionTime = true;
+                else {
+                    let rt = max > 0? utils.max(RTs) : utils.min(RTs);
+                    tempPool = utils.getMatches(trialPool, function(trial) {
+                        if(parseInt(trial.pluginResponse[0].rt) === rt) {
+                            trial.repeatRejection = "reaction time";
+                            return false;
+                        } else {
+                            trial.repeatRejection = false;
+                            return true;
+                        }
+                    });
+                }
+            } else if(!difficulty) {
+                // Worst trials are those with difficulty furthest from the median difficulty
+                let dotDiffs = [];
+                trialPool.forEach((trial)=>dotDiffs.push(trial.dotDifference));
+                let median = dotDiffs.sort();
+                if(median.length % 2 === 1)
+                    median = (median[Math.floor(median.length / 2)] + median[Math.ceil(median.length / 2)]) / 2;
+                else
+                    median = median[median.length / 2];
+                let err = [];
+                trialPool.forEach((trial)=>err.push(Math.abs(trial.dotDifference - median)));
 
-            let rt = max > 0? utils.max(RTs) : utils.min(RTs);
-            let tempPool = utils.getMatches(trialPool, function(trial) {
-                return trial.pluginResponse[0].rt === rt;
-            });
+                if(utils.max(err) <= gov.difficultyStep.end)
+                    difficulty = true;
+                else {
+                    let worst = dotDiffs[err.indexOf(utils.max(err))];
+                    tempPool = utils.getMatches(trialPool, function(trial) {
+                        if(trial.dotDifference === worst) {
+                            trial.repeatRejection = "difficulty";
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+            }
 
             if(tempPool.length < trialsRemaining)
                 break; // don't over-prune
@@ -607,18 +643,18 @@ class DotTask extends Governor {
 
             if(i === questions.length - 1)
                 ok.onclick = function (e) {
+                    e.preventDefault();
                     if(!checkResponse(this.form))
                         return false;
                     saveResponse(this.form);
-                    e.preventDefault();
                     owner.debriefFormSubmit(form);
                 };
             else
                 ok.onclick = function(e) {
+                    e.preventDefault();
                     if(!checkResponse(this.form))
                         return false;
                     saveResponse(this.form);
-                    e.preventDefault();
                     let div = this.form.querySelector('.debrief-container:not(.hidden)');
                     div.classList.add('hidden');
                     div.nextSibling.classList.remove('hidden');

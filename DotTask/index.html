@@ -60,6 +60,7 @@
      */
     let gov = new DotTask({
         experimentCode: 'dotRep',
+        repeatTrials: true,
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: {
@@ -292,7 +293,7 @@
             repetitions: utils.sumList(gov.blockStructure[b])
         });
         // Put in the repetition calculation point at the appropriate juncture
-        if(!gov.repList &&
+        if(!gov.repList && gov.repeatTrials &&
             utils.sumList(gov.blockStructure[b]) !== utils.sumList(gov.blockStructure[b+1]))
             timeline.push(createRepList);
 

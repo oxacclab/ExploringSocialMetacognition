@@ -133,6 +133,7 @@ function flattenTrialData(trial, id) {
     out.feedback = trial.feedback;
     out.grid = sha1.sha1(JSON.stringify(trial.grid)); // store the hash of the grid
     out.stimulusParent = trial.stimulusParent;
+    out.repeatRejection = trial.repeatRejection;
     out.warnings = trial.warnings.join("\n");
     // timings
     if (trial.pluginResponse.length > 0) {

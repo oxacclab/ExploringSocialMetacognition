@@ -870,6 +870,8 @@ class Trial {
         this.fixationDrawTime = typeof args.fixationDrawTime === 'undefined'? null : args.fixationDrawTime;
         this.pluginResponse = typeof args.pluginResponse === 'undefined'? [] : args.pluginResponse;
         this.stimulusParent = typeof args.stimulusParent === 'undefined'? null : args.stimulusParent;
+
+        this.repeatRejection = typeof args.repeatRejection === 'undefined'? null : args.repeatRejection;
     }
 
     /**
