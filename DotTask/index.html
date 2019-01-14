@@ -259,12 +259,6 @@
         trial_duration: gov.feedbackDuration
     };
 
-    const practice_procedure = {
-        timeline: [initialDecision, feedbackDisplay],
-        randomize_order: false,
-        repetitions: utils.sumList(gov.practiceBlockStructure[0])
-    };
-
     // intro and practice
     timeline.push(welcome);
     timeline.push(introInitialDecision);
@@ -275,9 +269,13 @@
     timeline.push(practiceInstructions);
 
     for (let b=0; b<gov.practiceBlockStructure.length; b++) {
-        practice_procedure.repetitions = b===0?
-            utils.sumList(gov.practiceBlockStructure[b]-3) : utils.sumList(gov.practiceBlockStructure[b]);
-        timeline.push(practice_procedure);
+        let reps = b===0?
+            utils.sumList(gov.practiceBlockStructure[b])-3 : utils.sumList(gov.practiceBlockStructure[b]);
+        timeline.push({
+            timeline: [initialDecision, feedbackDisplay],
+            randomize_order: false,
+            repetitions: reps
+        });
         timeline.push(blockBreak);
     }
     // Remove the last break screen
