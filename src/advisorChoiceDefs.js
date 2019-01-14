@@ -460,7 +460,7 @@ class DotTask extends Governor {
                 // Worst trials are those with difficulty furthest from the median difficulty
                 let dotDiffs = [];
                 trialPool.forEach((trial)=>dotDiffs.push(trial.dotDifference));
-                let median = dotDiffs.sort();
+                let median = dotDiffs.sort((a, b) => a - b); // sort numerically rather than alphabetically
                 if(median.length % 2 === 1)
                     median = (median[Math.floor(median.length / 2)] + median[Math.ceil(median.length / 2)]) / 2;
                 else
