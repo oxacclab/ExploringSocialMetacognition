@@ -60,7 +60,7 @@
      */
     let gov = new DotTask({
         experimentCode: 'dotRep',
-        repeatTrials: true,
+        repeatTrials: Math.random() < .5,
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: {
