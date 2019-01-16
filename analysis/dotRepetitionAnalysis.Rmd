@@ -34,10 +34,10 @@ Participants performed a perceptual discrimination task in which they had to ide
 ## Load data  
 
 ```{r}
-# folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
+folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
 
-# results <- loadFilesFromFolder(folderName)
-# results <- removeParticipantIds(results)
+results <- loadFilesFromFolder(folderName)
+results <- removeParticipantIds(results)
 
 # folderName <- 'ESM_sim.R'
 # source('src/ESM_sim.R')
@@ -70,7 +70,7 @@ participants$excluded <- sapply(participants$pid, function(pid){
   ts <- all.trials[all.trials$pid == pid,]
   # overall accuracy of initial decisions
   m <- mean(ts$initialCorrect, na.rm = T)
-  if(m < .6 | m > .85) return('Accuracy')
+  if(m < .65 | m > .85) return('Accuracy')
   # varied use of confidence scale
   cCs <- aggregate(pid ~ confidenceCategory, data = ts, FUN = length)
   # All confidence categories must be used
@@ -90,7 +90,7 @@ if(sum(participants$excluded == F) > 50) {
 
 We exclude participants for:
 
-* Proportion of correct initial judgements must be (.60 < cor1/n < .90) (*N* = `r sum(participants$excluded == 'Accuracy')`)
+* Proportion of correct initial judgements must be (.65 < cor1/n < .85) (*N* = `r sum(participants$excluded == 'Accuracy')`)
 
 * Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confidence')`)
 
@@ -122,11 +122,10 @@ Participants' performance was held at 71% by design. Participants' mean percenta
 Type 1 performance should not differ as a function of repetition. This is checked by comparing the performance on the first appearance of repeated trials against performance on the repetitions.
 
 ```{r results = 'asis'}
-tmp <- trials[trials$grid %in% trials$grid[!is.na(trials$stimulusParent)], ]
-m <- is.na(tmp$stimulusParent)
-novel <- aggregate(initialCorrect ~ pid, data = tmp[m, ], FUN = mean)
-repeated <- aggregate(initialCorrect ~ pid, data = tmp[!m, ], FUN = mean)
-md.ttestBF(novel, repeated, labels = c('*M*|novel', '*M*|repeat'), paired = T)
+tmp <- trials[trials$isRepeat | trials$isRepeated, ]
+novel <- aggregate(initialCorrect ~ pid, data = tmp[!tmp$isRepeat, ], FUN = mean)
+repeated <- aggregate(initialCorrect ~ pid, data = tmp[tmp$isRepeat, ], FUN = mean)
+md.ttestBF(novel$initialCorrect, repeated$initialCorrect, labels = c('*M*|novel', '*M*|repeat'), paired = T)
 ```
 
 If there are differences, these may be due to:
@@ -136,29 +135,24 @@ If there are differences, these may be due to:
 * a tendency for repeated trials to be easier due to the trimming process
 
 
-Some trials have their grids switch side when repeated. Insofar as there is a difference in the original and repeated presentations, this difference should be attenuated by switching sides. In the logistic regression below, concerning betas are the ones for repetition and the repetition:switch interaction. If the latter is significant it ought to be negative (i.e. switched trials are harder than non-switched trials).
+Some trials have their grids switch side when repeated. Insofar as there is a difference in the original and repeated presentations, this difference should be attenuated by switching sides. This is tested by calculating a delta value for each repetition (1 = rep correct, original wrong; 0 = same accuracy; -1 = rep wrong, original correct), and testing the mean deltas by swapped status.
 
 ```{r}
-tmp <- trials[trials$grid %in% trials$grid[!is.na(trials$stimulusParent)], ]
-tmp$swapped <- F
+tmp <- trials[trials$isRepeat | trials$isRepeated, ]
+tmp$swapped <- sapply(1:nrow(tmp), function(i) {
+  if(!tmp$isRepeat[i]) return(F)
+  return(tmp$grid[i] != tmp$grid[tmp$id == tmp$stimulusParent[i] & tmp$pid == tmp$pid[i]])
+})
 
-m <- is.na(tmp$stimulusParent)
+tmp$delta <- sapply(1:nrow(tmp), function(i) {
+  if(!tmp$isRepeat[i]) return(NA)
+  x <- tmp$initialCorrect[tmp$id == tmp$stimulusParent[i] & tmp$pid == tmp$pid[i]]
+  tmp$initialCorrect[i] - x
+})
+  
+data <- aggregate(delta ~ pid + swapped, data = tmp[tmp$isRepeat, ], FUN = mean)
 
-novel <- tmp[m, ]
-novel$rep <- F
-repeated <- tmp[!m, ]
-repeated$rep <- T
-
-repeated$swapped <- sapply(repeated$grid, function(g) 
-  repeated$correctAnswer[repeated$grid == g] == novel$correctAnswer[novel$grid == g]
-  )
-
-tmp <- rbind(novel, repeated)
-
-out <- lm(initialCorrect ~ rep * swapped, 
-          data = aggregate(initialCorrect ~ pid + rep + swapped, data = tmp, FUN = mean))
-
-summary(out)
+md.ttestBF(data$delta[!data$swapped], data$delta[data$swapped], labels = c('*M*|same', '*M*|swapped'), paired = T)
 ```
 
 ## Type 2 performance
@@ -166,21 +160,22 @@ summary(out)
 Type 2 (metacognitive) performance is characterised using Type 2 ROC. The mean ROC for all participants is tabulated below:
 
 ```{r results = 'asis'}
+tmp <- trials[trials$isRepeat | trials$isRepeated, ]
+
 df.type2 <- NULL
 for(p in unique(trials$pid)) {
-  for(d in c('initial', 'final')) {
-    tmp <- trials[trials$pid == p, c(paste0(d, 'Correct'), paste0(d, 'Confidence'))]
-    # remove NA values which appear in final judgements which are never made
-    tmp <- tmp[!is.na(tmp[ ,1]), ]
-    roc <- type2ROC(tmp[ ,1], tmp[ ,2], bins = 7)
-    df.type2 <- rbind(df.type2, data.frame(pid = factor(p), decision = d, conf = roc$x, pCorrect = roc$y))
+  for(x in c(T, F)) {
+    ts <- tmp[tmp$isRepeat == x & tmp$pid == p, c('initialCorrect', 'initialConfidence')]
+    ts <- ts[!is.na(ts$initialConfidence) & !is.na(ts$initialCorrect), ]
+    roc <- type2ROC(ts[ ,1], ts[ ,2], bins = 7)
+    df.type2 <- rbind(df.type2, data.frame(pid = factor(p), isRep = !x, conf = roc$x, pCorrect = roc$y))
   }
 }
-tmp <- seq(0, 1, length.out = length(unique(df.type2$conf)))
+tmp <- seq(0, 1, length.out = length(unique(df.type2$conf))+1)
 tmp <- sapply(1:(length(tmp)-1), function(i) mean(c(tmp[i], tmp[i+1])))
 df.type2$confProp <- sapply(df.type2$conf, function(x) tmp[which(levels(df.type2$conf) == x)])
 
-tmp <- aggregate(pCorrect ~ conf + decision, df.type2, mean)
+tmp <- aggregate(pCorrect ~ conf + isRep, df.type2, mean)
 # print neatly with rounding
 tmp[ ,3] <- prop2str(tmp[ ,3])
 kable(prop2str(tmp))
@@ -192,9 +187,10 @@ Participants' ROC curves:
 ggplot(df.type2, aes(x = confProp, y = pCorrect, colour = pid)) +
   geom_abline(slope = 1, intercept = c(0,0), linetype = 'dashed', colour = 'black') +
   geom_point() +
-  geom_line(alpha = .5, aes(group = pid)) +
-  facet_wrap(~decision, labeller = label_both) +
+  geom_line(aes(group = pid)) +
+  facet_wrap(~isRep, labeller = label_both) +
   scale_x_continuous(limits = c(0,1)) +
+  scale_y_continuous(limits = c(0,1)) +
   coord_fixed() +
   style.long +
   theme(panel.spacing.x = unit(1, 'lines'))

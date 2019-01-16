@@ -24,6 +24,7 @@ loadFilesFromFolder <- function(folderName) {
   advisors <- NULL
   questionnaires <- NULL
   genTrustQ <- NULL
+  debrief <- NULL
   for (i in seq(length(files))) {
     fileName <- paste(folderName, files[[i]], sep='/')
     json <- readChar(fileName, file.info(fileName)$size)
@@ -34,19 +35,22 @@ loadFilesFromFolder <- function(folderName) {
                           as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors', 
                                                                            'questionnaires', 
                                                                            'trials',
-                                                                           'generalisedTrustQuestionnaire')])))
+                                                                           'generalisedTrustQuestionnaire,
+                                                                           debrief')])))
     # store the trials in the trials table
     trials <- rbind(trials, jsonData$trials)
     advisors <- rbind(advisors, jsonData$advisors)
     questionnaires <- rbind(questionnaires, jsonData$questionnaires)
     if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
       genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
+    debrief <- rbind(debrief, jsonData$debrief)
   }
   return(list(participants = participants, 
               trials = trials,
               advisors = advisors,
               questionnaires = questionnaires,
-              genTrustQ = genTrustQ))
+              genTrustQ = genTrustQ,
+              debrief = debrief))
 }
 
 #' @param results from \link{loadFilesFromFolder}
@@ -131,6 +135,15 @@ trialUtilityVariables <- function(results) {
       out$advisor1influenceRaw[m] <- findInfluence(trials$advisor1agrees,
                                                    out$confidenceShiftRaw)[m]
     }
+  }
+  
+  # repetition stuff
+  out$isRepeat <- !is.na(trials$stimulusParent)
+  out$isRepeated <- F
+  for(pid in unique(trials$pid)) {
+    ts <- trials[trials$pid == pid, ]
+    ts$isRepeated <- ts$id %in% ts$stimulusParent
+    out$isRepeated[trials$pid == pid] <- ts$isRepeated
   }
   
   return(out[ ,-1])

@@ -86,7 +86,7 @@
         ],
         practiceBlockStructure: [
             {
-                0: 60
+                0: 6
             }
         ],
         repList: false,
@@ -266,7 +266,7 @@
     timeline.push(sliderInstructions);
     timeline.push(introInitialDecision);
     timeline.push(quickStimInstructions);
-    timeline.push({timeline: initialDecision, feedbackDisplay});
+    timeline.push({timeline: [initialDecision, feedbackDisplay]});
     timeline.push(practiceInstructions);
 
     for (let b=0; b<gov.practiceBlockStructure.length; b++) {

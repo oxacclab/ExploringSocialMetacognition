@@ -2,26 +2,35 @@
 # Matt Jaquiery, July 2018 (matt.jaquiery@psy.ox.ac.uk)
 # Updates Jan 2019 to include final-answer bonuses
 
-if(!require(scoring)) {
-  install.packages('scoring')
-  library(scoring)  
-}
-citation('scoring')
+library(scoring)  
+library(digest)  
+source('src/ESM_core.R')
 
-if(!require(digest)) {
-  install.packages('digest')
-  library(digest)  
-}
-citation('digest')
+# Load data
+folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
+results <- loadFilesFromFolder(folderName)
+
+# unpack results
+for(i in 1:length(results))
+  assign(names(results)[i], results[i][[1]])
+
+# Calculate some utility variables
+trials$finalCorrect <- trials$finalAnswer == trials$correctAnswer
+trials$initialCorrect <- trials$initialAnswer == trials$correctAnswer
+participants$pid <- sapply(participants$id, function(x) which(unique(participants$id)==x))
+
+accuracy <- aggregate(finalCorrect ~ participantId,
+                      data = trials[!is.na(trials$finalCorrect), ],
+                      FUN = mean)
+if(all(is.na(trials$finalAnswer)))
+  accuracy <- aggregate(initialCorrect ~ participantId, data = trials[!is.na(trials$initialCorrect), ], FUN = mean)
 
 # We use the Brier score
-accuracy <- aggregate(finalCorrect ~ pid,
-                      data = all.trials[!is.na(all.trials$finalCorrect), ],
-                      FUN = mean)
-tmp <- all.trials[,c('initialCorrect', 'finalCorrect', 'initialConfidence', 'pid')]
+tmp <- trials[,c('initialCorrect', 'finalCorrect', 'initialConfidence', 'participantId')]
 tmp$initialCorrect <- as.numeric(tmp$initialCorrect)
-tmp$initialConfidence <- tmp$initialConfidence/50
-scores <- brierscore(initialCorrect ~ initialConfidence, data = tmp, group = 'pid')
+for(p in unique(tmp$participantId))
+  tmp$initialConfidence[tmp$participantId == p] <- scale(tmp$initialConfidence[tmp$participantId == p])
+scores <- brierscore(initialCorrect ~ initialConfidence, data = tmp[!is.na(tmp$initialConfidence), ], group = 'participantId')
 
 if(exists('rawString')) {
   prolificIds <- NULL
@@ -35,24 +44,24 @@ if(exists('prolificIds')) {
   tmp <- NULL
   for(i in 1:length(names(scores$brieravg))) {
     pid <- names(scores$brieravg)[i]
-    proId <- names(prolificIdHashes)[prolificIdHashes %in% all.participants$id[all.participants$pid==pid]]
+    proId <- names(prolificIdHashes)[prolificIdHashes == pid]
     if(length(proId)>0)
       tmp <- rbind(tmp, data.frame(pid,
                                    prolificId = proId,
                                    brieravg = scores$brieravg[i],
-                                   finalAccuracy = accuracy$finalCorrect[accuracy$pid == pid],
-                                   excluded = all.participants$excluded[all.participants$pid==pid],
-                                   extra = all.participants$debriefComments[all.participants$pid==pid]))
+                                   accuracy = accuracy[accuracy$participantId == pid, 2],
+                                   excluded = F, #participants$excluded[participants$pid==pid],
+                                   extra = debrief$answer[debrief$participantId==pid & debrief$id == 3]))
     else
       print(paste('PID',pid,'has no prolific hash associated'))
   }
   # ascribe bonuses based on performance
   tmp$reward <- 0
-  for(dim in c('brieravg', 'finalAccuracy')) {
+  for(dim in c('brieravg', 'accuracy')) {
     markers <- quantile(tmp[tmp$excluded==F, dim], na.rm = T)
     for(i in 1:nrow(tmp)) {
-      tmp$quantile[i] <- which(markers >= tmp[i, dim])[1]
-      tmp$reward[i] <- tmp$reward[i] + round(1 - 1/(length(markers)-1)*(tmp$quantile[i]-1),2)
+      tmp[i, paste0('q', dim)] <- which(markers >= tmp[i, dim])[1]
+      tmp$reward[i] <- tmp$reward[i] + round(1 - 1/(length(markers)-1)*(tmp[i, paste0('q', dim)]-1),2)
     }
     tmp$reward[tmp$excluded!=F] <- 0 # no bonus for excluded participants
   }

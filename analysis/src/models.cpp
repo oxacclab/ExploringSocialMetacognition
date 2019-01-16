@@ -61,7 +61,7 @@ struct ModelResult {
 typedef double (*ModelFun)(double initialConf, int advisorAgrees, Parameters params, int advisorIndex);
 
 /**
- * @breif Function which runs a model on all trials in the dataset and returns the errors
+ * @brief Function which runs a model on all trials in the dataset and returns the errors
  * 
  * @param model the trust update model to be used
  * @param trials the real trial data to be fit
@@ -73,7 +73,7 @@ typedef double (*ModelFun)(double initialConf, int advisorAgrees, Parameters par
 NumericVector doModel(ModelFun model, Trials trials, Parameters params);
 
 /**
- * @breif Find the mean squared errror of errors
+ * @brief Find the mean squared errror of errors
  * 
  * @param errors
  * @param testSetMask vector identifying which errors count towards the MSE
@@ -111,7 +111,7 @@ NumericVector spreadParams(Parameters params);
 Parameters gatherParams(NumericVector params);
 
 /**
- * @breif Generate a random float [0, 1]
+ * @brief Generate a random float [0, 1]
  * @param allowNegative whether to extend the range to [-1, 1]
  */
 double rRand(bool allowNegative = TRUE) {

@@ -65,7 +65,7 @@ export default function processData(data) {
     // Debrief stuff
     participantData.debrief = [];
     if(typeof data.debrief !== 'undefined') {
-        participantData.debreif = flattenDebriefData(data.debrief, participantData.id);
+        participantData.debrief = flattenDebriefData(data.debrief, participantData.id);
     }
 
     return participantData;
@@ -250,7 +250,8 @@ function flattenDebriefData(data, id) {
 
     // Pad missing keys with null
     data.forEach(function(q) {
-        q.id = id;
+        q.participantId = id;
+        q.id = data.indexOf(g);
         keys.forEach((k)=>{if(typeof q[k] === 'undefined') q[k] = null})
     });
 
