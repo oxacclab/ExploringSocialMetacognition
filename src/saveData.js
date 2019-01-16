@@ -251,7 +251,7 @@ function flattenDebriefData(data, id) {
     // Pad missing keys with null
     data.forEach(function(q) {
         q.participantId = id;
-        q.id = data.indexOf(g);
+        q.id = data.indexOf(q);
         keys.forEach((k)=>{if(typeof q[k] === 'undefined') q[k] = null})
     });
 
