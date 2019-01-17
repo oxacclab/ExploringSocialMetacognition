@@ -428,6 +428,7 @@ class DotTask extends Governor {
         let reactionTime = false;
         let difficulty = false;
         // remove the worst trial until we're at the limit
+        let reps = 0;
         while(allowableExclusions > 0) {
             let tempPool = [];
             if(!reactionTime) {
@@ -487,6 +488,9 @@ class DotTask extends Governor {
 
             trialPool = tempPool;
             allowableExclusions = trialPool.length - trialsRemaining;
+
+            if(++reps > 1000)
+                return false;
         }
 
         // Shuffle stimuli from selected trials and assign them to forthcoming trials

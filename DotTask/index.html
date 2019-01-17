@@ -89,7 +89,6 @@
                 0: 60
             }
         ],
-        repList: false,
         preTrialInterval: 200,
         preStimulusInterval: 500,
         stimulusDuration: 200,
@@ -246,7 +245,7 @@
     /* Create the repetition list which will allow future trials to repeat stimuli from past trials */
     const createRepList = {
         type: "call-function",
-        func: ()=>{gov.repList = gov.createRepetitionList();}
+        func: ()=>gov.createRepetitionList()
     };
 
     /* Feedback shows a tick on the target box */
@@ -285,6 +284,7 @@
     timeline.push(finalInstructions);
 
     // real experiment
+    let repListSet = false;
     for (let b=0; b<gov.blockStructure.length; b++) {
         timeline.push({
             timeline: [initialDecision],
@@ -292,9 +292,11 @@
             repetitions: utils.sumList(gov.blockStructure[b])
         });
         // Put in the repetition calculation point at the appropriate juncture
-        if(!gov.repList && gov.repeatTrials &&
-            utils.sumList(gov.blockStructure[b]) !== utils.sumList(gov.blockStructure[b+1]))
+        if(!repListSet && gov.repeatTrials &&
+            utils.sumList(gov.blockStructure[b]) !== utils.sumList(gov.blockStructure[b+1])) {
             timeline.push(createRepList);
+            repListSet = true;
+        }
 
         timeline.push(blockBreak);
     }
@@ -302,7 +304,7 @@
     // Remove the last break screen
     timeline.pop();
 
-    //console.log(timeline)
+    console.log(timeline)
 
     /* start the experiment */
     // browser check
