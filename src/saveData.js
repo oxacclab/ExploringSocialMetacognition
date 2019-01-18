@@ -68,6 +68,11 @@ export default function processData(data) {
         participantData.debrief = flattenDebriefData(data.debrief, participantData.id);
     }
 
+    participantData.debriefRepQuiz = [];
+    if(typeof data.dotRepQuiz !== 'undefined') {
+        participantData.debriefRepQuiz = flattenDRQ(data.dotRepQuiz, participantData.id);
+    }
+
     return participantData;
 }
 
@@ -256,4 +261,14 @@ function flattenDebriefData(data, id) {
     });
 
     return data;
+}
+
+function flattenDRQ(data, id) {
+    let out = [];
+    data.forEach((x)=> {
+        x.participantId = id;
+        x.grid = sha1.sha1(JSON.stringify(x.grid));
+        out.push(x);
+    });
+    return out;
 }

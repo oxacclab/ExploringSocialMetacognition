@@ -167,6 +167,8 @@ for(p in unique(trials$pid)) {
   for(x in c(T, F)) {
     ts <- tmp[tmp$isRepeat == x & tmp$pid == p, c('initialCorrect', 'initialConfidence')]
     ts <- ts[!is.na(ts$initialConfidence) & !is.na(ts$initialCorrect), ]
+    if(nrow(ts) == 0)
+      next()
     roc <- type2ROC(ts[ ,1], ts[ ,2], bins = 7)
     df.type2 <- rbind(df.type2, data.frame(pid = factor(p), isRep = !x, conf = roc$x, pCorrect = roc$y))
   }

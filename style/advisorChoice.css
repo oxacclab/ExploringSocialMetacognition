@@ -298,3 +298,26 @@ p.group2 {
 .advisorChoice-change-noOutline:focus {
     outline: none;
 }
+
+/* Grid repetition question */
+.grid-MCQ canvas {
+    padding: .5em;
+    background-color: darkgrey;
+    border: 5px solid transparent;
+}
+.grid-MCQ canvas.selected {
+    border-color: darkgreen;
+}
+.grid-MCQ > div {
+    display: inline-flex;
+    justify-content: space-evenly;
+    width: 100%;
+    padding: .5em;
+}
+.grid-MCQ p {
+    margin: 0;
+}
+.grid-MCQ input {
+    transform: scale(2);
+    margin-top: .5em;
+}

@@ -539,13 +539,14 @@ class DotTask extends Governor {
         let form = div.appendChild(document.createElement('form'));
         form.id = 'debriefForm';
         form.className = 'debrief';
-        let questions = [
-            {
+        let questions = [];
+        if(gov.repeatTrials || gov.showRepeatDebrief) {
+            questions.push({
                 prompt: 'Did you notice anything about the dots?',
                 mandatory: true,
                 type: 'text'
-            },
-            {
+            });
+            questions.push({
                 prompt: 'Some of the dot grids were repeated, did you recognise any from previous rounds?',
                 mandatory: true,
                 type: 'scale',
@@ -554,13 +555,21 @@ class DotTask extends Governor {
                     'Yes, lots'
                 ],
                 nOptions: 7
-            },
-            {
-                prompt: 'Do you have any comments or concerns about the experiment? <em>(optional)</em>',
-                mandatory: false,
-                type: 'text'
-            }
-        ];
+            });
+            questions.push({
+                prompt: 'Please select any grids you recognise from the experiment.',
+                mandatory: true,
+                type: 'grids',
+                nOptions: 5,
+                nRepeats: 1,
+                nSwapped: 1
+            });
+        }
+        questions.push({
+            prompt: 'Finally, do you have any comments or concerns about the experiment? <em>(optional)</em>',
+            mandatory: false,
+            type: 'text'
+        });
         for(let i = 0; i < questions.length; i++) {
             let comment = form.appendChild(document.createElement('div'));
             comment.id = 'debriefCommentContainer'+i;
@@ -594,6 +603,56 @@ class DotTask extends Governor {
                         radio.name = commentQ.id;
                     }
                     break;
+                case 'grids':
+                    commentA = comment.appendChild(document.createElement('div'));
+                    let x = this.blockStructure.length;
+                    let targets = utils.shuffle(utils.getMatches(this.trials, (t)=>t.block === x));
+                    let grids = [];
+                    let meta = []; // stores meta properties for the grid. Don't write to grid or it screws up hashing
+                    for(let g = 0; g < questions[i].nOptions; g++) {
+                        let target = targets.pop();
+                        let grid = new DoubleDotGrid(target.grid);
+                        let t = null;
+                        if(g >= questions[i].nRepeats && g < questions[i].nRepeats + questions[i].nSwapped) {
+                            // swap grid
+                            grid.swapSides();
+                            t = "swapped";
+                        } else if(g >= questions[i].nRepeats + questions[i].nSwapped) {
+                            grid.gridL = grid.renewGrid(grid.dotCountL);
+                            grid.gridR = grid.renewGrid(grid.dotCountR);
+                            t = "new";
+                        } else
+                            t = "repeat";
+                        grids.push(grid);
+                        meta.push({id: g, type: t, parentTrialId: target.id});
+                    }
+                    let order = utils.shuffle(utils.getSequence(0, grids.length -1));
+                    grids = utils.orderArray(grids, order);
+                    meta = utils.orderArray(meta, order);
+                    let div = commentA.appendChild(document.createElement('div'));
+                    div.classList.add('grid-MCQ');
+                    grids.forEach((g)=>{
+                        let canvas = div.appendChild(document.createElement('canvas'));
+                        canvas.id = 'Grid' + meta[grids.indexOf(g)].id;
+                        canvas.width = g.displayWidth * 2 + g.spacing;
+                        canvas.height = g.displayHeight;
+                        g.draw(canvas.id);
+                        canvas.addEventListener('click', (e)=>{
+                            e.target.classList.toggle('selected');
+                            document.querySelector('#GridMCQNone').checked = false;
+                        });
+                        canvas.grid = g;
+                        canvas.meta = meta[grids.indexOf(g)];
+                    });
+                    let zeroDiv = div.appendChild(document.createElement('div'));
+                    let zero = zeroDiv.appendChild(document.createElement('input'));
+                    zero.type = 'checkbox';
+                    zero.id = 'GridMCQNone';
+                    zero.addEventListener('click', (e)=>{
+                       document.querySelectorAll('.grid-MCQ canvas').forEach((c)=>c.classList.remove('selected'));
+                    });
+                    zeroDiv.appendChild(document.createElement('p')).innerText = "No grids are repeated";
+
             }
             commentA.id = 'debriefCommentAnswer'+i;
             commentA.className = 'debrief answer';
@@ -639,6 +698,34 @@ class DotTask extends Governor {
                             (r)=>{ if(r.checked) q.answer = r.value}
                         );
                         gov.debrief.push(q);
+                    };
+                    break;
+                case 'grids':
+                    checkResponse = function(form) {
+                        let div = form.querySelector('.debrief-container:not(.hidden)');
+                        let ok = false;
+                        if(document.querySelector('#GridMCQNone').checked)
+                            ok = true;
+                        document.querySelectorAll('.grid-MCQ canvas').forEach((c)=>{
+                            if(c.classList.contains('selected'))
+                                ok = true;
+                        });
+                        if(ok)
+                            form.querySelector('.debrief-container:not(.hidden)').classList.remove('bad');
+                        else
+                            form.querySelector('.debrief-container:not(.hidden)').classList.add('bad');
+                        return ok;
+                    };
+                    saveResponse = function(form) {
+                        let quiz = [];
+                        form.querySelectorAll('.grid-MCQ canvas').forEach((c)=>{
+                            let q = {};
+                            q.grid = c.grid; // write grid
+                            Object.keys(c.meta).forEach((k) => q[k] = c.meta[k]); // write metadata
+                            q.selected = c.classList.contains('selected');
+                            quiz.push(q);
+                        });
+                        gov.dotRepQuiz = quiz;
                     };
                     break;
             }

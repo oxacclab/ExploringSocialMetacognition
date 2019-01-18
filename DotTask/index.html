@@ -61,6 +61,7 @@
     let gov = new DotTask({
         experimentCode: 'dotRep',
         repeatTrials: true,
+        showRepeatDebrief: true,
         dotCount: 200,
         dotDifference: 30,
         difficultyStep: {
@@ -303,8 +304,6 @@
 
     // Remove the last break screen
     timeline.pop();
-
-    console.log(timeline)
 
     /* start the experiment */
     // browser check
