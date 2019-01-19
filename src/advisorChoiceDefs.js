@@ -694,7 +694,7 @@ class DotTask extends Governor {
                     };
                     saveResponse = function(form) {
                         let q = questions[i];
-                        form.querySelectorAll('.debrief-container:not(.hidden) input[type="radio"').forEach(
+                        form.querySelectorAll('.debrief-container:not(.hidden) input[type="radio"]').forEach(
                             (r)=>{ if(r.checked) q.answer = r.value}
                         );
                         gov.debrief.push(q);
