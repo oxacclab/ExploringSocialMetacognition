@@ -74,6 +74,9 @@ findAdviceType <- function(advisorId, participantId, advisors) {
     tmp$type <- sapply(1:nrow(tmp),
                        function(i) advisors$adviceType[advisors$pid == tmp$participantId[i] 
                                                        & advisors$id == tmp$advisorId[i]])
+    for(i in 1:nrow(tmp))
+      if(length(unlist(tmp$type[i])) == 0)
+        tmp$type[i] <- list(NA)
     df[!is.na(df$advisorId), ] <- tmp
   }
   

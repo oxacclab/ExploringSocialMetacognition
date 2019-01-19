@@ -42,14 +42,13 @@ Tests and explorations which depend on a specific advisor set are not included b
 ## Load data  
 
 ```{r}
-# folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
+folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
+results <- loadFilesFromFolder(folderName)
+results <- removeParticipantIds(results)
 
-# results <- loadFilesFromFolder(folderName)
-# results <- removeParticipantIds(results)
-
-folderName <- 'ESM_sim.R'
-source('src/ESM_sim.R')
-results <- simulateAdvisorChoice(5, advisorClasses = c("Advisor"))
+# folderName <- 'ESM_sim.R'
+# source('src/ESM_sim.R')
+# results <- simulateAdvisorChoice(5, advisorClasses = c("Advisor"))
 
 # unpack results
 for(i in 1:length(results))
@@ -97,10 +96,13 @@ for(p in unique(trials$pid)) {
     tmp <- trials[trials$pid == p, c(paste0(d, 'Correct'), paste0(d, 'Confidence'))]
     # remove NA values which appear in final judgements which are never made
     tmp <- tmp[!is.na(tmp[ ,1]), ]
-    roc <- type2ROC(tmp[ ,1], tmp[ ,2])
+    roc <- type2ROC(tmp[ ,1], tmp[ ,2], bins = 7)
     df.type2 <- rbind(df.type2, data.frame(pid = factor(p), decision = d, conf = roc$x, pCorrect = roc$y))
   }
 }
+tmp <- seq(0, 1, length.out = length(unique(df.type2$conf))+1)
+tmp <- sapply(1:(length(tmp)-1), function(i) mean(c(tmp[i], tmp[i+1])))
+df.type2$confProp <- sapply(df.type2$conf, function(x) tmp[which(levels(df.type2$conf) == x)])
 
 tmp <- aggregate(. ~ pid + decision, df.type2, mean)
 tmp <- tmp[order(tmp$pid),]
@@ -111,12 +113,16 @@ kable(prop2str(aggregate(pCorrect ~ decision, tmp, mean)))
 Participants' ROC curves:
 
 ```{r}
-ggplot(df.type2, aes(x = conf, y = pCorrect, colour = pid)) +
+ggplot(df.type2, aes(x = confProp, y = pCorrect, colour = pid)) +
+  geom_abline(slope = 1, intercept = c(0,0), linetype = 'dashed', colour = 'black') +
   geom_point() +
-  geom_line() +
+  geom_line(aes(group = pid)) +
   facet_wrap(~decision, labeller = label_both) +
+  scale_x_continuous(limits = c(0,1)) +
+  scale_y_continuous(limits = c(0,1)) +
   coord_fixed() +
-  style
+  style.long +
+  theme(panel.spacing.x = unit(1, 'lines'))
 ```
 
 ### Exclusions

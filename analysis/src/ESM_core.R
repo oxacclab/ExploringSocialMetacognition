@@ -25,6 +25,7 @@ loadFilesFromFolder <- function(folderName) {
   questionnaires <- NULL
   genTrustQ <- NULL
   debrief <- NULL
+  debriefRepQuiz <- NULL
   for (i in seq(length(files))) {
     fileName <- paste(folderName, files[[i]], sep='/')
     json <- readChar(fileName, file.info(fileName)$size)
@@ -36,7 +37,8 @@ loadFilesFromFolder <- function(folderName) {
                                                                            'questionnaires', 
                                                                            'trials',
                                                                            'generalisedTrustQuestionnaire,
-                                                                           debrief')])))
+                                                                           debrief',
+                                                                           'debriefRepQuiz')])))
     # store the trials in the trials table
     trials <- rbind(trials, jsonData$trials)
     advisors <- rbind(advisors, jsonData$advisors)
@@ -44,13 +46,15 @@ loadFilesFromFolder <- function(folderName) {
     if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
       genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
     debrief <- rbind(debrief, jsonData$debrief)
+    debriefRepQuiz <- rbind(debriefRepQuiz, jsonData$debriefRepQuiz)
   }
   return(list(participants = participants, 
               trials = trials,
               advisors = advisors,
               questionnaires = questionnaires,
               genTrustQ = genTrustQ,
-              debrief = debrief))
+              debrief = debrief,
+              debriefRepQuiz = debriefRepQuiz))
 }
 
 #' @param results from \link{loadFilesFromFolder}

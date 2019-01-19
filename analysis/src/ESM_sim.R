@@ -447,7 +447,7 @@ getAdvisorChoice <- function(pair, refAdvisor, behaviour) {
 #' @param refAdvisor one of the pair whose new trust rating is specified
 #' @param newTrust new trust rating for the refAdvisor
 #' @param behaviour data frame of participant behaviour
-updateAdvisorTrust(pair, refAdvisor, newTrust, behaviour) {
+updateAdvisorTrust <- function (pair, refAdvisor, newTrust, behaviour) {
   behaviour$trust[behaviour$adviceType == refAdvisor] <- newTrust
   behaviour$trust[behaviour$adviceType == pair[pair != refAdvisor]] <- 1 - newTrust
   return(behaviour)

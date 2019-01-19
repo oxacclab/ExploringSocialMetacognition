@@ -51,7 +51,7 @@ if(exists('prolificIds')) {
                                    brieravg = scores$brieravg[i],
                                    accuracy = accuracy[accuracy$participantId == pid, 2],
                                    excluded = F, #participants$excluded[participants$pid==pid],
-                                   extra = debrief$answer[debrief$participantId==pid & debrief$id == 3]))
+                                   extra = debrief$answer[debrief$participantId==pid & debrief$id == 2]))
     else
       print(paste('PID',pid,'has no prolific hash associated'))
   }

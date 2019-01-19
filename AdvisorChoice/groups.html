@@ -50,7 +50,7 @@
     import {DoubleDotGrid, Advisor, Cue, utils} from '../src/exploringSocialMetacognition.js';
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
 
-    let advisorClass = Math.random() < .5? "Advisor" : "Cue";
+    let advisorClass = "Advisor"; //Math.random() < .5? "Advisor" : "Cue";
 
     /* Advice types:
         0   = balanced
@@ -59,7 +59,7 @@
         5|6 = acc
         7|8 = agg
     */
-    let adviceTypes = utils.shuffle([3,5,7]);
+    let adviceTypes = [0, 7, 7];
     let advisorIdDeck = utils.shuffle(utils.getSequence(1,6));
     let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
     let advisorPicDeck = utils.shuffle(utils.getSequence(1,6));
@@ -113,16 +113,19 @@
         ];
     }
 
+    // Add group codings to advisors
+    for(let i = 0; i < 2; i++) {
+        advisorListA[i].groupId = i+1;
+        advisorListB[i].groupId = 2-i;
+    }
+
     if (Math.random() < .5)
         advisorListA = [advisorListA[1], advisorListA[0]];
     if (Math.random() < .5)
         advisorListB = [advisorListB[1], advisorListB[0]];
 
-    // Add group codings to advisors
-    for(let i = 0; i < 2; i++) {
-        advisorListA[i].groupId = i+1;
-        advisorListB[i].groupId = i+1;
-    }
+    let advisorLists = Math.random() < .5? [advisorListA, advisorListB] : [advisorListB, advisorListA];
+
 
     /**
      * The governor contains the properties which the experiment functions need to access from everywhere.
@@ -142,46 +145,43 @@
             nReversals: 2
         },
         minimumBlockScore: 0.10,
-        advisorLists: [
-            advisorListA,
-            advisorListB
-        ],
+        advisorLists,
         practiceAdvisors: [
             practiceAdvisor0,
             practiceAdvisor1
         ],
         advisors: [
-            advisorListA[0],
-            advisorListA[1],
-            advisorListB[0],
-            advisorListB[1]
+            advisorLists[0][0],
+            advisorLists[0][1],
+            advisorLists[1][0],
+            advisorLists[1][1]
         ],
         contingentAdvisors: [[], [], []],
         blockCount: 2,
         blockStructure: [
             {
-                [trialTypes.dual]: 26
+                [trialTypes.dual]: 60
             },
             {
-                [trialTypes.change]: 26
+                [trialTypes.change]: 60
             }
         ],
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 10,//63, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 63, // intro trials need to be accommodated in the first practice block
             },
             {
-                [trialTypes.catch]: 10,//60,
+                [trialTypes.catch]: 60,
             },
             {
-                [trialTypes.dual]: 3
+                [trialTypes.dual]: 1
             },
             {
-                [trialTypes.change]: 3
+                [trialTypes.change]: 1
             },
             {
-                [trialTypes.dual]: 10,
-                [trialTypes.change]: 10
+                [trialTypes.dual]: 5,
+                [trialTypes.change]: 5
             }
         ],
         preTrialInterval: 200,
@@ -271,16 +271,18 @@
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
     };
 
+    const advisor = advisorClass === "Advisor"? "advisor" : "cue";
+
     const dualAdviceInstructions = {
         type: 'instructions',
-        pages: ["<p>Most of the time you will get <strong>advice</strong> from advisors to help you make your " +
+        pages: ["<p>Most of the time you will get <strong>help</strong> from "+advisor+"s to help you make your " +
         "decision.</p>" +
-        "<p>This advice is not always correct, but it is there to help you: if you use the advice you will " +
+        "<p>This help is not always correct, but it is there to assist you: if you use the help you will " +
         "perform better on the task.</p>" +
-        "<p>Once you have heard the advice you will have the opportunity to adjust your answer. <strong>" +
+        "<p>Once you have seen the help you will have the opportunity to adjust your answer. <strong>" +
         "Your previous answer</strong> is shown by a yellow marker. You are free to adjust your answer to indicate " +
         "that you are more or less sure, and even to change which box you think had most dots.</p>",
-        "<p>Sometimes you will get advice from two advisors at the same time.</p>" +
+        "<p>Sometimes you will get help from two "+advisor+"s at the same time.</p>" +
         "<p>Click 'next' to see an example.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -289,9 +291,9 @@
 
     const changeAdviceInstructions = {
         type: 'instructions',
-        pages: ["<p>Sometimes you will be given a <strong>choice of advisor</strong>. When this happens you will see " +
-        "which advisor is going to be providing you with advice. Press the <strong>spacebar</strong> to " +
-        "change to the other advisor.</p>" +
+        pages: ["<p>Sometimes you will be given a <strong>choice of "+advisor+"</strong>. When this happens you will see " +
+        "which "+advisor+" is going to be providing you with advice. Press the <strong>spacebar</strong> to " +
+        "change to the other "+advisor+".</p>" +
         "<p>Click 'next' to see an example.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
@@ -300,7 +302,7 @@
 
     const adviceInstructions = {
         type: 'instructions',
-        pages: ["<p>The experiment will begin after you have practiced a little with advice.</p>"],
+        pages: ["<p>The experiment will begin after you have practiced a little with help.</p>"],
         show_clickable_nav: true,
         on_load: ()=>gov.drawProgressBar(),
         on_finish: (trial)=>gov.storeMiscTrialData(trial)
@@ -315,9 +317,9 @@
         "<p>This will happen for two pairs of advisors, so there are four experimental blocks for you to do.</p>",
         "<p>You will no longer receive feedback on the task.</p>",
         "<p>Remember your <strong>bonus</strong> will depend on giving " +
-        "<strong>correct answers after hearing advice</strong>, " +
+        "<strong>correct answers after seeing the help</strong>, " +
         "and on how well you use the confidence scale.</p>",
-        "<p>Participants and advisors are assigned to different groups for this experiment. " +
+        "<p>Participants and "+advisor+"s are assigned to groups for this experiment. " +
         "There are two groups. Group membership is displayed by a coloured border.</p>" +
         "<p class='group" + gov.groupId + "'>You have been assigned to group " + gov.groupId + "</p>" +
         "<p>You're ready for the main experiment now. Click the button below to begin.</p>"],

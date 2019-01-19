@@ -92,7 +92,7 @@ We exclude participants for:
 
 * Proportion of correct initial judgements must be (.65 < cor1/n < .85) (*N* = `r sum(participants$excluded == 'Accuracy')`)
 
-* Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confidence')`)
+* Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confident')`)
 
 * Having fewer than 5% of trials in each confidence category (*N* = `r sum(participants$excluded == '<5%')`)
 
@@ -137,7 +137,7 @@ If there are differences, these may be due to:
 
 Some trials have their grids switch side when repeated. Insofar as there is a difference in the original and repeated presentations, this difference should be attenuated by switching sides. This is tested by calculating a delta value for each repetition (1 = rep correct, original wrong; 0 = same accuracy; -1 = rep wrong, original correct), and testing the mean deltas by swapped status.
 
-```{r}
+```{r results = 'asis'}
 tmp <- trials[trials$isRepeat | trials$isRepeated, ]
 tmp$swapped <- sapply(1:nrow(tmp), function(i) {
   if(!tmp$isRepeat[i]) return(F)
@@ -198,7 +198,39 @@ ggplot(df.type2, aes(x = confProp, y = pCorrect, colour = pid)) +
   theme(panel.spacing.x = unit(1, 'lines'))
 ```
 
+
 # Exploration 
+
+## Recognition test
+
+Participants are given 5 grids and asked to select those which they recognise from the experiment. One of the grids comes from the previous block ('repeat'), and one is from the previous block but with the left and right grids switched ('swapped'). We examine the relative picking frequencies for each of these grids compared to novel grids ('new'). This is exploratory because it cannot be guaranteed that novel grids aren't swaps of earlier grids, or how many times repeats have been seen before (1 or 2).
+
+```{r}
+# Correct for incidental repeats
+debriefRepQuiz$actualRepeat <- NA
+debriefRepQuiz$actualType <- NA
+for(pid in unique(debriefRepQuiz$pid)) {
+  tmp <- debriefRepQuiz[debriefRepQuiz$pid == pid, ]
+  tmp$actualRepeat <- tmp$grid %in% trials$grid[trials$pid == pid]
+  tmp$actualType[tmp$actualRepeat] <- 'repeat'
+  tmp$actualType[!tmp$actualRepeat] <- tmp$type[!tmp$actualRepeat]
+  debriefRepQuiz[debriefRepQuiz$pid == pid, ] <- tmp
+}
+
+df.dotQuiz <- aggregate(selected ~ pid + actualType, debriefRepQuiz, mean)
+
+ggplot(df.dotQuiz, aes(x = actualType, y = selected)) +
+  geom_violin(colour = NA, fill='grey75', alpha = .5) +
+  geom_point(aes(colour = factor(pid)), position = position_jitter(.1)) +
+  stat_summary(geom = 'errorbar', fun.data = mean_cl_normal, width = .25) +
+  stat_summary(geom = 'point', fun.y = mean, size = 3, shape = 18) +
+  scale_x_discrete(name = 'Grid type') +
+  scale_y_continuous(name = 'P(selected)', limits = c(0,1)) +
+  style.long
+
+```
+
+Overall, participants selected `r round(mean(debriefRepQuiz$selected)*length(unique(debriefRepQuiz$id)),2)` responses on each quiz.
 
 # Credits 
 
