@@ -62,18 +62,19 @@ if(!require(scoring)) {
 
 # Reference and mapping functions -----------------------------------------
 
-#' Return an Advisor's adviceType from their ID for a given participant. Updated version of getAdviceType
+#' Return a property of an Advisor from their ID for a given participant. 
+#' @param property to return. Should be a column in advisors
 #' @param advisorId
 #' @param participantId will be joined to advisorId as a data.frame, so must be of the same length
 #' @param advisors data frame of advisors
-#' @return adviceType of specified advisor
-findAdviceType <- function(advisorId, participantId, advisors) {
+#' @return property of specified advisor
+.lookupAdvisorProperty <- function(property, advisorId, participantId, advisors) {
   df <- data.frame(advisorId, participantId, type = NA)
   if(any(!is.na(df$advisorId))) {
     tmp <- df[!is.na(df$advisorId), ]
     tmp$type <- sapply(1:nrow(tmp),
-                       function(i) advisors$adviceType[advisors$pid == tmp$participantId[i] 
-                                                       & advisors$id == tmp$advisorId[i]])
+                       function(i) advisors[advisors$pid == tmp$participantId[i] 
+                                            & advisors$id == tmp$advisorId[i], property])
     for(i in 1:nrow(tmp))
       if(length(unlist(tmp$type[i])) == 0)
         tmp$type[i] <- list(NA)
@@ -81,6 +82,24 @@ findAdviceType <- function(advisorId, participantId, advisors) {
   }
   
   return(unlist(df$type))
+}
+
+#' Return an Advisor's adviceType from their ID for a given participant. Updated version of getAdviceType
+#' @param advisorId
+#' @param participantId will be joined to advisorId as a data.frame, so must be of the same length
+#' @param advisors data frame of advisors
+#' @return adviceType of specified advisor
+findAdviceType <- function(advisorId, participantId, advisors) {
+  return(.lookupAdvisorProperty('adviceType', advisorId, participantId, advisors))
+}
+
+#' Return an Advisor's groupId from their ID for a given participant. Updated version of getAdviceType
+#' @param advisorId
+#' @param participantId will be joined to advisorId as a data.frame, so must be of the same length
+#' @param advisors data frame of advisors
+#' @return adviceType of specified advisor
+findAdvisorGroup <- function(advisorId, participantId, advisors) {
+  return(.lookupAdvisorProperty('groupId', advisorId, participantId, advisors))
 }
 
 #' Return a vector of length \code{trials} containing the advice from an advisor

@@ -411,7 +411,7 @@ Influence scores are compared for trials on which a choice is not presented. For
 pairs <- getAdviceTypePairs(trials$adviceType[trials$type == trialTypes$force])
 
 if(length(pairs) == 0)
-  print("No advisor pairs found for analysis of forced trials.")
+  cat("*No advisor pairs found for analysis of forced trials.*")
 
 for(pair in pairs) {
   meta <- adviceTypes$AiC %in% pair
@@ -456,7 +456,7 @@ tmp <- trials[trials$type == trialTypes$dual, ]
 pairs <- getAdviceTypePairs(c(tmp$advisor0type, tmp$advisor1type))
 
 if(length(pairs) == 0)
-  print("No advisor pairs found for analysis of dual trials.")
+  cat("*No advisor pairs found for analysis of dual trials.*")
 
 for(pair in pairs) {
   aNames <- paste0(getAdviceTypeName(pair), '_agrees')
@@ -681,6 +681,87 @@ ggplot(tmp, aes(x = refAdvisor, y = participants, fill = bestModel)) +
   labs(y = "Participants fitted best by model") +
   style
 ```
+
+# Group-based analysis
+
+Of critical importance is the difference in pick rate and influence made by the advisor sharing a group with the participant. 
+
+## Pick rate
+
+We hypothesise that the participant will preferentially pick the advisor assigned to their group. 
+
+```{r results = 'asis'}
+df.changeGroup <- NULL
+tmp <- trials[trials$type == trialTypes$change, ]
+pairs <- getAdviceTypePairs(tmp$adviceType)
+if(length(tmp) < 1) {
+  cat('*No change trials in the current dataset.*')
+} else {
+  df.changeGroup <- data.frame(pid = unique(tmp$pid))
+  for(pair in pairs) {
+    changes <- NULL
+    # Calculate change proportions favouring same-group advisor for each participant
+    for(pid in unique(tmp$pid)) {
+      ts <- tmp[tmp$pid == pid & tmp$type == trialTypes$change, ]
+      ts <- ts[ts$advisor0type %in% pair & ts$advisor1type %in% pair, ]
+      changed <- ts$advisorGroup[ts$defaultAdvisor != ts$advisorId]
+      if(length(changed) == 0) 
+        m <- 0
+      else 
+        m <- mean(changed == participants$groupId[participants$pid == pid], na.rm = T)
+      changes <- rbind(changes, data.frame(m, p = sum(!is.na(changed)) / nrow(ts)))
+    }
+    
+    cat(md.ttest(changes$m, mu = .5, labels = '*M*|SameGroup', isProportion = T))
+    cat('\n\n')
+    colnames(changes) <- c(paste0('MChangeToGroup_', getAdviceTypeName(refAdvisor)),
+                           paste0('PChangeToGroup_', getAdviceTypeName(refAdvisor)))
+    df.changeGroup <- cbind(df.changeGroup, changes);
+  }
+} 
+```
+
+For a more detailed analysis, we look at the interactions between advice profile and group membership. The experimental design is balanced with regard to this: all participants see one advisor of each advice profile who shares their group, and one who does not. This would count as exploration so if included should be below.
+
+## Influence
+
+We can add a factor to the influence analyses which holds whether the group matches the participant's.
+
+```{r}
+tmp <- trials[trials$type == trialTypes$dual, ]
+
+pairs <- getAdviceTypePairs(c(tmp$advisor0type, tmp$advisor1type))
+
+if(length(pairs) == 0)
+  cat("*No advisor pairs found for analysis of dual trials.*")
+
+for(pair in pairs) {
+  aNames <- paste0(getAdviceTypeName(pair), '_agrees')
+  # rearrange data so advisors are separated by type rather than order
+  df <- tmp[tmp$advisor0type %in% pair & tmp$advisor1type %in% pair, ]
+  df[ , aNames[1]] <- ifelse(df$advisor0type == pair[1], df$advisor0agrees, df$advisor1agrees)
+  df[ , aNames[2]] <- ifelse(df$advisor0type == pair[2], df$advisor0agrees, df$advisor1agrees)
+  df[ , paste0(aNames[1], 'GroupMatch')] <- sapply(1:nrow(df), function(i) {
+    g <- participants$groupId[participants$pid == df$pid[i]]
+    if(df$advisor0type[i] == pair[1])
+      df$advisor0group[i] == g
+    else
+      df$advisor1group[i] == g
+  })
+  
+  if(nrow(df) == 0)
+    next()
+  
+  print(paste('LM results for', getAdviceTypeName(pair[1], long = T),
+              'vs', getAdviceTypeName(pair[2], long = T)))
+  
+  f <- as.formula(paste0("confidenceShift ~ pid + initialConfidence + (", aNames[1],
+                        ' * ', aNames[2], ' * ', aNames[1], 'GroupMatch)'))
+  model <- lm(f, data = df)
+  print(summary(model))
+}
+```
+
 
 # Exploration 
 

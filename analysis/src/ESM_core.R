@@ -110,6 +110,11 @@ trialUtilityVariables <- function(results) {
   out$advisor0type <- findAdviceType(trials$advisor0id, trials$pid, advisors)
   out$advisor1type <- findAdviceType(trials$advisor1id, trials$pid, advisors)
   
+  # advisor group ids
+  out$advisorGroup <- findAdvisorGroup(trials$advisorId, trials$pid, advisors)
+  out$advisor0group <- findAdvisorGroup(trials$advisor0id, trials$pid, advisors)
+  out$advisor1group <- findAdvisorGroup(trials$advisor1id, trials$pid, advisors)
+  
   # advisor influence
   # amount the confidence changes in the direction of the advice
   out$advisorInfluence <- NA
