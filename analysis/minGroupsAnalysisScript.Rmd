@@ -132,7 +132,7 @@ participants$excluded <- sapply(participants$pid, function(pid){
   ts <- all.trials[all.trials$pid == pid,]
   # overall accuracy of initial decisions
   m <- mean(ts$initialCorrect, na.rm = T)
-  if(m < .6 | m > .85) return('Accuracy')
+  if(m < .65 | m > .85) return('Accuracy')
   # varied use of confidence scale
   cCs <- aggregate(pid ~ confidenceCategory, data = ts, FUN = length)
   # All confidence categories must be used
@@ -152,7 +152,7 @@ if(sum(participants$excluded == F) > 50) {
 
 We exclude participants for:
 
-* Proportion of correct initial judgements must be (.60 < cor1/n < .90) (*N* = `r sum(participants$excluded == 'Accuracy')`)
+* Proportion of correct initial judgements must be (.65 < cor1/n < .85) (*N* = `r sum(participants$excluded == 'Accuracy')`)
 
 * Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confidence')`)
 
@@ -603,83 +603,89 @@ $$I_{a,t} = I_{a,t-1} + \lambda C_{initial} * sign(A) - \tau$$
 $\lambda$ and $\tau$ are participant-specific parameters which represent the learning rate and trust decay rates, respectively.
 
 ```{r}
-# Fit models using a c++ implementation of a gradient descent algorithm
-sourceCpp('src/models.cpp')
+print("TODO: Fix this chunk not working in knitted output.")
 
-df.models <- NULL
-
-# Run the models for each participant
-for(pid in unique(trials$pid)) {
-  pair <- getAdviceTypePairs(c(trials[trials$pid == pid, "adviceType"],
-                               trials[trials$pid == pid, "advisor0type"],
-                               trials[trials$pid == pid, "advisor1type"]))
-  for(pair in pairs) {
-    # Mould the data into the format expected by the c++ code
-    ts <- trials[trials$pid == pid & trials$type != trialTypes$catch, ]
-    
-    input <- cbind(scale(ts$initialConfidence), 
-                   getAdviceByType(ts, pair[1]), 
-                   getAdviceByType(ts, pair[2]), 
-                   scale(ts$confidenceShift))
-    
-    # Run the models
-    modelResults <- gradientDescent(input)
-
-    # Akaike's Information Criterion
-    # AIC = n * ln(MSE) + 2k
-    # k = number of predictors + 1 (for intercept)
-    n <- sum(!is.na(input[ ,2] | input[ ,3]))
-    AIC <- n * log(modelResults$MSE)
-    AIC <- AIC + 2 * c(2, 4, 5) # model k vales
-    
-    # Save a summary of the result
-    tmp <- cbind(data.frame(pid, refAdvisor = pair[1], otherAdvisor = pair[2], n, AIC = t(AIC)),
-                 modelResults$parameters)
-    tmp$mse <- t(modelResults$MSE)
-    rownames(tmp) <- NULL
-    df.models <- rbind(df.models, tmp)
+if(F) {
+  # Fit models using a c++ implementation of a gradient descent algorithm
+  sourceCpp('src/models.cpp')
+  
+  df.models <- NULL
+  
+  # Run the models for each participant
+  for(pid in unique(trials$pid)) {
+    pair <- getAdviceTypePairs(c(trials[trials$pid == pid, "adviceType"],
+                                 trials[trials$pid == pid, "advisor0type"],
+                                 trials[trials$pid == pid, "advisor1type"]))
+    for(pair in pairs) {
+      # Mould the data into the format expected by the c++ code
+      ts <- trials[trials$pid == pid & trials$type != trialTypes$catch, ]
+      
+      input <- cbind(scale(ts$initialConfidence), 
+                     getAdviceByType(ts, pair[1]), 
+                     getAdviceByType(ts, pair[2]), 
+                     scale(ts$confidenceShift))
+      
+      # Run the models
+      modelResults <- gradientDescent(input)
+  
+      # Akaike's Information Criterion
+      # AIC = n * ln(MSE) + 2k
+      # k = number of predictors + 1 (for intercept)
+      n <- sum(!is.na(input[ ,2] | input[ ,3]))
+      AIC <- n * log(modelResults$MSE)
+      AIC <- AIC + 2 * c(2, 4, 5) # model k vales
+      
+      # Save a summary of the result
+      tmp <- cbind(data.frame(pid, refAdvisor = pair[1], otherAdvisor = pair[2], n, AIC = t(AIC)),
+                   modelResults$parameters)
+      tmp$mse <- t(modelResults$MSE)
+      rownames(tmp) <- NULL
+      df.models <- rbind(df.models, tmp)
+    }
   }
+  
+  # model evaluation
+  df.models$refAdvisor <- getAdviceTypeName(df.models$refAdvisor)
+  df.models$model <- as.factor(df.models$model)
+  ggplot(df.models, aes(x = model, y = AIC, colour = refAdvisor, fill = refAdvisor)) +
+    stat_summary(geom = 'col', fun.y = mean, position = position_dodge(.9), width = .8) +
+    stat_summary(geom = 'errorbar', fun.data = mean_cl_normal, position = position_dodge(.9), colour = 'black', width = .2) +
+    geom_point(alpha = 0.50, position = position_jitterdodge(jitter.width = .15, dodge.width = .9), colour = 'black') +
+    labs(y = "Akaike's Information Criterion") +
+    style
 }
-
-# model evaluation
-df.models$refAdvisor <- getAdviceTypeName(df.models$refAdvisor)
-df.models$model <- as.factor(df.models$model)
-ggplot(df.models, aes(x = model, y = AIC, colour = refAdvisor, fill = refAdvisor)) +
-  stat_summary(geom = 'col', fun.y = mean, position = position_dodge(.9), width = .8) +
-  stat_summary(geom = 'errorbar', fun.data = mean_cl_normal, position = position_dodge(.9), colour = 'black', width = .2) +
-  geom_point(alpha = 0.50, position = position_jitterdodge(jitter.width = .15, dodge.width = .9), colour = 'black') +
-  labs(y = "Akaike's Information Criterion") +
-  style
 
 ```
 
 The models can also be compared on the basis of absolute best fit counts. 
 
 ```{r}
-tmp <- NULL
-for(a in unique(df.models$refAdvisor)) {
-  for(pid in unique(df.models$pid)) {
-    x <- df.models[df.models$pid == pid & df.models$refAdvisor == a, ]
-    bestModel <- factor(x$model[x$AIC == min(x$AIC)])
-    tmp <- rbind(tmp, data.frame(refAdvisor = a, pid,
-                                 bestModel))
+if(F) {
+  tmp <- NULL
+  for(a in unique(df.models$refAdvisor)) {
+    for(pid in unique(df.models$pid)) {
+      x <- df.models[df.models$pid == pid & df.models$refAdvisor == a, ]
+      bestModel <- factor(x$model[x$AIC == min(x$AIC)])
+      tmp <- rbind(tmp, data.frame(refAdvisor = a, pid,
+                                   bestModel))
+    }
   }
-}
-tmp <- aggregate(pid ~ bestModel + refAdvisor, data = tmp, FUN = length)
-# Fill empty rows
-for(a in unique(df.models$refAdvisor)) {
-  for(m in unique(df.models$model)) {
-    if(nrow(tmp[tmp$refAdvisor == a & tmp$bestModel == m, ]) == 0)
-      tmp <- rbind(tmp, data.frame(bestModel = m, refAdvisor = a, pid = 0))
+  tmp <- aggregate(pid ~ bestModel + refAdvisor, data = tmp, FUN = length)
+  # Fill empty rows
+  for(a in unique(df.models$refAdvisor)) {
+    for(m in unique(df.models$model)) {
+      if(nrow(tmp[tmp$refAdvisor == a & tmp$bestModel == m, ]) == 0)
+        tmp <- rbind(tmp, data.frame(bestModel = m, refAdvisor = a, pid = 0))
+    }
   }
+  names(tmp)[3] <- "participants"
+  
+  ggplot(tmp, aes(x = refAdvisor, y = participants, fill = bestModel)) +
+    geom_col(position = position_dodge()) +
+    scale_fill_discrete(limits = c(1:3), name = 'model') +
+    labs(y = "Participants fitted best by model") +
+    style
 }
-names(tmp)[3] <- "participants"
-
-ggplot(tmp, aes(x = refAdvisor, y = participants, fill = bestModel)) +
-  geom_col(position = position_dodge()) +
-  scale_fill_discrete(limits = c(1:3), name = 'model') +
-  labs(y = "Participants fitted best by model") +
-  style
 ```
 
 # Group-based analysis
