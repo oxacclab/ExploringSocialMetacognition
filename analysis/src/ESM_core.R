@@ -27,23 +27,27 @@ loadFilesFromFolder <- function(folderName) {
   debrief <- NULL
   debriefRepQuiz <- NULL
   for (i in seq(length(files))) {
-    fileName <- paste(folderName, files[[i]], sep='/')
+    fileName <- paste(folderName, files[[i]], sep = '/')
     json <- readChar(fileName, file.info(fileName)$size)
     jsonData <- fromJSON(json, simplifyVector = T, simplifyMatrix = T, simplifyDataFrame = T)
     # store all columns in participants table except the special cases  
     # (trials, advisors, and questionnaires (including GTQ) are stored separately)
-    participants <- rbind(participants, 
-                          as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors', 
-                                                                           'questionnaires', 
-                                                                           'trials',
-                                                                           'generalisedTrustQuestionnaire,
-                                                                           debrief',
-                                                                           'debriefRepQuiz')])))
+    if (is.null(participants))
+      participants <- rbind(participants,
+                            as.data.frame(t(jsonData[!names(jsonData) %in% c('advisors',
+                                                                             'questionnaires', 
+                                                                             'trials',
+                                                                             'generalisedTrustQuestionnaire',
+                                                                             'debrief',
+                                                                             'debriefRepQuiz')])))
+    else
+      participants <- rbind(participants[, names(participants) %in% names(jsonData)], 
+                            as.data.frame(t(jsonData[names(jsonData) %in% names(participants)])))
     # store the trials in the trials table
     trials <- rbind(trials, jsonData$trials)
     advisors <- rbind(advisors, jsonData$advisors)
     questionnaires <- rbind(questionnaires, jsonData$questionnaires)
-    if(('generalisedTrustQuestionnaire' %in% names(jsonData)))
+    if (('generalisedTrustQuestionnaire' %in% names(jsonData)))
       genTrustQ <- rbind(genTrustQ, jsonData$generalisedTrustQuestionnaire)
     debrief <- rbind(debrief, jsonData$debrief)
     debriefRepQuiz <- rbind(debriefRepQuiz, jsonData$debriefRepQuiz)
@@ -65,13 +69,13 @@ removeParticipantIds <- function(results, replaceWithPID = NULL) {
   
   pids <- as.data.frame(unique(results[['participants']]$id))
   
-  for(dfName in names(results)) {
+  for (dfName in names(results)) {
     df <- results[[dfName]]
     idColName <- ifelse(dfName == 'participants', 'id', 'participantId')
-    if(!(idColName %in% names(df)))
+    if (!(idColName %in% names(df)))
       next()
     addPID <- (replaceWithPID == T || (is.null(replaceWithPID) && !('pid' %in% names(df))))
-    if(addPID) {
+    if (addPID) {
       pid <- sapply(df[ , idColName], function(x) which(pids == x))
       df <- cbind(pid, df)
     }
@@ -86,15 +90,16 @@ removeParticipantIds <- function(results, replaceWithPID = NULL) {
 
 trialUtilityVariables <- function(results) {
   # unpack results
-  for(i in 1:length(results))
+  for (i in 1:length(results))
     assign(names(results)[i], results[i][[1]])
   
   out <- data.frame(trials$id)
   
+  dualAdvisors <- !is.null(trials$advisor0id)
   
   # sometimes it helps to see confidence arranged from sure left to sure right (-100 to 100)
-  out$initialConfSpan <- ifelse(trials$initialAnswer==0,trials$initialConfidence*-1,trials$initialConfidence)
-  out$finalConfSpan <- ifelse(trials$finalAnswer==0,trials$finalConfidence*-1,trials$finalConfidence)
+  out$initialConfSpan <- ifelse(trials$initialAnswer == 0,trials$initialConfidence*-1,trials$initialConfidence)
+  out$finalConfSpan <- ifelse(trials$finalAnswer == 0,trials$finalConfidence*-1,trials$finalConfidence)
   
   # confidence changes
   out$confidenceShift <- getConfidenceShift(trials) #  amount the confidence changes
@@ -107,13 +112,23 @@ trialUtilityVariables <- function(results) {
   
   # advisor ids
   out$adviceType <- findAdviceType(trials$advisorId, trials$pid, advisors) # adviceType > trials table
-  out$advisor0type <- findAdviceType(trials$advisor0id, trials$pid, advisors)
-  out$advisor1type <- findAdviceType(trials$advisor1id, trials$pid, advisors)
+  if (dualAdvisors) {
+    out$advisor0type <- findAdviceType(trials$advisor0id, trials$pid, advisors)
+    out$advisor1type <- findAdviceType(trials$advisor1id, trials$pid, advisors)
+  } else {
+    out$advisor0type <- NA
+    out$advisor1type <- NA
+  }
   
   # advisor group ids
   out$advisorGroup <- findAdvisorGroup(trials$advisorId, trials$pid, advisors)
-  out$advisor0group <- findAdvisorGroup(trials$advisor0id, trials$pid, advisors)
-  out$advisor1group <- findAdvisorGroup(trials$advisor1id, trials$pid, advisors)
+  if (dualAdvisors) {
+    out$advisor0group <- findAdvisorGroup(trials$advisor0id, trials$pid, advisors)
+    out$advisor1group <- findAdvisorGroup(trials$advisor1id, trials$pid, advisors)
+  } else {
+    out$advisor0group <- NA
+    out$advisor1group <- NA
+  }
   
   # advisor influence
   # amount the confidence changes in the direction of the advice
@@ -126,15 +141,20 @@ trialUtilityVariables <- function(results) {
   out$advisor0influenceRaw <- NA
   out$advisor1influenceRaw <- NA
   
-  for(tt in unique(trials$type)) {
-    m <- trials$type == tt
-    if(tt == trialTypes$force || tt == trialTypes$choice || tt == trialTypes$change) {
+  for (tt in unique(trials$type)) {
+    # Older data sometimes misses trial type assignment
+    if (is.na(tt))
+      next()
+    
+    m <- trials$type == tt & !is.na(trials$type)
+    
+    if (tt == trialTypes$force || tt == trialTypes$choice || tt == trialTypes$change) {
       out$advisorInfluence[m] <- findInfluence(trials$advisorAgrees,
                                                out$confidenceShift)[m]
       out$advisorInfluenceRaw[m] <- findInfluence(trials$advisorAgrees,
                                                   out$confidenceShiftRaw)[m]
     }
-    if(tt == trialTypes$dual) {
+    if (tt == trialTypes$dual) {
       out$advisor0influence[m] <- findInfluence(trials$advisor0agrees,
                                                 out$confidenceShift)[m]
       out$advisor0influenceRaw[m] <- findInfluence(trials$advisor0agrees,
@@ -146,13 +166,15 @@ trialUtilityVariables <- function(results) {
     }
   }
   
-  # repetition stuff
-  out$isRepeat <- !is.na(trials$stimulusParent)
-  out$isRepeated <- F
-  for(pid in unique(trials$pid)) {
-    ts <- trials[trials$pid == pid, ]
-    ts$isRepeated <- ts$id %in% ts$stimulusParent
-    out$isRepeated[trials$pid == pid] <- ts$isRepeated
+  if (!is.null(trials$stimulusParent)) {
+    # repetition stuff
+    out$isRepeat <- !is.na(trials$stimulusParent)
+    out$isRepeated <- F
+    for (pid in unique(trials$pid)) {
+      ts <- trials[trials$pid == pid, ]
+      ts$isRepeated <- ts$id %in% ts$stimulusParent
+      out$isRepeated[trials$pid == pid] <- ts$isRepeated
+    }
   }
   
   return(out[ ,-1])

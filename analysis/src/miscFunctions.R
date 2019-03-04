@@ -79,12 +79,36 @@ gg.font.small <- 16
 gg.font.med <- 20
 gg.font.large <- 24
 
+# ggplot styles adapted from the BBC's bbplot package
+
 style <- theme_light() +
-  theme(panel.grid.minor = element_blank(),
-        panel.grid.major.x = element_blank(),
-        text = element_text(size = gg.font.med),
-        plot.title = element_text(size = gg.font.large, margin=margin(0,0,gg.font.large,0)),
-        legend.position = 'top') 
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#222222"), 
+        plot.subtitle = element_text(size = 22, margin = margin(9, 0, 9, 0)), 
+        plot.caption = element_blank(), 
+        legend.position = "top", 
+        legend.text.align = 0, 
+        legend.background = element_blank(), 
+        legend.title = element_blank(), 
+        legend.key = element_blank(), 
+        legend.text = element_text(size = 18, color = "#222222"), 
+        axis.title = element_text(size = 18, color = "#222222"),
+        axis.text = element_text(size = 18, color = "#222222"), 
+        # axis.text.x = element_text(margin = margin(5, b = 10)), 
+        axis.ticks = element_blank(), 
+        axis.line = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.grid.major.y = element_line(color = "#cbcbcb"), 
+        panel.grid.major.x = element_blank(), 
+        panel.background = element_blank(), 
+        strip.background = element_rect(fill = "grey75"), 
+        strip.text = element_text(size = 16))
+
+# style <- theme_light() +
+#   theme(panel.grid.minor = element_blank(),
+#         panel.grid.major.x = element_blank(),
+#         text = element_text(size = gg.font.med),
+#         plot.title = element_text(size = gg.font.large, margin=margin(0,0,gg.font.large,0)),
+#         legend.position = 'top') 
 
 style.long <- style + theme(legend.position = 'none')
 

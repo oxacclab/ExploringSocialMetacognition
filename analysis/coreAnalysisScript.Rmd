@@ -43,6 +43,7 @@ Tests and explorations which depend on a specific advisor set are not included b
 
 ```{r}
 folderName <- "G:\\Documents\\University\\Google Drive\\Temp\\data\\processed"
+folderName <- "G:/Documents/University/Google Drive/Project Documents/AdvisorChoice/results/Accuracy/2018-09-17 120 practice trials/processed"
 results <- loadFilesFromFolder(folderName)
 results <- removeParticipantIds(results)
 
@@ -51,7 +52,7 @@ results <- removeParticipantIds(results)
 # results <- simulateAdvisorChoice(5, advisorClasses = c("Advisor"))
 
 # unpack results
-for(i in 1:length(results))
+for (i in 1:length(results))
   assign(names(results)[i], results[i][[1]])
 
 cat(paste('Loaded data from', folderName))
@@ -684,6 +685,35 @@ ggplot(tmp, aes(x = refAdvisor, y = participants, fill = bestModel)) +
 
 # Exploration 
 
+## Bayesian confidence update
+
+If participants update their confidence in a Bayesian manner, it is possible to use their initial and final confidence to determine the weight placed on the advice. This is because $$posterior = prior \times evidence$$, which implies $$evidence = \frac{posterior}{prior}$$.
+
+```{r}
+
+# Participant responses are cast as a probability that the answer was on the
+# right, scaled to between 1 and 0, exclusive.
+tmp <- trials[!is.nan(trials$finalAnswer), ]
+
+tmp$pre <- tmp$initialConfidence
+tmp$post <- ifelse(tmp$initialAnswer == 1, tmp$finalConfSpan, tmp$finalConfSpan * -1)
+tmp$weight <- tmp$post / tmp$pre
+
+tmp$pre <- (tmp$pre + 1) / 52
+tmp$post <- (tmp$post + 1) / 52
+
+tmp$weight <- tmp$post / tmp$pre
+
+ggplot(tmp[tmp$pid < 100, ], aes(log(weight), fill = advisorAgrees)) +
+  geom_histogram(bins = 100, aes(y = ..ncount..), position = "dodge") + 
+  # geom_freqpoly(bins = 100, aes(colour = factor(pid), y = ..ncount..)) +
+  facet_wrap(~advisorAgrees, labeller = label_both) +
+  style.long + 
+  labs(title = regmatches(folderName, regexpr("([0-9\\-]+[a-zA-Z0-9 ]*)/", folderName)))
+
+table(round(tmp$weight))
+```
+
 # Credits 
 
 ## Acknowledgements
@@ -696,11 +726,11 @@ Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.
 # list packages
 packageNames <- (.packages())
 # don't include very core package
-packageNames <- packageNames[!(packageNames %in% rownames(installed.packages(priority="base")))]
+packageNames <- packageNames[!(packageNames %in% rownames(installed.packages(priority = "base")))]
 # but do include the base package
 packageNames <- c("base", packageNames)
 out <- NULL
-for(p in packageNames) {
+for (p in packageNames) {
   out <- rbind(out, data.frame('Package' = p, 
                                'Citations' = paste(format(citation(p), style = 'textVersion'), 
                                                    collapse = '<br/><br/>')))

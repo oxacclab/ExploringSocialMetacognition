@@ -967,6 +967,9 @@ class Governor {
             else if (elem.msRequestFullscreen) /* IE/Edge */
                 elem.msRequestFullscreen();
         } else {
+            // don't exit if we're not in fullscreen mode
+            if(document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen)
+                return;
             if (document.exitFullscreen)
                 document.exitFullscreen();
             else if (document.mozCancelFullScreen)  /* Firefox */
