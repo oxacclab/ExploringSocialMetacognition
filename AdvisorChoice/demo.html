@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advisor Choice Experiment</title>
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="../src/sha1.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/jspsych.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/plugins/jspsych-instructions.js"></script>
+    <script src="https://mjaquiery.github.io/jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
+    <!--local dev versions of jsPsych-->
+    <!--script src="../jsPsych/jspsych.js"></script>
+    <script src="../jsPsych/plugins/jspsych-instructions.js"></script>
+    <script src="../jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="../jsPsych/plugins/jspsych-canvas-sliders-response.js"></script-->
+    <script src="../src/bowser.min.js"></script>
+    <script src="../src/jspsych-function-sliders-response.js"></script>
+    <script src="../src/jspsych-jas-present-advice-choice.js"></script>
+    <script src="../src/jspsych-canvas-sliders-response.js"></script>
+
+    <link rel="stylesheet" href="../style/advisorChoice.css"/>
+    <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
+    <link rel="stylesheet" href="../style/confidenceSliders.css"/>
+    <link rel="stylesheet" href="../style/feedbackStyle.css"/>
+    <link rel="stylesheet" href="../style/debriefForm.css"/>
+
+    <style type="text/css">
+        :root {
+            --content-height: 500;
+            --content-width: 900;
+
+            --tag-border-radius: 0.5em;
+
+            --advisor-1-p: 169, 5, 255;
+            --advisor-1-primary: rgb(var(--advisor-1-p));
+            --advisor-1-s: 82, 5, 146;
+            --advisor-1-secondary: rgb(var(--advisor-1-s));
+            --advisor-2-p: 255, 107, 0;
+            --advisor-2-primary: rgb(var(--advisor-2-p));
+            --advisor-2-s: 155, 68, 0;
+            --advisor-2-secondary: rgb(var(--advisor-2-s));
+
+            --group-1-p: 132, 191, 255;
+            --group-1-primary: rgb(var(--group-1-p));
+            --group-1-s: 16, 78, 145;
+            --group-1-secondary: rgb(var(--group-1-s));
+            --group-2-p: 23, 211, 69;
+            --group-2-primary: rgb(var(--group-2-p));
+            --group-2-s: 8, 123, 36;
+            --group-2-secondary: rgb(var(--group-2-s));
+
+            --response-label-padding: 5px;
+            --response-maker-width: 40px;
+            --response-marker-height: 30px;
+            --response-vBar-offset: 65px;
+            --response-bar-thickness: 25px;
+
+            --min-opacity: 0.4;
+        }
+
+        body {
+            background-color: white;
+        }
+
+        #jspsych-content {
+            height: calc(var(--content-height) * 1px);
+            width: calc(var(--content-width) * 1px);
+            max-width: 100%;
+            box-shadow: 0 0 5px 0px #777777;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #jspsych-content > .frame {
+            display: inline-flex;
+            flex-wrap: nowrap;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        #jspsych-content > .frame.top {
+            height: 60rem;
+            margin-top: .2em;
+        }
+
+        #jspsych-content > .frame.bottom {
+            height: 40rem;
+        }
+
+        #jspsych-content > .frame > .left,
+        #jspsych-content > .frame > .right {
+            width: 100%;
+        }
+
+        #stimulus {
+            height: calc(var(--content-height) * 1px / 2);
+            width: calc(var(--content-width) * 1px / 2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #stimulus * {
+            max-height: 100%;
+        }
+        #stimulus > *:first-child {
+            margin: auto;
+        }
+
+        #prompt {
+            margin: .25em 0;
+            font-size: 1.2em;
+        }
+
+        #response-panel {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.5s;
+        }
+        #response-panel.cloak {
+            opacity: 0.3;
+        }
+
+        .progress-bar {
+            display: block;
+            height: .1em;
+            width: 99%;
+            margin: 2px auto;
+        }
+        .progress-bar .outer {
+            height: 100%;
+            width: 100%;
+            border: 1px solid transparent;
+            background-color: #fcb8b8;
+        }
+        .progress-bar .inner {
+            height: 100%;
+            width: 75%;
+            background-color: #bf4aaa;
+        }
+
+        .advisor-key-row {
+            display: flex;
+            line-height: 2em;
+            padding: .25em;
+            margin: 0 0 .5em 0;
+        }
+        .left > .advisor-key > .advisor-key-row {
+            border-top-right-radius: var(--tag-border-radius);
+            border-bottom-right-radius: var(--tag-border-radius);
+            box-shadow: 1px 1px 1px 0 black;
+        }
+        .right > .advisor-key > .advisor-key-row {
+            border-top-left-radius: var(--tag-border-radius);
+            border-bottom-left-radius: var(--tag-border-radius);
+            box-shadow: -1px 1px 1px 0 black;
+        }
+
+        .marker {
+            width: 1em;
+            height: 1em;
+            border-radius: 1em;
+            border: 1px solid;
+            margin: .5em;
+        }
+
+        .advisor-bg-1 {
+            background-color: var(--advisor-1-primary);
+        }
+        .advisor-bg-2 {
+            background-color: var(--advisor-2-primary);
+        }
+        .advisor-border-1 {
+            border-color: var(--advisor-1-secondary);
+        }
+        .advisor-border-2 {
+            border-color: var(--advisor-2-secondary);
+        }
+
+        .group-bg-1 {
+            background-color: var(--group-1-primary);
+        }
+        .group-bg-2 {
+            background-color: var(--group-2-primary);
+        }
+
+        .group-border-1 {
+            border-color: var(--group-1-secondary);
+        }
+        .group-border-2 {
+            border-color: var(--group-2-secondary);
+        }
+
+        .group-bg-gradient-1 {
+            background-image: linear-gradient(var(--group-1-primary), rgba(var(--group-1-p), var(--min-opacity)));
+        }
+        .group-bg-gradient-2 {
+            background-image: linear-gradient(var(--group-2-primary), rgba(var(--group-2-p), var(--min-opacity)));
+        }
+
+        .response-hBar {
+            position: relative;
+            width: 80%;
+            background-color: #eeeeee;
+            height: var(--response-bar-thickness);
+            margin: auto;
+            box-shadow: 0 0 5px 0 #777777;
+        }
+
+        .response-vBar {
+            height: 150px;
+            background-color: white;
+            position: absolute;
+            top: calc((var(--response-vBar-offset) * -1) + var(--response-bar-thickness));
+            transition: all .2s;
+        }
+
+        .response-vBar,
+        .response-widget {
+            width: var(--response-bar-thickness);
+        }
+
+        .response-widget {
+            left: calc(50% - var(--response-bar-thickness) / 2);
+        }
+
+        .response-label,
+        .response-widget {
+            position: absolute;
+            top: -100%;
+            max-width: 10%;
+            overflow-wrap: break-word;
+        }
+
+        .response-label {
+            opacity: 1;
+        }
+
+        .response-label.left,
+        .response-label.right {
+            top: calc(50% - 0.5em);
+            line-height: 1em;
+        }
+
+        .response-label.top,
+        .response-label.bottom {
+            top: unset;
+            max-width: 100px;
+            transform: translateX(calc(-50% + (var(--response-bar-thickness) / 2)));
+        }
+
+        .response-vBar.cloak .response-label {
+            opacity: 0;
+        }
+
+        .response-label.left {
+            right: calc(100% + var(--response-label-padding));
+        }
+        .response-label.right {
+            left: calc(100% + var(--response-label-padding));
+        }
+        .response-label.top {
+            bottom: 100%
+        }
+        .response-label.bottom {
+            top: 100%;
+        }
+
+        .response-marker {
+            position: absolute;
+            width: var(--response-maker-width);
+            height: var(--response-marker-height);
+            left: calc(50% - (var(--response-maker-width) / 2));
+            top: calc(var(--response-vBar-offset) + ((var(--response-bar-thickness) - var(--response-marker-height)) / 2));
+            border-radius: 5px;
+            cursor: none;
+            transition: opacity .1s;
+        }
+
+        .response-vBar.cloak {
+            background-color: unset;
+            background-image: unset;
+        }
+
+    </style>
+</head>
+<body class="jspsych-display-element" tabindex="0" style="margin: 0; height: 100%; width: 100%;">
+<div class="jspsych-content-wrapper" style="height: 100vh;">
+    <div id="jspsych-content" class="jspsych-content">
+        <div class="progress-bar">
+            <div class="outer">
+                <div class="inner"></div>
+            </div>
+        </div>
+        <div class="frame top">
+            <div class="left">
+                <div class="advisor-key">
+                    <div class="advisor-key-row group-bg-2 group-border-2">
+                        You are in Group 2
+                    </div>
+                </div>
+            </div>
+            <div class="middle">
+                <div id="stimulus">
+                    <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg"/>
+                </div>
+                <div id="prompt">How much are the coins worth?</div>
+            </div>
+            <div class="right">
+                <div class="advisor-key">
+                    <div class="advisor-key-row advisor-1 group-bg-2 group-border-2">
+                        <div class="marker advisor-bg-1 advisor-border-1"></div>
+                        Advisor #25
+                    </div>
+                    <div class="advisor-key-row advisor-2 group-bg-1 group-border-1">
+                        <div class="marker advisor-bg-2 advisor-border-2"></div>
+                        Advisor #352
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="frame bottom">
+            <div id="response-panel" class="cloak">
+                <div class="response-hBar" data-min="1.00" data-max="5.00" data-prefix="" data-suffix="" data-decimals="2">
+                    <div class="response-label left">&pound;1.00</div>
+                    <div class="response-label right">&pound;5.00</div>
+                    <div class="response-widget">
+                        <div class="response-vBar cloak group-bg-gradient-2">
+                            <div class="response-label top">certain</div>
+                            <div class="response-label bottom">guess</div>
+                            <div class="response-marker group-bg-2">3.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    "use strict";
+
+    function enableResponse() {
+        document.querySelector("#response-panel").classList.remove("cloak");
+
+        let hBar = document.querySelector(".response-hBar");
+        let vBar = document.querySelector(".response-vBar");
+
+        hBar.addEventListener("mousemove", updateMarkerFromCursor);
+
+        hBar.addEventListener("click", saveMarkerResponse);
+    }
+
+    function updateMarkerFromCursor(e) {
+        let ct = e.currentTarget;
+        let t = ct.querySelector(".response-widget");
+        let cursor = e.clientX - ct.offsetLeft - (t.clientWidth / 2);
+        let max = ct.clientWidth - t.clientWidth;
+        let left = cursor < 0? 0 : cursor > max? max : cursor;
+        t.style.left = left + "px";
+
+        // Text label
+        let d = ct.dataset;
+        let number = (parseFloat(d.max) - parseFloat(d.min)) / (ct.clientWidth - t.clientWidth) * left;
+        number += parseFloat(d.min);
+        number = number.toFixed(d.decimals || 0);
+
+        t.querySelector(".response-marker").innerText = d.prefix + number + d.suffix;
+    }
+
+    function saveMarkerResponse(e) {
+        updateMarkerFromCursor(e);
+        e.currentTarget.removeEventListener("mousemove", updateMarkerFromCursor);
+        e.currentTarget.removeEventListener("click", saveMarkerResponse);
+
+        // Enable confidence responding
+
+        let vBar = document.querySelector(".response-vBar");
+
+        vBar.addEventListener("mousemove", updateConfidenceFromCursor);
+        vBar.addEventListener("click", saveConfidenceResponse);
+        vBar.classList.remove('cloak');
+
+        console.log("saveMarkerResponse")
+    }
+
+    function updateConfidenceFromCursor(e) {
+        let t = e.currentTarget.querySelector(".response-marker");
+        let cursor = e.currentTarget.getBoundingClientRect().top - e.clientY + (t.clientHeight / 2);
+        let max = e.currentTarget.clientHeight - t.clientHeight;
+        cursor *= -1;
+        let top = cursor < 0? 0 : cursor > max? max : cursor;
+        t.style.top = top + "px";
+
+        let p = (.6 / (e.currentTarget.clientHeight - t.clientHeight) * top) + .4;
+        t.style.opacity = (1.4 - p);
+
+        console.log(p)
+    }
+
+    function saveConfidenceResponse(e) {
+        updateConfidenceFromCursor(e);
+        e.currentTarget.removeEventListener("mousemove", updateConfidenceFromCursor);
+        e.currentTarget.removeEventListener("click", saveConfidenceResponse);
+
+        console.log("saveConfidenceResponse")
+    }
+
+    setTimeout(enableResponse, 1000);
+
+</script>
+</body>
+</html>

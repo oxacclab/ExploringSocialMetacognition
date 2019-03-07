@@ -84,6 +84,35 @@ table(round(tmp$weight))
 hist(round(tmp$weight))
 
 
+# WoA analysis ------------------------------------------------------------
+
+#' We can construct a weight-on-advice type measure by assuming that advice
+#' always recommends 100% certain in the advice direction. 
+
+# WoA = (final - initial) / (advice - initial) 
+
+tmp$adviceSpan <- ifelse(tmp$adviceSide == 0, -50, 50)
+
+tmp$WoA <- (tmp$finalConfSpan - tmp$initialConfSpan) / 
+  (tmp$adviceSpan - tmp$initialConfSpan)
+
+# truncate bad values
+tmp$WoA[tmp$WoA < 0] <- 0
+tmp$WoA[tmp$WoA > 1] <- 1
+
+tmp <- tmp[!is.na(tmp$WoA), ]
+
+# histogram
+tmp$WoA_f <- cut(tmp$WoA, 10)
+ggplot(tmp, aes(WoA_f, fill = advisorAgrees)) +
+  geom_histogram(stat = "count", position = "dodge") + 
+  # facet_wrap(~advisorAgrees, labeller = label_both) +
+  style.long + 
+  labs(title = 'Data from all participants',
+       subtitle = paste('Participants =', length(unique(tmp$pid)),
+                        'Trials =', nrow(tmp)))
+  
+
 # Individual participants animation ---------------------------------------
 
 library(gganimate)
