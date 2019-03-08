@@ -98,6 +98,10 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            opacity: 1;
+        }
+        #stimulus.cloak {
+            opacity: 0;
         }
         #stimulus * {
             max-height: 100%;
@@ -124,20 +128,17 @@
 
         .progress-bar {
             display: block;
-            height: .1em;
+            height: .2em;
             width: 99%;
             margin: 2px auto;
         }
         .progress-bar .outer {
             height: 100%;
-            width: 100%;
+            width: 75%;
             border: 1px solid transparent;
-            background-color: #fcb8b8;
+            background-color: #00ccfc;
         }
         .progress-bar .inner {
-            height: 100%;
-            width: 75%;
-            background-color: #bf4aaa;
         }
 
         .advisor-key-row {
@@ -146,12 +147,12 @@
             padding: .25em;
             margin: 0 0 .5em 0;
         }
-        .left > .advisor-key > .advisor-key-row {
+        .left > .advisor-key-row {
             border-top-right-radius: var(--tag-border-radius);
             border-bottom-right-radius: var(--tag-border-radius);
             box-shadow: 1px 1px 1px 0 black;
         }
-        .right > .advisor-key > .advisor-key-row {
+        .right > .advisor-key-row {
             border-top-left-radius: var(--tag-border-radius);
             border-bottom-left-radius: var(--tag-border-radius);
             box-shadow: -1px 1px 1px 0 black;
@@ -277,6 +278,10 @@
             cursor: none;
             transition: opacity .1s;
         }
+        esm-response-widget,
+        esm-response-widget.cloak .response-marker {
+            cursor: default;
+        }
 
         .response-vBar.cloak {
             background-color: unset;
@@ -295,34 +300,30 @@
         </div>
         <div class="frame top">
             <div class="left">
-                <div class="advisor-key">
-                    <div class="advisor-key-row group-bg-2 group-border-2">
-                        You are in Group 2
-                    </div>
+                <div class="advisor-key-row group-bg-2 group-border-2">
+                    You are in Group 2
                 </div>
             </div>
             <div class="middle">
                 <div id="stimulus">
                     <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg"/>
                 </div>
-                <div id="prompt">How much are the coins worth?</div>
+                <div id="prompt">Prompt text</div>
             </div>
             <div class="right">
-                <div class="advisor-key">
-                    <div class="advisor-key-row advisor-1 group-bg-2 group-border-2">
-                        <div class="marker advisor-bg-1 advisor-border-1"></div>
-                        Advisor #25
-                    </div>
-                    <div class="advisor-key-row advisor-2 group-bg-1 group-border-1">
-                        <div class="marker advisor-bg-2 advisor-border-2"></div>
-                        Advisor #352
-                    </div>
+                <div class="advisor-key-row advisor-1 group-bg-2 group-border-2">
+                    <div class="marker advisor-bg-1 advisor-border-1"></div>
+                    Advisor #25
+                </div>
+                <div class="advisor-key-row advisor-2 group-bg-1 group-border-1">
+                    <div class="marker advisor-bg-2 advisor-border-2"></div>
+                    Advisor #352
                 </div>
             </div>
         </div>
         <div class="frame bottom">
-            <div id="response-panel" class="cloak">
-                <div class="response-hBar" data-min="1.00" data-max="5.00" data-prefix="" data-suffix="" data-decimals="2">
+            <esm-response-widget id="response-panel" class="cloak" data-min="1.00" data-max="5.00" data-prefix="" data-suffix="" data-decimals="2">
+                <div class="response-hBar">
                     <div class="response-label left">&pound;1.00</div>
                     <div class="response-label right">&pound;5.00</div>
                     <div class="response-widget">
@@ -333,80 +334,296 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </esm-response-widget>
         </div>
     </div>
 </div>
 <script type="text/javascript">
     "use strict";
 
-    function enableResponse() {
-        document.querySelector("#response-panel").classList.remove("cloak");
+    customElements.define('esm-response-widget',
+        class ResponseWidget extends HTMLElement {
 
-        let hBar = document.querySelector(".response-hBar");
-        let vBar = document.querySelector(".response-vBar");
+            constructor() {
+                super();
 
-        hBar.addEventListener("mousemove", updateMarkerFromCursor);
+                this.reset();
+            }
 
-        hBar.addEventListener("click", saveMarkerResponse);
+            enableResponse() {
+                this.classList.remove("cloak");
+
+                this.addEventListener("mousemove", this.updateEstimate);
+                this.addEventListener("click", this.saveEstimate);
+            }
+
+            updateEstimate(e) {
+                let hBar = this.querySelector(".response-hBar");
+                let widget = hBar.querySelector(".response-widget");
+
+                let cursor = e.clientX - hBar.offsetLeft - (widget.clientWidth / 2);
+                let max = hBar.clientWidth - widget.clientWidth;
+                let left = cursor < 0? 0 : cursor > max? max : cursor;
+
+                widget.style.left = left + "px";
+
+                // Text label
+                let d = this.dataset;
+                let number =
+                    (parseFloat(d.max) - parseFloat(d.min)) /
+                    (hBar.clientWidth - widget.clientWidth) *
+                    left;
+                number += parseFloat(d.min);
+
+                let text = d.prefix + number.toFixed(d.decimals || 0) + d.suffix;
+
+                widget.querySelector(".response-marker").innerText = text;
+
+                // Record estimate info
+                this.responseData.estimate = number;
+                this.responseData.estimateLabel = text;
+                this.responseData.timeEstimate = new Date().getTime();
+            }
+
+            saveEstimate(e) {
+                this.updateEstimate(e);
+                this.removeEventListener("mousemove", this.updateEstimate);
+                this.removeEventListener("click", this.saveEstimate);
+
+                // Show the confidence bar
+                this.querySelector(".response-vBar").classList.remove('cloak');
+
+                // Enable confidence responding
+                this.addEventListener("mousemove", this.updateConfidence);
+                this.addEventListener("click", this.saveConfidence);
+
+            }
+
+            updateConfidence(e) {
+                let vBar = this.querySelector(".response-vBar");
+                let widget = e.currentTarget.querySelector(".response-marker");
+                let cursor =
+                    vBar.getBoundingClientRect().top -
+                    e.clientY +
+                    (widget.clientHeight / 2);
+                let max = vBar.clientHeight - widget.clientHeight;
+                cursor *= -1;
+                let top = cursor < 0? 0 : cursor > max? max : cursor;
+                widget.style.top = top + "px";
+
+                let p = 1 - (1 / (vBar.clientHeight - widget.clientHeight) * top);
+
+                widget.style.opacity = (.6 * p) + .4;
+
+                // Record response
+                this.responseData.confidence = p;
+                this.responseData.timeConfidence = new Date().getTime();
+            }
+
+            saveConfidence(e) {
+                this.updateConfidence(e);
+                this.removeEventListener("mousemove", this.updateConfidence);
+                this.removeEventListener("click", this.saveConfidence);
+
+                this.responseData.complete = true;
+            }
+
+            getResponse(timeout) {
+                const me = this;
+                this.enableResponse();
+
+                return new Promise(function (resolve, reject) {
+                    let ms = 50;
+                    let check = function(x) {
+                        if(me.responseData.complete) {
+                            setTimeout(() => me.reset(), 25);
+                            resolve(me.responseData);
+                        }
+                        else if(x > timeout / ms)
+                            reject("Timeout");
+                        else
+                            setTimeout(check, ms, x++);
+                    };
+                    check(0);
+                });
+            }
+
+            reset() {
+                this.classList.add('cloak');
+
+                // clear data
+                this.responseData = {
+                    estimate: null,
+                    estimateLabel: null,
+                    timeEstimate: null,
+
+                    confidence: null,
+                    timeConfidence: null,
+
+                    complete: false
+                };
+
+                // reset widget styling
+                this.querySelector(".response-widget").style.left = "";
+                this.querySelector(".response-vBar").classList.add('cloak');
+                this.querySelector(".response-marker").style.top = "";
+                this.querySelector(".response-marker").style.opacity = "1";
+
+                let d = this.dataset;
+                let number = (parseFloat(d.max) - parseFloat(d.min)) / 2;
+                number += parseFloat(d.min);
+
+                let text = d.prefix + number.toFixed(d.decimals || 0) + d.suffix;
+                this.querySelector(".response-marker").innerText = text;
+
+            }
+        }
+    );
+
+    const X = {
+        stimulus: document.querySelector("#stimulus"),
+        prompt: document.querySelector("#prompt"),
+        response: document.querySelector("esm-response-widget")
+    };
+
+    class Trial {
+        /**
+         * Run a trial
+         */
+        constructor(callback) {
+
+            this.callback = null;
+            this.activeTimeout = null;
+
+            this.stim = new Image();
+            this.stim.src = "https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg";
+
+            this.data = {
+                timestampStart: null,
+                timeStimOn: null,
+                timeStimOff: null,
+                timeEnd: null,
+
+                stim: this.stim.src
+            };
+
+            Trial.reset();
+
+            if(typeof callback === "function")
+                this.begin(callback);
+        }
+
+        begin(callback) {
+            if(typeof callback === "function")
+                this.callback = (stage) => callback(stage, this);
+            else
+                this.callback = () => {};
+
+            this.callback("begin");
+
+            X.stimulus.innerHTML = this.stim.outerHTML;
+            X.prompt.innerHTML = "How much are the coins worth?";
+
+            this.data.timestampStart = new Date().getTime();
+
+            this.activeTimeout = setTimeout(() => this.showStim(), 500);
+        }
+
+        showStim() {
+            this.callback("showStim");
+
+            this.data.timeStimOn = new Date().getTime() - this.data.timestampStart;
+            X.stimulus.classList.remove('cloak');
+
+            this.activeTimeout = setTimeout(() => this.hideStim(), 1000);
+        }
+
+        hideStim() {
+            this.callback("hideStim");
+
+            this.data.timeStimOff = new Date().getTime() - this.data.timestampStart;
+            X.stimulus.classList.add('cloak');
+
+            this.getResponse()
+                .then((data) => this.processResponse(data, false));
+        }
+
+        async getResponse() {
+
+            this.callback("getResponse");
+
+            let response = await X.response.getResponse(Infinity);
+            if(response === "undefined") {
+                console.log("Timeout on response");
+            } else {
+                console.log(response);
+            }
+            return response;
+        }
+
+        processResponse(data, isInitial) {
+
+            this.callback("processResponse");
+
+            let me = this;
+
+            Object.keys(data).forEach((k) => {
+                const s = isInitial? "initialResponse" : "finalResponse";
+                if(/time/.test(k))
+                    data[k] -= me.data.timestampStart;
+
+                // Save in camelCase
+                me.data[s + k.substr(0,1).toUpperCase() + k.substr(1)] =
+                    data[k];
+            });
+
+            if(isInitial) {
+
+            } else {
+                this.data.timeEnd = new Date().getDate() - this.data.timestampStart;
+                this.cleanup();
+
+            }
+        }
+
+        cleanup() {
+            this.callback("cleanup");
+            Trial.reset();
+
+            console.log(this.data)
+        }
+
+        static reset() {
+            X.stimulus.classList.add('cloak');
+            X.prompt.innerHTML = "";
+        }
+
     }
 
-    function updateMarkerFromCursor(e) {
-        let ct = e.currentTarget;
-        let t = ct.querySelector(".response-widget");
-        let cursor = e.clientX - ct.offsetLeft - (t.clientWidth / 2);
-        let max = ct.clientWidth - t.clientWidth;
-        let left = cursor < 0? 0 : cursor > max? max : cursor;
-        t.style.left = left + "px";
-
-        // Text label
-        let d = ct.dataset;
-        let number = (parseFloat(d.max) - parseFloat(d.min)) / (ct.clientWidth - t.clientWidth) * left;
-        number += parseFloat(d.min);
-        number = number.toFixed(d.decimals || 0);
-
-        t.querySelector(".response-marker").innerText = d.prefix + number + d.suffix;
+    function sendEvent(stage, trial) {
+        if(stage === "cleanup")
+            X.stimulus.dispatchEvent(new CustomEvent("trialEnd", {
+                bubbles: true,
+                detail: {
+                    trial
+                },
+                target: X.stimulus
+            }));
     }
 
-    function saveMarkerResponse(e) {
-        updateMarkerFromCursor(e);
-        e.currentTarget.removeEventListener("mousemove", updateMarkerFromCursor);
-        e.currentTarget.removeEventListener("click", saveMarkerResponse);
+    window.data = [];
+    window.ITI = 500;
 
-        // Enable confidence responding
-
-        let vBar = document.querySelector(".response-vBar");
-
-        vBar.addEventListener("mousemove", updateConfidenceFromCursor);
-        vBar.addEventListener("click", saveConfidenceResponse);
-        vBar.classList.remove('cloak');
-
-        console.log("saveMarkerResponse")
+    function nextTrial(trialEndEvent) {
+        window.data.push(trialEndEvent.detail.trial.data);
+        if(window.data.length < 2)
+            setTimeout(() => new Trial(sendEvent), ITI);
     }
 
-    function updateConfidenceFromCursor(e) {
-        let t = e.currentTarget.querySelector(".response-marker");
-        let cursor = e.currentTarget.getBoundingClientRect().top - e.clientY + (t.clientHeight / 2);
-        let max = e.currentTarget.clientHeight - t.clientHeight;
-        cursor *= -1;
-        let top = cursor < 0? 0 : cursor > max? max : cursor;
-        t.style.top = top + "px";
+    X.stimulus.addEventListener("trialEnd", nextTrial);
 
-        let p = (.6 / (e.currentTarget.clientHeight - t.clientHeight) * top) + .4;
-        t.style.opacity = (1.4 - p);
-
-        console.log(p)
-    }
-
-    function saveConfidenceResponse(e) {
-        updateConfidenceFromCursor(e);
-        e.currentTarget.removeEventListener("mousemove", updateConfidenceFromCursor);
-        e.currentTarget.removeEventListener("click", saveConfidenceResponse);
-
-        console.log("saveConfidenceResponse")
-    }
-
-    setTimeout(enableResponse, 1000);
+    Trial.reset();
+    setTimeout(() => new Trial(sendEvent), ITI);
 
 </script>
 </body>
