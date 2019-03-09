@@ -61,6 +61,102 @@
         body {
             background-color: white;
         }
+        div {
+            position: relative;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        :root{
+            --esm-help-width: 250px;
+            --esm-help-arrowSize: 5px;
+            --esm-help-backgroundColor: #f9f6ac;
+            --esm-help-borderColor: black;
+        }
+        esm-help {
+            width: var(--esm-help-width);
+            position: absolute;
+            z-index: 1000;
+            background-color: var(--esm-help-backgroundColor);
+            color: #000000;
+            text-align: center;
+            padding: 5px 0;
+            border-radius: 6px;
+            border: 1px solid var(--esm-help-borderColor);
+            font-size: 0.8em;
+            cursor: pointer;
+            overflow: visible;
+            line-height: 1.2em;
+        }
+        esm-help:not(.top):not(.bottom):not(.left):not(.right) {
+            top: 50%;
+            left: calc(50% - var(--esm-help-width) / 2);
+            transform: translateY(-50%);
+        }
+        esm-help::after {
+            content: " ";
+            position: absolute;
+            margin-left: calc(var(--esm-help-arrowSize) * -1);
+            border-width: var(--esm-help-arrowSize);
+            border-style: solid;
+            border-color: transparent;
+        }
+        esm-help.top {
+            left: calc(50% - var(--esm-help-width) / 2);
+            bottom: calc(100% + var(--esm-help-arrowSize));
+        }
+        esm-help.top::after {
+            top: 100%;
+            left: 50%;
+            border-top-color: var(--esm-help-borderColor);
+        }
+        esm-help.bottom {
+            left: calc(50% - var(--esm-help-width) / 2);
+            top: calc(100% + var(--esm-help-arrowSize));
+        }
+        esm-help.bottom::after {
+            bottom: 100%;
+            left: 50%;
+            border-bottom-color: var(--esm-help-borderColor);
+        }
+        esm-help.left {
+            right: calc(100% + var(--esm-help-arrowSize));
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        esm-help.left::after {
+            left: 102%;
+            top: calc(50% - var(--esm-help-arrowSize));
+            border-left-color: var(--esm-help-borderColor);
+        }
+        esm-help.right {
+            left: calc(100% + var(--esm-help-arrowSize));
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        esm-help.right::after {
+            right: 100%;
+            top: calc(50% - var(--esm-help-arrowSize));
+            border-right-color: var(--esm-help-borderColor);
+        }
+        .esm-help-enabled {
+            cursor: pointer;
+        }
+        .esm-help-enabled:hover::before {
+            background-color: var(--esm-help-backgroundColor);
+            outline: 1px solid var(--esm-help-borderColor);
+            content: "";
+            width: calc(100% + var(--esm-help-arrowSize) * 2);
+            position: absolute;
+            height: calc(100% + var(--esm-help-arrowSize) * 2);
+            margin: var(--esm-help-arrowSize);
+            top: calc(var(--esm-help-arrowSize) * -2);
+            left: calc(var(--esm-help-arrowSize) * -2);
+            opacity: .5;
+            z-index: -1;
+        }
 
         #jspsych-content {
             height: calc(var(--content-height) * 1px);
@@ -90,6 +186,9 @@
         #jspsych-content > .frame > .left,
         #jspsych-content > .frame > .right {
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: auto;
         }
 
         #stimulus {
@@ -297,11 +396,17 @@
             <div class="outer">
                 <div class="inner"></div>
             </div>
+            <esm-help data-group="interface" class="bottom">
+                The <em>progress bar</em> shows how far through the study you are.
+            </esm-help>
         </div>
         <div class="frame top">
             <div class="left">
                 <div class="advisor-key-row group-bg-2 group-border-2">
                     You are in Group 2
+                    <esm-help data-group="interface" class="right">
+                        This <em>tag</em> shows which group you've been assigned to.
+                    </esm-help>
                 </div>
             </div>
             <div class="middle">
@@ -309,15 +414,24 @@
                     <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg"/>
                 </div>
                 <div id="prompt">Prompt text</div>
+                <esm-help data-group="interface" class="">
+                    This is the <em>stimulus</em> you have to respond to. Below is the <em>prompt</em> area which tells you how to respond and provides further information.
+                </esm-help>
             </div>
             <div class="right">
                 <div class="advisor-key-row advisor-1 group-bg-2 group-border-2">
                     <div class="marker advisor-bg-1 advisor-border-1"></div>
                     Advisor #25
+                    <esm-help data-group="interface" class="left">
+                        This <em>tag</em> shows details for one of your advisors. The background colour shows you their group, and the <em>marker</em> shows you the colour used to indicate their advice.
+                    </esm-help>
                 </div>
                 <div class="advisor-key-row advisor-2 group-bg-1 group-border-1">
                     <div class="marker advisor-bg-2 advisor-border-2"></div>
                     Advisor #352
+                    <esm-help data-group="interface" class="left">
+                        This <em>tag</em> shows details for one of your advisors. The background colour shows you their group, and the <em>marker</em> shows you the colour used to indicate their advice.
+                    </esm-help>
                 </div>
             </div>
         </div>
@@ -335,9 +449,13 @@
                     </div>
                 </div>
             </esm-response-widget>
+            <esm-help data-group="interface" class="top">
+                This <em>response panel</em> allows you to indicate your answer. When enabled, the marker will follow your mouse movements. <strong>Click</strong> or <strong>Tap</strong> to indicate your answer. You will then see the vertical bar which allows you to indicate your <em>confidence</em> in your answer. Again, <strong>Click</strong> or <strong>Tap</strong> to indicate your <em>confidence</em>.
+            </esm-help>
         </div>
     </div>
 </div>
+<button onclick="toggleHelp()" style="position: fixed; font-size: 1em; margin: .5em; padding: 0.3em;">Enable help</button>
 <script type="text/javascript">
     "use strict";
 
@@ -361,7 +479,10 @@
                 let hBar = this.querySelector(".response-hBar");
                 let widget = hBar.querySelector(".response-widget");
 
-                let cursor = e.clientX - hBar.offsetLeft - (widget.clientWidth / 2);
+                let cursor =
+                    e.clientX -
+                    hBar.getBoundingClientRect().x -
+                    (widget.clientWidth / 2);
                 let max = hBar.clientWidth - widget.clientWidth;
                 let left = cursor < 0? 0 : cursor > max? max : cursor;
 
@@ -480,6 +601,93 @@
         }
     );
 
+    customElements.define('esm-help',
+        class HelpDiv extends HTMLElement {
+
+            constructor() {
+                super();
+
+                // Start hidden
+                this.classList.add("hidden");
+
+                this.lastToggleTime = new Date().getTime();
+                this.minToggleTimeDifference = 25;
+
+                let me = this;
+                this.sendShowHelpEvent = function(e) {
+                    me.dispatchEvent(new CustomEvent("showHelp", {
+                        bubbles: false,
+                        detail: {
+                            parentEvent: e
+                        },
+                        target: me
+                    }));
+                };
+            }
+
+            toggleVisibility(e) {
+                let now = new Date().getTime();
+                if(now < this.lastToggleTime + this.minToggleTimeDifference)
+                    return;
+                else
+                    this.lastToggleTime = now;
+
+                // Hidden (will be shown by the toggle)
+                if(this.classList.contains("hidden")) {
+                    // Close HelpDivs with a shared (space-separated) group tag
+                    if(this.dataset.hasOwnProperty("group")) {
+                        // Iterate this element's groups
+                        this.dataset.group.split(" ").forEach((g) => {
+                                let others = document.querySelectorAll(
+                                    "esm-help[data-group~='" + g + "']"
+                                );
+                                others.forEach((elm) => elm.classList.add("hidden"));
+                            }
+                        );
+                    }
+                } else {
+                    // Don't close by clicks on the element that opened this
+                    if(this.dataset.parentClickCloses === "false" &&
+                        e.type === "showHelp")
+                        return this;
+                }
+
+                // Toggle visibility
+                this.classList.toggle("hidden");
+
+                return this;
+            }
+
+            enable() {
+                this.parentElement.addEventListener("click", this.sendShowHelpEvent);
+                this.parentElement.classList.add("esm-help-enabled");
+
+                this.addEventListener("click", this.toggleVisibility);
+                this.addEventListener("showHelp", this.toggleVisibility);
+
+                return this;
+            }
+
+            disable() {
+                this.parentElement.removeEventListener("click",
+                    this.sendShowHelpEvent);
+                this.parentElement.classList.remove("esm-help-enabled");
+
+                this.removeEventListener("click", this.toggleVisibility);
+                this.removeEventListener("showHelp", this.toggleVisibility);
+
+                return this;
+            }
+
+            toggle() {
+                if(this.parentElement.classList.contains("esm-help-enabled"))
+                    this.disable();
+                else
+                    this.enable();
+            }
+        }
+    );
+
     const X = {
         stimulus: document.querySelector("#stimulus"),
         prompt: document.querySelector("#prompt"),
@@ -489,8 +697,10 @@
     class Trial {
         /**
          * Run a trial
+         * @param [callback] {function} called with arguments of <string>stageName and <Trial>this object at each stage
+         * @param [beginImmediately = false] {boolean} whether to begin the trial immediately
          */
-        constructor(callback) {
+        constructor(callback, beginImmediately = false) {
 
             this.callback = null;
             this.activeTimeout = null;
@@ -510,15 +720,30 @@
             Trial.reset();
 
             if(typeof callback === "function")
-                this.begin(callback);
-        }
-
-        begin(callback) {
-            if(typeof callback === "function")
                 this.callback = (stage) => callback(stage, this);
             else
                 this.callback = () => {};
 
+            if(beginImmediately)
+                this.begin();
+        }
+
+        async run() {
+            this.begin();
+            let me = this;
+            return new Promise(function (resolve, reject) {
+                function check(x) {
+                    if(me.data.timeEnd !== null) {
+                        resolve(me.data);
+                        setTimeout(Trial.reset, 25);
+                    } else
+                        setTimeout(check, 50, x++);
+                }
+                check(0);
+            });
+        }
+
+        begin() {
             this.callback("begin");
 
             X.stimulus.innerHTML = this.stim.outerHTML;
@@ -555,8 +780,6 @@
             let response = await X.response.getResponse(Infinity);
             if(response === "undefined") {
                 console.log("Timeout on response");
-            } else {
-                console.log(response);
             }
             return response;
         }
@@ -589,8 +812,6 @@
         cleanup() {
             this.callback("cleanup");
             Trial.reset();
-
-            console.log(this.data)
         }
 
         static reset() {
@@ -598,6 +819,14 @@
             X.prompt.innerHTML = "";
         }
 
+    }
+
+    function toggleHelp() {
+        document.querySelectorAll("esm-help").forEach((elm) => elm.toggle());
+
+        event.currentTarget.innerText =
+            event.currentTarget.innerText === "Disable help"?
+            "Enable help" : "Disable help";
     }
 
     function sendEvent(stage, trial) {
@@ -611,6 +840,8 @@
             }));
     }
 
+    // Procedural stuff
+
     window.data = [];
     window.ITI = 500;
 
@@ -623,7 +854,23 @@
     X.stimulus.addEventListener("trialEnd", nextTrial);
 
     Trial.reset();
-    setTimeout(() => new Trial(sendEvent), ITI);
+    // setTimeout(() => new Trial(sendEvent), ITI);
+
+    async function runTrials(trials) {
+        let data = [];
+        for (const t of trials)
+            await t.run().then((d) => {
+                data.push(d);
+            });
+
+        return data;
+    }
+
+    runTrials([
+        new Trial((s) => console.log(s)),
+        new Trial((s) => console.log(s))
+    ])
+        .then(console.log);
 
 </script>
 </body>
