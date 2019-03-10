@@ -162,9 +162,10 @@
             height: calc(var(--content-height) * 1px);
             width: calc(var(--content-width) * 1px);
             max-width: 100%;
-            box-shadow: 0 0 5px 0px #777777;
             display: flex;
             flex-direction: column;
+            border: 4px solid black;
+            border-radius: 5px;
         }
 
         #jspsych-content > .frame {
@@ -455,11 +456,32 @@
         </div>
     </div>
 </div>
-<button onclick="toggleHelp()" style="position: fixed; font-size: 1em; margin: .5em; padding: 0.3em;">Enable help</button>
+<button onclick="toggleHelp()" style="
+    position: fixed;
+    font-size: 1em;
+    font-weight: bold;
+    margin: .5em;
+    padding: 0.3em;
+    border-radius: 1em;
+    width: 2em;
+    border: 1px solid black;
+    background-color: transparent;">?</button>
 <script type="text/javascript">
     "use strict";
 
     customElements.define('esm-response-widget',
+        /**
+         * @class The ResponseWidget is a div element which handles responses from
+         * the participant. Its properties are set using the data-* HTML fields.
+         * Currently supports continuous values only, interpolated linearly from
+         * data-min to data-max.
+         *
+         * @property min {double} Minimum response value
+         * @property max {double} Maximum response value
+         * @property prefix {string} Prefix to response values
+         * @property suffix {string} Suffix to response values
+         * @property decimals {int} Number of decimal points in response values
+         */
         class ResponseWidget extends HTMLElement {
 
             constructor() {
@@ -468,6 +490,9 @@
                 this.reset();
             }
 
+            /**
+             * Set up the events for handling estimate input.
+             */
             enableResponse() {
                 this.classList.remove("cloak");
 
@@ -475,6 +500,11 @@
                 this.addEventListener("click", this.saveEstimate);
             }
 
+            /**
+             * Handle estimate input. Update the visual position of the response
+             * widget, the widget label, and store the current value.
+             * @param e {MouseEvent} a mouse move event
+             */
             updateEstimate(e) {
                 let hBar = this.querySelector(".response-hBar");
                 let widget = hBar.querySelector(".response-widget");
@@ -506,6 +536,11 @@
                 this.responseData.timeEstimate = new Date().getTime();
             }
 
+            /**
+             * Save estimate input. Remove the estimate events. Add confidence
+             * events.
+             * @param e {MouseEvent|TouchEvent} a mouse click/touch event
+             */
             saveEstimate(e) {
                 this.updateEstimate(e);
                 this.removeEventListener("mousemove", this.updateEstimate);
@@ -520,6 +555,11 @@
 
             }
 
+            /**
+             * Handle confidence input. Update the visual position of the response
+             * widget and store the current value.
+             * @param e {MouseEvent} a mouse move event
+             */
             updateConfidence(e) {
                 let vBar = this.querySelector(".response-vBar");
                 let widget = e.currentTarget.querySelector(".response-marker");
@@ -541,6 +581,10 @@
                 this.responseData.timeConfidence = new Date().getTime();
             }
 
+            /**
+             * Save confidence input. Remove the confidence events.
+             * @param e {MouseEvent|TouchEvent} a mouse click/touch event
+             */
             saveConfidence(e) {
                 this.updateConfidence(e);
                 this.removeEventListener("mousemove", this.updateConfidence);
@@ -549,6 +593,14 @@
                 this.responseData.complete = true;
             }
 
+            /**
+             * Perform the response collection process.
+             *
+             * @param timeout {int} maximum number of milliseconds to wait before
+             * returning a Timeout.
+             *
+             * @return {Promise} Resolve with the response data, or Timeout reject
+             */
             getResponse(timeout) {
                 const me = this;
                 this.enableResponse();
@@ -569,6 +621,9 @@
                 });
             }
 
+            /**
+             * Refresh the element ready for collecting a new response.
+             */
             reset() {
                 this.classList.add('cloak');
 
@@ -594,16 +649,36 @@
                 let number = (parseFloat(d.max) - parseFloat(d.min)) / 2;
                 number += parseFloat(d.min);
 
-                let text = d.prefix + number.toFixed(d.decimals || 0) + d.suffix;
-                this.querySelector(".response-marker").innerText = text;
+                this.querySelector(".response-marker").innerText =
+                    d.prefix + number.toFixed(d.decimals || 0) + d.suffix;
 
             }
         }
     );
 
     customElements.define('esm-help',
+        /**
+         * @class The HelpDiv contains help text which will be shown in a
+         * tooltip-like manner. Properties are defined using the data-* HTML
+         * properties.
+         *
+         * A HelpDiv is shown when its parent element is clicked. Hovering
+         * over a parent element of an active HelpDiv will show an outline.
+         *
+         * A HelpDiv can be shown/hidden which indicates whether it is visible.
+         * A HelpDiv can also be in/active, which indicates whether it has the
+         * potential to be shown/hidden when its parent element is clicked.
+         * HelpDivs start hidden and inactive.
+         *
+         * @property group {string[]} space-separated list of help groups.
+         * HelpDivs will hide all other HelpDivs sharing a group when they
+         * are revealed.
+         */
         class HelpDiv extends HTMLElement {
 
+            /**
+             * Definition of initial variables.
+             */
             constructor() {
                 super();
 
@@ -625,6 +700,46 @@
                 };
             }
 
+            /**
+             * Display to the user.
+             */
+            show() {
+                // Close HelpDivs with a shared (space-separated) group tag
+                if(this.dataset.hasOwnProperty("group")) {
+                    // Iterate this element's groups
+                    this.dataset.group.split(" ").forEach((g) => {
+                            let others = document.querySelectorAll(
+                                "esm-help[data-group~='" + g + "']"
+                            );
+                            others.forEach((elm) => elm.classList.add("hidden"));
+                        }
+                    );
+                }
+
+                this.classList.remove("hidden");
+
+                return this;
+            }
+
+            /**
+             * Hide from the user.
+             * @param parentClick {boolean} whether the parent element was clicked
+             * (as opposed to this element, or hiding via a script call).
+             */
+            hide(parentClick = false) {
+                // Don't close by clicks on the element that opened this
+                if(this.dataset.parentClickCloses === "false" && parentClick)
+                    return this;
+
+                this.classList.add("hidden");
+
+                return this;
+            }
+
+            /**
+             * Toggle between show and hide states.
+             * @param e {Event} event responsible for engaging the toggle
+             */
             toggleVisibility(e) {
                 let now = new Date().getTime();
                 if(now < this.lastToggleTime + this.minToggleTimeDifference)
@@ -632,32 +747,13 @@
                 else
                     this.lastToggleTime = now;
 
-                // Hidden (will be shown by the toggle)
-                if(this.classList.contains("hidden")) {
-                    // Close HelpDivs with a shared (space-separated) group tag
-                    if(this.dataset.hasOwnProperty("group")) {
-                        // Iterate this element's groups
-                        this.dataset.group.split(" ").forEach((g) => {
-                                let others = document.querySelectorAll(
-                                    "esm-help[data-group~='" + g + "']"
-                                );
-                                others.forEach((elm) => elm.classList.add("hidden"));
-                            }
-                        );
-                    }
-                } else {
-                    // Don't close by clicks on the element that opened this
-                    if(this.dataset.parentClickCloses === "false" &&
-                        e.type === "showHelp")
-                        return this;
-                }
-
-                // Toggle visibility
-                this.classList.toggle("hidden");
-
-                return this;
+                return this.classList.contains("hidden")?
+                    this.show() : this.hide(e && e.type === "showHelp");
             }
 
+            /**
+             * Set up the event listeners on the HelpDiv and its parent element
+             */
             enable() {
                 this.parentElement.addEventListener("click", this.sendShowHelpEvent);
                 this.parentElement.classList.add("esm-help-enabled");
@@ -668,7 +764,12 @@
                 return this;
             }
 
+            /**
+             * Hide. Remove event listeners.
+             */
             disable() {
+                this.hide();
+
                 this.parentElement.removeEventListener("click",
                     this.sendShowHelpEvent);
                 this.parentElement.classList.remove("esm-help-enabled");
@@ -679,6 +780,9 @@
                 return this;
             }
 
+            /**
+             * Toggle between in/active states.
+             */
             toggle() {
                 if(this.parentElement.classList.contains("esm-help-enabled"))
                     this.disable();
@@ -697,8 +801,10 @@
     class Trial {
         /**
          * Run a trial
-         * @param [callback] {function} called with arguments of <string>stageName and <Trial>this object at each stage
-         * @param [beginImmediately = false] {boolean} whether to begin the trial immediately
+         * @param [callback] {function} called with arguments of
+         * <string>stageName and <Trial>this object at each stage
+         * @param [beginImmediately = false] {boolean} whether to begin the
+         * trial immediately
          */
         constructor(callback, beginImmediately = false) {
 
@@ -728,6 +834,10 @@
                 this.begin();
         }
 
+        /**
+         * Run the trial asynchronously.
+         * @return {Promise<*>} Resolve with the trial data.
+         */
         async run() {
             this.begin();
             let me = this;
@@ -735,7 +845,6 @@
                 function check(x) {
                     if(me.data.timeEnd !== null) {
                         resolve(me.data);
-                        setTimeout(Trial.reset, 25);
                     } else
                         setTimeout(check, 50, x++);
                 }
@@ -743,6 +852,10 @@
             });
         }
 
+        /**
+         * Set the prompt text and mark the start time.
+         * Set the timeout for the show stimulus phase.
+         */
         begin() {
             this.callback("begin");
 
@@ -754,6 +867,9 @@
             this.activeTimeout = setTimeout(() => this.showStim(), 500);
         }
 
+        /**
+         * Show stimulus. Set the timeout for the hide stim phase.
+         */
         showStim() {
             this.callback("showStim");
 
@@ -763,6 +879,9 @@
             this.activeTimeout = setTimeout(() => this.hideStim(), 1000);
         }
 
+        /**
+         * Hide stimulus. Initiate the response phase.
+         */
         hideStim() {
             this.callback("hideStim");
 
@@ -773,6 +892,10 @@
                 .then((data) => this.processResponse(data, false));
         }
 
+        /**
+         * Collect the participant's response via the ResponseWidget.
+         * @return {Promise<*>}
+         */
         async getResponse() {
 
             this.callback("getResponse");
@@ -784,6 +907,11 @@
             return response;
         }
 
+        /**
+         * Handle the response.
+         * @param data {Object|undefined} response data
+         * @param isInitial {boolean} whether the response is the initial response
+         */
         processResponse(data, isInitial) {
 
             this.callback("processResponse");
@@ -809,11 +937,17 @@
             }
         }
 
+        /**
+         * Set the display back to its fresh state.
+         */
         cleanup() {
             this.callback("cleanup");
             Trial.reset();
         }
 
+        /**
+         * Set the display to its fresh state.
+         */
         static reset() {
             X.stimulus.classList.add('cloak');
             X.prompt.innerHTML = "";
@@ -821,42 +955,46 @@
 
     }
 
+    /**
+     * Toggle between help enabled/disabled.
+     */
     function toggleHelp() {
         document.querySelectorAll("esm-help").forEach((elm) => elm.toggle());
 
-        event.currentTarget.innerText =
-            event.currentTarget.innerText === "Disable help"?
-            "Enable help" : "Disable help";
-    }
-
-    function sendEvent(stage, trial) {
-        if(stage === "cleanup")
-            X.stimulus.dispatchEvent(new CustomEvent("trialEnd", {
-                bubbles: true,
-                detail: {
-                    trial
-                },
-                target: X.stimulus
-            }));
+        event.currentTarget.style.backgroundColor =
+            event.currentTarget.style.backgroundColor === "transparent"?
+            "yellow" : "transparent";
     }
 
     // Procedural stuff
 
-    window.data = [];
-    window.ITI = 500;
+    async function intro() {
+        console.log("intro")
 
-    function nextTrial(trialEndEvent) {
-        window.data.push(trialEndEvent.detail.trial.data);
-        if(window.data.length < 2)
-            setTimeout(() => new Trial(sendEvent), ITI);
+        return new Promise(function(resolve) {
+           setTimeout(resolve, 1, "intro");
+        });
     }
 
-    X.stimulus.addEventListener("trialEnd", nextTrial);
+    async function training() {
+        console.log("training")
 
-    Trial.reset();
-    // setTimeout(() => new Trial(sendEvent), ITI);
+        return new Promise(function(resolve) {
+            setTimeout(resolve, 500, "training");
+        });
+    }
+
+    async function moreInstructions() {
+        console.log("moreInstructions")
+
+        return new Promise(function(resolve) {
+            setTimeout(resolve, 250, "moreInstructions");
+        });
+    }
 
     async function runTrials(trials) {
+        console.log("runTrials")
+
         let data = [];
         for (const t of trials)
             await t.run().then((d) => {
@@ -866,11 +1004,39 @@
         return data;
     }
 
-    runTrials([
-        new Trial((s) => console.log(s)),
-        new Trial((s) => console.log(s))
-    ])
-        .then(console.log);
+    async function debrief() {
+        console.log("debrief")
+
+        return new Promise(function(resolve) {
+            setTimeout(resolve, 0, "debrief");
+        });
+    }
+
+    async function run(trialCount) {
+        const data = {
+            intro: null,
+            training: null,
+            instructions: null,
+            trials: null,
+            debrief: null
+        };
+
+        data.intro = await intro();
+        data.training = await training();
+        data.instructions = await moreInstructions();
+
+        data.trials = [];
+        for(let i = 0; i < trialCount; i++)
+            data.trials.push(await new Trial().run());
+
+        data.debrief = await debrief();
+
+        return data;
+    }
+
+    Trial.reset();
+
+    run(2).then(console.log);
 
 </script>
 </body>
