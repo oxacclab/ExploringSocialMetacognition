@@ -1,0 +1,85 @@
+esm-help {
+    width: var(--esm-help-width);
+    position: absolute;
+    z-index: 1000;
+    background-color: var(--esm-help-backgroundColor);
+    color: #000000;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+    border: 1px solid var(--esm-help-borderColor);
+    font-size: 0.8em;
+    cursor: pointer;
+    overflow: visible;
+    line-height: 1.2em;
+}
+esm-help:not(.top):not(.bottom):not(.left):not(.right) {
+    top: 50%;
+    left: calc(50% - var(--esm-help-width) / 2);
+    transform: translateY(-50%);
+}
+esm-help::after {
+    content: " ";
+    position: absolute;
+    margin-left: calc(var(--esm-help-arrowSize) * -1);
+    border-width: var(--esm-help-arrowSize);
+    border-style: solid;
+    border-color: transparent;
+}
+esm-help.top {
+    left: calc(50% - var(--esm-help-width) / 2);
+    bottom: calc(100% + var(--esm-help-arrowSize));
+}
+esm-help.top::after {
+    top: 100%;
+    left: 50%;
+    border-top-color: var(--esm-help-borderColor);
+}
+esm-help.bottom {
+    left: calc(50% - var(--esm-help-width) / 2);
+    top: calc(100% + var(--esm-help-arrowSize));
+}
+esm-help.bottom::after {
+    bottom: 100%;
+    left: 50%;
+    border-bottom-color: var(--esm-help-borderColor);
+}
+esm-help.left {
+    right: calc(100% + var(--esm-help-arrowSize));
+    top: 50%;
+    transform: translateY(-50%);
+}
+esm-help.left::after {
+    left: 102%;
+    top: calc(50% - var(--esm-help-arrowSize));
+    border-left-color: var(--esm-help-borderColor);
+}
+esm-help.right {
+    left: calc(100% + var(--esm-help-arrowSize));
+    top: 50%;
+    transform: translateY(-50%);
+}
+esm-help.right::after {
+    right: 100%;
+    top: calc(50% - var(--esm-help-arrowSize));
+    border-right-color: var(--esm-help-borderColor);
+}
+.esm-help-enabled {
+    cursor: pointer;
+}
+.esm-help-enabled:hover::before {
+    background-color: var(--esm-help-backgroundColor);
+    outline: 1px solid var(--esm-help-borderColor);
+    content: "";
+    width: calc(100% + var(--esm-help-arrowSize) * 2);
+    position: absolute;
+    height: calc(100% + var(--esm-help-arrowSize) * 2);
+    margin: var(--esm-help-arrowSize);
+    top: calc(var(--esm-help-arrowSize) * -2);
+    left: calc(var(--esm-help-arrowSize) * -2);
+    opacity: .5;
+    z-index: -1;
+}
+.esm-help.hidden {
+    display: none;
+}

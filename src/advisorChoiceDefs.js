@@ -780,7 +780,7 @@ class DotTask extends Governor {
         // reset background colour
         if(clearScreen === true) {
             document.querySelector('body').style.backgroundColor = '';
-            document.body.innerHTML = "<div id='jspsych-content'></div>";
+            document.body.innerHTML = "<div id='content'></div>";
         }
         this.feedback(this, (saveData && this.completionURL !== ''));
     }

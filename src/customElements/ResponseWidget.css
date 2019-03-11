@@ -1,0 +1,111 @@
+:root {
+    --response-label-padding: 5px;
+    --response-maker-width: 40px;
+    --response-marker-height: 30px;
+    --response-vBar-offset: 65px;
+    --response-bar-thickness: 25px;
+
+    --response-min-opacity: 0.4;
+}
+
+.group-bg-gradient-1 {
+    background-image: linear-gradient(var(--group-1-primary), rgba(var(--group-1-p), var(--response-min-opacity)));
+}
+.group-bg-gradient-2 {
+    background-image: linear-gradient(var(--group-2-primary), rgba(var(--group-2-p), var(--response-min-opacity)));
+}
+
+.response-hBar {
+    position: relative;
+    width: 80%;
+    background-color: #eeeeee;
+    height: var(--response-bar-thickness);
+    margin: auto;
+    box-shadow: 0 0 5px 0 #777777;
+}
+
+.response-vBar {
+    height: 150px;
+    background-color: white;
+    position: absolute;
+    top: calc((var(--response-vBar-offset) * -1) + var(--response-bar-thickness));
+    transition: all .2s;
+}
+
+.response-vBar,
+.response-widget {
+    width: var(--response-bar-thickness);
+    transition: background-color .5s, visibility .5s;
+}
+
+.response-widget {
+    left: calc(50% - var(--response-bar-thickness) / 2);
+}
+
+.response-label,
+.response-widget {
+    position: absolute;
+    top: -100%;
+    max-width: 10%;
+    overflow-wrap: break-word;
+}
+
+.response-label {
+    opacity: 1;
+}
+
+.response-label.left,
+.response-label.right {
+    top: calc(50% - 0.5em);
+    line-height: 1em;
+}
+
+.response-label.top,
+.response-label.bottom {
+    top: unset;
+    max-width: 100px;
+    transform: translateX(calc(-50% + (var(--response-bar-thickness) / 2)));
+}
+
+.response-vBar.cloak .response-label {
+    opacity: 0;
+}
+
+.response-label.left {
+    right: calc(100% + var(--response-label-padding));
+}
+.response-label.right {
+    left: calc(100% + var(--response-label-padding));
+}
+.response-label.top {
+    bottom: 100%
+}
+.response-label.bottom {
+    top: 100%;
+}
+
+.response-marker {
+    position: absolute;
+    width: var(--response-maker-width);
+    height: var(--response-marker-height);
+    left: calc(50% - (var(--response-maker-width) / 2));
+    top: calc(var(--response-vBar-offset) + ((var(--response-bar-thickness) - var(--response-marker-height)) / 2));
+    border-radius: 5px;
+    cursor: none;
+    transition: opacity .1s;
+}
+esm-response-widget,
+esm-response-widget.cloak .response-marker {
+    cursor: default
+}
+
+esm-response-widget.cloak .response-widget,
+esm-response-widget.cloak .response-marker {
+    visibility: hidden;
+}
+.response-vBar.cloak,
+esm-response-widget.cloak .response-marker {
+    transition: visibility 0s;
+    background-color: transparent;
+    background-image: unset;
+}

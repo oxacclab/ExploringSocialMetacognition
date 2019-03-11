@@ -18,7 +18,7 @@ body {
 .hidden {
     display: none !important;
 }
-div#jspsych-content.advisorChoice-minHeight {
+div#content.advisorChoice-minHeight {
     min-height: 500px;
 }
 div.advisorChoice-marker {
@@ -123,7 +123,7 @@ div.advisorChoice-choice:hover div.jspsych-jas-present-advice-image {
 #jspsych-progressbar-container > span {
     font-size: 0.8em;
 }
-#jspsych-content {
+#content {
     max-width: 600px;
 }
 div#jspsych-canvas-sliders-response-stimulus {
