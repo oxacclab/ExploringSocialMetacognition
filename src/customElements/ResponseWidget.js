@@ -10,6 +10,7 @@ customElements.define('esm-response-widget',
      * @property prefix {string} Prefix to response values
      * @property suffix {string} Suffix to response values
      * @property decimals {int} Number of decimal points in response values
+     * @property timeout {int} Maximum response time in ms
      */
     class ResponseWidget extends HTMLElement {
 
@@ -125,12 +126,16 @@ customElements.define('esm-response-widget',
         /**
          * Perform the response collection process.
          *
-         * @param timeout {int} maximum number of milliseconds to wait before
+         * @param [timeout=null] {int|null|undefined} maximum number of milliseconds to wait before
          * returning a Timeout.
          *
          * @return {Promise} Resolve with the response data, or Timeout reject
          */
         getResponse(timeout) {
+            if(typeof timeout === "undefined" || timeout === null)
+                timeout = this.dataset.hasOwnProperty("timeout")?
+                    this.dataset.timeout : Infinity;
+
             const me = this;
             this.enableResponse();
 

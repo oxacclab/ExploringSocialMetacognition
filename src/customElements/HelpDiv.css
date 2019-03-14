@@ -12,6 +12,7 @@ esm-help {
     cursor: pointer;
     overflow: visible;
     line-height: 1.2em;
+    user-select: text;
 }
 esm-help:not(.top):not(.bottom):not(.left):not(.right) {
     top: 50%;
@@ -63,9 +64,6 @@ esm-help.right::after {
     right: 100%;
     top: calc(50% - var(--esm-help-arrowSize));
     border-right-color: var(--esm-help-borderColor);
-}
-.esm-help-enabled {
-    cursor: pointer;
 }
 .esm-help-enabled:hover::before {
     background-color: var(--esm-help-backgroundColor);

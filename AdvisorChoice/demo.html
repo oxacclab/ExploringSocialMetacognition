@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Advisor Choice Experiment</title>
 
@@ -8,6 +8,7 @@
     <script src="../src/bowser.min.js"></script>
 
     <!--Custom HTML components-->
+    <script src="../src/customElements/InstructionDiv.js"></script>
     <script src="../src/customElements/HelpDiv.js"></script>
     <script src="../src/customElements/ResponseWidget.js"></script>
     <!--/ Custom HTML components-->
@@ -15,6 +16,59 @@
     <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
 
+    <!-- Templates -->
+    <template id="advisor-key">
+        <div class="advisor-key-row">
+            <div class="marker"></div>
+            <span>Advisor Name</span>
+            <esm-help data-group="interface" class="left">
+                This <em>tag</em> shows details for one of your advisors. The background colour shows you their group, and the <em>marker</em> shows you the colour used to indicate their advice.
+            </esm-help>
+        </div>
+    </template>
+
+    <template id="instr-intro">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Welcome</h1>
+                <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg" alt="Coin jar" style="float: right; height: 250px;"/>
+                <p>This experiment is pretty straightforward. You'll see several jars full of coins, which look the one on the right.</p>
+                <p>Your task is to use the response bar at the bottom of the screen to indicate how much you think the coins in the jar are worth, and how sure you are about your estimate.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="instr-practice">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Practice</h1>
+                <p>You will now have an opportunity to practice the task. You will get feedback on your performance while you are doing the practice, and you'll be told how well you did overall once you have done all the practice rounds.</p>
+                <p>When you get the answer within &pound;0.25 of the correct value you'll see the screen go pink. Where you are more than &pound;0.25 away from the correct answer you'll see the screen turn grey.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="instr-final">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Main experiment</h1>
+                <p>You are now ready to begin the main experiment.</p>
+                <p>Please make sure you are in a quiet environment where you can concentrate properly.</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Main experiment</h1>
+                <p>If you are still unsure of how the study works, you can go through the tutorial again by closing the page and relaunching it from the link you were provided.</p>
+                <p>If you're happy with how it works, let's go!</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="instr-debrief">
+        <esm-instruction data-no-buttons="true">
+            <esm-instruction-page>
+                <h1>Thanks!</h1>
+                <p>Thank you for completing my study.</p>
+                <p>You did pretty well. I haven't calculated how well, yet, but trust me, pretty well.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
 </head>
 <body tabindex="0">
 <div class="content-wrapper">
@@ -37,9 +91,7 @@
                 </div>
             </div>
             <div class="middle">
-                <div id="stimulus">
-                    <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg"/>
-                </div>
+                <div id="stimulus"></div>
                 <div id="prompt">Prompt text</div>
                 <esm-help data-group="interface">
                     This is the <em>stimulus</em> you have to respond to. Below is the <em>prompt</em> area which tells you how to respond and provides further information.
@@ -88,10 +140,17 @@
         padding: 0.3em;
         border-radius: 1em;
         width: 2em;
+        height: 2em;
         border: 1px solid black;
         background-color: transparent;
         bottom: 0;
         right: 0;">?</button>
+        <div id="instructions">
+            Instructions
+        </div>
+        <div id="training-instructions" class="hidden">
+            Press <kbd>space</kbd> to move on...
+        </div>
     </div>
 </div>
 <script type="text/javascript">
@@ -109,79 +168,251 @@
 <script type="module">
     "use strict";
 
-    import {Trial} from "../src/modules/Trial.js";
+    import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
+    import Advisor from "../src/modules/Advisor.js";
+
+    class Study {
+
+        constructor(trialCount, trialCountPractice) {
+            this.trialCount = trialCount;
+            this.trialCountPractice = trialCountPractice;
+        }
+
+        async ITI() {
+            return new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        /**
+         * Set the content of the instructions div to be a copy of an esm-instruction template.
+         * @param newTemplateId {string} id of the new template to use for instructions
+         * @param [callback] {function(buttonName, event)} function to use as the callback for instruction buttons. By default simply hide the instruction div.
+         */
+        static updateInstructions(newTemplateId, callback) {
+            let instr = document.getElementById("instructions");
+
+            if(typeof callback !== "function")
+                callback = (name, event) => {
+                    console.log(name);
+                };
+
+            // Clear old instructions
+            instr.innerHTML = "";
+
+            // Add new
+            instr.appendChild(
+                document.importNode(
+                    document.getElementById(newTemplateId).content,
+                    true));
+
+            instr.querySelector("esm-instruction").callback = callback;
+
+            instr.classList.remove("hidden");
+        }
+
+        async intro() {
+            return new Promise(function(resolve) {
+                let data = [];
+                Study.updateInstructions("instr-intro",
+                    (name) => {
+                    let now = new Date().getTime();
+                        data.push({name, now});
+                        if(name === "end")
+                            resolve(data);
+                    });
+            });
+        }
+
+        async training() {
+
+            let study = this;
+
+            // Show navigation cues
+            let instr = document.getElementById("training-instructions");
+            instr.classList.remove("hidden");
+
+            return new Promise(async function(resolve) {
+                // Spacebar moves onwards
+                const spacebar = () => {
+                    return(new Promise((resolve)=> {
+                        function onKey(e) {
+                            console.log(e.key);
+                            if(e.key === " ")
+                                next();
+                        }
+                        function next() {
+                            document.removeEventListener("keypress", onKey);
+                            resolve();
+                        }
+                        document.addEventListener("keypress", onKey);
+                    }))
+                };
+
+                let blueprint = {};
+                blueprint.stim = new Image();
+                blueprint.stim.src = "https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg";
+                blueprint.prompt = [];
+                AdvisedTrial.phases.forEach((p)=>blueprint.prompt[p] = "How much are the coins worth?");
+                blueprint.prompt["cleanup"] = "";
+                blueprint.prompt["end"] = "";
+                blueprint.displayFeedback = study.displayFeedback;
+                let T = new Trial(blueprint);
+
+                document.querySelector(".progress-bar esm-help").show();
+
+                await spacebar();
+
+                document.querySelector(".progress-bar esm-help").hide();
+
+                T.begin(false);
+                T.showStim(false);
+                document.querySelector("#stimulus ~ esm-help").show();
+
+                await spacebar();
+
+                document.querySelector("#stimulus ~ esm-help").hide();
+                instr.innerHTML = "Enter an estimate and rate your confidence to move on...";
+                instr.style.bottom = "unset";
+                instr.style.top = "2em";
+                let data = T.hideStim(false);
+
+                document.querySelector("esm-response-widget ~ esm-help").show();
+
+                await T.getResponse()
+                    .then((data) => T.processResponse(data));
+
+                document.querySelector("esm-response-widget ~ esm-help").hide();
+
+                // Hide navigation cues
+                instr.classList.add("hidden");
+                resolve(data);
+            });
+        }
+
+        async moreInstructions() {
+            return new Promise(function(resolve) {
+                let data = [];
+                Study.updateInstructions("instr-practice",
+                    (name) => {
+                        let now = new Date().getTime();
+                        data.push({name, now});
+                        if(name === "end")
+                            resolve(data);
+                    });
+            });
+        }
+
+        async practice() {
+            let data = [];
+            for(let i = 0; i < this.trialCountPractice; i++) {
+                // Define the trial
+                let blueprint = {};
+                blueprint.stim = new Image();
+                blueprint.stim.src = "https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg";
+                blueprint.prompt = [];
+                Trial.phases.forEach((p)=>blueprint.prompt[p] = "How much are the coins worth?");
+                blueprint.prompt["cleanup"] = "";
+                blueprint.prompt["end"] = "";
+                blueprint.displayFeedback = this.displayFeedback;
+
+                // Run the trial
+                data.push(await new Trial(blueprint).run());
+
+                // Inter-trial interval
+                document.body.style.opacity =".1";
+                await this.ITI();
+                document.body.style.opacity ="1";
+            }
+
+            return data;
+        }
+
+        async finalInstructions() {
+            return new Promise(function(resolve) {
+                let data = [];
+                Study.updateInstructions("instr-final",
+                    (name) => {
+                        let now = new Date().getTime();
+                        data.push({name, now});
+                        if(name === "end")
+                            resolve(data);
+                    });
+            });
+        }
+
+        async debrief() {
+            Study.updateInstructions("instr-debrief");
+            return new Promise(function(resolve) {
+                setTimeout(resolve, 0, "debrief");
+            });
+        }
+
+        /**
+         * Display the feedback for a trial
+         * @param trial {Trial}
+         * @return {Promise<*>}
+         */
+        async displayFeedback(trial) {
+            document.body.style.backgroundColor =
+                trial.data.responseEstimate > 4.0 &&
+                trial.data.responseEstimate < 4.5?
+                    "pink" : "slategrey";
+            let feedbackDuration = 500;
+            setTimeout(()=>document.body.style.backgroundColor="white",
+                feedbackDuration - 10);
+            return new Promise((resolve) => {
+                setTimeout(resolve, feedbackDuration);
+            });
+        }
+
+        async run() {
+            const data = {
+                intro: null,
+                training: null,
+                instructions: null,
+                trials: null,
+                debrief: null
+            };
+
+            console.log(await this.intro())
+            console.log(await this.training())
+            console.log(await this.moreInstructions())
+            console.log(await this.practice())
+            console.log(await this.finalInstructions())
+
+            data.trials = [];
+            for(let i = 0; i < this.trialCount; i++) {
+                // Define the trial
+                let blueprint = {};
+                blueprint.stim = new Image();
+                blueprint.stim.src = "https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg";
+                blueprint.prompt = [];
+                Trial.phases.forEach((p)=>blueprint.prompt[p] = "How much are the coins worth?");
+                blueprint.prompt["cleanup"] = "";
+                blueprint.prompt["end"] = "";
+
+                // Run the trial
+                data.trials.push(await new Trial(blueprint).run());
+
+                // Inter-trial interval
+                document.body.style.opacity =".1";
+                await this.ITI();
+                document.body.style.opacity ="1";
+            }
+
+            console.log(await this.debrief())
+
+            this.data = data;
+
+            return this;
+        }
+    }
 
     // Procedural stuff
 
-    async function intro() {
-        console.log("intro")
+    AdvisedTrial.reset();
 
-        return new Promise(function(resolve) {
-           setTimeout(resolve, 1, "intro");
-        });
-    }
-
-    async function training() {
-        console.log("training")
-
-        return new Promise(function(resolve) {
-            setTimeout(resolve, 500, "training");
-        });
-    }
-
-    async function moreInstructions() {
-        console.log("moreInstructions")
-
-        return new Promise(function(resolve) {
-            setTimeout(resolve, 250, "moreInstructions");
-        });
-    }
-
-    async function runTrials(trials) {
-        console.log("runTrials")
-
-        let data = [];
-        for (const t of trials)
-            await t.run().then((d) => {
-                data.push(d);
-            });
-
-        return data;
-    }
-
-    async function debrief() {
-        console.log("debrief")
-
-        return new Promise(function(resolve) {
-            setTimeout(resolve, 0, "debrief");
-        });
-    }
-
-    async function run(trialCount) {
-        const data = {
-            intro: null,
-            training: null,
-            instructions: null,
-            trials: null,
-            debrief: null
-        };
-
-        data.intro = await intro();
-        data.training = await training();
-        data.instructions = await moreInstructions();
-
-        data.trials = [];
-        for(let i = 0; i < trialCount; i++)
-            data.trials.push(await new Trial().run());
-
-        data.debrief = await debrief();
-
-        return data;
-    }
-
-    Trial.reset();
-
-    run(2).then(console.log);
+    new Study(2, 2).run()
+        .then(console.log);
 
 </script>
 </body>

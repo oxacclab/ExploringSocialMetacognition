@@ -17,6 +17,8 @@ body {
 }
 div {
     position: relative;
+    /* Text placed directly in a DIV should not be selectable */
+    user-select: none;
 }
 
 .hidden {
@@ -47,6 +49,7 @@ div {
     max-width: 100%;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     border: 4px solid black;
     border-radius: 5px;
     margin: auto;
@@ -68,17 +71,20 @@ div {
     height: 40rem;
 }
 
-#content > .frame > .left,
-#content > .frame > .right {
-    width: 100%;
+#content > .frame.top > .left,
+#content > .frame.top > .right {
+    width: 20%;
     display: flex;
     flex-direction: column;
     margin: auto;
 }
+#content > .frame.top > .middle {
+    width: 60%;
+}
 
 #stimulus {
-    height: calc(var(--content-height) * 1px / 2);
-    width: calc(var(--content-width) * 1px / 2);
+    height: calc(100% - 2em);
+    width: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -97,17 +103,30 @@ div {
 #prompt {
     margin: .25em 0;
     font-size: 1.2em;
+    height: 2em;
 }
 
 #response-panel {
     height: 100%;
     width: 100%;
+    padding: 5px;
     display: flex;
     flex-direction: column;
     transition: opacity 0.5s;
 }
 #response-panel.cloak {
     opacity: 0.2;
+}
+
+#instructions {
+    position: absolute;
+    width: 100%;
+}
+
+#training-instructions {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
 }
 
 .progress-bar {

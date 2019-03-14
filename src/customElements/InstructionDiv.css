@@ -1,0 +1,72 @@
+:root {
+
+}
+
+esm-instruction::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(123, 123, 123, 0.21);
+}
+
+esm-instruction {
+    z-index: 1000;
+    position: relative;
+    width: 80%;
+    height: 90%;
+    top: 5%;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-radius: 1em;
+    border: 1px solid black;
+}
+
+esm-instruction-page {
+    z-index: 2000;
+    height: 100%;
+    text-align: left;
+    padding: 1em 1em 3em 1em;
+    border-radius: 1em;
+    border: 1px solid black;
+    overflow: hidden;
+    background-color: white;
+}
+
+/*Navigation buttons*/
+esm-instruction div:last-child {
+    z-index: 3000;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+
+esm-instruction div:last-child button {
+    width: fit-content;
+    margin: .3em;
+    border-radius: .2em;
+    font-size: 2em;
+    background-color: transparent;
+    border: 2px solid #2196F3;
+    color: #2196F3;
+}
+
+esm-instruction div:last-child button:first-child {
+    opacity: 0.5;
+}
+
+esm-instruction div:last-child button:hover,
+esm-instruction div:last-child button:focus {
+    background-color: #2196F3;
+    color: whitesmoke;
+    cursor: pointer;
+}
+
+esm-instruction.hidden,
+esm-instruction .hidden {
+    display: none;
+}
