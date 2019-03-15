@@ -91,20 +91,22 @@
     left: calc(50% - (var(--response-maker-width) / 2));
     top: calc(var(--response-vBar-offset) + ((var(--response-bar-thickness) - var(--response-marker-height)) / 2));
     border-radius: 5px;
-    cursor: none;
     transition: opacity .1s;
+}
+.response-widget .response-marker {
+    cursor: none;
 }
 esm-response-widget,
 esm-response-widget.cloak .response-marker {
     cursor: default
 }
 
-esm-response-widget.cloak .response-widget,
-esm-response-widget.cloak .response-marker {
+esm-response-widget .response-widget.cloak,
+esm-response-widget .response-widget.cloak .response-marker {
     visibility: hidden;
 }
 .response-vBar.cloak,
-esm-response-widget.cloak .response-marker {
+esm-response-widget .response-widget.cloak .response-marker {
     transition: visibility 0s;
     background-color: transparent;
     background-image: unset;

@@ -46,6 +46,8 @@ div {
 #content {
     height: calc(var(--content-height) * 1px);
     width: calc(var(--content-width) * 1px);
+    min-height: calc(var(--content-height) * 1px);
+    min-width: calc(var(--content-width) * 1px);
     max-width: 100%;
     display: flex;
     flex-direction: column;
@@ -53,6 +55,9 @@ div {
     border: 4px solid black;
     border-radius: 5px;
     margin: auto;
+}
+#content.ITI {
+    background-color: lightgrey;
 }
 
 #content > .frame {
@@ -90,7 +95,7 @@ div {
     overflow: hidden;
     opacity: 1;
 }
-#stimulus.cloak {
+#content:not(.feedback) #stimulus.cloak {
     opacity: 0;
 }
 #stimulus * {
@@ -113,7 +118,7 @@ div {
     flex-direction: column;
     transition: opacity 0.5s;
 }
-#response-panel.cloak {
+#content:not(.feedback) #response-panel.cloak {
     opacity: 0.2;
 }
 
@@ -166,4 +171,25 @@ div {
     border-radius: 1em;
     border: 1px solid;
     margin: .5em;
+}
+
+.response-marker.feedback {
+    color: #ffe96e;
+    font-weight: bold;
+    position: absolute;
+    transform: scale(3);
+}
+.response-marker.feedback::before {
+    left: 50%;
+    background-color: black;
+    height: 70%;
+    content: "";
+    width: 1px;
+    border-radius: 100%;
+    top: 50%;
+    position: absolute;
+    z-index: -1;
+}
+#content:not(.feedback) .response-marker.feedback {
+    display: none;
 }

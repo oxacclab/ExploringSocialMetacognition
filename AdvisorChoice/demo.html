@@ -126,6 +126,7 @@
                             <div class="response-marker group-bg-2">3.00</div>
                         </div>
                     </div>
+                    <div class="response-marker correct feedback">&bigstar;</div>
                 </div>
             </esm-response-widget>
             <esm-help data-group="interface" data-parent-click-closes="false" class="top">
@@ -179,7 +180,15 @@
         }
 
         async ITI() {
-            return new Promise((resolve) => setTimeout(resolve, 500));
+            let elm = document.querySelector("#content");
+            elm.classList.add("ITI");
+            return new Promise((resolve) =>
+                setTimeout(() => {
+                        elm.classList.remove("ITI");
+                        resolve();
+                    }, 500
+                )
+            );
         }
 
         /**
@@ -316,9 +325,7 @@
                 data.push(await new Trial(blueprint).run());
 
                 // Inter-trial interval
-                document.body.style.opacity =".1";
                 await this.ITI();
-                document.body.style.opacity ="1";
             }
 
             return data;
@@ -350,13 +357,35 @@
          * @return {Promise<*>}
          */
         async displayFeedback(trial) {
-            document.body.style.backgroundColor =
-                trial.data.responseEstimate > 4.0 &&
-                trial.data.responseEstimate < 4.5?
-                    "pink" : "slategrey";
-            let feedbackDuration = 500;
-            setTimeout(()=>document.body.style.backgroundColor="white",
-                feedbackDuration - 10);
+            const feedbackDuration = 10000;
+
+            const correctAnswer = 1 + Math.random() * 4;
+            const answer = trial.data.responseEstimate;
+            const error = Math.abs(answer - correctAnswer);
+            const correct = error < .25;
+
+            document.getElementById("content").classList
+                .add(correct? "correct" : "incorrect", "feedback");
+            document.getElementById("prompt").innerHTML =
+                "Actual amount: <span>&pound;" + correctAnswer.toFixed(2) + "</span>";
+
+            const marker = document.querySelector("esm-response-widget .response-marker.correct.feedback");
+            const d = document.querySelector("esm-response-widget").valueToProportion(correctAnswer, 1);
+            let box = document.querySelector(".response-hBar").getBoundingClientRect();
+            marker.style.left =
+                (d.estimateProportion * (box.width - box.height) +
+                ((box.height - marker.clientWidth) / 2)) + "px";
+            box = document.querySelector(".response-vBar").getBoundingClientRect();
+            marker.style.top = "calc(" +
+                ((1 - d.confidence) * (box.height - marker.clientHeight)) + "px - " +
+                "var(--response-vBar-offset))";
+
+            setTimeout(()=> {
+                document.getElementById("content").classList
+                    .remove(correct? "correct" : "incorrect", "feedback");
+                document.getElementById("prompt").innerText = "";
+                document.querySelector("esm-response-widget").reset();
+            }, feedbackDuration - 10);
             return new Promise((resolve) => {
                 setTimeout(resolve, feedbackDuration);
             });
@@ -371,9 +400,9 @@
                 debrief: null
             };
 
-            console.log(await this.intro())
-            console.log(await this.training())
-            console.log(await this.moreInstructions())
+            // console.log(await this.intro())
+            // console.log(await this.training())
+            //console.log(await this.moreInstructions())
             console.log(await this.practice())
             console.log(await this.finalInstructions())
 
@@ -392,9 +421,7 @@
                 data.trials.push(await new Trial(blueprint).run());
 
                 // Inter-trial interval
-                document.body.style.opacity =".1";
                 await this.ITI();
-                document.body.style.opacity ="1";
             }
 
             console.log(await this.debrief())

@@ -115,7 +115,7 @@ class Trial {
         this.prompt = null;
         this.blankStim = null;
         this.durationPreStim = 500;
-        this.durationStim = 1500;
+        this.durationStim = 500;
         this.durationPostStim = 100;
         this.durationResponse = null;
         this.displayFeedback = null;
