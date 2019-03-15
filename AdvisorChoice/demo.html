@@ -149,7 +149,7 @@
             Instructions
         </div>
         <div id="training-instructions" class="hidden">
-            Press <kbd>space</kbd> to move on...
+            Click or Touch the yellow box to move on...
         </div>
     </div>
 </div>
@@ -232,18 +232,13 @@
 
             return new Promise(async function(resolve) {
                 // Spacebar moves onwards
-                const spacebar = () => {
+                const gotoNextStep = function(target) {
                     return(new Promise((resolve)=> {
-                        function onKey(e) {
-                            console.log(e.key);
-                            if(e.key === " ")
-                                next();
-                        }
                         function next() {
-                            document.removeEventListener("keypress", onKey);
+                            target.removeEventListener("click", next);
                             resolve();
                         }
-                        document.addEventListener("keypress", onKey);
+                        target.addEventListener("click", next);
                     }))
                 };
 
@@ -257,30 +252,33 @@
                 blueprint.displayFeedback = study.displayFeedback;
                 let T = new Trial(blueprint);
 
-                document.querySelector(".progress-bar esm-help").show();
+                let help = document.querySelector(".progress-bar esm-help");
+                help.show();
 
-                await spacebar();
+                await gotoNextStep(help);
 
-                document.querySelector(".progress-bar esm-help").hide();
+                help.hide();
 
                 T.begin(false);
                 T.showStim(false);
-                document.querySelector("#stimulus ~ esm-help").show();
+                help = document.querySelector("#stimulus ~ esm-help");
+                help.show();
 
-                await spacebar();
+                await gotoNextStep(help);
 
-                document.querySelector("#stimulus ~ esm-help").hide();
+                help.hide();
                 instr.innerHTML = "Enter an estimate and rate your confidence to move on...";
                 instr.style.bottom = "unset";
                 instr.style.top = "2em";
                 let data = T.hideStim(false);
 
-                document.querySelector("esm-response-widget ~ esm-help").show();
+                help = document.querySelector("esm-response-widget ~ esm-help");
+                help.show();
 
                 await T.getResponse()
                     .then((data) => T.processResponse(data));
 
-                document.querySelector("esm-response-widget ~ esm-help").hide();
+                help.hide();
 
                 // Hide navigation cues
                 instr.classList.add("hidden");
