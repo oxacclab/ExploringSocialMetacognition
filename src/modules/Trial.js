@@ -7,6 +7,7 @@
 
 "use strict";
 
+import {Advisor} from "./Advisor.js";
 import * as utils from "../utils.js";
 
 /**
@@ -26,20 +27,26 @@ import * as utils from "../utils.js";
  *
  * Properties can be set in the constructor's blueprint.
  *
- * @property stim {HTMLElement} contents of the stimulus window when the stimulus is visible
- * @property [prompt=null] {string|object|null} HTML string of the prompt text. Can be an object
- * with phase names and entries for each phase (begin, showStim, hideStim, getResponse,
- * processResponse, showFeedback, end, cleanup).
- * @property [blankStim=null] {HTMLElement|null} contents of the stimulus window when the
- * stimulus is not visible
- * @property [durationPreStim=500] {int} duration of the pre-stimulus phase in ms
+ * @property stim {HTMLElement} contents of the stimulus window when the
+ * stimulus is visible
+ * @property [prompt=null] {string|object|null} HTML string of the prompt text.
+ * Can be an object with phase names and entries for each phase (begin,
+ * showStim, hideStim, getResponse, processResponse, showFeedback, end,
+ * cleanup).
+ * @property [blankStim=null] {HTMLElement|null} contents of the stimulus window
+ * when the stimulus is not visible
+ * @property [durationPreStim=500] {int} duration of the pre-stimulus phase in
+ * ms
  * @property [durationStim=1500] {int} duration of the stimulus phase in ms
- * @property [durationPostStim=100] {int} duration between stimulus offset and results phase in ms
- * @property [durationResponse=null] {int|null} duration of the response phase. If null, use the
- * default defined in the response widget
- * @property [displayFeedback=null] {function} function display feedback. Called in await mode
- * with the trial as an input (use trial.data to access the response information). Omitting
- * this omits the feedback phase.
+ * @property [durationPostStim=100] {int} duration between stimulus offset and
+ * results phase in ms
+ * @property [durationResponse=null] {int|null} duration of the response phase.
+ * If null, use the default defined in the response widget
+ * @property [displayFeedback=null] {function} function display feedback. Called
+ * in await mode with the trial as an input (use trial.data to access the
+ * response information). Omitting this omits the feedback phase.
+ * @property [responseWidget] {ResponseWidget|null} the ResponseWidget
+ * responsible for providing responses from the user
  *
  */
 class Trial {
@@ -66,7 +73,6 @@ class Trial {
 
         this.blueprint = blueprint;
         this.callback = null;
-        this.activeTimeout = null;
 
         this._setDefaults();
         this._readBlueprint();
@@ -88,7 +94,6 @@ class Trial {
             "showStim",
             "hideStim",
             "getResponse",
-            "processResponse",
             "showFeedback",
             "end",
             "cleanup"
@@ -97,19 +102,14 @@ class Trial {
 
     /**
      * Get the phases with support for inheritance.
-     * This seems hacky as hell.
      */
     get myPhases() {
-        try {
-            return eval(this.constructor.name + ".phases");
-        }
-        catch {
-            return Trial.phases;
-        }
+        return this.constructor.phases;
     }
 
     /**
      * Set default property values for the Trial
+     * @protected
      */
     _setDefaults() {
         this.prompt = null;
@@ -119,12 +119,14 @@ class Trial {
         this.durationPostStim = 100;
         this.durationResponse = null;
         this.displayFeedback = null;
+        this.responseWidget = document.querySelector("esm-response-widget");
     }
 
     /**
      * Set this Trial's properties based on blueprint's properties
-     * @param [blueprint=null] {object|null} properties to give to the trial. Default uses
-     * this.blueprint
+     * @param [blueprint=null] {object|null} properties to give to the trial.
+     * Default uses this.blueprint
+     * @protected
      */
     _readBlueprint(blueprint = null) {
         if(blueprint === null)
@@ -133,8 +135,11 @@ class Trial {
         // Check blueprint matches specifications
         if(typeof blueprint === "undefined")
             throw new Error('No blueprint supplied for building trial.');
-        if(!blueprint.hasOwnProperty("stim") || !(blueprint.stim instanceof HTMLElement))
-            throw new Error("Blueprint does not provide a valid HTMLElement for stim.");
+        if(!blueprint.hasOwnProperty("stim") ||
+            !(blueprint.stim instanceof HTMLElement))
+            throw new Error(
+                "Blueprint does not provide a valid HTMLElement for stim."
+            );
 
         for(let key in blueprint) {
             if(!blueprint.hasOwnProperty(key))
@@ -150,6 +155,7 @@ class Trial {
     /**
      * Fill out a prompt string to cover all the phases
      * @param prompt {string|object}
+     * @protected
      */
     _unpackPrompt(prompt) {
         if(typeof prompt === "string") {
@@ -161,7 +167,7 @@ class Trial {
     /**
      * Update the prompt display appropriately for the phase
      * @param phase {string} phase name
-     * @private
+     * @protected
      */
     _updatePrompt(phase) {
         document.querySelector("#prompt").innerHTML =
@@ -171,94 +177,83 @@ class Trial {
     /**
      * Register the beginning of a phase. Callback and prompt update.
      * @param phase {int|string} phase identifier
+     * @protected
      */
     _startPhase(phase) {
         if(typeof phase !== "string")
             phase = this.myPhases[phase];
 
-        this.callback(phase);
         this._updatePrompt(phase);
+        this.callback(phase);
+    }
+
+    /**
+     * Wait for a time.
+     * @param ms {int} milliseconds to wait
+     * @return {Promise<Trial>}
+     * @protected
+     */
+    _wait(ms) {
+        const me = this;
+        return new Promise((resolve) => setTimeout(resolve, ms, me));
     }
 
     /**
      * Run the trial asynchronously.
+     * @param [startPhase=0] {int|string}
      * @return {Promise<Trial>} Resolve with the trial data.
      */
-    async run() {
-        this.begin();
-        let me = this;
-        return new Promise(function (resolve) {
-            function check() {
-                if(me.data.timeEnd !== null) {
-                    resolve(me);
-                } else
-                    setTimeout(check, 50);
-            }
-            check(0);
-        });
+    async run(startPhase = 0) {
+        if(typeof startPhase === "string")
+            startPhase = this.myPhases.indexOf(startPhase);
+        for(let phase = startPhase; phase < this.myPhases.length; phase++)
+            await eval("this." + this.myPhases[phase] + "()");
+        return this;
     }
 
     /**
      * Set the prompt text and mark the start time.
-     * Set the timeout for the show stimulus phase.
-     * @param [cueNextPhase=false] {boolean} whether to automatically move to the next phase of the Trial
-     * @return {Trial}
+     * @return {Promise<Trial>}
      */
-    begin(cueNextPhase = true) {
+    begin() {
         this._startPhase(Trial.phases[0]);
 
         document.querySelector("#stimulus").innerHTML = this.stim.outerHTML;
 
         this.data.timestampStart = new Date().getTime();
 
-        if(cueNextPhase)
-            this.activeTimeout = setTimeout(
-                () => this.showStim(), this.durationPreStim);
-
-        return this;
+        return this._wait(this.durationPreStim);
     }
 
     /**
      * Show stimulus. Set the timeout for the hide stim phase.
-     * @param [cueNextPhase=false] {boolean} whether to automatically move to the next phase of the Trial
-     * @return {Trial}
+     * @return {Promise<Trial>}
      */
-    showStim(cueNextPhase = true) {
+    showStim() {
         this._startPhase(Trial.phases[1]);
 
         this.data.timeStimOn = new Date().getTime() - this.data.timestampStart;
         document.querySelector("#stimulus").classList.remove('cloak');
 
-        if(cueNextPhase)
-            this.activeTimeout = setTimeout(
-                () => this.hideStim(), this.durationStim);
-
-        return this;
+        return this._wait(this.durationStim);
     }
 
     /**
      * Hide stimulus. Initiate the response phase.
-     * @param [cueNextPhase=false] {boolean} whether to automatically move to the next phase of the Trial
-     * @return {Trial}
+     * @return {Promise<Trial>}
      */
-    hideStim(cueNextPhase = true) {
+    hideStim() {
         this._startPhase(Trial.phases[2]);
 
         this.data.timeStimOff = new Date().getTime() - this.data.timestampStart;
         document.querySelector("#stimulus").classList.add('cloak');
 
-        if(cueNextPhase)
-            setTimeout(()=>{
-                this.getResponse()
-                    .then((data) => this.processResponse(data, cueNextPhase));
-            }, this.durationPostStim);
-
-        return this;
+        return this._wait(this.durationPostStim);
     }
 
     /**
      * Collect the participant's response via the ResponseWidget.
-     * @return {Promise<*>}
+     * @return {Promise<Trial>}
      */
     async getResponse() {
 
@@ -266,24 +261,26 @@ class Trial {
 
         this.data.timeResponseOpen = new Date().getTime();
 
-        let response = await document.querySelector("esm-response-widget").getResponse(this.durationResponse);
+        let response = await this.responseWidget
+            .getResponse(this.durationResponse);
 
         this.data.timeResponseClose = new Date().getTime();
 
         if(response === "undefined") {
             this.log.push("Timeout on response");
         }
-        return response;
+        return this.processResponse(response);
     }
 
     /**
      * Handle the response.
      * @param data {Object|undefined} response data
-     * @param [cueNextPhase=false] {boolean} whether to automatically move to the next phase of the Trial
+     * @return {Trial}
      */
-    processResponse(data, cueNextPhase = true) {
+    processResponse(data) {
 
-        this._startPhase(Trial.phases[4]);
+        if(typeof data === "undefined")
+            return this;
 
         let me = this;
 
@@ -297,76 +294,46 @@ class Trial {
                 data[k];
         });
 
-        if(!cueNextPhase)
-            return this;
-
-        if(typeof this.displayFeedback === "function")
-            return this.showFeedback();
-        else
-            return this.end();
+        return this;
     }
 
     /**
      * Show feedback using a user-supplied feedback function.
-     * @param [cueNextPhase=false] {boolean} whether to automatically move to the next phase of the Trial
      * @return {Promise<Trial>}
      */
-    async showFeedback(cueNextPhase = true) {
+    async showFeedback() {
 
-        this._startPhase(Trial.phases[5]);
+        if(typeof this.displayFeedback !== "function")
+            return this;
+
+        this._startPhase(Trial.phases[4]);
 
         // Run the user-supplied feedback function.
         this.data.timeFeedbackOn = new Date().getTime();
         await this.displayFeedback(this);
         this.data.timeFeedbackOff = new Date().getTime();
 
-        return cueNextPhase? this.end() : this;
-    }
-
-    /**
-     * End the trial and tidy up.
-     * @param [cueNextPhase=false] {boolean} whether to automatically move to the next phase of the Trial
-     * @return {Trial}
-     */
-    end(cueNextPhase = true) {
-
-        this._startPhase(Trial.phases[6]);
-        this.data.timeEnd = new Date().getDate() - this.data.timestampStart;
-
-        if(cueNextPhase)
-            this.cleanup();
-
         return this;
     }
 
     /**
-     * Abort the trial.
-     * @param level {int} urgency:
-     * * 0 = wind-down via end()
-     * * 1 = cleanup only
-     * * 2 = immediately end
-     *
+     * End the trial and tidy up.
      * @return {Trial}
      */
-    abort(level = 0) {
-        clearTimeout(this.activeTimeout);
-        switch(level) {
-            case 2:
-                return this;
-            case 1:
-                this.cleanup();
-                return this;
-            default:
-                return this.end();
-        }
+    end() {
+        this._startPhase(Trial.phases[5]);
+        this.data.timeEnd = new Date().getDate() - this.data.timestampStart;
+
+        return this;
     }
 
     /**
      * Set the display back to its fresh state.
      */
     cleanup() {
-        this._startPhase(Trial.phases[7]);
-        Trial.reset();
+        this._startPhase(Trial.phases[6]);
+        this.responseWidget.reset();
+        this.constructor.reset();
         return this;
     }
 
@@ -397,14 +364,15 @@ class Trial {
  * * end
  * * cleanup
  *
- * The showAdvice phase is handled by an Advisor. The finalResponse is handled by a ResponseWidget
- * as in the initial response inherited from Trial.
+ * The showAdvice phase is handled by an Advisor. The finalResponse is handled
+ * by a ResponseWidget as in the initial response inherited from Trial.
  *
- * @property [durationShowAdvice=null] {int|null} duration of the advice display in ms, or null to
- * allow the Advisor to handle it
- * @property [durationFinalResponse=null] {int|null} duration of the final response phase. If
- * null, inherit from durationResponse (which can waive response time to let the ResponseWidget
- * handle it)
+ * @property advisors {Advisor[]} advisors giving advice on the trial
+ * @property [durationShowAdvice=null] {int|null} duration of the advice display
+ * in ms, or null to allow the Advisor to handle it
+ * @property [durationFinalResponse=null] {int|null} duration of the final
+ * response phase. If null, inherit from durationResponse (which can waive
+ * response time to let the ResponseWidget handle it)
  */
 class AdvisedTrial extends Trial {
 
@@ -418,10 +386,41 @@ class AdvisedTrial extends Trial {
         super(blueprint, callback);
 
         // Generate blueprint values with respect to new defaults
-        this._setDefaults();
-        this._readBlueprint();
+        this._setDefaults(true);
+        super._readBlueprint();
 
         AdvisedTrial.reset();
+    }
+
+    _setDefaults(skipParentDefaults = false) {
+
+        super._setDefaults();
+        this.durationShowAdvice = 1500;
+        this.durationFinalResponse = null;
+        this.advice = [];
+    }
+
+    /**
+     * Fill out a prompt string to cover all the phases
+     * @param prompt {string|object}
+     * @protected
+     */
+    _unpackPrompt(prompt) {
+        if(typeof prompt === "string") {
+            // Default prompt varies by phase
+            const s = "Consider the advice below and provide a final response.";
+            this.prompt = {
+                showAdvice: s,
+                getFinalResponse: s,
+                showFeedback: s,
+                end: "",
+                cleanup: ""
+            };
+            this.myPhases.forEach((k) => {
+                if(!this.prompt.hasOwnProperty(k))
+                   this.prompt[k] = prompt
+            });
+        }
     }
 
     static get phases() {
@@ -429,15 +428,104 @@ class AdvisedTrial extends Trial {
             "begin",
             "showStim",
             "hideStim",
-            "getInitialResponse",
-            "processInitialResponse",
+            "getResponse",
             "showAdvice",
             "getFinalResponse",
-            "processFinalResponse",
             "showFeedback",
             "end",
             "cleanup"
         ]
+    }
+
+    /**
+     * Handle the response.
+     * @param data {Object|undefined} response data
+     */
+    processResponse(data) {
+
+        // Parent handles processing initial response
+        super.processResponse(data, false);
+
+        return this;
+    }
+
+    /**
+     * Show the advice for the trial
+     * @return {Promise<AdvisedTrial>}
+     */
+    async showAdvice() {
+        this._startPhase(AdvisedTrial.phases[5]);
+
+        this.advisors.forEach((a) => {
+            const advice = a.getAdvice();
+            Object.keys(advice).forEach((k)=> {
+                this.data["advisor" + a.id.toString() + k] = advice[k];
+            });
+            a.drawAdvice();
+        });
+
+        return this;
+    }
+
+    /**
+     * Hide the advice for the trial
+     * @return {AdvisedTrial}
+     * @protected
+     */
+    _hideAdvice() {
+        this.advisors.forEach((a) => a.hideAdvice());
+
+        return this;
+    }
+
+    /**
+     * Get the final response from the ResponseWidget
+     * @return {Promise<AdvisedTrial>}
+     */
+    async getFinalResponse() {
+        this._startPhase(AdvisedTrial.phases[6]);
+
+        this.data.timeResponseOpenFinal = new Date().getTime();
+
+        let response = await this.responseWidget
+            .getResponse(this.durationResponse);
+
+        this.data.timeResponseClose = new Date().getTime();
+
+        if(response === "undefined") {
+            this.log.push("Timeout on response");
+        }
+
+        return this.processFinalResponse(response);
+    }
+
+    processFinalResponse(data) {
+        this._startPhase(AdvisedTrial.phases[7]);
+
+        let me = this;
+
+        Object.keys(data).forEach((k) => {
+            const s = "response";
+            if(/time/.test(k))
+                data[k] -= me.data.timestampStart;
+
+            // Save in camelCase
+            me.data[s + k.substr(0,1).toUpperCase() + k.substr(1) + "Final"] =
+                data[k];
+        });
+
+        return this;
+    }
+
+    /**
+     * Set the display back to its fresh state.
+     */
+    cleanup() {
+
+        this._hideAdvice();
+        super.cleanup();
+
+        return this;
     }
 }
 

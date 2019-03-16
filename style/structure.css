@@ -5,6 +5,15 @@
     --tag-border-radius: 0.5em;
 }
 
+@keyframes addTabRight {
+    from { margin-left: 110%; }
+    to { margin-left: 0; }
+}
+@keyframes addTabLeft {
+    from { left: -110%; }
+    to { left: 0; }
+}
+
 body {
     margin: 0;
     height: 100%;
@@ -55,6 +64,7 @@ div {
     border: 4px solid black;
     border-radius: 5px;
     margin: auto;
+    overflow: hidden;
 }
 #content.ITI {
     background-color: lightgrey;
@@ -148,21 +158,27 @@ div {
 .progress-bar .inner {
 }
 
-.advisor-key-row {
+.advisor-key-row:nth-of-type(n + 1) {
     display: flex;
     line-height: 2em;
     padding: .25em;
-    margin: 0 0 .5em 0;
+    margin: 0.5em 0 0 0;
 }
 .left > .advisor-key-row {
     border-top-right-radius: var(--tag-border-radius);
     border-bottom-right-radius: var(--tag-border-radius);
     box-shadow: 1px 1px 1px 0 black;
+
+    width: 100%;
+    animation: addTabLeft 1s forwards;
 }
 .right > .advisor-key-row {
     border-top-left-radius: var(--tag-border-radius);
     border-bottom-left-radius: var(--tag-border-radius);
     box-shadow: -1px 1px 1px 0 black;
+
+    width: 100%;
+    animation: addTabRight 1s forwards;
 }
 
 .marker {
@@ -192,4 +208,13 @@ div {
 }
 #content:not(.feedback) .response-marker.feedback {
     display: none;
+}
+
+.response-marker.advisor.cloak {
+    display: none;
+}
+
+#stimulus.countdown {
+    justify-content: center;
+    transform: scale(6);
 }

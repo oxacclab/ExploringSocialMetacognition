@@ -65,7 +65,7 @@ customElements.define('esm-instruction',
          * Automatically generate the element's Id
          * @param [overwriteExisting=false] {boolean} overwrite existing Id with automatic one
          * @return {InstructionBooklet}
-         * @private
+         * @protected
          */
         _fixId(overwriteExisting = false) {
             // Don't replace an existing Id
@@ -104,7 +104,7 @@ customElements.define('esm-instruction',
         /**
          * Spawn the buttons used to navigate the instructions
          * @return {InstructionBooklet}
-         * @private
+         * @protected
          */
         _spawnButtons() {
             this.buttonDiv = this.appendChild(document.createElement("div"));
