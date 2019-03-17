@@ -153,17 +153,17 @@ customElements.define('esm-instruction',
                 // Navigation special cases
                 if(position === 0 || this.dataset.enableBackButton === "false") {
                     // First page shows no back button
-                    this.prevButton.classList.add("hidden");
+                    this.prevButton.classList.add("cloak");
                 } else
-                    this.prevButton.classList.remove("hidden");
+                    this.prevButton.classList.remove("cloak");
                 if(position !== this.pages.length - 1) {
                     // Last page shows okay rather than next
-                    this.endButton.classList.add("hidden");
-                    this.nextButton.classList.remove("hidden");
+                    this.endButton.classList.add("cloak");
+                    this.nextButton.classList.remove("cloak");
                 } else {
                     // Other pages show next rather than okay
-                    this.nextButton.classList.add("hidden");
-                    this.endButton.classList.remove("hidden");
+                    this.nextButton.classList.add("cloak");
+                    this.endButton.classList.remove("cloak");
                 }
             }
 
@@ -193,7 +193,7 @@ customElements.define('esm-instruction',
             const me = e? e.currentTarget.closest("esm-instruction") : this;
             me.sendCallback("end", e);
 
-            me.classList.add("hidden");
+            me.classList.add("cloak");
         }
     }
 );
@@ -214,7 +214,7 @@ customElements.define('esm-instruction-page',
         constructor() {
             super();
 
-            this.hideClass = "hidden";
+            this.hideClass = "cloak";
         }
 
         display() {

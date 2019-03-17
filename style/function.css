@@ -1,0 +1,78 @@
+/*
+Visual changes in the experiment.
+The experiment updates the #content div with a class named after the current
+experiment phase.
+
+Experiment phases are Study and Trial phases:
+Study-splashScreen
+Study-consent
+Study-demographics
+Study-introduction
+Study-training
+Study-practiceInstructions
+Study-practice
+Study-coreInstructions
+Study-core
+Study-debrief
+
+Trial-begin
+Trial-showStim
+Trial-hideStim
+Trial-getResponse
+Trial-showAdvice
+Trial-getFinalResponse
+Trial-showFeedback
+Trial-end
+Trial-cleanup
+ */
+
+/* Hide the task before the Study task begins */
+.Study-splashScreen #content,
+.Study-consent #content,
+.Study-demographics #content{
+    display: none;
+}
+
+.Study-training #training-instructions {
+    display: unset;
+}
+
+/* Downgrade the visual appeal of the task while it's not interactable */
+body:not(.Trial-any):not(.Study-training):not(.Study-practice):not(.Study-core) #content {
+    background-color: lightgrey;
+}
+
+/* Hide the stimulus when it's not needed. */
+.Trial-begin #content #stimulus,
+body:not(.Trial-any):not(.Study-practice):not(.Study-core) #content #stimulus {
+    opacity: 0;
+}
+
+/* Hide the help button when we're not in practice */
+body:not(.Study-practice) #help-button {
+    display: none;
+}
+
+/* Show fully-opaque response panel when it should be the focus of attention. */
+.Trial-getResponse #response-panel,
+.Trial-getFinalResponse #response-panel,
+.Trial-showFeedback #response-panel {
+    opacity: 1;
+}
+
+/* Reveal the feedback marker during feedback phase */
+.Trial-showFeedback .response-marker {
+    display: unset;
+}
+
+.Trial-showAdvice .response-marker.advisor,
+.Trial-getFinalResponse .response-marker.advisor,
+.Trial-showFeedback .response-marker.advisor {
+    display: unset;
+}
+
+.Study-practice:not(.Trial-any) #stimulus,
+.Study-core:not(.Trial-any) #stimulus {
+    justify-content: center;
+    transform: scale(6);
+}

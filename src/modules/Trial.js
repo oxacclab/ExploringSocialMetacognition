@@ -5,20 +5,20 @@
  * Javascript library for running social metacognition studies.
  */
 
+
 "use strict";
 
 import {Advisor} from "./Advisor.js";
-import * as utils from "../utils.js";
+import {ControlObject} from "./Prototypes.js";
 
 /**
- * @class
+ * @class Trial
  * An experimental trial.
  * The basic structure is to evolve in the following phases:
  * * begin (prompt)
  * * showStim (stimulus phase)
  * * hideStim (post-stimulus)
  * * getResponse (response collection)
- * * processResponse (post-response)
  * * showFeedback
  * * end
  * * cleanup
@@ -29,6 +29,7 @@ import * as utils from "../utils.js";
  *
  * @property stim {HTMLElement} contents of the stimulus window when the
  * stimulus is visible
+ * @property correctAnswer {*} correct answer on the trial
  * @property [prompt=null] {string|object|null} HTML string of the prompt text.
  * Can be an object with phase names and entries for each phase (begin,
  * showStim, hideStim, getResponse, processResponse, showFeedback, end,
@@ -49,7 +50,7 @@ import * as utils from "../utils.js";
  * responsible for providing responses from the user
  *
  */
-class Trial {
+class Trial extends ControlObject {
     /**
      * Run a trial
      * @param blueprint {object} properties which will be given to the trial
@@ -58,37 +59,20 @@ class Trial {
      */
     constructor(blueprint, callback) {
 
-        this.log = [];
+        super(blueprint, callback);
 
-        this.data = {
-            timestampStart: null,
-            timeStimOn: null,
-            timeStimOff: null,
-            timeResponseOpen: null,
-            timeResponseClose: null,
-            timeFeedbackOn: null,
-            timeFeedbackOff: null,
-            timeEnd: null
-        };
-
-        this.blueprint = blueprint;
-        this.callback = null;
-
-        this._setDefaults();
-        this._readBlueprint();
-
-        // Register the stimulus HTML in the data output
+        // Register properties in the data output
         this.data.stimHTML = this.stim.outerHTML;
+        this.data.correctAnswer = typeof this.correctAnswer === "function"?
+            this.correctAnswer() : this.correctAnswer;
+
+        // Expand the prompt shorthand blueprint
+        this._unpackPrompt(blueprint.prompt);
 
         Trial.reset();
-
-        if(typeof callback === "function")
-            this.callback = (stage) => callback(stage, this);
-        else
-            this.callback = () => {};
     }
 
-    static get phases() {
+    static get listPhases() {
         return [
             "begin",
             "showStim",
@@ -101,17 +85,12 @@ class Trial {
     }
 
     /**
-     * Get the phases with support for inheritance.
-     */
-    get myPhases() {
-        return this.constructor.phases;
-    }
-
-    /**
      * Set default property values for the Trial
      * @protected
      */
     _setDefaults() {
+        super._setDefaults();
+
         this.prompt = null;
         this.blankStim = null;
         this.durationPreStim = 500;
@@ -120,36 +99,17 @@ class Trial {
         this.durationResponse = null;
         this.displayFeedback = null;
         this.responseWidget = document.querySelector("esm-response-widget");
-    }
 
-    /**
-     * Set this Trial's properties based on blueprint's properties
-     * @param [blueprint=null] {object|null} properties to give to the trial.
-     * Default uses this.blueprint
-     * @protected
-     */
-    _readBlueprint(blueprint = null) {
-        if(blueprint === null)
-            blueprint = this.blueprint;
-
-        // Check blueprint matches specifications
-        if(typeof blueprint === "undefined")
-            throw new Error('No blueprint supplied for building trial.');
-        if(!blueprint.hasOwnProperty("stim") ||
-            !(blueprint.stim instanceof HTMLElement))
-            throw new Error(
-                "Blueprint does not provide a valid HTMLElement for stim."
-            );
-
-        for(let key in blueprint) {
-            if(!blueprint.hasOwnProperty(key))
-                continue;
-
-            this[key] = blueprint[key];
-        }
-
-        // Special properties
-        this._unpackPrompt(blueprint.prompt);
+        this.data = {
+            timestampStart: null,
+            timeStimOn: null,
+            timeStimOff: null,
+            timeResponseOpen: null,
+            timeResponseClose: null,
+            timeFeedbackOn: null,
+            timeFeedbackOff: null,
+            timeEnd: null
+        };
     }
 
     /**
@@ -160,7 +120,7 @@ class Trial {
     _unpackPrompt(prompt) {
         if(typeof prompt === "string") {
             this.prompt = {};
-            this.myPhases.forEach((k) => this.prompt[k] = prompt);
+            this.phases.forEach((k) => this.prompt[k] = prompt);
         }
     }
 
@@ -175,40 +135,23 @@ class Trial {
     }
 
     /**
-     * Register the beginning of a phase. Callback and prompt update.
+     * Register the beginning of a phase.
+     * Prompt update.
+     * Set CSS class on #content.
+     * Callback.
      * @param phase {int|string} phase identifier
      * @protected
      */
     _startPhase(phase) {
         if(typeof phase !== "string")
-            phase = this.myPhases[phase];
+            phase = this.phases[phase];
 
         this._updatePrompt(phase);
-        this.callback(phase);
+        super._startPhase(phase);
     }
 
-    /**
-     * Wait for a time.
-     * @param ms {int} milliseconds to wait
-     * @return {Promise<Trial>}
-     * @protected
-     */
-    _wait(ms) {
-        const me = this;
-        return new Promise((resolve) => setTimeout(resolve, ms, me));
-    }
-
-    /**
-     * Run the trial asynchronously.
-     * @param [startPhase=0] {int|string}
-     * @return {Promise<Trial>} Resolve with the trial data.
-     */
-    async run(startPhase = 0) {
-        if(typeof startPhase === "string")
-            startPhase = this.myPhases.indexOf(startPhase);
-        for(let phase = startPhase; phase < this.myPhases.length; phase++)
-            await eval("this." + this.myPhases[phase] + "()");
-        return this;
+    get trialTime() {
+        return new Date().getTime() - this.data.timestampStart;
     }
 
     /**
@@ -216,39 +159,32 @@ class Trial {
      * @return {Promise<Trial>}
      */
     begin() {
-        this._startPhase(Trial.phases[0]);
-
         document.querySelector("#stimulus").innerHTML = this.stim.outerHTML;
 
         this.data.timestampStart = new Date().getTime();
 
-        return this._wait(this.durationPreStim);
+        return this.wait(this.durationPreStim);
     }
 
     /**
-     * Show stimulus. Set the timeout for the hide stim phase.
+     * Stimulus showing handled by CSS.
+     * Set the timeout for the hide stim phase.
      * @return {Promise<Trial>}
      */
     showStim() {
-        this._startPhase(Trial.phases[1]);
+        this.data.timeStimOn = this.trialTime;
 
-        this.data.timeStimOn = new Date().getTime() - this.data.timestampStart;
-        document.querySelector("#stimulus").classList.remove('cloak');
-
-        return this._wait(this.durationStim);
+        return this.wait(this.durationStim);
     }
 
     /**
-     * Hide stimulus. Initiate the response phase.
+     * Hide stimulus handled by CSS.
      * @return {Promise<Trial>}
      */
     hideStim() {
-        this._startPhase(Trial.phases[2]);
+        this.data.timeStimOff = this.trialTime;
 
-        this.data.timeStimOff = new Date().getTime() - this.data.timestampStart;
-        document.querySelector("#stimulus").classList.add('cloak');
-
-        return this._wait(this.durationPostStim);
+        return this.wait(this.durationPostStim);
     }
 
     /**
@@ -256,15 +192,12 @@ class Trial {
      * @return {Promise<Trial>}
      */
     async getResponse() {
-
-        this._startPhase(Trial.phases[3]);
-
-        this.data.timeResponseOpen = new Date().getTime();
+        this.data.timeResponseOpen = this.trialTime;
 
         let response = await this.responseWidget
             .getResponse(this.durationResponse);
 
-        this.data.timeResponseClose = new Date().getTime();
+        this.data.timeResponseClose = this.trialTime;
 
         if(response === "undefined") {
             this.log.push("Timeout on response");
@@ -306,12 +239,10 @@ class Trial {
         if(typeof this.displayFeedback !== "function")
             return this;
 
-        this._startPhase(Trial.phases[4]);
-
         // Run the user-supplied feedback function.
-        this.data.timeFeedbackOn = new Date().getTime();
+        this.data.timeFeedbackOn = this.trialTime;
         await this.displayFeedback(this);
-        this.data.timeFeedbackOff = new Date().getTime();
+        this.data.timeFeedbackOff = this.trialTime;
 
         return this;
     }
@@ -321,8 +252,7 @@ class Trial {
      * @return {Trial}
      */
     end() {
-        this._startPhase(Trial.phases[5]);
-        this.data.timeEnd = new Date().getDate() - this.data.timestampStart;
+        this.data.timeEnd = this.trialTime;
 
         return this;
     }
@@ -331,7 +261,6 @@ class Trial {
      * Set the display back to its fresh state.
      */
     cleanup() {
-        this._startPhase(Trial.phases[6]);
         this.responseWidget.reset();
         this.constructor.reset();
         return this;
@@ -341,7 +270,7 @@ class Trial {
      * Set the display to its fresh state.
      */
     static reset() {
-        document.querySelector("#stimulus").classList.add('cloak');
+        document.querySelector("#stimulus").innerHTML = "";
         document.querySelector("#prompt").innerHTML = "";
     }
 
@@ -356,10 +285,8 @@ class Trial {
  * * showStim (stimulus phase)
  * * hideStim (post-stimulus)
  * * getResponse (response collection)
- * * processResponse (post-response)
  * * showAdvice
  * * getFinalResponse
- * * processFinalResponse
  * * showFeedback
  * * end
  * * cleanup
@@ -385,19 +312,30 @@ class AdvisedTrial extends Trial {
     constructor(blueprint, callback) {
         super(blueprint, callback);
 
-        // Generate blueprint values with respect to new defaults
-        this._setDefaults(true);
-        super._readBlueprint();
+        // Register advisors in the data output
+        for(let i = 0; i < this.advisors.length; i++) {
+            const a = this.advisors[i];
+            const s = "advisor" + a.id;
+            this.data[s + "position"] = i;
+            this.data[s + "id"] = a.id;
+            this.data[s + "name"] = a.name;
+            this.data[s + "group"] = a.group;
+        }
 
         AdvisedTrial.reset();
     }
 
     _setDefaults(skipParentDefaults = false) {
-
         super._setDefaults();
+
         this.durationShowAdvice = 1500;
         this.durationFinalResponse = null;
         this.advice = [];
+    }
+
+    // Override the prefix so styling can use Trial rather than duplicating
+    get _phaseClassPrefix() {
+        return "Trial";
     }
 
     /**
@@ -416,14 +354,14 @@ class AdvisedTrial extends Trial {
                 end: "",
                 cleanup: ""
             };
-            this.myPhases.forEach((k) => {
+            this.phases.forEach((k) => {
                 if(!this.prompt.hasOwnProperty(k))
                    this.prompt[k] = prompt
             });
         }
     }
 
-    static get phases() {
+    static get listPhases() {
         return [
             "begin",
             "showStim",
@@ -444,7 +382,7 @@ class AdvisedTrial extends Trial {
     processResponse(data) {
 
         // Parent handles processing initial response
-        super.processResponse(data, false);
+        super.processResponse(data);
 
         return this;
     }
@@ -454,8 +392,6 @@ class AdvisedTrial extends Trial {
      * @return {Promise<AdvisedTrial>}
      */
     async showAdvice() {
-        this._startPhase(AdvisedTrial.phases[5]);
-
         this.advisors.forEach((a) => {
             const advice = a.getAdvice();
             Object.keys(advice).forEach((k)=> {
@@ -483,14 +419,12 @@ class AdvisedTrial extends Trial {
      * @return {Promise<AdvisedTrial>}
      */
     async getFinalResponse() {
-        this._startPhase(AdvisedTrial.phases[6]);
-
-        this.data.timeResponseOpenFinal = new Date().getTime();
+        this.data.timeResponseOpenFinal = this.trialTime;
 
         let response = await this.responseWidget
             .getResponse(this.durationResponse);
 
-        this.data.timeResponseClose = new Date().getTime();
+        this.data.timeResponseClose = this.trialTime;
 
         if(response === "undefined") {
             this.log.push("Timeout on response");
@@ -500,8 +434,6 @@ class AdvisedTrial extends Trial {
     }
 
     processFinalResponse(data) {
-        this._startPhase(AdvisedTrial.phases[7]);
-
         let me = this;
 
         Object.keys(data).forEach((k) => {
@@ -516,17 +448,6 @@ class AdvisedTrial extends Trial {
 
         return this;
     }
-
-    /**
-     * Set the display back to its fresh state.
-     */
-    cleanup() {
-
-        this._hideAdvice();
-        super.cleanup();
-
-        return this;
-    }
 }
 
-export {AdvisedTrial, Trial, utils};
+export {AdvisedTrial, Trial};

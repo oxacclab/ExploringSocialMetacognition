@@ -37,9 +37,6 @@ customElements.define('esm-help',
                     target: me
                 }));
             };
-
-            // Start hidden
-            setTimeout(()=>me.hide(), 0);
         }
 
         /**
@@ -53,12 +50,12 @@ customElements.define('esm-help',
                         let others = document.querySelectorAll(
                             "esm-help[data-group~='" + g + "']"
                         );
-                        others.forEach((elm) => elm.classList.add("hidden"));
+                        others.forEach((elm) => elm.classList.remove("show"));
                     }
                 );
             }
 
-            this.classList.remove("hidden");
+            this.classList.add("show");
 
             return this;
         }
@@ -73,7 +70,7 @@ customElements.define('esm-help',
             if(this.dataset.parentClickCloses === "false" && parentClick)
                 return this;
 
-            this.classList.add("hidden");
+            this.classList.remove("show");
 
             return this;
         }
@@ -89,8 +86,8 @@ customElements.define('esm-help',
             else
                 this.lastToggleTime = now;
 
-            return this.classList.contains("hidden")?
-                this.show() : this.hide(e && e.type === "showHelp");
+            return this.classList.contains("show")?
+                this.hide(e && e.type === "showHelp") : this.show();
         }
 
         /**

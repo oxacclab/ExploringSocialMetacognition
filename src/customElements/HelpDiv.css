@@ -1,3 +1,10 @@
+:root{
+    --esm-help-width: 250px;
+    --esm-help-arrowSize: 5px;
+    --esm-help-backgroundColor: #f9f6ac;
+    --esm-help-borderColor: black;
+}
+
 esm-help {
     width: var(--esm-help-width);
     position: absolute;
@@ -13,6 +20,7 @@ esm-help {
     overflow: visible;
     line-height: 1.2em;
     user-select: text;
+    display: none;
 }
 esm-help:not(.top):not(.bottom):not(.left):not(.right) {
     top: 50%;
@@ -78,6 +86,6 @@ esm-help.right::after {
     opacity: .5;
     z-index: -1;
 }
-.esm-help.hidden {
-    display: none;
+esm-help.show {
+    display: block;
 }

@@ -2,6 +2,15 @@
 
 }
 
+@keyframes fadeIn {
+    from {
+        color: transparent;
+    }
+    to {
+        color: unset;
+    }
+}
+
 esm-instruction::before {
     content: "";
     position: fixed;
@@ -22,6 +31,7 @@ esm-instruction {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    animation: fadeIn 1s forwards ease-in;
 }
 
 esm-instruction-page {
@@ -64,7 +74,7 @@ esm-instruction div:last-child button:focus {
     cursor: pointer;
 }
 
-esm-instruction.hidden,
-esm-instruction .hidden {
+esm-instruction.cloak,
+esm-instruction .cloak {
     display: none;
 }

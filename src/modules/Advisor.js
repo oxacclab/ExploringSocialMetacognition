@@ -7,8 +7,12 @@
 
 "use strict";
 
-class Advisor {
+import {BaseObject} from "./Prototypes.js";
+
+class Advisor extends BaseObject {
     constructor(blueprint) {
+        super(blueprint);
+
         this.id = blueprint.id;
         this.name = blueprint.name;
         this.group = blueprint.group;
@@ -19,7 +23,6 @@ class Advisor {
 
     drawAdvice() {
         const marker = document.querySelector("esm-response-widget .response-marker.advisor-" + this.id);
-        marker.classList.remove("cloak");
         const d = document.querySelector("esm-response-widget")
             .valueToProportion(this.getAdvice(false).estimate, Math.random());
         let box = document.querySelector(".response-hBar")
@@ -33,11 +36,6 @@ class Advisor {
         marker.style.top = "calc(" +
             ((1 - d.confidence) * (box.height - marker.clientHeight)) + "px - " +
             "var(--response-vBar-offset))";
-    }
-
-    hideAdvice() {
-        document.querySelector("esm-response-widget .response-marker.advisor-" + this.id)
-            .classList.add("cloak");
     }
 
     getAdvice(recalculate = true) {

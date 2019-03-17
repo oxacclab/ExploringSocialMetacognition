@@ -1,9 +1,6 @@
-:root {
-    --content-height: 500;
-    --content-width: 900;
-
-    --tag-border-radius: 0.5em;
-}
+/*
+Static structure of the elements in the experiment.
+*/
 
 @keyframes addTabRight {
     from { margin-left: 110%; }
@@ -12,6 +9,13 @@
 @keyframes addTabLeft {
     from { left: -110%; }
     to { left: 0; }
+}
+
+:root {
+    --content-height: 500;
+    --content-width: 900;
+
+    --tag-border-radius: 0.5em;
 }
 
 body {
@@ -28,17 +32,6 @@ div {
     position: relative;
     /* Text placed directly in a DIV should not be selectable */
     user-select: none;
-}
-
-.hidden {
-    display: none;
-}
-
-:root{
-    --esm-help-width: 250px;
-    --esm-help-arrowSize: 5px;
-    --esm-help-backgroundColor: #f9f6ac;
-    --esm-help-borderColor: black;
 }
 
 :focus {
@@ -65,9 +58,6 @@ div {
     border-radius: 5px;
     margin: auto;
     overflow: hidden;
-}
-#content.ITI {
-    background-color: lightgrey;
 }
 
 #content > .frame {
@@ -105,9 +95,6 @@ div {
     overflow: hidden;
     opacity: 1;
 }
-#content:not(.feedback) #stimulus.cloak {
-    opacity: 0;
-}
 #stimulus * {
     max-height: 100%;
 }
@@ -127,8 +114,6 @@ div {
     display: flex;
     flex-direction: column;
     transition: opacity 0.5s;
-}
-#content:not(.feedback) #response-panel.cloak {
     opacity: 0.2;
 }
 
@@ -141,6 +126,15 @@ div {
     position: absolute;
     bottom: 0;
     width: 100%;
+    display: none;
+    font-style: italic;
+    background-color: var(--esm-help-backgroundColor);
+    border: 1px solid var(--esm-help-borderColor);
+}
+
+#training-instructions.top {
+    bottom: unset;
+    top: 0;
 }
 
 .progress-bar {
@@ -189,6 +183,11 @@ div {
     margin: .5em;
 }
 
+.response-marker.advisor,
+.response-marker.feedback {
+    display: none;
+}
+
 .response-marker.feedback {
     color: #ffe96e;
     font-weight: bold;
@@ -206,15 +205,21 @@ div {
     position: absolute;
     z-index: -1;
 }
-#content:not(.feedback) .response-marker.feedback {
-    display: none;
-}
 
-.response-marker.advisor.cloak {
-    display: none;
+#help-button {
+    position: absolute;
+    font-size: 1em;
+    font-weight: bold;
+    margin: 0.3em;
+    padding: 0.3em;
+    border-radius: 1em;
+    width: 2em;
+    height: 2em;
+    border: 1px solid black;
+    background-color: transparent;
+    bottom: 0;
+    right: 0;
 }
-
-#stimulus.countdown {
-    justify-content: center;
-    transform: scale(6);
+#help-button.show-help {
+    background-color: yellow;
 }
