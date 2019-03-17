@@ -223,3 +223,32 @@ div {
 #help-button.show-help {
     background-color: yellow;
 }
+
+/* Counter widget */
+@keyframes tickAway {
+    from {
+        stroke-dashoffset: 0;
+    }
+    to {
+        stroke-dashoffset: -63;
+    }
+}
+.counter svg {
+    fill: transparent;
+    stroke: black;
+    stroke-width: 1px;
+    stroke-dasharray: 63px;
+    animation: tickAway forwards linear;
+}
+.counter circle {
+    transform: rotateZ(270deg);
+    transform-origin: 50% 50%;
+}
+.counter span {
+    position: absolute;
+    top: calc(50% - 14px);
+    left: calc(50% - 10px);
+    width: 20px;
+    line-height: 20px;
+    font-size: 14px;
+}

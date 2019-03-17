@@ -104,13 +104,18 @@ class Study extends ControlObject {
         // Handle the initial call
         if(max === null) {
             max = s + 1;
-            stim.classList.add("countdown")
+            stim.classList.add("countdown");
+            stim.appendChild(
+                document.getElementById("countdown")
+                    .cloneNode(true).content);
+
+            stim.querySelector("svg").style.animationDuration = s + "s";
         }
 
         if(s !== 1)
             await this.countdown(s - 1, max);
 
-        stim.innerHTML = (max - s).toString();
+        stim.querySelector("span").innerText = (max - s).toString();
 
         // When the last resolves, remove the countdown class
         if(s === max - 1)

@@ -74,5 +74,5 @@ body:not(.Study-practice) #help-button {
 .Study-practice:not(.Trial-any) #stimulus,
 .Study-core:not(.Trial-any) #stimulus {
     justify-content: center;
-    transform: scale(6);
+    transform: scale(4);
 }
