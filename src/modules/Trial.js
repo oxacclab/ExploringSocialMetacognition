@@ -376,18 +376,6 @@ class AdvisedTrial extends Trial {
     }
 
     /**
-     * Handle the response.
-     * @param data {Object|undefined} response data
-     */
-    processResponse(data) {
-
-        // Parent handles processing initial response
-        super.processResponse(data);
-
-        return this;
-    }
-
-    /**
      * Show the advice for the trial
      * @return {Promise<AdvisedTrial>}
      */
@@ -400,16 +388,27 @@ class AdvisedTrial extends Trial {
             a.drawAdvice();
         });
 
-        return this;
-    }
-
-    /**
-     * Hide the advice for the trial
-     * @return {AdvisedTrial}
-     * @protected
-     */
-    _hideAdvice() {
-        this.advisors.forEach((a) => a.hideAdvice());
+        // Update the ghost position
+        const marker = document.querySelector(".response-marker.ghost");
+        // temporary reveal so that it has dimensions we can use
+        marker.style.display = "unset";
+        const d = document.querySelector("esm-response-widget")
+            .valueToProportion(
+                this.data.responseEstimate,
+                this.data.responseConfidence
+            );
+        let box = document.querySelector(".response-hBar")
+            .getBoundingClientRect();
+        // General position format is %(span) + adjustment
+        marker.style.left =
+            (d.estimateProportion * (box.width - box.height) +
+                ((box.height - marker.clientWidth) / 2)) + "px";
+        box = document.querySelector(".response-vBar").getBoundingClientRect();
+        marker.style.top = "calc(" +
+            ((1 - d.confidence) * (box.height - marker.clientHeight)) + "px" +
+            " - " +
+            "var(--response-vBar-offset))";
+        marker.style.display = "";
 
         return this;
     }

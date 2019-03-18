@@ -20,27 +20,35 @@
 
 .advisor-bg-1 {
     background-color: var(--advisor-1-primary);
+    fill: var(--advisor-1-primary);
 }
 .advisor-bg-2 {
     background-color: var(--advisor-2-primary);
+    fill: var(--advisor-2-primary);
 }
 .advisor-border-1 {
     border-color: var(--advisor-1-secondary);
+    stroke: var(--advisor-1-secondary);
 }
 .advisor-border-2 {
     border-color: var(--advisor-2-secondary);
+    stroke: var(--advisor-2-secondary);
 }
 
 .group-bg-1 {
     background-color: var(--group-1-primary);
+    fill: var(--group-1-primary);
 }
 .group-bg-2 {
     background-color: var(--group-2-primary);
+    fill: var(--group-2-primary);
 }
 
 .group-border-1 {
     border-color: var(--group-1-secondary);
+    stroke: var(--group-1-secondary);
 }
 .group-border-2 {
     border-color: var(--group-2-secondary);
+    stroke: var(--group-2-secondary);
 }

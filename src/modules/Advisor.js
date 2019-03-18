@@ -17,24 +17,47 @@ class Advisor extends BaseObject {
         this.name = blueprint.name;
         this.group = blueprint.group;
         this.lastAdvice = null;
+        this.marker = null;
 
         this.templateId = blueprint.templateId;
     }
 
+    /**
+     * Create a response marker
+     * @param [appendTo=null] {HTMLElement} to append the marker to
+     * @return {HTMLElement}
+     */
+    createMarker(appendTo = null) {
+        this.marker =
+            this.getInfoTab().querySelector(".marker").cloneNode(true);
+
+        this.marker.classList.add("advisor", "response-marker");
+
+        if(appendTo !== null)
+            appendTo.appendChild(this.marker);
+
+        return this.marker;
+    }
+
     drawAdvice() {
-        const marker = document.querySelector("esm-response-widget .response-marker.advisor-" + this.id);
+
+        if(this.marker === null)
+            this.createMarker(document.querySelector("esm-response-widget" +
+                " .response-hBar"));
+
         const d = document.querySelector("esm-response-widget")
             .valueToProportion(this.getAdvice(false).estimate, Math.random());
         let box = document.querySelector(".response-hBar")
             .getBoundingClientRect();
         // General position format is %(span) + adjustment
-        marker.style.left =
+        this.marker.style.left =
             (d.estimateProportion * (box.width - box.height) +
-                ((box.height - marker.clientWidth) / 2) -
-                (marker.clientWidth / 2)) + "px";
+                (box.height / 2) -
+                (this.marker.clientWidth / 2)) + "px";
         box = document.querySelector(".response-vBar").getBoundingClientRect();
-        marker.style.top = "calc(" +
-            ((1 - d.confidence) * (box.height - marker.clientHeight)) + "px - " +
+        this.marker.style.top = "calc(" +
+            ((1 - d.confidence) * (box.height - this.marker.clientHeight)) + "px" +
+            " - " +
             "var(--response-vBar-offset))";
     }
 
@@ -50,7 +73,7 @@ class Advisor extends BaseObject {
 
     /**
      *
-     * @param templateId {string} id of the template to clone
+     * @param [templateId] {string} id of the template to clone
      * @return {Node}
      */
     getInfoTab(templateId) {
@@ -63,7 +86,7 @@ class Advisor extends BaseObject {
             "group-bg-" + this.group,
             "group-border-" + this.group
         );
-        elm.querySelector(".marker").classList.add(
+        elm.querySelector(".marker svg circle").classList.add(
             "advisor-bg-" + this.id,
             "advisor-border-" + this.id
         );

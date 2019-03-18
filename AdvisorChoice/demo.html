@@ -29,7 +29,11 @@
     </template>
     <template id="advisor-key">
         <div class="advisor-key-row">
-            <div class="marker"></div>
+            <div class="marker">
+                <svg>
+                    <circle r="0.5em" cx="50%" cy="50%"></circle>
+                </svg>
+            </div>
             <span>Advisor Name</span>
             <esm-help data-group="interface" class="left">
                 This <em>tag</em> shows details for one of your advisors. The background colour shows you their group, and the <em>marker</em> shows you the colour used to indicate their advice.
@@ -124,9 +128,7 @@
                         </div>
                     </div>
                     <div class="response-marker correct feedback">&bigstar;</div>
-                    <div
-                            class="response-marker advisor advisor-1 marker advisor-bg-1 advisor-border-1"></div>
-                    <div class="response-marker advisor advisor-2 marker advisor-bg-2 advisor-border-2"></div>
+                    <div class="response-marker ghost group-bg-2"></div>
                 </div>
             </esm-response-widget>
             <esm-help data-group="interface" data-parent-click-closes="false" class="top">

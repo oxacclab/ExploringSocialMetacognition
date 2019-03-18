@@ -60,12 +60,12 @@ class Study extends ControlObject {
         this.blockLength = [0];
         this.practiceBlocks = 0;
         this.trials = [];
-        this.countdownTime = 3;
+        this.countdownTime = 1;
 
         this.advisors =
             [
-                new Advisor({id: 1, group: 1, name: "Advisor #37"}),
-                new Advisor({id: 2, group: 2, name: "Advisor #09"})
+                new Advisor({id: 1, group: 1, name: "Advisor #37", templateId: "advisor-key"}),
+                new Advisor({id: 2, group: 2, name: "Advisor #09", templateId: "advisor-key"})
             ];
 
         this.trialBlueprint = {
@@ -245,6 +245,30 @@ class Study extends ControlObject {
         });
     }
 
+    /**
+     * Show a help element's help display
+     * @param helpElement {HTMLElement}
+     * @return {HTMLElement}
+     * @protected
+     */
+    static _showHelp(helpElement) {
+        helpElement.show();
+        helpElement.parentElement.classList.add("esm-help-show");
+        return helpElement;
+    }
+
+    /**
+     * Hide a help element's help display
+     * @param helpElement {HTMLElement}
+     * @return {HTMLElement}
+     * @protected
+     */
+    static _hideHelp(helpElement) {
+        helpElement.hide();
+        helpElement.parentElement.classList.remove("esm-help-show");
+        return helpElement;
+    }
+
     async training() {
 
         let study = this;
@@ -266,32 +290,32 @@ class Study extends ControlObject {
 
             let T = new Trial(study.trialBlueprint);
 
-            let help = document.querySelector(".progress-bar esm-help");
-            help.show();
+            let help = Study._showHelp(
+                document.querySelector(".progress-bar esm-help"));
 
             await gotoNextStep(help);
 
-            help.hide();
+            Study._hideHelp(help);
 
             await T.nextPhase("begin");
             await T.nextPhase("showStim");
-            help = document.querySelector("#stimulus ~ esm-help");
-            help.show();
+            help = Study._showHelp(
+                document.querySelector("#stimulus ~ esm-help"));
 
             await gotoNextStep(help);
 
-            help.hide();
+            Study._hideHelp(help);
             instr.innerHTML =
                 "Enter an estimate and rate your confidence to move on...";
             instr.classList.add("top");
             let data = T.nextPhase("hideStim");
 
-            help = document.querySelector("esm-response-widget ~ esm-help");
-            help.show();
+            help = Study._showHelp(
+                document.querySelector("esm-response-widget ~ esm-help"));
 
             await T.nextPhase("getResponse");
 
-            help.hide();
+            Study._hideHelp(help);
 
             // finish the trial
             await T.run("end");

@@ -65,9 +65,13 @@ body:not(.Study-practice) #help-button {
     display: unset;
 }
 
+/* Show the advice during advice phase,
+and advice and ghost during final decision phase */
 .Trial-showAdvice .response-marker.advisor,
 .Trial-getFinalResponse .response-marker.advisor,
-.Trial-showFeedback .response-marker.advisor {
+.Trial-showFeedback .response-marker.advisor,
+.Trial-getFinalResponse .response-marker.ghost,
+.Trial-showFeedback .response-marker.ghost {
     display: unset;
 }
 

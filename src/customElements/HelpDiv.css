@@ -1,5 +1,5 @@
 :root{
-    --esm-help-width: 250px;
+    --esm-help-width: 500px;
     --esm-help-arrowSize: 5px;
     --esm-help-backgroundColor: #f9f6ac;
     --esm-help-borderColor: black;
@@ -15,10 +15,10 @@ esm-help {
     padding: 5px 0;
     border-radius: 6px;
     border: 1px solid var(--esm-help-borderColor);
-    font-size: 0.8em;
+    font-size: 24px;
     cursor: pointer;
     overflow: visible;
-    line-height: 1.2em;
+    line-height: 1.1em;
     user-select: text;
     display: none;
 }
@@ -73,6 +73,7 @@ esm-help.right::after {
     top: calc(50% - var(--esm-help-arrowSize));
     border-right-color: var(--esm-help-borderColor);
 }
+.esm-help-show::before,
 .esm-help-enabled:hover::before {
     background-color: var(--esm-help-backgroundColor);
     outline: 1px solid var(--esm-help-borderColor);
