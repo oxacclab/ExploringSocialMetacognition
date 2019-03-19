@@ -54,6 +54,10 @@ class Study extends ControlObject {
     _setDefaults() {
         super._setDefaults();
 
+        this.name = "newStudy";
+        this.platformId = "not set";
+        this.debriefComments = "";
+
         this.currentTrial = 0;
         this.currentBlock = 0;
 
@@ -385,6 +389,8 @@ class Study extends ControlObject {
 
     async debrief() {
         Study._updateInstructions("instr-debrief");
+        this.save(console.log);
+
         return new Promise(function(resolve) {
             setTimeout(resolve, 0, "debrief");
         });
@@ -464,6 +470,135 @@ class Study extends ControlObject {
             // Inter-trial interval
             await this.ITI();
         }
+    }
+
+    /**
+     * Flatten the data to CSV-able tables
+     * Each element in the output is a list of entries
+     * @param [headers=true] {boolean} whether the first row in each list
+     * should be the column headers
+     * @return {{study: Array, trials: Array, advisors: Array}}
+     */
+    toTables(headers = true, fixLengths = true) {
+        const out = {
+            study: null,
+            advisors: [],
+            trials: []
+        };
+
+        out.study = this.toTable(headers);
+
+        // Get the headers based on the last of each entity
+        if(headers) {
+            out.advisors.push(this.advisors[this.advisors.length - 1].tableHeaders);
+            out.trials.push(this.trials[this.trials.length - 1].tableHeaders);
+        }
+
+        let aHead = null;
+        let tHead = null;
+        if(fixLengths) {
+            aHead = out.advisors[0];
+            tHead = out.trials[0];
+        }
+        this.advisors.forEach(async (a) =>
+            out.advisors.push(a.toTable(aHead)));
+
+        this.trials.forEach(async (t) =>
+            out.trials.push(t.toTable(tHead)));
+
+        return out;
+    }
+
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @param headers {boolean} whether to include column headers
+     * @return {string[]}
+     */
+    toTable(headers) {
+        const out = [
+            ...this.blockLength,
+            this.countdownTime,
+            this.practiceBlocks
+        ];
+
+        if(!headers)
+            return out;
+
+        let head = [];
+        for(let i = 0; i < this.blockLength.length; i++)
+            head.push("block" + i.toString() + "length");
+        head = [
+            ...head,
+            ...[
+                "countdownTime",
+                "practiceBlocks"
+            ]
+        ];
+
+        return [head, out];
+    }
+
+    /**
+    * @return {string[]} headers for the private columns
+    */
+    get privateTableHeaders() {
+        return [
+            "platformId", "debriefComments"
+        ];
+    }
+
+    /**
+     * Remove the private data from this object and return it in a table
+     * @param [remove=true] {boolean} whether to strip private data
+     * @param [headers=true] {boolean} whether the table includes column headers
+     * @return {*[]}
+     */
+    extractPrivateData(remove = true, headers = true) {
+        const row = [];
+
+        for(let h of this.privateTableHeaders) {
+            row.push(this[h]);
+            if(remove)
+                this[h] = "[redacted]";
+        }
+
+        return headers? [this.privateTableHeaders, row] : [row];
+    }
+
+    /**
+     * Save the data for the Study
+     * @param callback {function} function to execute on the server response
+     * @param onError {function} function to execute on fetch error
+     * @return {Promise<Response|never>}
+     */
+    save(callback, onError) {
+        this.info("Saving.");
+
+        if(typeof callback !== "function")
+            callback = () => {};
+        if(typeof onError !== "function")
+            onError = (reply)=>console.error("Error: ", reply);
+
+        // Prepare data for saving
+        const tables = this.toTables();
+        tables.meta = this.extractPrivateData();
+
+        const data = JSON.stringify({
+            studyId: this.name,
+            raw: this,
+            tables
+            });
+
+        // Save
+        return fetch("../saveCSV.php", {
+            method: "POST",
+            cache: "no-cache",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: data
+        })
+            .then(response => response.text())
+            .then(response => callback(response))
+            .catch(error => onError(error));
     }
 }
 

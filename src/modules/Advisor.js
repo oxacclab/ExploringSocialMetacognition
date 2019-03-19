@@ -40,6 +40,7 @@ class Advisor extends BaseObject {
     }
 
     drawAdvice() {
+        this.info("Drawing advice");
 
         if(this.marker === null)
             this.createMarker(
@@ -76,7 +77,13 @@ class Advisor extends BaseObject {
     }
 
     getAdvice(recalculate = true) {
+
         if(recalculate || this.lastAdvice === null)
+            if(this.lastAdvice === null && !recalculate)
+                this.warn("Advice requested where none exists; recalculating.");
+            else
+                this.info("Calculating advice");
+
             this.lastAdvice = {
                 estimate: 2.5 - 1.5 + (Math.random() * 4),
                 confidence: 0.5
@@ -107,6 +114,34 @@ class Advisor extends BaseObject {
         elm.querySelector(".advisor-key-row span").innerHTML = this.name;
 
         return elm.querySelector(".advisor-key-row");
+    }
+
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @param [headers=null] {string[]|null} values to read. Defaults to
+     * this.tableHeaders
+     * @return {string[]}
+     */
+    toTable(headers=null) {
+        const out = [];
+
+        // Use own headers if not supplied
+        if(headers === null)
+            headers = this.tableHeaders;
+
+        for(let h of headers)
+            out.push(typeof this[h] === "undefined"? null : this[h]);
+
+        return out;
+    }
+
+    /**
+     * @return {string[]} headers for the columns of this.toTable()
+     */
+    get tableHeaders() {
+        return [
+            "id", "group", "name"
+        ];
     }
 }
 

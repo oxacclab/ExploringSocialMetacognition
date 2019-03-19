@@ -274,6 +274,32 @@ class Trial extends ControlObject {
         document.querySelector("#prompt").innerHTML = "";
     }
 
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @param [headers=null] {string[]|null} values to read. Defaults to
+     * this.tableHeaders
+     * @return {string[]}
+     */
+    toTable(headers=null) {
+        const out = [];
+
+        // Use own headers if not supplied
+        if(headers === null)
+            headers = this.tableHeaders;
+
+        for(let h of headers)
+            out.push(typeof this.data[h] === "undefined"? null : this.data[h]);
+
+        return out;
+    }
+
+    /**
+     * @return {string[]} headers for the columns of this.toTable()
+     */
+    get tableHeaders() {
+        return Object.keys(this.data);
+    }
+
 }
 
 /**

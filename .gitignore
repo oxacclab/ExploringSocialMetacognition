@@ -11,3 +11,5 @@ analysis/explore
 *.Rhistory
 *.JSON
 analysis/spss
+data/public/raw/*.JSON
+data/*/*.csv
