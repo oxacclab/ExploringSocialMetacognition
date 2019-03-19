@@ -11,6 +11,7 @@ customElements.define('esm-response-widget',
      * @property suffix {string} Suffix to response values
      * @property decimals {int} Number of decimal points in response values
      * @property timeout {int} Maximum response time in ms
+     * @property noConfidence {string} "true" = do not ask for confidence
      */
     class ResponseWidget extends HTMLElement {
 
@@ -152,12 +153,16 @@ customElements.define('esm-response-widget',
             this.removeEventListener("mousemove", this.updateEstimate);
             this.removeEventListener("click", this.saveEstimate);
 
-            // Show the confidence bar
-            this.querySelector(".response-vBar").classList.remove('cloak');
+            if(this.dataset.noConfidence !== "true") {
 
-            // Enable confidence responding
-            this.addEventListener("mousemove", this.updateConfidence);
-            this.addEventListener("click", this.saveConfidence);
+                // Show the confidence bar
+                this.querySelector(".response-vBar").classList.remove('cloak');
+
+                // Enable confidence responding
+                this.addEventListener("mousemove", this.updateConfidence);
+                this.addEventListener("click", this.saveConfidence);
+            } else
+                this.responseData.complete = true;
 
         }
 

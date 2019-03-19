@@ -103,6 +103,7 @@
                         This <em>tag</em> shows which group you've been assigned to.
                     </esm-help>
                 </div>
+                <div class="advisor-key"></div>
             </div>
             <div class="middle">
                 <div id="stimulus"></div>
@@ -112,11 +113,13 @@
                 </esm-help>
             </div>
             <div class="right">
-
             </div>
         </div>
         <div class="frame bottom">
-            <esm-response-widget id="response-panel" data-min="1.00" data-max="5.00" data-prefix="" data-suffix="" data-decimals="2">
+            <esm-response-widget id="response-panel" data-min="1.00"
+                                 data-max="5.00" data-prefix=""
+                                 data-suffix="" data-decimals="2"
+                                 data-no-confidence="true">
                 <div class="response-hBar">
                     <div class="response-label left">&pound;1.00</div>
                     <div class="response-label right">&pound;5.00</div>
@@ -151,7 +154,7 @@
     function toggleHelp() {
         document.querySelectorAll("esm-help").forEach((elm) => elm.toggle());
 
-        event.currentTarget.classList.toggle("show-help");
+        window.event.currentTarget.classList.toggle("show-help");
     }
 </script>
 <script type="module">

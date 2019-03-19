@@ -380,13 +380,14 @@ class AdvisedTrial extends Trial {
      * @return {Promise<AdvisedTrial>}
      */
     async showAdvice() {
-        this.advisors.forEach((a) => {
+        for(let a of this.advisors) {
             const advice = a.getAdvice();
             Object.keys(advice).forEach((k)=> {
                 this.data["advisor" + a.id.toString() + k] = advice[k];
             });
             a.drawAdvice();
-        });
+            await this.wait(1000);
+        }
 
         // Update the ghost position
         const marker = document.querySelector(".response-marker.ghost");
@@ -395,7 +396,8 @@ class AdvisedTrial extends Trial {
         const d = document.querySelector("esm-response-widget")
             .valueToProportion(
                 this.data.responseEstimate,
-                this.data.responseConfidence
+                this.data.responseConfidence === null?
+                    .5 : this.data.responseConfidence
             );
         let box = document.querySelector(".response-hBar")
             .getBoundingClientRect();
@@ -446,6 +448,11 @@ class AdvisedTrial extends Trial {
         });
 
         return this;
+    }
+
+    cleanup() {
+        this.advisors.forEach((a) => a.hideAdvice());
+        return super.cleanup();
     }
 }
 

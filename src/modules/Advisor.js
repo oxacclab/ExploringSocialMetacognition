@@ -42,30 +42,44 @@ class Advisor extends BaseObject {
     drawAdvice() {
 
         if(this.marker === null)
-            this.createMarker(document.querySelector("esm-response-widget" +
-                " .response-hBar"));
+            this.createMarker(
+                document.querySelector("esm-response-widget .response-hBar"));
 
         const d = document.querySelector("esm-response-widget")
-            .valueToProportion(this.getAdvice(false).estimate, Math.random());
+            .valueToProportion(
+                this.getAdvice(false).estimate,
+                this.getAdvice(false).confidence
+            );
+
         let box = document.querySelector(".response-hBar")
             .getBoundingClientRect();
+
         // General position format is %(span) + adjustment
         this.marker.style.left =
             (d.estimateProportion * (box.width - box.height) +
                 (box.height / 2) -
                 (this.marker.clientWidth / 2)) + "px";
+
         box = document.querySelector(".response-vBar").getBoundingClientRect();
+
         this.marker.style.top = "calc(" +
             ((1 - d.confidence) * (box.height - this.marker.clientHeight)) + "px" +
             " - " +
             "var(--response-vBar-offset))";
     }
 
+    hideAdvice() {
+        if(this.marker !== null) {
+            this.marker.remove();
+            this.marker = null;
+        }
+    }
+
     getAdvice(recalculate = true) {
         if(recalculate || this.lastAdvice === null)
             this.lastAdvice = {
-                estimate: 3.75,
-                confidence: Math.random()
+                estimate: 2.5 - 1.5 + (Math.random() * 4),
+                confidence: 0.5
             };
 
         return this.lastAdvice;

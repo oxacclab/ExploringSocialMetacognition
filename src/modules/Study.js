@@ -208,7 +208,7 @@ class Study extends ControlObject {
      */
     _introduceAdvisor(advisor) {
         const elm = advisor.getInfoTab("advisor-key");
-        document.querySelector(".frame.top > .right").appendChild(elm);
+        document.querySelector(".advisor-key").appendChild(elm);
 
         return new Promise((resolve) => {setTimeout(resolve, 1000, elm)});
     }
@@ -219,7 +219,7 @@ class Study extends ControlObject {
      */
     async _introduceAdvisors(advisors) {
         // Remove current advisors
-        document.querySelectorAll(".right .advisor-key-row").forEach(
+        document.querySelectorAll(".advisor-key .advisor-key-row").forEach(
             (elm) => elm.remove()
         );
 

@@ -55,6 +55,7 @@ body:not(.Study-practice) #help-button {
 
 /* Show fully-opaque response panel when it should be the focus of attention. */
 .Trial-getResponse #response-panel,
+.Trial-showAdvice #response-panel,
 .Trial-getFinalResponse #response-panel,
 .Trial-showFeedback #response-panel {
     opacity: 1;

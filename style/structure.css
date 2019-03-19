@@ -165,7 +165,7 @@ div {
     margin: 0.5em 0 0 0;
     font-size: 32px;
 }
-.left > .advisor-key-row {
+.left .advisor-key-row {
     border-top-right-radius: var(--tag-border-radius);
     border-bottom-right-radius: var(--tag-border-radius);
     box-shadow: 1px 1px 1px 0 black;
@@ -173,13 +173,27 @@ div {
     width: 100%;
     animation: addTabLeft 1s forwards;
 }
-.right > .advisor-key-row {
+.right .advisor-key-row {
     border-top-left-radius: var(--tag-border-radius);
     border-bottom-left-radius: var(--tag-border-radius);
     box-shadow: -1px 1px 1px 0 black;
 
     width: 100%;
     animation: addTabRight 1s forwards;
+}
+
+/* Markers */
+@keyframes adviceAnimation1st {
+    from {
+        top: -252px;
+        left: -11px;
+    }
+}
+@keyframes adviceAnimation2nd {
+    from {
+        top: -147px;
+        left: -11px;
+    }
 }
 
 .marker {
@@ -195,6 +209,10 @@ div {
 .response-marker.advisor {
     width: 1.2em;
     height: 1.2em;
+    animation: adviceAnimation1st 1s forwards ease-in-out;
+}
+.response-marker.advisor + .response-marker.advisor {
+    animation-name: adviceAnimation2nd;
 }
 .response-marker.advisor,
 .response-marker.feedback,
