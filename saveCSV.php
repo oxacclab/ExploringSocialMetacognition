@@ -131,18 +131,20 @@ foreach(array_keys($tables) as $table) {
 
 // Update the objects with the IDs
 foreach(array_keys($tables) as $table) {
-    foreach($tables[$table] as $row) {
-        array_unshift($row, $eid);
-        array_unshift($row, $pid);
-    }
-    // and get rid of the header row
+
+    // Get rid of the header row
     array_shift($tables[$table]);
 
     // Write to the file
     if(($handle = fopen($fileNames[$table], 'a')) !== false) {
-        foreach($tables[$table] as $row)
+
+        foreach($tables[$table] as $row) {
+            array_unshift($row, $eid);
+            array_unshift($row, $pid);
             fputcsv($handle, $row);
+        }
         fclose($handle);
+
     } else
         sulk("Unable to update $table results storage.", 500);
 
