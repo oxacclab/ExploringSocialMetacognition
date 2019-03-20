@@ -84,11 +84,11 @@ class Study extends ControlObject {
 
     static get listPhases() {
         return [
-            // "splashScreen",
-            // "consent",
-            // "demographics",
-            // "introduction",
-            // "training",
+            "splashScreen",
+            "consent",
+            "demographics",
+            "introduction",
+            "training",
             "practiceInstructions",
             "practice",
             "coreInstructions",

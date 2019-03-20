@@ -50,8 +50,8 @@ An JSON string is returned with the following properties:
 */
 
 //phpinfo();
-error_reporting(E_ALL);
-ini_set("display_errors", true);
+error_reporting(0);
+//ini_set("display_errors", true);
 ini_set("auto_detect_line_endings", true);
 $log = "";
 
