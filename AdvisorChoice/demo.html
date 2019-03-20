@@ -174,7 +174,8 @@
 
     };
 
-    new Study(studyBlueprint).run()
+    window.study = new Study(studyBlueprint);
+    study.run()
         .then(console.log);
 
     // Hoist for debugging

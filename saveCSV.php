@@ -51,6 +51,9 @@ An JSON string is returned with the following properties:
 
 //phpinfo();
 error_reporting(E_ALL);
+ini_set("display_errors", true);
+ini_set("auto_detect_line_endings", true);
+$log = "";
 
 function sulk($err, $code) {
     $out = array(
@@ -91,7 +94,7 @@ foreach(array_keys($tables) as $table) {
 
     if(!file_exists($fileNames[$table])) {
 
-        if(($handle = fopen($fileNames[$table], 'w')) !== false) {
+        if(($handle = fopen($fileNames[$table], 'wb')) !== false) {
             // Insert ID columns
             array_unshift($tables[$table][0], "eid");
             array_unshift($tables[$table][0], "pid");
@@ -105,7 +108,7 @@ foreach(array_keys($tables) as $table) {
     } elseif($table == "meta") {
         // Calculate the pid by searching for largest pid in metadata file
 
-        if(($handle = fopen($table, 'r')) !== false) {
+        if(($handle = fopen($fileNames[$table], 'rb')) !== false) {
 
             $index = -1;
 
@@ -131,17 +134,19 @@ foreach(array_keys($tables) as $table) {
 
 // Update the objects with the IDs
 foreach(array_keys($tables) as $table) {
+    $log .= "\n$table: ";
 
     // Get rid of the header row
     array_shift($tables[$table]);
 
     // Write to the file
-    if(($handle = fopen($fileNames[$table], 'a')) !== false) {
+    if(($handle = fopen($fileNames[$table], 'ab')) !== false) {
 
         foreach($tables[$table] as $row) {
             array_unshift($row, $eid);
             array_unshift($row, $pid);
             fputcsv($handle, $row);
+            $log .= strval(count($row)) . " ";
         }
         fclose($handle);
 
@@ -155,7 +160,7 @@ foreach(array_keys($tables) as $table) {
 $fileNames["raw"] = PATH . "public/raw/" . date('Y-m-d_H-i-s') . "_study-" .
 $eid . "_pid-" . $pid . ".JSON";
 // Create the trials file
-if(($handle = fopen($fileNames["raw"], 'w')) !== false) {
+if(($handle = fopen($fileNames["raw"], 'wb')) !== false) {
     fputs($handle, json_encode($json->raw));
     fclose($handle);
 } else
