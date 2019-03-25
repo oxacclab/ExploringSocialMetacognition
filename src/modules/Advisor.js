@@ -85,7 +85,7 @@ class Advisor extends BaseObject {
                 this.info("Calculating advice");
 
             this.lastAdvice = {
-                estimate: 2.5 - 1.5 + (Math.random() * 4),
+                estimate: 1850 + (Math.random() * 100),
                 confidence: 0.5
             };
 

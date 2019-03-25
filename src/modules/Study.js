@@ -44,11 +44,15 @@ class Study extends ControlObject {
     constructor(blueprint) {
         super(blueprint);
 
-        if(!this.trials.length) {
-            for(let i = 0; i < utils.sumList(this.blockLength); i++) {
-                this.trials.push(new AdvisedTrial(this.trialBlueprint))
+        // Don't recalculate trial list if it will be overridden
+        let me = this;
+        setTimeout(() => {
+            if(!me.trials.length) {
+                for(let i = 0; i < utils.sumList(me.blockLength); i++) {
+                    me.trials.push(new AdvisedTrial(me.trialBlueprint))
+                }
             }
-        }
+        }, 0);
     }
 
     _setDefaults() {
@@ -273,6 +277,28 @@ class Study extends ControlObject {
         return helpElement;
     }
 
+    /**
+     * Run a block of trials
+     * @return {Promise<Study>}
+     * @protected
+     */
+    async _runNextBlock() {
+
+        let n = this.blockLength[this.currentBlock];
+
+        for(let i = 0; i < n; i++) {
+
+            // Run the trial
+            this.trials[this.currentTrial] =
+                await this.trials[this.currentTrial].run();
+
+            // Inter-trial interval
+            await this.ITI();
+        }
+
+        return this;
+    }
+
     async training() {
 
         let study = this;
@@ -310,7 +336,7 @@ class Study extends ControlObject {
 
             Study._hideHelp(help);
             instr.innerHTML =
-                "Enter an estimate and rate your confidence to move on...";
+                "Enter an estimate to move on...";
             instr.classList.add("top");
             let data = T.nextPhase("hideStim");
 
@@ -357,18 +383,14 @@ class Study extends ControlObject {
 
     async practice() {
 
-        await this.preBlock();
+        let b = this.practiceBlocks;
 
-        let n = this.blockLength[this.currentBlock];
+        for(let i = 0; i < b; i++) {
 
-        for(let i = 0; i < n; i++) {
+            await this.preBlock();
 
             // Run the trial
-            this.trials[this.currentTrial] =
-                await this.trials[this.currentTrial].run();
-
-            // Inter-trial interval
-            await this.ITI();
+            await this._runNextBlock();
         }
 
         return this;
@@ -412,9 +434,7 @@ class Study extends ControlObject {
         document.getElementById("content").classList
             .add(correct? "correct" : "incorrect", "feedback");
         document.getElementById("prompt").innerHTML =
-            "Actual amount: <span>&pound;" +
-            correctAnswer.toFixed(2) +
-            "</span>";
+            "Answer: <span>" + correctAnswer.toString() + "</span>";
 
         // Draw marker
         const marker = document.querySelector(
@@ -447,29 +467,17 @@ class Study extends ControlObject {
 
     async core() {
 
-        await this.preBlock(false);
+        let b = this.blockLength.length;
 
-        let n = this.blockLength[this.currentBlock];
+        for(let i = this.practiceBlocks; i < b; i++) {
 
-        for(let i = 0; i < n; i++) {
-            // Define the trial
-            let blueprint = {};
-            blueprint.stim = new Image();
-            blueprint.stim.src =
-                "https://cdn.instructables.com/FMU/YSFR/IDRP7INH/" +
-                "FMUYSFRIDRP7INH.LARGE.jpg";
-            blueprint.prompt = [];
-            Trial.listPhases.forEach((p)=>blueprint.prompt[p] =
-                "How much are the coins worth?");
-            blueprint.prompt["cleanup"] = "";
-            blueprint.prompt["end"] = "";
+            await this.preBlock();
 
             // Run the trial
-            this.trials[this.currentTrial] = await new Trial(blueprint).run();
-
-            // Inter-trial interval
-            await this.ITI();
+            await this._runNextBlock();
         }
+
+        return this;
     }
 
     /**
@@ -567,8 +575,8 @@ class Study extends ControlObject {
 
     /**
      * Save the data for the Study
-     * @param callback {function} function to execute on the server response
-     * @param onError {function} function to execute on fetch error
+     * @param [callback] {function} function to execute on the server response
+     * @param [onError] {function} function to execute on fetch error
      * @return {Promise<Response|never>}
      */
     save(callback, onError) {
@@ -602,4 +610,82 @@ class Study extends ControlObject {
     }
 }
 
-export {Study}
+/**
+ * @class DatesStudy
+ * @extends Study
+ * @classdesc A study using a set of history questions with answers being
+ * years between 1850 and 1950.
+ *
+ * @property questionsXML {string} URL of a question.xml file for parsing
+ */
+class DatesStudy extends Study {
+    constructor(blueprint) {
+        super(blueprint);
+
+        // Fetch questions then assign trials
+        this.parseQuestionsXML()
+            .then(() => {
+                this.trials = [];
+                for(let i = 0; i < utils.sumList(this.blockLength); i++) {
+                    this.trials.push(new AdvisedTrial(this.trialBlueprint))
+                }
+            });
+    }
+
+    /**
+     * The questions.xml file should list QUESTIONs. Each question should have:
+     * * PROMPT text
+     * * TARGET year as the answer
+     */
+    async parseQuestionsXML() {
+        // read the questions.xml file
+        let qList = await fetch(this.questionsXML)
+            .then(async (r) => await r.text())
+            .then((qs) =>
+                new DOMParser().parseFromString(qs, "text/xml")
+                    .getElementsByTagName("question")
+            );
+
+        // shuffle the answers (spread HTMLcollection to array for shuffling)
+        this.questions = utils.shuffle([...qList]);
+        this.questionIndex = -1;
+    }
+
+    /**
+     * Return the next blueprint in the sequence derived from parsing questions
+     * @return {object}
+     */
+    get trialBlueprint() {
+
+        if(typeof this.questions === "undefined")
+            return this._trialBlueprint;
+
+        this.questionIndex++;
+        if(this.questionIndex >= this.questions.length) {
+            this.warn("More questions requested than available; " +
+                "shuffling and recycling.");
+            this.questions = utils.shuffle(this.questions);
+            this.questionIndex = -1;
+        }
+
+        let q = this.questions[this.questionIndex];
+
+        let bp = {
+            stim: document.createElement("p"),
+            correctAnswer:
+                parseInt(q.getElementsByTagName("target")[0].innerHTML),
+            prompt: "",
+            displayFeedback: this.displayFeedback,
+            advisors: this.advisors
+        };
+        bp.stim.innerHTML = q.getElementsByTagName("prompt")[0].innerHTML;
+
+        return bp;
+    };
+
+    set trialBlueprint(bp) {
+        this._trialBlueprint = bp;
+    }
+}
+
+export {Study, DatesStudy}

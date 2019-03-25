@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<questionSet>
+    <question topic="arts">
+        <prompt>W.B. Yeats awarded the Nobel Prize in Literature</prompt>
+        <target>1923</target>
+        <citation>https://www.historytoday.com/richard-cavendish/death-wb-yeats</citation>
+    </question>
+    <question topic="arts">
+        <prompt>Sir Arthur Conan Doyle's Sherlock Holmes first appears in <em>Strand</em> magazine</prompt>
+        <target>1891</target>
+        <citation>https://en.wikipedia.org/wiki/Sherlock_Holmes</citation>
+    </question>
+    <question topic="arts">
+        <prompt>Vincent van Gogh dies</prompt>
+        <target>1890</target>
+        <citation>https://en.wikipedia.org/wiki/Vincent_van_Gogh</citation>
+    </question>
+    <question topic="arts">
+        <prompt>Frida Kahlo born</prompt>
+        <target>1907</target>
+        <citation>https://en.wikipedia.org/wiki/Frida_Kahlo</citation>
+    </question>
+    <question topic="military">
+        <prompt>World War I Armistice declared</prompt>
+        <target>1918</target>
+        <citation>https://en.wikipedia.org/wiki/Armistice_of_11_November_1918</citation>
+    </question>
+    <question topic="military">
+        <prompt>nuclear bombs dropped on Hiroshima and Nagasaki</prompt>
+        <target>1945</target>
+        <citation>https://en.wikipedia.org/wiki/Atomic_bombings_of_Hiroshima_and_Nagasaki</citation>
+    </question>
+    <question topic="military">
+        <prompt>Charge of the Light Brigade at the Battle of Balaclava during the Crimean War</prompt>
+        <target>1854</target>
+        <citation>https://en.wikipedia.org/wiki/Charge_of_the_Light_Brigade</citation>
+    </question>
+    <question topic="military">
+        <prompt>Spanish Civil War begins</prompt>
+        <target>1936</target>
+        <citation>https://en.wikipedia.org/wiki/Spanish_Civil_War</citation>
+    </question>
+    <question topic="politics">
+        <prompt>Abraham Lincoln issues the <em>Emancipation Proclamation</em></prompt>
+        <target>1863</target>
+        <citation>https://www.britannica.com/list/riding-freedom-10-milestones-in-us-civil-rights-history</citation>
+    </question>
+    <question topic="politics">
+        <prompt>Emily Wilding Davison dies pursuing women's suffrage</prompt>
+        <target>1913</target>
+        <citation>https://www.bl.uk/votes-for-women/articles/womens-suffrage-timeline</citation>
+    </question>
+    <question topic="politics">
+        <prompt>Nancy Astor, Viscountess Astor becomes first female Member of the UK Parliament to take her seat</prompt>
+        <target>1919</target>
+        <citation>https://en.wikipedia.org/wiki/Nancy_Astor,_Viscountess_Astor</citation>
+    </question>
+    <question topic="politics">
+        <prompt>birth of Queen Elizabeth II of the United Kingdom</prompt>
+        <target>1926</target>
+        <citation>https://en.wikipedia.org/wiki/Elizabeth_II</citation>
+    </question>
+    <question topic="science">
+        <prompt>publication of Charles Darwin's <em>On the Origin of Species</em></prompt>
+        <target>1859</target>
+        <citation>https://en.wikipedia.org/wiki/On_the_Origin_of_Species</citation>
+    </question>
+    <question topic="science">
+        <prompt>Radium discovered by Marie and Pierre Curie</prompt>
+        <target>1898</target>
+        <citation>https://www.historytoday.com/richard-cavendish/curies-discover-radium</citation>
+    </question>
+    <question topic="science">
+        <prompt>Louis Pasteur invents a more efficient method of sterilizing wine</prompt>
+        <target>1864</target>
+        <citation>https://en.wikipedia.org/wiki/Pasteurization</citation>
+    </question>
+    <question topic="science">
+        <prompt>'Father of Psychology' William James dies</prompt>
+        <target>1910</target>
+        <citation>https://en.wikipedia.org/wiki/William_James</citation>
+    </question>
+    <question topic="technology">
+        <prompt>the Wright brothers make the first heavier-than-air flight</prompt>
+        <target>1903</target>
+        <citation>http://www.eyewitnesstohistory.com/wright.htm</citation>
+    </question>
+    <question topic="technology">
+        <prompt>the <em>Flying Scotsman</em> becomes the first UK locomotive to reach 100mph</prompt>
+        <target>1934</target>
+        <citation>http://www.flyingscotsman.org.uk/about/</citation>
+    </question>
+    <question topic="technology">
+        <prompt>RMS <em>Titanic</em> begins her maiden voyage</prompt>
+        <target>1912</target>
+        <citation>https://en.wikipedia.org/wiki/RMS_Titanic</citation>
+    </question>
+    <question topic="technology">
+        <prompt>Frigidaire begins selling the first self-contained domestic refrigerator</prompt>
+        <target>1923</target>
+        <citation>https://www.appliancecity.co.uk/news/updates/the-history-of-the-refrigerator/</citation>
+    </question>
+</questionSet>

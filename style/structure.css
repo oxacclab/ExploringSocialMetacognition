@@ -206,6 +206,10 @@ div {
     stroke-width: 2px;
 }
 
+.response-marker {
+    font-size: 14px;
+}
+
 .response-marker.advisor {
     width: 1.2em;
     height: 1.2em;

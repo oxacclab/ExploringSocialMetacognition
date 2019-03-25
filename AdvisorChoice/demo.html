@@ -116,18 +116,18 @@
             </div>
         </div>
         <div class="frame bottom">
-            <esm-response-widget id="response-panel" data-min="1.00"
-                                 data-max="5.00" data-prefix=""
-                                 data-suffix="" data-decimals="2"
+            <esm-response-widget id="response-panel" data-min="1850"
+                                 data-max="1950" data-prefix=""
+                                 data-suffix="" data-decimals="0"
                                  data-no-confidence="true">
                 <div class="response-hBar">
-                    <div class="response-label left">&pound;1.00</div>
-                    <div class="response-label right">&pound;5.00</div>
+                    <div class="response-label left">1850</div>
+                    <div class="response-label right">1950</div>
                     <div class="response-widget">
                         <div class="response-vBar cloak group-bg-gradient-2">
                             <div class="response-label top">certain</div>
                             <div class="response-label bottom">guess</div>
-                            <div class="response-marker group-bg-2">3.00</div>
+                            <div class="response-marker group-bg-2">1900</div>
                         </div>
                     </div>
                     <div class="response-marker correct feedback">&bigstar;</div>
@@ -160,7 +160,7 @@
 <script type="module">
     "use strict";
 
-    import {Study} from "../src/modules/Study.js";
+    import {Study, DatesStudy} from "../src/modules/Study.js";
     import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
     import {Advisor} from "../src/modules/Advisor.js";
 
@@ -171,15 +171,16 @@
     const studyBlueprint = {
         blockLength: [2, 2],
         practiceBlocks: 1,
-
+        questionsXML: "assets/etc/questions.xml"
     };
 
-    window.study = new Study(studyBlueprint);
+    window.study = new DatesStudy(studyBlueprint);
     study.run()
         .then(console.log);
 
     // Hoist for debugging
     window.Study = Study;
+    window.DatesStudy = DatesStudy;
     window.Trial = Trial;
     window.AdvisedTrial = AdvisedTrial;
     window.Advisor = Advisor;
