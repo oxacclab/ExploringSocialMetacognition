@@ -60,6 +60,10 @@ body:not(.Study-practice) #help-button {
 .Trial-showFeedback #response-panel {
     opacity: 1;
 }
+.Trial-getResponse #response-panel:hover,
+.Trial-getFinalResponse #response-panel:hover {
+    box-shadow: inset 0px 0px 4px 0px black;
+}
 
 /* Reveal the feedback marker during feedback phase */
 .Trial-showFeedback .response-marker {

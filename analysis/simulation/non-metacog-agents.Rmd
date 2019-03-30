@@ -1,0 +1,131 @@
+---
+title: "Advisor Choice simulation"
+output: html_notebook
+---
+
+```{r prematter, include = F}
+
+library(tidyverse)
+
+```
+
+# Simulation by virtual agents 
+
+## Agent definition  
+
+Virtual agents differ parametrically in:  
+* task ability  
+* advisor beliefs  
+  * benevolence  
+  * ability  
+  * integrity  
+* general propensity to trust  
+* general propensity to take advice  
+
+The agents' general propensitites are correlated with one another, as are 
+beliefs about advisors.  
+
+```{r agentDefinition} 
+
+makeAgents <- function(n) {
+  agents <- tibble(
+    id = 1:n,
+    ability = rnorm(n),
+    benevolence.a1 = rnorm(n),
+    benevolence.a2 = rnorm(n),
+    genTrust = rnorm(n)
+  )
+  
+  for (a in c('a1', 'a2')) {
+    for (vName in c('ability', 'integrity')) {
+      b <- paste0('benevolence.', a)
+      v <- paste0(vName, '.', a)
+      agents[, v] <- rnorm(n) + 0.3 * agents[, b]
+    }
+  }
+  
+  agents$genTakeAdvice <- rnorm(n) + 0.3 * agents$genTrust
+  
+  agents
+}
+
+set.seed(10241024)
+nAgents <- 100
+nTrials <- 10
+
+agents <- makeAgents(nAgents)
+
+```
+
+## Task performance
+
+### Initial decision  
+
+The agents perform tasks where they make an initial decision estimatie.
+ Their performance is simply dependent on their ability (we note down the error)
+.  
+  
+```{r initialDecision}
+
+trials <- tibble(
+  id = 1:(nAgents * nTrials),
+  agentId = rep(agents$id, each = nTrials),
+  initialDecision = rnorm(nAgents * nTrials, 
+                          mean = rep(agents$ability, each = nTrials),
+                          sd = rep(abs(agents$ability), each = nTrials))
+)
+
+```
+
+### Advice and final decision  
+
+Next agents get advice. They get advice from advisors. Advisors are either 
+assigned to the same group or a different group. Groups are nominal, but change 
+the perceived benevolence of advisors.   
+
+```{r assignAdvisors}
+
+agents$sameGroup.a1 <- runif(nAgents) > .5
+agents$sameGroup.a2 <- !agents$sameGroup.a1
+
+groupBonus <- 0.5
+
+m <- agents$sameGroup.a1
+agents$benevolence.a1[m] <- agents$benevolence.a1[m] + groupBonus
+agents$benevolence.a2[!m] <- agents$benevolence.a2[!m] + groupBonus
+
+```
+
+Final decisions are based on the beliefs about the advisor and the general 
+advice-taking propensity of the agent.  
+
+```{r finalDecision}
+
+trials$advisor <- ifelse(runif(nrow(trials)) < .5, 1, 2)
+trials$advice <- runif(nrow(trials))
+
+# throw some agents variables into trials for convenience
+for (v in c('ability', 'benevolence', 'integrity')) {
+  V <- paste0(v, ".a")
+  trials[, V] <- NA
+  trials[, V] <- unlist(sapply(1:nrow(trials), function(i) 
+    agents[agents$id == trials$agentId[i], paste0(V, trials$advisor[i])]
+    ))
+}
+
+trials$genTakeAdvice <- agents$genTakeAdvice[trials$agentId]
+
+# final decision = initial decision + adviceTaking * advice
+# adviceTaking = general + advisor beliefs
+
+trials$finalDecision <- 
+  trials$initialDecision + 
+  (trials$genTakeAdvice + (trials$ability.a + 
+                             trials$integrity.a + 
+                             trials$benevolence.a) / 3) *
+  trials$advice
+
+```
+
+## Analysis
+

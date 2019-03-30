@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Date estimation study</title>
+    <script type="text/javascript">
+        window.prolificID = window.location.search.match('[?&]PROLIFIC_PID=\\w+');
+        if(prolificID !== null)
+            prolificID = prolificID[0].substring(14);
+        // redirect if we don't have consent for participation
+        let consent = window.location.search.match("[?&]consent=true");
+        if(consent === null) {
+            redirectURL = "../consent.html" + window.location.search +
+            "&study=DateEstimation";
+            window.location.replace(redirectURL); // simulate redirect (no history)
+        }
+    </script>
+
+    <!--Custom HTML components-->
+    <script src="../src/customElements/InstructionDiv.js"></script>
+    <script src="../src/customElements/HelpDiv.js"></script>
+    <!--/ Custom HTML components-->
+
+    <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
+    <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        :root {
+            --response-color: #00ccfc;
+            --response-color-dark: #2196f3;
+            --feedback-marker-size: 15px;
+        }
+        @keyframes tumbleIn {
+            from {
+                background-color: black;
+                transform: rotateX(-90deg);
+            }
+        }
+        @keyframes modalIn {
+            from {
+                width: 0;
+            }
+        }
+        @keyframes modalOut {
+            to {
+                width: 0;
+            }
+        }
+        #content {
+            background-color: transparent !important;
+        }
+        #content > .frame.top {
+            height: 40rem;
+        }
+        #content > .frame.top > .middle {
+            width: 100%;
+            padding: 1em;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        #stimulus {
+            height: 100%;
+        }
+        #questionWrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 5px double black;
+            padding: .5em;
+            box-shadow: 0 0 4px #9a9797;
+            animation: 500ms forwards tumbleIn ease-in;
+        }
+        #prompt {
+            display: none;
+        }
+        #response, #response > form {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            font-size: 18px;
+        }
+        #response form > div {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 200px;
+            color: var(--response-color);
+        }
+        #response .title {
+            font-size: 36px;
+            font-weight: bold;
+            height: 30%;
+        }
+        #response .entry {
+            height: 70%;
+        }
+        #response .label {
+            height: 50%;
+            font-size: 2em;
+            text-align: right;
+        }
+        #response .estimate {
+            margin-right: 1em;
+            font-size: 2em;
+        }
+        #response .estimate input {
+            font-size: 2em;
+            height: 80%;
+        }
+        #response .confidence input {
+            font-size: 1em;
+        }
+        #response input {
+            width: 3.5em;
+            font-family: monospace;
+            letter-spacing: .2em;
+            background: transparent;
+            border-style: solid;
+            border-color: var(--response-color);
+            color: var(--response-color-dark);
+            border-width: 0 0 .1em;
+            text-align: right;
+        }
+        #response input.bad {
+            color: red;
+            border-color: red;
+        }
+        #response .buttons {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-left: 1.5em;
+        }
+        #response button {
+            height: 80px;
+            width: 80px;
+            color: var(--response-color);
+            font-weight: bold;
+            font-size: 3em;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        #submit {
+            opacity: .6;
+        }
+        #submit:hover, #submit:focus {
+            opacity: 1;
+        }
+        #comment {
+            opacity: .3;
+            letter-spacing: -0.3em;
+            padding-right: .3em;
+        }
+        #comment:hover, #comment:focus {
+            opacity: .6;
+        }
+        #commentBox {
+            position: absolute;
+            right: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--response-color-dark);
+            animation: 250ms ease forwards modalOut;
+        }
+        #commentBox .box {
+            cursor: default;
+            margin: 1em;
+            background-color: white;
+            border-radius: 1em;
+            box-shadow: 0px 6px 20px 2px black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #commentBox h1 {
+            margin-bottom: 5px;
+        }
+        #commentBox p.footnote {
+            font-size: .8em;
+            font-style: italic;
+            line-height: 1em;
+            width: 90%;
+            margin: 5px auto;
+        }
+        #commentBox textarea {
+            width: 80%;
+            height: 6em;
+            margin: 5px auto;
+            font-size: 24px;
+            color: var(--response-color-dark);
+        }
+        #commentBox input {
+            width: min-content;
+            padding: .2em;
+            margin: 5px auto 10px auto;
+            font-size: 24px;
+            color: var(--response-color-dark);
+            cursor: pointer;
+        }
+        #commentBox input:hover {
+            color: var(--response-color);
+        }
+        .question {
+            line-height: 1.2em;
+        }
+
+        .feedback-wrapper {
+            height: 100%;
+            width: 100%;
+        }
+        .feedback-wrapper p {
+            margin: 0;
+        }
+        .debrief span {
+            font-weight: bold;
+        }
+        .legend {
+            position: absolute;
+            width: 100px;
+            height: min-content;
+            right: 10px;
+            top: 30px;
+            border: 1px solid black;
+            text-align: center;
+            padding: .5em;
+            background-color: white;
+            transition: all 250ms;
+            z-index: 10;
+        }
+        .legend:hover {
+            width: 150px;
+            height: fit-content;
+        }
+        .legend > div {
+            display: none;
+        }
+        .legend:hover > div {
+            display: flex;
+        }
+        .timeline {
+            position: relative;
+            width: 90%;
+            margin: auto;
+            height: 300px;
+        }
+        .timeline .line {
+            top: calc(100% - 2em);
+            height: 5px;
+            width: 100%;
+            margin: auto;
+            background-color: black;
+        }
+        .timeline .label {
+            position: absolute;
+            top: calc(50% + 3px);
+            transform: translateX(calc(-50% - 1px));
+        }
+        .timeline .label::before {
+            content: "";
+            width: 2px;
+            height: 10px;
+            background-color: black;
+            position: absolute;
+            top: -5px;
+            left: 50%;
+        }
+        .timeline .marker {
+            height: 1px;
+            width: 1px;
+            position: absolute;
+        }
+        .timeline .marker.answer .estimate,
+        .legend .marker.answer {
+            height: var(--feedback-marker-size);
+            width: var(--feedback-marker-size);
+            border-radius: 100%;
+            border: 1px solid;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .legend .marker.answer {
+            margin: .5em;
+        }
+        .timeline .marker.answer .estimate {
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+        }
+        .timeline .marker.answer .confidence {
+            top: 0;
+            background-color: var(--response-color-dark);
+            opacity: 0.4;
+            position: absolute;
+            display: none;
+        }
+        .timeline .marker.answer.detail {
+            z-index: 10;
+        }
+        .timeline .marker.answer.detail .estimate{
+            background-color: var(--response-color-dark);
+        }
+        .timeline .marker.answer.detail .confidence{
+            display: block;
+        }
+        .timeline .marker.target {
+            height: calc(var(--feedback-marker-size) * 2);
+            width: calc(var(--feedback-marker-size) * 2);
+            transform: translate(-50%, -50%);
+            color: gold;
+            font-size: 2em;
+            display: none;
+        }
+        .timeline .marker.answer.arts .estimate,
+        .legend .marker.answer.arts
+        { border-color: goldenrod; }
+        .timeline .marker.answer.military .estimate,
+        .legend .marker.answer.military
+        { border-color: darkred; }
+        .timeline .marker.answer.politics .estimate,
+        .legend .marker.answer.politics
+        { border-color: darkblue; }
+        .timeline .marker.answer.science .estimate,
+        .legend .marker.answer.science
+        { border-color: darkgreen; }
+        .timeline .marker.answer.sport .estimate,
+        .legend .marker.answer.sport
+        { border-color: deeppink; }
+        .timeline .marker.answer.technology .estimate,
+        .legend .marker.answer.technology
+        { border-color: darkgrey; }
+        .timeline .marker.answer.correct.arts .estimate
+        { background-color: goldenrod; }
+        .timeline .marker.answer.correct.military .estimate
+        { background-color: darkred; }
+        .timeline .marker.answer.correct.politics .estimate
+        { background-color: darkblue; }
+        .timeline .marker.answer.correct.science .estimate
+        { background-color: darkgreen; }
+        .timeline .marker.answer.correct.sport .estimate
+        { background-color: deeppink; }
+        .timeline .marker.answer.correct.technology .estimate
+        { background-color: darkgrey; }
+    </style>
+
+    <!-- Templates -->
+    <template id="instr-intro">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Welcome</h1>
+                <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg" alt="Coin jar" style="float: right; height: 250px;"/>
+                <p>This experiment is pretty straightforward. You'll see several jars full of coins, which look the one on the right.</p>
+                <p>Your task is to use the response bar at the bottom of the screen to indicate how much you think the coins in the jar are worth, and how sure you are about your estimate.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+
+    <template id="question">
+        <div id="questionWrapper">
+            <div class="question"></div>
+        </div>
+    </template>
+
+    <template id="answer-panel">
+        <form onsubmit="submitResponse()">
+            <div class="estimate"
+                 title="enter your best estimate for the year the event above occurred">
+                <div class="title">Best Guess</div>
+                <div class="entry">
+                    <input id="estimate" type="number" min="1800" max="2000"
+                           onchange="nextField()" onkeypress="nextField()"/>
+                </div>
+            </div>
+            <div class="confidence">
+                <div class="title">95% sure</div>
+                <div class="entry">
+                    <div class="label"
+                         title="enter the year you are 95% sure the event occurred after">
+                        After <input id="after" type="number" min="1800"
+                                     max="2000" onchange="nextField()"
+                                     onkeypress="nextField()"/>
+                    </div>
+                    <div class="label"
+                         title="enter the year you are 95% sure the event occurred before">
+                        Before <input id="before" type="number" min="1800"
+                                      max="2000" onchange="nextField()"
+                                      onkeypress="nextField()"/>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons">
+                <button id="submit" type="submit" title="submit response">&check;
+                </button>
+                <button id="comment" onclick="openComment()"
+                        title="write a note or complaint about this question">!?
+                </button>
+            </div>
+        </form>
+        <esm-help data-group="interface" data-parent-click-closes="false" class="top">
+            In the response area you input your best estimate for the
+            year in which the named event happened, and also the years
+            you're 95% sure the event occurred between.
+        </esm-help>
+    </template>
+
+    <template id="feedback">
+        <div class="feedback-wrapper">
+            <div class="debrief">
+                <p>Overall you got <span class="nCorrect"></span>/<span class="n"></span> (<span class="percentCorrect"></span>%) exactly right, and the actual answer was within the 95% confidence intervals you gave <span class="percentInConf"></span>% of the time.</p>
+            </div>
+            <div class="display">
+                <p>Your answers are shown below. Hover/click/touch a marker to see the actual answer and your confidence interval.</p>
+                <div class="legend">
+                    chart key
+                    <div>
+                        <div class="marker answer arts"></div>
+                        arts
+                    </div>
+                    <div>
+                        <div class="marker answer military"></div>
+                        military
+                    </div>
+                    <div>
+                        <div class="marker answer politics"></div>
+                        politics
+                    </div>
+                    <div>
+                        <div class="marker answer science"></div>
+                        science
+                    </div>
+                    <div>
+                        <div class="marker answer sport"></div>
+                        sport
+                    </div>
+                    <div>
+                        <div class="marker answer technology"></div>
+                        technology
+                    </div>
+                </div>
+                <div class="timeline">
+                    <div class="line"></div>
+                </div>
+                <p class="prompt">Click a marker for more info...</p>
+            </div>
+        </div>
+    </template>
+</head>
+<body tabindex="0">
+<div class="content-wrapper">
+    <div id="content">
+        <div class="progress-bar">
+            <div class="outer">
+                <div class="inner"></div>
+            </div>
+            <esm-help data-group="interface" class="bottom">
+                The <em>progress bar</em> shows how far through the study you are.
+            </esm-help>
+        </div>
+        <div class="frame top">
+            <!--<div class="left"></div>-->
+            <div class="middle">
+                <div id="stimulus"></div>
+                <div id="prompt"></div>
+                <esm-help data-group="interface">
+                    This is the <em>stimulus</em> you have to respond to. Below is the <em>prompt</em> area which tells you how to respond and provides further information.
+                </esm-help>
+            </div>
+            <!--<div class="right"></div>-->
+        </div>
+        <div class="frame bottom">
+            <div id="response">
+            </div>
+        </div>
+        <button id="help-button" onclick="toggleHelp()">?</button>
+        <div id="instructions">
+        </div>
+        <div id="training-instructions" class="hidden">
+            Click or Touch the tooltip above to move on...
+        </div>
+        <div id="commentBox" onclick="closeComment()">
+            <div class="box" onclick="window.event.stopPropagation()">
+                <h1>!?</h1>
+                <p class="footnote">These comments will not be made public.
+                    We record the question you're commenting on, your
+                    comments, and an identifier we can use to link this
+                    comment to your answers to other questions.</p>
+                <textarea placeholder="Comment, complaint, or query about this question"></textarea>
+                <input type="button" value="submit feedback"
+                       onclick="qualitativeFeedback()"/>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module">
+    "use strict";
+
+    import * as utils from "../src/utils.js";
+
+    /**
+     * Toggle between help enabled/disabled.
+     */
+    window.toggleHelp = function() {
+        document.querySelectorAll("esm-help").forEach((elm) => elm.toggle());
+
+        window.event.currentTarget.classList.toggle("show-help");
+    };
+
+    /**
+     * Load questions from an XML file
+     */
+    async function loadQuestions() {
+        let qList = await fetch("assets/etc/questions.xml")
+            .then(async (r) => await r.text())
+            .then((qs) =>
+                new DOMParser().parseFromString(qs, "text/xml")
+                    .getElementsByTagName("question")
+            );
+
+        // shuffle the answers (spread HTMLcollection to array for shuffling)
+        return utils.shuffle([...qList]);
+    }
+
+    /**
+     * Get an id from the save script by not submitting any data
+     */
+    async function getSaveId() {
+        return await fetch("../saveSerial.php", {
+            method: "POST",
+            body: JSON.stringify({
+                studyId: X.studyName,
+                prolificId: window.prolificID
+            })
+        })
+            .then(async (r)=> await r.text())
+            .then((txt) => JSON.parse(txt));
+    }
+
+    async function saveInput() {
+        // collate data for saving
+        const data = {
+            studyId: X.studyName,
+            id: X.id,
+            estimate: document.querySelector("#estimate").value,
+            after: document.querySelector("#after").value,
+            before: document.querySelector("#before").value,
+            qNumber: X.question.number,
+            qPrompt: X.question.prompt,
+            qTarget: X.question.target,
+            qTopic: X.question.topic,
+            timeQ: X.question.timeOn
+        };
+        data.timeA = new Date().getTime() - data.timeQ;
+
+        // keep a local copy for feedback purposes
+        X.trials.push(data);
+
+        // save
+        let response = await fetch("../saveSerial.php",
+            {method: "POST", body: JSON.stringify(data)})
+            .then(async (r)=> await r.text())
+            .then((txt) => JSON.parse(txt));
+
+        // handle response
+        if(response.code !== 200) {
+            // error
+            console.warn("Error saving!")
+        } else {
+            // okay
+            console.log("Save OK")
+        }
+    }
+
+    window.openComment = function() {
+        window.event.preventDefault();
+        document.getElementById("commentBox").style.animationName = "modalIn";
+    };
+
+    window.closeComment = function() {
+        window.event.preventDefault();
+        document.getElementById("commentBox").style.animationName = "modalOut";
+    };
+
+    window.qualitativeFeedback = function() {
+        const data = {
+            studyId: X.studyName,
+            id: X.id,
+            qualitativeFeedback: document.querySelector(
+                "#commentBox textarea").value,
+            qNumber: X.question.number,
+            qPrompt: X.question.prompt,
+            qTarget: X.question.target,
+            qTopic: X.question.topic
+        };
+
+        document.querySelector("#commentBox textarea").value = "";
+
+        // save
+        fetch("../saveSerial.php", {method: "POST", body: JSON.stringify(data)})
+            .then(async (r)=> await r.text())
+            .then((txt) => JSON.parse(txt))
+            .then((response) => {
+                // handle response
+                if(response.code !== 200) {
+                    // error
+                    console.warn("Error saving!")
+                } else {
+                    // okay
+                    console.log("Save OK")
+                }
+            });
+    };
+
+    /**
+     * Update the visual indication of study progress
+     */
+    function updateProgressBar() {
+        let trialCount = X.qList.length + X.question.number;
+        if(window.location.search.search("[?&]debug=1"))
+            trialCount = 3;
+
+        document.querySelector(".progress-bar .outer").style.width =
+            (X.question.number /
+                trialCount *
+                document.querySelector(".progress-bar").clientWidth) + "px";
+    }
+
+    /**
+     * Load the next question and reset the response form
+     */
+    function askQuestion() {
+        const q = X.qList.pop();
+
+        X.question = {
+            number: X.question === null? 0 : X.question.number + 1,
+            timeOn: new Date().getTime(),
+            prompt: q.querySelector("prompt").innerHTML,
+            target: q.querySelector("target").innerHTML,
+            topic: q.attributes.topic.value
+        };
+
+        updateProgressBar();
+
+        document.querySelector("#commentBox textarea").value = "";
+
+        const stim = document.querySelector("#stimulus");
+        stim.innerHTML = "";
+        stim.appendChild(
+            document.importNode(
+                document.getElementById("question").content,
+                true));
+        stim.querySelector(".question").innerHTML = X.question.prompt;
+
+        const resp = document.querySelector("#response");
+        resp.innerHTML = "";
+        resp.appendChild(
+            document.importNode(
+                document.getElementById("answer-panel").content, true
+            ));
+
+        document.getElementById("estimate").focus();
+    }
+
+    function simulateResponses() {
+        X.qList.forEach((elm) => {
+            const guess = 1850 + Math.round(Math.random() * 100);
+            const conf = Math.round(Math.random() * 15);
+            X.trials.push({
+                studyId: X.studyName,
+                id: X.id,
+                estimate: guess,
+                after: guess - Math.round(Math.random() * 5) - conf,
+                before: guess + Math.round(Math.random() * 5) + conf,
+                qNumber: X.trials.length,
+                qPrompt: elm.querySelector("prompt").innerHTML,
+                qTarget: elm.querySelector("target").innerHTML,
+                qTopic: elm.attributes.topic.value
+            });
+        });
+    }
+
+    window.playMarker = function() {
+        const e = window.event;
+
+        e.stopPropagation();
+
+        const marker = e.currentTarget;
+
+        // show confidence guides
+        document.querySelectorAll(".marker.answer").forEach((elm) => {
+            elm.classList.remove("detail");
+        });
+
+        if(marker.classList.contains("marker"))
+            marker.classList.add("detail");
+
+        // show correct answer
+        const targetId = "answer" + marker.dataset.number;
+        document.querySelectorAll(".marker.target").forEach((elm) => {
+            if(elm.id === targetId)
+                elm.style.display = "block";
+            else
+                elm.style.display = "";
+        });
+
+        // show prompt in the prompt area
+        if(marker.classList.contains("marker"))
+            document.querySelector(".feedback-wrapper .prompt").innerHTML =
+                marker.dataset.prompt + " (" + marker.dataset.target + ")";
+        else
+            document.querySelector(".feedback-wrapper .prompt").innerHTML =
+                "Click a marker for more info...";
+    };
+
+    /**
+     * Show the feedback for the end of the experiment
+     */
+    function showFeedback() {
+        if(window.location.search.search("[?&]debug=2"))
+            simulateResponses();
+
+        const content = document.querySelector("#content");
+        content.innerHTML = "";
+        content.appendChild(
+            document.importNode(
+                document.getElementById("feedback").content, true
+            ));
+
+        // Update the score spans
+        let n = X.trials.length;
+        let nCorrect = 0;
+        let nInConf = 0;
+        X.trials.forEach((t) => {
+            if(t.estimate.toString() === t.qTarget)
+                nCorrect++;
+            if(t.after <= t.qTarget && t.before >= t.qTarget)
+                nInConf++;
+        });
+        document.querySelector("span.nCorrect").innerHTML = nCorrect.toString();
+        document.querySelector("span.n").innerHTML = n.toString();
+        document.querySelector("span.percentCorrect").innerHTML =
+            (nCorrect / n * 100).toFixed(2);
+        document.querySelector("span.percentInConf").innerHTML =
+            (nInConf / n * 100).toFixed(2);
+
+        const TL = content.querySelector(".line");
+
+        TL.parentElement.addEventListener("click", playMarker);
+
+        // Draw timeline labels
+        for(let t = 1800; t <= 2000; t += 25) {
+            let elm = document.createElement("div");
+            elm.classList.add("label");
+            elm.innerText = t.toString();
+            TL.appendChild(elm);
+            elm.style.left = ((t - 1800) / 200 * TL.clientWidth) + "px";
+        }
+
+        window.feedbackMarker = null;
+
+        // Draw markers
+        X.trials.forEach((t) => {
+            // Answer marker
+            const marker = document.createElement('div');
+            marker.id = "marker" + t.qNumber;
+            marker.classList.add("marker", "answer", t.qTopic);
+            if(t.estimate.toString() === t.qTarget)
+                marker.classList.add("correct");
+            marker.dataset.topic = t.qTopic;
+            marker.dataset.prompt = t.qPrompt;
+            marker.dataset.target = t.qTarget;
+            marker.dataset.number = t.qNumber;
+            marker.addEventListener("click", playMarker);
+            marker.style.left = ((t.estimate - 1800) / 200 * TL.clientWidth) +
+                "px";
+            marker.style.top = "-17px";
+
+            // Confidence limits
+            const cl = document.createElement('div');
+            cl.classList.add("confidence");
+            cl.style.left = ((t.after - t.estimate) / 200 * TL.clientWidth) +
+                "px";
+            cl.style.width = ((t.before - t.after) / 200 * TL.clientWidth) +
+                "px";
+            marker.appendChild(cl);
+
+            // Visible indicator
+            const icon = document.createElement('div');
+            icon.classList.add("estimate");
+            marker.appendChild(icon);
+
+            // avoid collisions
+            const others = TL.querySelectorAll(".marker.answer .estimate");
+            TL.appendChild(marker);
+            let my = icon.getBoundingClientRect();
+
+            let i = 0;
+            while(true) {
+                if(i++ > 100) {
+                    console.error("loop did not break");
+                    break;
+                }
+
+                let okay = true;
+                for(let o of others) {
+                    let r = o.getBoundingClientRect();
+                    if(((my.top <= r.bottom && my.bottom >= r.top) ||
+                        (my.bottom > r.top && my.top < r.bottom)) &&
+                        ((my.left <= r.right && my.right >= r.left) ||
+                        (my.right > r.left && my.left < r.right)))
+                        okay = false;
+                }
+
+                if(okay)
+                    break;
+
+                marker.style.top = (i * -my.height / 3) + "px";
+                my = icon.getBoundingClientRect();
+            }
+
+            cl.style.height = marker.style.top.replace("-", "");
+
+            // Actual answer
+            const ans = document.createElement('div');
+            ans.id = "answer" + t.qNumber;
+            ans.classList.add("marker", "target");
+            ans.style.left = ((t.qTarget - 1800) / 200 *
+                TL.clientWidth) +
+                "px";
+            ans.innerHTML = "&starf;";
+            TL.appendChild(ans);
+        })
+    }
+
+    /**
+     * Save the response. Queue up the next question or the feedback.
+     */
+    function recordResponse() {
+        saveInput();
+
+        if(X.qList.length &&
+            !(X.question.number === 3 && // break after 3 trials in debug mode
+                window.location.search.search("[?&]debug=1")))
+            askQuestion();
+        else
+            showFeedback();
+    }
+
+    function validateField(v) {
+        return parseInt(v) >= 1800 && parseInt(v) <= 2000
+    }
+
+    /**
+     * Simulate the auto-submit for the last input
+     */
+    window.submitResponse = function() {
+        window.event.preventDefault();
+        let allOkay = true;
+        let inputs = document.querySelectorAll("#response form input");
+        inputs.forEach((elm) => {
+            if(!validateField(elm.value)) {
+                elm.classList.add("bad");
+                allOkay = false;
+            }
+        });
+        if(!allOkay)
+            return;
+        inputs.forEach((elm) => elm.onchange = null);
+        recordResponse();
+    };
+
+    /**
+     * Input field control
+     * @param e {KeyboardEvent}
+     */
+    function processInput(e) {
+
+        let v = e.target.value;
+        if(v.length < 4)
+            return;
+        if(v.length > 4) {
+            e.target.value = v.substr(0,3) + v[v.length - 1];
+            return;
+        }
+
+        // Enter or the 4th input entered
+
+        // Validate input
+        if(!validateField(v)) {
+            e.target.classList.add("bad");
+            return;
+        } else
+            e.target.classList.remove("bad");
+
+        // Move on
+        switch(e.target.id) {
+            case "before":
+                document.getElementById("submit").focus();
+                break;
+            case "after":
+                document.getElementById("before").focus();
+                break;
+            case "estimate":
+                document.getElementById("after").focus();
+                break;
+        }
+    }
+
+    /**
+     * Input field control handler
+     * @param [e] {KeyboardEvent}
+     */
+    window.nextField = function(e) {
+        e = e || window.event;
+        setTimeout(processInput, 0, e);
+    };
+
+    // Procedural stuff
+    window.X = {
+        studyName: "dateCheck",
+        trials: [],
+        question: null
+    };
+
+    getSaveId().then((out) => X.id = out.id);
+
+    // Load the questions and shuffle the order
+    loadQuestions().then((qs) => X.qList = qs)
+        .then(askQuestion)
+        .then(()=>{
+            if(window.location.search.search("[?&]debug=2"))
+                showFeedback();
+        });
+
+    // Begin the experiment
+
+</script>
+</body>
+</html>

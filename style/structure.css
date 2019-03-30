@@ -79,15 +79,15 @@ div {
     height: 40rem;
 }
 
-#content > .frame.top > .left,
-#content > .frame.top > .right {
+#content > .frame.top > .left {
     width: 20%;
     display: flex;
     flex-direction: column;
     margin: auto;
 }
 #content > .frame.top > .middle {
-    width: 60%;
+    width: 70%;
+    padding: 5%;
 }
 
 #stimulus {
@@ -117,7 +117,7 @@ div {
     width: 100%;
     display: flex;
     flex-direction: column;
-    transition: opacity 0.5s;
+    transition: opacity 0.5s, box-shadow 0.5s;
     opacity: 0.2;
 }
 
@@ -162,7 +162,7 @@ div {
     flex-direction: column;
     line-height: 1em;
     padding: .25em 0;
-    margin: 0.5em 0 0 0;
+    margin: 0.25em 0 0 0;
     font-size: 32px;
 }
 .left .advisor-key-row {
