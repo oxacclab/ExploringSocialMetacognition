@@ -29,9 +29,20 @@
         <esm-instruction>
             <esm-instruction-page>
                 <h1>Welcome</h1>
-                <p>In this study you will see a series of events that occurred between <strong>1825</strong> and <strong>1975</strong>. Your task is to identify the year in which that event occurred. You also provide the dates you're 95% sure the event happened between.</p>
+                <p>In this study you will see a series of 50 events that occurred between <strong>1825</strong> and <strong>1975</strong>. Your task is to identify the year in which that event occurred. You also provide the dates you're 95% sure the event happened between.</p>
                 <p>If the event were "<strong>becomes first man in outer space</strong>", you might estimate the year as <strong>1961</strong>, and the confidence range as <strong>1950</strong>-<strong>1965</strong>.</p>
                 <p>It is very important that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the test.</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Answers</h1>
+                <p>Your answers should fulfil the following criteria:</p>
+                <ul>
+                    <li>The <strong>estimate</strong> should be between <strong>1825</strong> and <strong>1975</strong>.</li>
+                    <li>The <strong>after</strong> date should be no later than the estimate.</li>
+                    <li>The <strong>before</strong> date should be no earlier than the estimate.</li>
+                </ul>
+                <p>Too many invalid responses may mean you can't be paid.</p>
+                <p>Once again: it is very important that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the test.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -495,7 +506,10 @@
                 "px";
             ans.innerHTML = "&starf;";
             TL.appendChild(ans);
-        })
+        });
+
+        if(document.fullscreenElement !== null)
+            document.exitFullscreen();
     }
 
     /**
@@ -610,7 +624,11 @@
             if(/[?&]debug=2/i.test(window.location.search))
                 setTimeout(showFeedback, 1000);
             else
-                showInstructions("instr-intro", askQuestion)
+                showInstructions("instr-intro", (name)=> {
+                    if(name === "end")
+                        document.body.requestFullscreen();
+                        askQuestion();
+                });
         });
 
     // Begin the experiment
