@@ -8,7 +8,8 @@
             prolificID = prolificID[0].substring(14);
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
-        if(consent === null) {
+        if(consent === null &&
+            !/[?&]feedback=[0-9a-z]+/i.test(window.location.search)) {
             redirectURL = "../consent.html" + window.location.search +
                 (/\?/.test(window.location.search)? "&" : "?") + "study=DateEstimation";
             window.location.replace(redirectURL); // simulate redirect (no history)
@@ -97,6 +98,10 @@
             </div>
             <div class="display">
                 <p>Your answers are shown below. Click/touch a marker to see the correct answer and your confidence interval.</p>
+                <div class="legend permalink">
+                    link
+                    <div><span class="permalink" title="Direct link to these results" onclick="document.execCommand('copy')"></span></div>
+                </div>
                 <div class="legend">
                     chart key
                     <div>
@@ -180,9 +185,10 @@
     import * as utils from "../src/utils.js";
 
     /**
-     * Load questions from an XML file
+     * Load questions from an XML file or fetch past data from server
      */
     async function loadQuestions() {
+
         let qList = await fetch("assets/etc/questions.xml")
             .then(async (r) => await r.text())
             .then((qs) =>
@@ -192,6 +198,23 @@
 
         // shuffle the answers (spread HTMLcollection to array for shuffling)
         return utils.shuffle([...qList]);
+    }
+
+    async function loadFeedback() {
+        let test = /[?&]feedback=([0-9a-z]+)/i.exec(window.location.search);
+        let idCode = test[1];
+
+        await fetch("../readSerial.php",
+            {method: "POST", body: JSON.stringify(
+                {idCode, studyId: X.studyName})
+            })
+            .then(async (r) => await r.text())
+            .then((txt) => JSON.parse(txt))
+            .then((o) => X.trials = JSON.parse(o.content));
+
+        X.id = idCode;
+
+        setTimeout(showFeedback, 500);
     }
 
     /**
@@ -396,6 +419,11 @@
                 document.getElementById("feedback").content, true
             ));
 
+        // Update the permalink
+        document.querySelector(".feedback-wrapper .display span.permalink")
+            .innerHTML = window.location.origin + window.location.pathname +
+            "?feedback=" + X.id;
+
         // Update the score spans
         let n = X.trials.length;
         let sumError = 0;
@@ -518,7 +546,7 @@
     function recordResponse() {
         saveInput();
 
-        if(X.question.number < (X.maxQuestions - 1))
+        if(X.question.number < X.maxQuestions)
             askQuestion();
         else
             showFeedback();
@@ -616,7 +644,11 @@
         maxQuestions: /[?&]debug=1/i.test(window.location.search)? 3 : 50
     };
 
-    getSaveId().then((out) => X.id = out.id);
+
+    if(/[?&]feedback=[0-9a-z]+/i.test(window.location.search)) {
+        loadFeedback();
+    } else
+        getSaveId().then((out) => X.id = out.id);
 
     // Load the questions and shuffle the order
     loadQuestions().then((qs) => X.qList = qs)

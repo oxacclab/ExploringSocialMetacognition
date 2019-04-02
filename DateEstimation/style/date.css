@@ -27,6 +27,10 @@ body {
     }
 }
 
+.content-wrapper {
+    background-color: white;
+}
+
 /* Resizing the frames */
 #content {
     background-color: transparent !important;
@@ -212,8 +216,17 @@ body {
 .feedback-wrapper p {
     margin: 0;
 }
+.debrief {
+    height: calc(100% - 400px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 .debrief span {
     font-weight: bold;
+}
+.display {
+    height: 400px;
 }
 .legend {
     position: absolute;
@@ -228,15 +241,27 @@ body {
     transition: all 250ms;
     z-index: 10;
 }
+.legend.permalink {
+    width: min-content;
+    left: 10px;
+    right: unset;
+}
 .legend:hover {
     width: 150px;
     height: fit-content;
+}
+.legend.permalink:hover {
+    width: fit-content;
 }
 .legend > div {
     display: none;
 }
 .legend:hover > div {
     display: flex;
+}
+span.permalink {
+    user-select: all;
+    cursor: copy;
 }
 .timeline {
     position: relative;

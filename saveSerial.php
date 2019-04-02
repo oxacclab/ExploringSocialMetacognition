@@ -91,19 +91,22 @@ if(array_key_exists("prolificId", $json)) {
     } else {
         // work out the id
         if(($handle = fopen($fileNames["meta"], 'rb')) !== false) {
+            $existingIds = array();
 
             $index = -1;
-
             while(($data = fgetcsv($handle)) !== false) {
                 // first row: get the index of the pid field
                 if($index == -1)
                     $index = array_search("pid", $data, true);
-                else {
-                    if($data[$index] >= $pid)
-                        $pid = $data[$index] + 1;
-                }
+                else
+                    array_push($existingIds, $data[$index]);
             }
             fclose($handle);
+
+            $i = 1679616;
+            do {
+                $pid = substr(md5($eid.$i++), 0, 8);
+            } while(in_array($pid, $existingIds));
 
             if($index == -1)
                 sulk("No pid field found in previous results.", 500);
