@@ -252,6 +252,7 @@ body {
 }
 .legend.permalink:hover {
     width: fit-content;
+    width: -moz-fit-content;
 }
 .legend > div {
     display: none;
@@ -280,6 +281,7 @@ span.permalink {
     position: absolute;
     top: calc(50% + 3px);
     transform: translateX(calc(-50% - 1px));
+    cursor: default;
 }
 .timeline .label::before {
     content: "";
@@ -344,6 +346,7 @@ span.permalink {
     font-size: 2em;
     z-index: 10;
     display: none;
+    cursor: default;
 }
 
 /* Colour markers by genre */
