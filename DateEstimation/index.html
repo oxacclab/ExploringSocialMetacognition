@@ -637,13 +637,18 @@
     };
 
     // Procedural stuff
+    let maxQuestions;
+    let test = /[?&]qCount=([0-9]+)/i.exec(window.location.search);
+    if(test)
+        maxQuestions = test[1];
+    else
+        maxQuestions = /[?&]debug=1/i.test(window.location.search)? 3 : 50;
     window.X = {
         studyName: "dateCheck",
         trials: [],
         question: null,
-        maxQuestions: /[?&]debug=1/i.test(window.location.search)? 3 : 50
+        maxQuestions
     };
-
 
     if(/[?&]feedback=[0-9a-z]+/i.test(window.location.search)) {
         loadFeedback();
