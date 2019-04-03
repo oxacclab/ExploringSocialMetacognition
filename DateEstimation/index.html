@@ -197,7 +197,10 @@
             );
 
         // shuffle the answers (spread HTMLcollection to array for shuffling)
-        return utils.shuffle([...qList]);
+        let tmp = [];
+        for(let i = 0; i < qList.length; i++)
+            tmp.push(qList[i]);
+        return utils.shuffle(tmp);
     }
 
     async function loadFeedback() {
