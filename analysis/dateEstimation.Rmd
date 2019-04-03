@@ -1,0 +1,205 @@
+---
+title: "Date estimation analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r prematter, include = F}
+
+library(knitr)
+library(tidyverse)
+library(lsr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20190402)
+
+```
+
+## Load data
+
+```{r}
+
+DE <- as.tibble(read.csv("../data/public/dateCheck_trialStream.csv"))
+
+# pad out short testing data with simulated stuff
+for (id in unique(DE$id)) {
+  tmp <- NULL
+  
+  n = sum(DE$id == id) 
+  if (n < 30) {
+    for (i in 1:(30 - n)) {
+      # random question not yet answered
+      q <- base::sample(unique(DE$qPrompt[!(DE$qPrompt %in% DE$qPrompt[DE$id == id])]), 1)
+      qRow <- DE[DE$qPrompt == q, ][1, ]
+      r <- DE[DE$id == id, ][1, ]
+      r$qPrompt <- q
+      r$qTarget <- qRow$qTarget
+      r$qTopic <- qRow$qTopic
+      r$timeA <- 100
+      r$estimate <- rnorm(1, r$qTarget, 10)
+      r$after <- rnorm(1, r$estimate - 10, 5)
+      r$before <- rnorm(1, r$estimate + 10, 5)
+      tmp <- rbind(tmp, r)
+    }
+  }
+  DE <- rbind(DE, tmp)
+}
+
+```
+
+### Clean data
+
+Sane responses fulfil all:
+* estimate (1825, 1975)
+* after <= estimate
+* before >= estimate
+* after >= 1800
+* before <= 2000
+
+```{r}
+
+DE$okayResponse <- factor(T)
+levels(DE$okayResponse) <- c(T,
+                             "Estimate out of range",
+                             "After out of range",
+                             "Before out of range",
+                             "After after estimate",
+                             "Before before estimate")
+
+DE$okayResponse[DE$estimate > 1975 | DE$estimate < 1825] <- "Estimate out of range"
+DE$okayResponse[DE$after < 1800] <- "After out of range"
+DE$okayResponse[DE$before > 2000] <- "Before out of range"
+DE$okayResponse[DE$after > DE$estimate] <- "After after estimate"
+DE$okayResponse[DE$before < DE$estimate] <- "Before before estimate"
+
+kable(table(DE$okayResponse))
+
+DE <- DE[DE$okayResponse == T, ]
+
+```
+
+## Performance by participant
+
+```{r}
+
+DE$error <- abs(DE$estimate - DE$qTarget)
+DE$bracketed <- as.numeric(DE$after <= DE$qTarget & DE$before >= DE$qTarget)
+
+vars <- c('error', 'timeA', 'bracketed')
+DE.p <- NULL
+for (id in unique(DE$id)) {
+  tmp <- DE[DE$id == id, ]
+  for (v in vars) {
+    cl <- mean_cl_normal(tmp[[v]])
+    myRow <- tibble(id, variable = v, mean = cl$y, 
+                    cl95L = cl$ymin, cl95H = cl$ymax)
+    
+    DE.p <- rbind(DE.p, myRow)
+  }
+}
+
+
+```
+
+```{r}
+
+ggplot(DE.p, aes(x = "", 
+                 y = mean, ymin = cl95L, ymax = cl95H, colour = id)) +
+  geom_point(position = position_dodge(width = .75), alpha = .5) +
+  geom_errorbar(position = position_dodge(width = .75), alpha = .5) +
+  stat_summary(geom = "point", aes(group = 1), fun.y = mean) +
+  stat_summary(geom = "errorbar", aes(group = 1), fun.data = mean_cl_normal) +
+  facet_wrap(.~variable, labeller = label_both, scales = "free_y") +
+  labs(x = "", y = "mean +/- 95% CI") + 
+  theme_light()
+
+```
+
+## Performance by item
+
+```{r}
+
+DE.i <- NULL
+for (q in unique(DE$qPrompt)) {
+  tmp <- DE[DE$qPrompt == q, ]
+  for (v in vars) {
+    cl <- mean_cl_normal(tmp[[v]])
+    myRow <- tibble(q, 
+                    qShort = substr(q, 0, 20), 
+                    target = tmp$qTarget[1], 
+                    topic = tmp$qTopic[1],
+                    variable = v, 
+                    mean = cl$y, 
+                    cl95L = cl$ymin, 
+                    cl95H = cl$ymax)
+    
+    DE.i <- rbind(DE.i, myRow)
+  }
+}
+
+```
+
+```{r}
+
+DE.i <- DE.i[order(DE.i$topic), ]
+DE.i$qShort <- factor(DE.i$qShort, levels = unique(DE.i$qShort))
+
+m <- aggregate(mean ~ variable, DE.i, mean)
+
+ggplot(DE.i, aes(x = qShort, 
+                 y = mean, ymin = cl95L, ymax = cl95H, colour = topic)) +
+  geom_hline(aes(yintercept = mean),
+             data = aggregate(mean ~ variable, DE.i, mean)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(variable~., labeller = label_value, scales = "free_y") +
+  labs(x = "", y = "mean +/- 95% CI") + 
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+(This might look better rotated through 90 degrees)
+
+### Individual item plots
+
+```{r}
+
+for (q in unique(DE$qPrompt)) {
+  tmp <- DE[DE$qPrompt == q, ]
+  
+  tmp.gg <- ggplot(tmp) +
+    # correct answer - dashed line
+    geom_vline(aes(xintercept = tmp$qTarget[1], linetype = "dashed")) +
+    # density of after/estimate/before
+    geom_density(aes(x = after, fill = "after"), color = NA, alpha = 0.5) +
+    geom_density(aes(x = before, fill = "before"), color = NA, alpha = 0.5) +
+    geom_density(aes(x = estimate,  fill = "estimate"), color = NA, alpha = 0.75) +
+    # mean after/estimate/before with 95% CI
+    geom_point(aes(x = mean(estimate), y = .18, color = "estimate")) +
+    geom_errorbarh(aes(xmin = ciMean(estimate)[1], xmax = ciMean(estimate)[2], 
+                       y = .18, color = "estimate")) +
+    geom_point(aes(x = mean(after), y = .17, color = "after")) +
+    geom_errorbarh(aes(xmin = ciMean(after)[1], xmax = ciMean(after)[2], 
+                       y = .17, color = "after")) +
+    geom_point(aes(x = mean(before), y = .19, color = "before")) +
+    geom_errorbarh(aes(xmin = ciMean(before)[1], xmax = ciMean(before)[2], 
+                       y = .19, color = "before")) +
+    # labels etc.
+    scale_linetype_identity(name = "", labels = c("actual date"), guide = "legend") +
+    scale_fill_discrete(name = "answer density") +
+    scale_color_discrete(name = "answer +/- 95% confidence") +
+    scale_x_continuous(limits = c(1800, 2000)) +
+    scale_y_continuous(limits = c(0, .2)) +
+    labs(title = tmp$qPrompt[1], x = "year") +
+    guides(linetype = guide_legend(order = 1)) + 
+    theme_light() 
+    
+  print(tmp.gg)
+}
+
+```
+
+### Recommended stimuli
+
