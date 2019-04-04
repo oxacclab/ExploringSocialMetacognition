@@ -173,9 +173,6 @@ customElements.define('esm-response-timeline',
             TL.ghost.querySelector(".right").innerHTML =
                 (parseInt(this.dataset.min) + ppy * (left + TL.ghost.clientWidth))
                     .toFixed(parseInt(this.dataset.decimals));
-            console.log({
-                left, ppy, w: TL.ghost.clientWidth
-            })
         }
 
         /**
