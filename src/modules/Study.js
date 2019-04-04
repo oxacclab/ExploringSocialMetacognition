@@ -88,14 +88,14 @@ class Study extends ControlObject {
 
     static get listPhases() {
         return [
-            "splashScreen",
-            "consent",
-            "demographics",
-            "introduction",
-            "training",
-            "practiceInstructions",
-            "practice",
-            "coreInstructions",
+            // "splashScreen",
+            // "consent",
+            // "demographics",
+            // "introduction",
+            // "training",
+            // "practiceInstructions",
+            // "practice",
+            // "coreInstructions",
             "core",
             "debrief"
         ];
@@ -471,7 +471,7 @@ class Study extends ControlObject {
 
         for(let i = this.practiceBlocks; i < b; i++) {
 
-            await this.preBlock();
+            await this.preBlock(false);
 
             // Run the trial
             await this._runNextBlock();

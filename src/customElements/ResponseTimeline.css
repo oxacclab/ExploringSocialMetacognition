@@ -1,0 +1,82 @@
+:root {
+    --response-label-padding: 5px;
+    --response-maker-width: 40px;
+    --response-marker-height: 30px;
+    --response-vBar-offset: 65px;
+    --response-bar-thickness: 25px;
+
+    --response-min-opacity: 0.4;
+}
+
+.group-bg-gradient-1 {
+    background-image: linear-gradient(var(--group-1-primary), rgba(var(--group-1-p), var(--response-min-opacity)));
+}
+.group-bg-gradient-2 {
+    background-image: linear-gradient(var(--group-2-primary), rgba(var(--group-2-p), var(--response-min-opacity)));
+}
+
+.response-timeline {
+    position: relative;
+    width: 90%;
+    margin: auto;
+    height: 300px;
+}
+.response-timeline .response-line {
+    top: calc(100% - 2em);
+    height: 5px;
+    width: 100%;
+    margin: auto;
+    background-color: black;
+}
+.response-timeline .label {
+    position: absolute;
+    top: calc(50% + 3px);
+    transform: translateX(calc(-50% - 1px));
+    cursor: default;
+}
+.response-timeline .label::before {
+    content: "";
+    width: 2px;
+    height: 10px;
+    background-color: black;
+    position: absolute;
+    top: -5px;
+    left: 50%;
+}
+
+.response-marker-pool {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    margin-bottom: 1em;
+}
+
+.response-marker-pool > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.response-marker-pool .label {
+    font-weight: bold;
+}
+
+.response-marker {
+    height: 1em;
+    background-color: var(--group-1-primary);
+    margin: auto;
+}
+
+.response-marker.dragged,
+.response-marker.ghost {
+    background-color: gold;
+}
+
+.response-marker.dragged {
+    position: fixed;
+}
+
+.response-marker.ghost {
+    position: absolute;
+    top: -1em;
+}

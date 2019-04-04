@@ -10,7 +10,7 @@
     <!--Custom HTML components-->
     <script src="../src/customElements/InstructionDiv.js"></script>
     <script src="../src/customElements/HelpDiv.js"></script>
-    <script src="../src/customElements/ResponseWidget.js"></script>
+    <script src="../src/customElements/ResponseTimeline.js" type="module"></script>
     <!--/ Custom HTML components-->
 
     <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
@@ -115,24 +115,28 @@
             <!--<div class="right"></div>-->
         </div>
         <div class="frame bottom">
-            <esm-response-widget id="response-panel" data-min="1850"
-                                 data-max="1950" data-prefix=""
+            <esm-response-timeline id="response-panel" data-min="1800"
+                                 data-max="2000" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true">
-                <div class="response-hBar">
-                    <div class="response-label left">1850</div>
-                    <div class="response-label right">1950</div>
-                    <div class="response-widget">
-                        <div class="response-vBar cloak group-bg-gradient-2">
-                            <div class="response-label top">certain</div>
-                            <div class="response-label bottom">guess</div>
-                            <div class="response-marker group-bg-2">1900</div>
-                        </div>
-                    </div>
-                    <div class="response-marker correct feedback">&bigstar;</div>
-                    <div class="response-marker ghost group-bg-2"></div>
+                                 data-no-confidence="true" data-label-step="25" data-marker-width-thin="3" data-marker-width-medium="9" data-marker-width-thick="27">
+                <div class="response-timeline">
+                    <div class="response-line"></div>
                 </div>
-            </esm-response-widget>
+                <div class="response-marker-pool">
+                    <div>
+                        <div class="label">9Kr</div>
+                        <div class="response-marker thin"></div>
+                    </div>
+                    <div>
+                        <div class="label">3Kr</div>
+                        <div class="response-marker medium"></div>
+                    </div>
+                    <div>
+                        <div class="label">1Kr</div>
+                        <div class="response-marker thick"></div>
+                    </div>
+                </div>
+            </esm-response-timeline>
             <esm-help data-group="interface" data-parent-click-closes="false" class="top">
                 This <em>response panel</em> allows you to indicate your
                 answer. When enabled, the marker will follow your mouse

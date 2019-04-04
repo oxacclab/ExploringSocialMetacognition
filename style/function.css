@@ -76,8 +76,8 @@ and advice and ghost during final decision phase */
 .Trial-getFinalResponse .response-marker.advisor,
 .Trial-showFeedback .response-marker.advisor,
 .Trial-getFinalResponse .response-marker.ghost,
-.Trial-showFeedback .response-marker.ghost {
-    display: unset;
+.Trial-getResponse .response-marker.ghost {
+    display: block;
 }
 
 .Study-practice:not(.Trial-any) #stimulus,

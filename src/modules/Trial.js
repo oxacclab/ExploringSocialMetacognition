@@ -98,7 +98,7 @@ class Trial extends ControlObject {
         this.durationPostStim = 100;
         this.durationResponse = null;
         this.displayFeedback = null;
-        this.responseWidget = document.querySelector("esm-response-widget");
+        this.responseWidget = document.querySelector("#response-panel");
 
         this.data = {
             timestampStart: null,
