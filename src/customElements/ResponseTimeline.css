@@ -80,3 +80,24 @@
     position: absolute;
     top: -1em;
 }
+.response-marker.ghost .label {
+    top: calc(-2em - 5px);
+}
+.response-marker.ghost .label::before {
+    top: unset;
+    bottom: -5px;
+}
+.response-marker.ghost .label.left {
+    left: 0;
+    transform: translateX(-100%);
+}
+.response-marker.ghost .label.left::before {
+    left: calc(100% - 2px);
+}
+.response-marker.ghost .label.right {
+    right: 0;
+    transform: translateX(100%);
+}
+.response-marker.ghost .label.right::before {
+    left: 0;
+}

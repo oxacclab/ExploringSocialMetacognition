@@ -62,6 +62,13 @@ customElements.define('esm-response-timeline',
             timeline.appendChild(timeline.draggedMarker);
             timeline.draggedMarker.classList.add("dragged");
 
+            // remove ghost
+            let TL = timeline.querySelector(".response-line");
+            if(TL.ghost) {
+                TL.ghost.remove();
+                TL.ghost = null
+            }
+
             const r = this.getBoundingClientRect();
 
             timeline.draggedMarker.style.left = r.x + "px";
@@ -152,7 +159,7 @@ customElements.define('esm-response-timeline',
             // Snap to nearest value
             let left = rm.left < rl.left? 0 : rm.left - rl.left;
             if(rm.right > rl.right)
-                left = rl.right - rm.clientWidth;
+                left = rl.width - rm.width;
 
             TL.ghost.style.left = left + "px";
 
@@ -161,11 +168,14 @@ customElements.define('esm-response-timeline',
                 (parseFloat(this.dataset.max) - parseFloat(this.dataset.min)) /
                 TL.clientWidth;
             TL.ghost.querySelector(".left").innerHTML =
-                (parseInt(this.dataset.min) + ppy * + left)
+                (parseInt(this.dataset.min) + ppy * left)
                     .toFixed(parseInt(this.dataset.decimals));
             TL.ghost.querySelector(".right").innerHTML =
-                (parseInt(this.dataset.min) + ppy * + left + TL.ghost.clientWidth)
+                (parseInt(this.dataset.min) + ppy * (left + TL.ghost.clientWidth))
                     .toFixed(parseInt(this.dataset.decimals));
+            console.log({
+                left, ppy, w: TL.ghost.clientWidth
+            })
         }
 
         /**
@@ -186,6 +196,7 @@ customElements.define('esm-response-timeline',
             document.removeEventListener("touchmove", timeline.moveMarker);
 
             // Reify ghost
+            timeline.querySelector(".response-marker.ghost").classList.add("set");
 
             // Add click event to ghost for adjustments
 
