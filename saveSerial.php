@@ -57,6 +57,9 @@ function sulk($err, $code) {
     die(json_encode($out));
 }
 
+// Table id comes from GET
+$tid = $_GET["tbl"];
+
 // Unpack POST data
 $json = json_decode(file_get_contents("php://input"), true);
 
@@ -76,13 +79,14 @@ const PATH = "./data/";
 $fileNames = array(
     "meta" => PATH . "private/" . $eid . "_participant-metadata.csv",
     "trials" => PATH . "public/" .$eid . "_trialStream.csv",
-    "qualitative" => PATH . "private/" . $eid . "_qualitative-feedback.csv"
+    "qualitative" => PATH . "private/" . $eid . "_qualitative-feedback.csv",
+    "general" => PATH . "private/" . $eid . "_general-feedback.csv"
 );
 
 $pid = 0;
 
 // Initial responses will have a prolificId
-if(array_key_exists("prolificId", $json)) {
+if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
     if(!file_exists($fileNames["meta"])) {
         if(($handle = fopen($fileNames["meta"], "wb")) !== false) {
             fputcsv($handle, array("studyName", "time", "prolificId", "pid"));
@@ -125,37 +129,34 @@ if(array_key_exists("prolificId", $json)) {
     die(json_encode(array("id" => $pid)));
 }
 
-// Handle qualitative comments
-if(array_key_exists("qualitativeFeedback", $json)) {
-    if(!file_exists($fileNames["qualitative"])) {
-        if(($handle = fopen($fileNames["qualitative"], "wb")) !== false) {
-            fputcsv($handle, array_keys($json));
-        } else
-            sulk("Unable to create feedback file.", 500);
-    }
-
-// Save trial data
-    if(($handle = fopen($fileNames["qualitative"], "ab")) !== false) {
-        fputcsv($handle, $json);
-    } else
-        sulk("Unable to save feedback.", 500);
-
-} else {
-
-    // Create trialStream.csv file if necessary
-    if(!file_exists($fileNames["trials"])) {
-        if(($handle = fopen($fileNames["trials"], "wb")) !== false) {
-            fputcsv($handle, array_keys($json));
-        } else
-            sulk("Unable to create results file.", 500);
-    }
-
-// Save trial data
-    if(($handle = fopen($fileNames["trials"], "ab")) !== false) {
-        fputcsv($handle, $json);
-    } else
-        sulk("Unable to save result.", 500);
+$fname = "";
+switch($tid) {
+    case "qualitativeFeedback":
+        $fname = $fileNames["qualitative"];
+        break;
+    case "trial":
+        $fname = $fileNames["trials"];
+        break;
+    case "generalFeedback":
+        $fname = $fileNames["general"];
+        break;
+    default:
+        sulk("Uninterpretable metadata.", 403);
 }
+
+// Create file if necessary
+if(!file_exists($fname)) {
+    if(($handle = fopen($fname, "wb")) !== false) {
+        fputcsv($handle, array_keys($json));
+    } else
+        sulk("Unable to create file.", 500);
+}
+
+// Save data
+if(($handle = fopen($fname, "ab")) !== false) {
+    fputcsv($handle, $json);
+} else
+    sulk("Unable to save result.", 500);
 
 // Send back the all clear
 die(json_encode(array(

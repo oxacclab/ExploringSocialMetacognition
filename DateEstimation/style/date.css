@@ -26,6 +26,11 @@ body {
         width: 0;
     }
 }
+@keyframes saveOk {
+    50% {
+        background-color: lightgreen;
+    }
+}
 
 .content-wrapper {
     background-color: white;
@@ -33,10 +38,15 @@ body {
 
 /* Resizing the frames */
 #content {
-    background-color: transparent !important;
+    background-color: white !important;
+    justify-content: space-evenly;
+}
+#content .progress-bar {
+    position: absolute;
+    top: 0;
 }
 #content > .frame.top {
-    height: 40rem;
+    height: unset;
 }
 #content > .frame.top > .middle {
     width: 100%;
@@ -45,9 +55,13 @@ body {
     flex-direction: column;
     justify-content: center;
 }
+#content > .frame.bottom {
+    height: unset;
+}
 
 #stimulus {
     height: 100%;
+    font-size: 20px;
 }
 
 /* Animate the questions */
@@ -72,8 +86,9 @@ body {
     width: 100%;
     height: 100%;
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    font-size: 18px;
+    font-size: 14px;
 }
 #response form > div {
     display: flex;
@@ -127,7 +142,8 @@ body {
     justify-content: space-between;
     margin-left: 1.5em;
 }
-#response button {
+#response button,
+#generalBox button {
     height: 80px;
     width: 80px;
     color: var(--response-color);
@@ -152,7 +168,7 @@ body {
 #comment:hover, #comment:focus {
     opacity: .6;
 }
-#commentBox {
+#commentBox, #generalBox {
     position: absolute;
     right: 0;
     height: 100%;
@@ -191,6 +207,11 @@ body {
     margin: 5px auto;
     font-size: 24px;
     color: var(--response-color-dark);
+    background-color: transparent;
+    animation: ease-in-out 500ms forwards;
+}
+#commentBox.saveOk textArea {
+    animation-name: saveOk;
 }
 #commentBox input {
     width: min-content;
@@ -206,6 +227,32 @@ body {
 
 .question {
     line-height: 1.2em;
+}
+
+#generalBox {
+    animation: none;
+    cursor: default;
+}
+#generalBox form {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+#generalBox .item {
+    display: flex;
+    margin: auto;
+    width: 100%;
+    justify-content: center;
+}
+#generalBox .item > * {
+    padding: .5em;
+}
+#generalBox input {
+    width: 50%;
+}
+#generalBox button {
+    margin: auto;
 }
 
 /* Feedback display; quite complex */

@@ -91,6 +91,33 @@
         </form>
     </template>
 
+    <template id="general-questions">
+        <div id="generalBox">
+            <form onsubmit="saveGeneralQuestions()">
+                <h1>Complete - thank you!</h1>
+                <p class="debrief">Before you see your results, we'd like to know a little about your overall experience of the study.</p>
+                <div class="items">
+                    <div class="item">
+                        <div class="label">Hard</div>
+                        <input type="range" id="easy"/>
+                        <div class="label">Easy</div>
+                    </div>
+                    <div class="item">
+                        <div class="label">Dull</div>
+                        <input type="range" id="fun"/>
+                        <div class="label">Fun</div>
+                    </div>
+                    <div class="item">
+                        <div class="label">Too long</div>
+                        <input type="range" id="short"/>
+                        <div class="label">Too short</div>
+                    </div>
+                </div>
+                <button onclick="saveGeneralQuestions()">&check;</button>
+            </form>
+        </div>
+    </template>
+
     <template id="feedback">
         <div class="feedback-wrapper">
             <div class="debrief">
@@ -224,7 +251,7 @@
      * Get an id from the save script by not submitting any data
      */
     async function getSaveId() {
-        return await fetch("../saveSerial.php", {
+        return await fetch("../saveSerial.php?tbl=participantMetadata", {
             method: "POST",
             body: JSON.stringify({
                 studyId: X.studyName,
@@ -255,7 +282,7 @@
         X.trials.push(data);
 
         // save
-        let response = await fetch("../saveSerial.php",
+        let response = await fetch("../saveSerial.php?tbl=trial",
             {method: "POST", body: JSON.stringify(data)})
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt));
@@ -272,11 +299,13 @@
 
     window.openComment = function() {
         window.event.preventDefault();
+        document.querySelector("#commentBox textArea").classList.remove("saveOk");
         document.getElementById("commentBox").style.animationName = "modalIn";
     };
 
     window.closeComment = function() {
-        window.event.preventDefault();
+        if(window.event)
+            window.event.preventDefault();
         document.getElementById("commentBox").style.animationName = "modalOut";
     };
 
@@ -292,10 +321,9 @@
             qTopic: X.question.topic
         };
 
-        document.querySelector("#commentBox textarea").value = "";
-
         // save
-        fetch("../saveSerial.php", {method: "POST", body: JSON.stringify(data)})
+        fetch("../saveSerial.php?tbl=qualitativeFeedback",
+            {method: "POST", body: JSON.stringify(data)})
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt))
             .then((response) => {
@@ -305,10 +333,52 @@
                     console.warn("Error saving!")
                 } else {
                     // okay
-                    console.log("Save OK")
+                    document.getElementById("commentBox").classList.add("saveOk");
+                    setTimeout(closeComment, 250);
+                    document.querySelector("#commentBox textarea").value = "";
                 }
             });
     };
+
+    window.saveGeneralQuestions = function() {
+        if(window.event)
+            window.event.preventDefault();
+        // Save then show feedback
+        const data = {
+            studyId: X.studyName,
+            id: X.id,
+            hard_easy: document.getElementById("easy").value,
+            dull_fun: document.getElementById("fun").value,
+            tooLong_tooShort: document.getElementById("short").value
+        };
+
+        fetch("../saveSerial.php?tbl=generalFeedback",
+            {method: "POST", body: JSON.stringify(data)})
+            .then(async (r)=> await r.text())
+            .then((txt) => JSON.parse(txt))
+            .then((response) => {
+                // handle response
+                if(response.code !== 200) {
+                    // error
+                    console.warn("Error saving!")
+                } else {
+                    // okay
+                    document.getElementById("content").innerHTML = "";
+                    showFeedback();
+                }
+            });
+
+        if(document.fullscreenElement !== null)
+            document.exitFullscreen();
+    };
+
+    function generalQuestions() {
+        let content = document.getElementById("content");
+        content.innerHTML = "";
+        content.appendChild(document.importNode(
+            document.getElementById("general-questions").content, true
+        ));
+    }
 
     /**
      * Update the visual indication of study progress
@@ -538,9 +608,6 @@
             ans.innerHTML = "&starf;";
             TL.appendChild(ans);
         });
-
-        if(document.fullscreenElement !== null)
-            document.exitFullscreen();
     }
 
     /**
@@ -552,7 +619,7 @@
         if(X.question.number < X.maxQuestions)
             askQuestion();
         else
-            showFeedback();
+            generalQuestions();
     }
 
     function validateField(v) {
@@ -663,10 +730,12 @@
         .then(()=> {
             if(/[?&]debug=2/i.test(window.location.search))
                 setTimeout(showFeedback, 1000);
+            else if(/[?&]debug=3/i.test(window.location.search))
+                setTimeout(generalQuestions, 1000);
             else
                 showInstructions("instr-intro", (name)=> {
                     if(name === "end")
-                        document.body.requestFullscreen();
+                        document.querySelector("#content").requestFullscreen();
                         askQuestion();
                 });
         });
