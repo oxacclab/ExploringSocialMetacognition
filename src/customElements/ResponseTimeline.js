@@ -25,6 +25,7 @@ customElements.define('esm-response-timeline',
             super();
 
             setTimeout((me) => me.reset(), 0, this);
+            this.querySelector(".confirm").addEventListener("click", this.saveResponse);
         }
 
         /**
@@ -42,6 +43,9 @@ customElements.define('esm-response-timeline',
                     rm.addEventListener("mousedown", this.pickUpMarker);
                     rm.addEventListener("touchstart", this.pickUpMarker);
                 });
+
+            if(this.timeout > 0)
+                this.timeoutTimer = setTimeout(this.reject, this.timeout, "timeout");
         }
 
         /**
@@ -58,15 +62,17 @@ customElements.define('esm-response-timeline',
             // Duplicate the marker under the cursor
             // (this = clicked marker)
             const timeline = this.closest("esm-response-timeline");
-            timeline.draggedMarker = this.cloneNode(true);
-            timeline.appendChild(timeline.draggedMarker);
-            timeline.draggedMarker.classList.add("dragged");
+            const dragged = this.cloneNode(true);
+            dragged.classList.add("dragged");
+            timeline.appendChild(dragged);
 
-            // remove ghost
-            let TL = timeline.querySelector(".response-line");
-            if(TL.ghost) {
-                TL.ghost.remove();
-                TL.ghost = null
+            // Support for clicking ghost
+            if(this.classList.contains("ghost")) {
+                timeline.draggedMarker.classList.remove("ghost");
+                timeline.draggedMarker.childNodes.forEach(elm => {
+                    elm.innerHTML = "";
+                    setTimeout(()=>elm.remove(), 0);
+                });
             }
 
             const r = this.getBoundingClientRect();
@@ -83,12 +89,17 @@ customElements.define('esm-response-timeline',
             }
 
             // Register events for dragging markers
-            timeline.draggedMarker.addEventListener("mousemove", timeline.moveMarker);
-            timeline.draggedMarker.addEventListener("touchmove", timeline.moveMarker);
-            timeline.draggedMarker.addEventListener("mouseup", timeline.dropMarker);
-            timeline.draggedMarker.addEventListener("touchend", timeline.dropMarker);
+            document.addEventListener("mouseup", timeline.dropMarker);
+            document.addEventListener("touchend", timeline.dropMarker);
             document.addEventListener("mousemove", timeline.moveMarker);
             document.addEventListener("touchmove", timeline.moveMarker);
+
+            // remove ghost
+            if(timeline.ghost) {
+                timeline.ghost.remove();
+                // disable responding
+                timeline.querySelector(".confirm").classList.remove("enabled");
+            }
 
             // Don't process mouse event if we already processed the touch event
             if(e instanceof TouchEvent)
@@ -103,7 +114,6 @@ customElements.define('esm-response-timeline',
             if(!e) {
                 throw(new Error("moveMarkerBackground called without an event."));
             }
-            e.stopPropagation();
 
             let timeline = document.querySelectorAll("esm-response-timeline");
             for(let i = 0; i < timeline.length; i++)
@@ -113,6 +123,12 @@ customElements.define('esm-response-timeline',
                 }
 
             const m = timeline.draggedMarker;
+
+            if(!m)
+                return;
+
+            e.stopPropagation();
+
             const x = e instanceof TouchEvent? e.targetTouches[0].clientX : e.clientX;
             const y = e instanceof TouchEvent? e.targetTouches[0].clientY : e.clientY;
 
@@ -126,34 +142,66 @@ customElements.define('esm-response-timeline',
                 return false;
         }
 
+        /**
+         * @param year {number}
+         * @return {number} pixel coordinate
+         */
+        valueToPixels(year) {
+            return (year - parseFloat(this.dataset.min)) *
+                (parseFloat(this.dataset.max) - parseFloat(this.dataset.min)) /
+                this.querySelector(".response-line").clientWidth;
+        }
+
+        /**
+         * @param x {number} pixel coordinate
+         * @return {number} year
+         */
+        pixelsToValue(x) {
+            return x /
+                this.querySelector(".response-line").clientWidth *
+                (parseFloat(this.dataset.max) - parseFloat(this.dataset.min))
+                + parseFloat(this.dataset.min);
+        }
+
+        get draggedMarker() {
+            return this.querySelector(".response-marker.dragged");
+        }
+
+        get ghost() {
+            return this.querySelector(".response-marker.ghost");
+        }
+
         updateGhost() {
-            const TL = this.querySelector(".response-line");
             const marker = this.draggedMarker;
             const rm = marker.getBoundingClientRect();
-            const rl = TL.getBoundingClientRect();
+            const rl = this.querySelector(".response-line").getBoundingClientRect();
 
             // Destroy ghost if outside timeline
             if(rm.right < rl.left ||
                 rm.left > rl.right) {
-                if(TL.ghost) {
-                    TL.ghost.remove();
-                    TL.ghost = "";
-                }
+                if(this.ghost)
+                    this.ghost.remove();
+
+                // disable responding
+                this.querySelector(".confirm").classList.remove("enabled");
                 return;
             }
 
             // Create ghost if inside timeline
-            if(!TL.ghost) {
-                TL.ghost = document.createElement("div");
+            if(!this.ghost) {
+                const ghost = document.createElement("div");
                 this.draggedMarker.classList.forEach(c =>
-                    TL.ghost.classList.add(c));
-                TL.ghost.classList.add("ghost");
-                TL.ghost.classList.remove("dragged");
-                let l = TL.ghost.appendChild(document.createElement("div"));
+                    ghost.classList.add(c));
+                ghost.classList.add("ghost");
+                ghost.classList.remove("dragged");
+                let l = ghost.appendChild(document.createElement("div"));
                 l.classList.add("label", "left");
-                let r = TL.ghost.appendChild(document.createElement("div"));
+                let r = ghost.appendChild(document.createElement("div"));
                 r.classList.add("label", "right");
-                TL.appendChild(TL.ghost);
+                this.querySelector(".response-line").appendChild(ghost);
+
+                // enable responding
+                this.querySelector(".confirm").classList.add("enabled");
             }
 
             // Snap to nearest value
@@ -161,17 +209,14 @@ customElements.define('esm-response-timeline',
             if(rm.right > rl.right)
                 left = rl.width - rm.width;
 
-            TL.ghost.style.left = left + "px";
+            this.ghost.style.left = left + "px";
 
             // Update labels
-            const ppy =
-                (parseFloat(this.dataset.max) - parseFloat(this.dataset.min)) /
-                TL.clientWidth;
-            TL.ghost.querySelector(".left").innerHTML =
-                (parseInt(this.dataset.min) + ppy * left)
+            this.ghost.querySelector(".left").innerHTML =
+                parseInt(this.pixelsToValue(left))
                     .toFixed(parseInt(this.dataset.decimals));
-            TL.ghost.querySelector(".right").innerHTML =
-                (parseInt(this.dataset.min) + ppy * (left + TL.ghost.clientWidth))
+            this.ghost.querySelector(".right").innerHTML =
+                parseInt(this.pixelsToValue(left + this.ghost.clientWidth))
                     .toFixed(parseInt(this.dataset.decimals));
         }
 
@@ -183,19 +228,33 @@ customElements.define('esm-response-timeline',
             if(!e) {
                 throw(new Error("dropMarker called without an event."));
             }
+
+            let timeline = document.querySelectorAll("esm-response-timeline");
+            for(let i = 0; i < timeline.length; i++)
+                if(timeline[i].draggedMarker) {
+                    timeline = timeline[i];
+                    break;
+                }
+
+            const m = timeline.draggedMarker;
+
+            if(!m)
+                return;
+
             e.stopPropagation();
-            const timeline = this.closest("esm-response-timeline");
 
             // Destroy drag marker
             timeline.draggedMarker.remove();
-            timeline.draggedMarker = null;
-            document.removeEventListener("mousemove", timeline.moveMarker);
-            document.removeEventListener("touchmove", timeline.moveMarker);
 
             // Reify ghost
-            timeline.querySelector(".response-marker.ghost").classList.add("set");
+            if(timeline.ghost) {
+                timeline.ghost.classList.add("set");
 
-            // Add click event to ghost for adjustments
+                // Add click event to ghost for adjustments
+                timeline.ghost.addEventListener("mousedown", timeline.pickUpMarker);
+                timeline.ghost.addEventListener("touchstart", timeline.pickUpMarker);
+            } else
+                timeline.querySelector(".confirm").classList.remove("enabled");
 
             // Don't process mouse event if we already processed the touch event
             if(e instanceof TouchEvent)
@@ -203,130 +262,31 @@ customElements.define('esm-response-timeline',
         }
 
         /**
-         * Return the pixel coordinates which would indicate an the given estimate and confidence
-         * @param estimate {number}
-         * @param confidence {number}
-         * @return {{estimateProportion: number, confidence: number}}
-         */
-        valueToProportion(estimate, confidence) {
-            // Convert estimate to a proportion of the available value range
-            const p =
-                (estimate - this.dataset.min) /
-                (this.dataset.max - this.dataset.min);
-
-            return {estimateProportion: p, confidence}
-        }
-
-        /**
-         * Take pixel coordinates from a MouseEvent or TouchEvent and convert into
-         * a percentage offset
-         * @param x {int} horizontal pixel position
-         * @param y {int} vertical pixel position
-         * @return {{x: number, y: number}}
-         */
-        pixelsToValues(x, y) {
-            // x
-            const hBar = this.querySelector(".response-hBar");
-            const timeline = hBar.querySelector(".response-timeline");
-
-            let cursor =
-                x - hBar.getBoundingClientRect().x - (timeline.clientWidth / 2);
-            let max = hBar.clientWidth - timeline.clientWidth;
-            const xNew = cursor < 0? 0 : cursor > max? max : cursor;
-            const xProp = xNew / max;
-
-            let number =
-                (parseFloat(this.dataset.max) - parseFloat(this.dataset.min)) /
-                (hBar.clientWidth - timeline.clientWidth) *
-                xNew;
-            number += parseFloat(this.dataset.min);
-            const text =
-                this.dataset.prefix +
-                number.toFixed(this.dataset.decimals || 0) +
-                this.dataset.suffix;
-
-            // y
-            const vBar = this.querySelector(".response-vBar");
-            const marker = vBar.querySelector(".response-marker");
-
-            cursor =
-                vBar.getBoundingClientRect().top - y + (marker.clientHeight / 2);
-            max = vBar.clientHeight - marker.clientHeight;
-            cursor *= -1;
-            const yNew = cursor < 0? 0 : cursor > max? max : cursor;
-            const p = 1 - (yNew / (vBar.clientHeight - marker.clientHeight));
-
-            return {
-                x: xNew,
-                y: yNew,
-                estimateLabel: text,
-                estimate: number,
-                estimateProportion: xProp,
-                confidence: p
-            };
-        }
-
-        /**
-         * Update the visuals of the ResponseTimeline
-         * @param values {object} values obtained from user interaction
-         * @param specify {object} which (x {boolean} and y {boolean}) to update
-         */
-        updateVisual(values, specify = {x: false, y: false}) {
-            if(specify.x) {
-                const timeline = this.querySelector(".response-timeline");
-
-                timeline.style.left = values.x + "px";
-                this.querySelector(".response-marker").innerText = values.estimateLabel;
-                timeline.classList.remove("cloak");
-            }
-            if(specify.y) {
-                const timeline = this.querySelector(".response-marker");
-
-                timeline.style.top = values.y + "px";
-                timeline.style.opacity = (.6 * values.confidence) + .4;
-            }
-        }
-
-        /**
-         * Handle estimate input. Update the visual position of the response
-         * timeline, the timeline label, and store the current value.
-         * @param e {MouseEvent|TouchEvent} a mouse move/click or touch event
-         */
-        updateEstimate(e) {
-            const val = this.pixelsToValues(e.clientX, 0);
-
-            this.updateVisual(val, {x: true});
-
-            // Record estimate info
-            this.responseData.estimate = val.estimate;
-            this.responseData.estimateLabel = val.estimateLabel;
-            this.responseData.estimateProportion = val.estimateProportion;
-            this.responseData.x = val.x;
-            this.responseData.eventX = e.clientX;
-            this.responseData.timeEstimate = new Date().getTime();
-        }
-
-        /**
          * Save estimate input. Remove the estimate events. Add confidence
          * events.
-         * @param e {MouseEvent|TouchEvent} a mouse click/touch event
          */
-        saveEstimate(e) {
-            this.updateEstimate(e);
-            this.removeEventListener("mousemove", this.updateEstimate);
-            this.removeEventListener("click", this.saveEstimate);
+        saveResponse() {
+            const timeline = this.closest("esm-response-timeline");
 
-            if(this.dataset.noConfidence !== "true") {
+            // Quit if there's no ghost to process
+            if(!timeline.ghost)
+                return;
 
-                // Show the confidence bar
-                this.querySelector(".response-vBar").classList.remove('cloak');
+            timeline.responseData = {
+                markerWidth: Math.round(timeline.pixelsToValue(timeline.ghost.clientWidth) - timeline.dataset.min),
+                estimateLabelLeft: timeline.ghost.querySelector(".left").innerHTML,
+                estimateLabelRight: timeline.ghost.querySelector(".right").innerHTML,
+                timeEstimate: new Date().getTime(),
+                complete: true
+            };
 
-                // Enable confidence responding
-                this.addEventListener("mousemove", this.updateConfidence);
-                this.addEventListener("click", this.saveConfidence);
-            } else
-                this.responseData.complete = true;
+            if(typeof timeline.resolve === "function")
+                timeline.resolve(timeline.responseData);
 
+            if(timeline.timeoutTimer)
+                clearTimeout(timeline.timeoutTimer);
+
+            console.log(timeline.responseData)
         }
 
         /**
@@ -334,30 +294,21 @@ customElements.define('esm-response-timeline',
          *
          * @param [timeout=null] {int|null|undefined} maximum number of milliseconds to wait before
          * returning a Timeout.
+         * @param [reset=true] {boolean} whether to reset the response panel
          *
          * @return {Promise} Resolve with the response data, or Timeout reject
          */
-        getResponse(timeout) {
+        getResponse(timeout, reset = true) {
             if(typeof timeout === "undefined" || timeout === null)
-                timeout = this.dataset.hasOwnProperty("timeout")?
+                this.timeout = this.dataset.hasOwnProperty("timeout")?
                     this.dataset.timeout : Infinity;
 
             const me = this;
-            this.enableResponse();
+            this.enableResponse(reset);
 
             return new Promise(function (resolve, reject) {
-                let ms = 50;
-                let check = function(x) {
-                    if(me.responseData.complete) {
-                        //setTimeout(() => me.reset(), 25);
-                        resolve(me.responseData);
-                    }
-                    else if(x > timeout / ms)
-                        reject("Timeout");
-                    else
-                        setTimeout(check, ms, x + 1);
-                };
-                check(0);
+                me.resolve = resolve; // Called in saveResponse
+                me.reject = reject; // Called automatically after timeout
             });
         }
 
@@ -369,13 +320,6 @@ customElements.define('esm-response-timeline',
 
             // clear data
             this.responseData = {
-                x: null,
-                y: null,
-
-                eventX: null,
-                eventY: null,
-
-                estimate: null,
                 markerWidth: null,
                 estimateLabelLeft: null,
                 estimateLabelRight: null,
@@ -424,6 +368,11 @@ customElements.define('esm-response-timeline',
                 utils.shuffle(contents).forEach((elm) =>
                     elm.parentElement.appendChild(elm));
 
+            contents.forEach((rm) => {
+                rm.removeEventListener("mousedown", this.pickUpMarker);
+                rm.removeEventListener("touchstart", this.pickUpMarker);
+            });
+
             let style = document.querySelector("#response-timeline-css");
             if(style === null) {
                 style = document.createElement('style');
@@ -444,6 +393,7 @@ customElements.define('esm-response-timeline',
             ".response-marker.medium {width: " + med + "} " +
             ".response-marker.thick {width: " + thick + "}";
 
+            this.querySelector(".confirm").classList.remove("enabled");
         }
     }
 );

@@ -57,14 +57,16 @@
     justify-content: center;
 }
 
-.response-marker-pool .label {
-    font-weight: bold;
+.response-marker-pool {
+    margin-top: .25em;
+    padding-top: .25em;
 }
 
 .response-marker {
-    height: 1em;
+    height: 1.5em;
     background-color: var(--group-1-primary);
     margin: auto;
+    box-shadow: 0 1px 2px 0 black;
 }
 
 .response-marker.dragged,
@@ -78,7 +80,13 @@
 
 .response-marker.ghost {
     position: absolute;
-    top: -1em;
+    top: -1.5em;
+}
+.response-marker.ghost.set {
+    cursor: pointer;
+}
+.response-marker.ghost.set:hover {
+    opacity: 1;
 }
 .response-marker.ghost .label {
     top: calc(-2em - 5px);
@@ -100,4 +108,21 @@
 }
 .response-marker.ghost .label.right::before {
     left: 0;
+}
+
+.response-marker-pool .confirm {
+    height: 80px;
+    width: 80px;
+    color: var(--group-1-primary);
+    font-weight: bold;
+    font-size: 3em;
+    font-family: monospace;
+    opacity: .6;
+}
+.response-marker-pool .confirm:not(.enabled) {
+    border-color: transparent;
+}
+.response-marker-pool .confirm.enabled {
+    opacity: 1;
+    cursor: pointer;
 }

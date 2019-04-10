@@ -632,6 +632,11 @@ class DatesStudy extends Study {
             });
     }
 
+    // Override the prefix so styling can use Trial rather than duplicating
+    get _phaseClassPrefix() {
+        return "Study";
+    }
+
     /**
      * The questions.xml file should list QUESTIONs. Each question should have:
      * * PROMPT text

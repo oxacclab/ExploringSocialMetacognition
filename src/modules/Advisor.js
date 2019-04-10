@@ -42,6 +42,18 @@ class Advisor extends BaseObject {
     drawAdvice() {
         this.info("Drawing advice");
 
+        const rw = document.getElementById("response-panel");
+        switch (rw.tagName.toLowerCase()) {
+            case "esm-response-widget":
+                this.drawWidgetAdvice();
+                break;
+            case "esm-response-timeline":
+                this.drawTimelineAdvice();
+                break;
+        }
+    }
+
+    drawWidgetAdvice() {
         if(this.marker === null)
             this.createMarker(
                 document.querySelector("esm-response-widget .response-hBar"));
@@ -69,6 +81,20 @@ class Advisor extends BaseObject {
             "var(--response-vBar-offset))";
     }
 
+    drawTimelineAdvice() {
+        if(this.marker === null)
+            this.createMarker(
+                document.querySelector("esm-response-timeline .response-line"));
+
+        const TL = document.querySelector("esm-response-timeline");
+
+        // General position format is %(span) + adjustment
+        this.marker.style.left =
+            TL.valueToPixels(this.getAdvice(false).estimate) + "px";
+
+        this.marker.style.width = TL.valueToPixels(this.getAdvice(false).confidence * 10) + "px";
+    }
+
     hideAdvice() {
         if(this.marker !== null) {
             this.marker.remove();
@@ -84,9 +110,12 @@ class Advisor extends BaseObject {
             else
                 this.info("Calculating advice");
 
+            let confidence = 0.5;
+
             this.lastAdvice = {
-                estimate: 1850 + (Math.random() * 100),
-                confidence: 0.5
+                estimate: 1850 + (Math.random() *
+                    (100 - Math.round(confidence * 10))),
+                confidence
             };
 
         return this.lastAdvice;
