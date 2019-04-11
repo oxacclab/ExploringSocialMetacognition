@@ -87,9 +87,12 @@ $pid = 0;
 
 // Initial responses will have a prolificId
 if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
+
+    $json["serverTime"] = date('c');
+
     if(!file_exists($fileNames["meta"])) {
         if(($handle = fopen($fileNames["meta"], "wb")) !== false) {
-            fputcsv($handle, array("studyName", "time", "prolificId", "pid"));
+            fputcsv($handle, array_keys($json));
         } else
             sulk("Unable to create metadata file.", 500);
     } else {
@@ -121,8 +124,7 @@ if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
 
     // record in the metadata file
     if(($handle = fopen($fileNames["meta"], "ab")) !== false) {
-        fputcsv($handle, array($eid, date('c'), (string) $json["prolificId"],
-            $pid));
+        fputcsv($handle, $json);
     } else
         sulk("Unable to save metadata.", 500);
 

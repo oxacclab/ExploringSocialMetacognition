@@ -92,7 +92,9 @@ class Advisor extends BaseObject {
         this.marker.style.left =
             TL.valueToPixels(this.getAdvice(false).estimate) + "px";
 
-        this.marker.style.width = TL.valueToPixels(this.getAdvice(false).confidence * 10) + "px";
+        this.marker.style.width = TL.valueToPixels(this.getAdvice(false).confidence * 10, true) + "px";
+
+        console.log(this.getAdvice(false))
     }
 
     hideAdvice() {
@@ -104,7 +106,7 @@ class Advisor extends BaseObject {
 
     getAdvice(recalculate = true) {
 
-        if(recalculate || this.lastAdvice === null)
+        if(recalculate || this.lastAdvice === null) {
             if(this.lastAdvice === null && !recalculate)
                 this.warn("Advice requested where none exists; recalculating.");
             else
@@ -117,6 +119,7 @@ class Advisor extends BaseObject {
                     (100 - Math.round(confidence * 10))),
                 confidence
             };
+        }
 
         return this.lastAdvice;
     }

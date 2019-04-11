@@ -144,12 +144,14 @@ customElements.define('esm-response-timeline',
 
         /**
          * @param year {number}
+         * @param [returnWidth=false] {boolean} whether to return a width rather than a coordinate (i.e. don't subtract the scale minimum)
          * @return {number} pixel coordinate
          */
-        valueToPixels(year) {
-            return (year - parseFloat(this.dataset.min)) *
-                (parseFloat(this.dataset.max) - parseFloat(this.dataset.min)) /
-                this.querySelector(".response-line").clientWidth;
+        valueToPixels(year, returnWidth = false) {
+            if(!returnWidth)
+                year -= parseFloat(this.dataset.min);
+            return year * this.querySelector(".response-line").clientWidth /
+                (parseFloat(this.dataset.max) - parseFloat(this.dataset.min));
         }
 
         /**

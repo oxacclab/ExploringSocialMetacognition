@@ -93,9 +93,9 @@ class Study extends ControlObject {
             // "demographics",
             // "introduction",
             // "training",
-            // "practiceInstructions",
-            // "practice",
-            // "coreInstructions",
+            "practiceInstructions",
+            "practice",
+            "coreInstructions",
             "core",
             "debrief"
         ];

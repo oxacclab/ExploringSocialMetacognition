@@ -255,6 +255,7 @@
             method: "POST",
             body: JSON.stringify({
                 studyId: X.studyName,
+                studyVersion: X.studyVersion,
                 prolificId: window.prolificID
             })
         })
@@ -266,6 +267,7 @@
         // collate data for saving
         const data = {
             studyId: X.studyName,
+            studyVersion: X.studyVersion,
             id: X.id,
             estimate: document.querySelector("#estimate").value,
             after: document.querySelector("#after").value,
@@ -312,6 +314,7 @@
     window.qualitativeFeedback = function() {
         const data = {
             studyId: X.studyName,
+            studyVersion: X.studyVersion,
             id: X.id,
             qualitativeFeedback: document.querySelector(
                 "#commentBox textarea").value,
@@ -346,6 +349,7 @@
         // Save then show feedback
         const data = {
             studyId: X.studyName,
+            studyVersion: X.studyVersion,
             id: X.id,
             hard_easy: document.getElementById("easy").value,
             dull_fun: document.getElementById("fun").value,
@@ -367,12 +371,13 @@
                     showFeedback();
                 }
             });
-
-        if(document.fullscreenElement !== null)
-            document.exitFullscreen();
     };
 
     function generalQuestions() {
+
+        if(document.fullscreenElement !== null)
+            document.exitFullscreen();
+
         let content = document.getElementById("content");
         content.innerHTML = "";
         content.appendChild(document.importNode(
@@ -713,8 +718,10 @@
         maxQuestions = test[1];
     else
         maxQuestions = /[?&]debug=1/i.test(window.location.search)? 3 : 50;
+
     window.X = {
         studyName: "dateCheck",
+        studyVersion: "0.9.0",
         trials: [],
         question: null,
         maxQuestions

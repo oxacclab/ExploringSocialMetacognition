@@ -211,6 +211,7 @@ div {
 }
 
 .response-marker.advisor {
+    position: absolute;
     width: 1.2em;
     height: 1.2em;
     animation: adviceAnimation1st 1s forwards ease-in-out;
