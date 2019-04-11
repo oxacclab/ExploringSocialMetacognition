@@ -4,10 +4,11 @@
     <title>Date estimation study</title>
     <script type="text/javascript">
         let test = /[?&]PROLIFIC_PID=(\w+)/i.exec(window.location.search);
-        window.prolificID = test[1];
-        if(!window.prolificID.length)
+        if(!test)
             window.prolificID = "NoIdSupplied";
-
+        else
+            window.prolificID = test[1];
+    
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null &&
