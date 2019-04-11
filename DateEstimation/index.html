@@ -9,7 +9,7 @@
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null &&
-            !/[?&]feedback=[0-9a-z]+/i.test(window.location.search)) {
+            !/[?&]fb=[0-9a-z]+/i.test(window.location.search)) {
             redirectURL = "../consent.html" + window.location.search +
                 (/\?/.test(window.location.search)? "&" : "?") + "study=DateEstimation";
             window.location.replace(redirectURL); // simulate redirect (no history)
@@ -231,7 +231,7 @@
     }
 
     async function loadFeedback() {
-        let test = /[?&]feedback=([0-9a-z]+)/i.exec(window.location.search);
+        let test = /[?&]fb=([0-9a-z]+)/i.exec(window.location.search);
         let idCode = test[1];
 
         await fetch("../readSerial.php",
@@ -498,9 +498,11 @@
             ));
 
         // Update the permalink
+        let link = window.location.host === "localhost"?
+            window.location.origin + window.location.pathname :
+            "http://tinyurl.com/acclab-de";
         document.querySelector(".feedback-wrapper .display span.permalink")
-            .innerHTML = window.location.origin + window.location.pathname +
-            "?feedback=" + X.id;
+            .innerHTML = link + "?fb=" + X.id;
 
         // Update the score spans
         let n = X.trials.length;
@@ -721,13 +723,13 @@
 
     window.X = {
         studyName: "dateCheck",
-        studyVersion: "0.9.0",
+        studyVersion: "0.9.1",
         trials: [],
         question: null,
         maxQuestions
     };
 
-    if(/[?&]feedback=[0-9a-z]+/i.test(window.location.search)) {
+    if(/[?&]fb=[0-9a-z]+/i.test(window.location.search)) {
         loadFeedback();
     } else
         getSaveId().then((out) => X.id = out.id);
