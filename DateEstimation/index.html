@@ -3,13 +3,16 @@
 <head>
     <title>Date estimation study</title>
     <script type="text/javascript">
-        window.prolificID = window.location.search.match('[?&]PROLIFIC_PID=\\w+');
-        if(prolificID !== null)
-            prolificID = prolificID[0].substring(14);
+        let test = /[?&]PROLIFIC_PID=(\\w+)/i.exec(window.location.search);
+        window.prolificID = test[1];
+        if(!window.prolificID.length)
+            window.prolificID = "NoIdSupplied";
+
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null &&
             !/[?&]fb=[0-9a-z]+/i.test(window.location.search)) {
+            console.log(window.location)
             redirectURL = "../consent.html" + window.location.search +
                 (/\?/.test(window.location.search)? "&" : "?") + "study=DateEstimation";
             window.location.replace(redirectURL); // simulate redirect (no history)
