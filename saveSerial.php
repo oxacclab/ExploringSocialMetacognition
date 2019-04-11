@@ -88,6 +88,7 @@ $pid = 0;
 // Initial responses will have a prolificId
 if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
 
+    $json["id"] = "awaiting";
     $json["serverTime"] = date('c');
 
     if(!file_exists($fileNames["meta"])) {
@@ -121,6 +122,8 @@ if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
         } else
             sulk("Unable to read existing data for pid assignment.", 500);
     }
+
+    $json["id"] = $pid;
 
     // record in the metadata file
     if(($handle = fopen($fileNames["meta"], "ab")) !== false) {
