@@ -3,7 +3,7 @@
 <head>
     <title>Date estimation study</title>
     <script type="text/javascript">
-        let test = /[?&]PROLIFIC_PID=(\\w+)/i.exec(window.location.search);
+        let test = /[?&]PROLIFIC_PID=(\w+)/i.exec(window.location.search);
         window.prolificID = test[1];
         if(!window.prolificID.length)
             window.prolificID = "NoIdSupplied";
