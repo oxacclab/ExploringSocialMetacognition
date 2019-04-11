@@ -105,7 +105,7 @@ if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
             while(($data = fgetcsv($handle)) !== false) {
                 // first row: get the index of the pid field
                 if($index == -1)
-                    $index = array_search("pid", $data, true);
+                    $index = array_search("id", $data, true);
                 else
                     array_push($existingIds, $data[$index]);
             }
@@ -117,10 +117,10 @@ if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
             } while(in_array($pid, $existingIds));
 
             if($index == -1)
-                sulk("No pid field found in previous results.", 500);
+                sulk("No id field found in previous results.", 500);
 
         } else
-            sulk("Unable to read existing data for pid assignment.", 500);
+            sulk("Unable to read existing data for id assignment.", 500);
     }
 
     $json["id"] = $pid;
