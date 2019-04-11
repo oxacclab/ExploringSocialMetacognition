@@ -450,3 +450,7 @@ span.permalink {
 { background-color: deeppink; }
 .timeline .marker.answer.correct.technology .estimate
 { background-color: darkgrey; }
+
+.payment-link {
+    background-color: yellow;
+}

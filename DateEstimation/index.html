@@ -8,7 +8,7 @@
             window.prolificID = "NoIdSupplied";
         else
             window.prolificID = test[1];
-    
+
         // redirect if we don't have consent for participation
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null &&
@@ -125,6 +125,9 @@
     <template id="feedback">
         <div class="feedback-wrapper">
             <div class="debrief">
+                <p class="payment-link">
+                    Payment code: <a href="https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4">MX5PC2Z4</a>
+                </p>
                 <p>Overall you got <span class="nCorrect"></span>/<span class="n"></span> (<span class="percentCorrect"></span>%) exactly right (filled circles), and the actual answer was within the 95% confidence intervals you gave <span class="percentInConf"></span>% of the time (crosses show misses). Your average guess was off by <span class="meanError"></span> years.</p>
             </div>
             <div class="display">
@@ -508,6 +511,10 @@
         document.querySelector(".feedback-wrapper .display span.permalink")
             .innerHTML = link + "?fb=" + X.id;
 
+        // Hide payment link for revisits
+        if(/[?&]fb=/i.test(window.location.search))
+            document.querySelector(".payment-link").style.display = "none";
+
         // Update the score spans
         let n = X.trials.length;
         let sumError = 0;
@@ -727,7 +734,7 @@
 
     window.X = {
         studyName: "dateCheck",
-        studyVersion: "0.9.1",
+        studyVersion: "0.9.2",
         trials: [],
         question: null,
         maxQuestions
