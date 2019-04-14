@@ -1,628 +1,1607 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Questions come largely from Wikipedia's timelines of the 1800s and 1900s -->
+<!-- Questions come largely from Wikipedia's timelines of the 1800s and 1900s, and from the oxford reference timeline of the 1900s (http://www.oxfordreference.com/view/10.1093/acref/9780191735639.timeline.0001) -->
 <questionSet>
+    <question topic="politics">
+        <prompt>
+            Japanese isolationism ends following the <em>Convention of Kanagawa</em>
+        </prompt>
+        <target>1854</target>
+        <citation>https://en.wikipedia.org/wiki/Convention_of_Kanagawa</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Charge of the Light Brigade at the Battle of Balaclava during the Crimean War
+        </prompt>
+        <target>1854</target>
+        <citation>https://en.wikipedia.org/wiki/Charge_of_the_Light_Brigade</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            publication of Charles Darwin's <em>On the Origin of Species</em>
+        </prompt>
+        <target>1859</target>
+        <citation>https://en.wikipedia.org/wiki/On_the_Origin_of_Species</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Abraham Lincoln issues the <em>Emancipation Proclamation</em>
+        </prompt>
+        <target>1863</target>
+        <citation>https://www.britannica.com/list/riding-freedom-10-milestones-in-us-civil-rights-history</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            the first football association in the world, The Football Association, is formed
+        </prompt>
+        <target>1863</target>
+        <citation>https://en.wikipedia.org/wiki/The_Football_Association</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Louis Pasteur invents a more efficient method of sterilizing wine
+        </prompt>
+        <target>1864</target>
+        <citation>https://en.wikipedia.org/wiki/Pasteurization</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            American Civil War ends with the surrender of the Army of Northern Virginia
+        </prompt>
+        <target>1865</target>
+        <citation>https://en.wikipedia.org/wiki/American_Civil_War</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>Lewis Carroll's
-            <em>Alice's Adventures in Wonderland</em> published</prompt>
+        <prompt>
+            Lewis Carroll's
+            <em>Alice's Adventures in Wonderland</em> published
+        </prompt>
         <target>1865</target>
         <citation>https://en.wikipedia.org/wiki/Alice%27s_Adventures_in_Wonderland</citation>
     </question>
+
+    <question topic="science">
+        <prompt>
+            the periodic table is created by Dmitri Mendeleev
+        </prompt>
+        <target>1869</target>
+        <citation>https://en.wikipedia.org/wiki/Dmitri_Mendeleev</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Opening of the Suez Canal
+        </prompt>
+        <target>1869</target>
+        <citation>https://en.wikipedia.org/wiki/Suez_Canal</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            the first national park is created at Yellowstone, USA
+        </prompt>
+        <target>1872</target>
+        <citation>https://en.wikipedia.org/wiki/Yellowstone_National_Park</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the samurai of Japan are replaced with a more modern, conscripted army
+        </prompt>
+        <target>1873</target>
+        <citation>https://en.wikipedia.org/wiki/Samurai#Decline</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            blue jeans patented by Jacob W. Davis and Levi Strauss
+        </prompt>
+        <target>1873</target>
+        <citation>https://en.wikipedia.org/wiki/Jeans</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>premier of Georges Bizet's <em>Carmen</em></prompt>
+        <prompt>
+            premier of Georges Bizet's <em>Carmen</em>
+        </prompt>
         <target>1875</target>
         <citation>https://en.wikipedia.org/wiki/Carmen</citation>
     </question>
+
+    <question topic="science">
+        <prompt>
+            Asaph Hall discovers Phobos and Deimos, the moons of Mars
+        </prompt>
+        <target>1877</target>
+        <citation>https://en.wikipedia.org/wiki/Moons_of_Mars</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Australia and England play the first test cricket match
+        </prompt>
+        <target>1877</target>
+        <citation>https://en.wikipedia.org/wiki/Test_cricket#Early_history</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Anglo-Zulu war in South Africa
+        </prompt>
+        <target>1879</target>
+        <citation>https://en.wikipedia.org/wiki/Anglo-Zulu_War</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            devastating eruption of Krakatoa
+        </prompt>
+        <target>1883</target>
+        <citation>https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>Robert Louis Stevenson's <em>Treasure Island</em> published
-            in book form
+        <prompt>
+            Robert Louis Stevenson's <em>Treasure Island</em> published in book form
         </prompt>
         <target>1883</target>
         <citation>https://en.wikipedia.org/wiki/Treasure_Island</citation>
     </question>
+
     <question topic="arts">
-        <prompt>Mark Twain's <em>The Adventures of Huckleberry Finn</em>
-            published in the United Kingdom
+        <prompt>
+            Mark Twain's <em>The Adventures of Huckleberry Finn</em> published in the United Kingdom
         </prompt>
         <target>1884</target>
         <citation>https://en.wikipedia.org/wiki/The_Adventures_of_Huckleberry_Finn</citation>
     </question>
+
+    <question topic="technology">
+        <prompt>
+            Karl Benz patents the first practical automobile
+        </prompt>
+        <target>1886</target>
+        <citation>https://en.wikipedia.org/wiki/Karl_Benz</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Greece and Turkey fight the Thirty Days' War
+        </prompt>
+        <target>1897</target>
+        <citation>https://en.wikipedia.org/wiki/Greco-Turkish_War_(1897)</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            beginning of the First Brazilian Republic
+        </prompt>
+        <target>1889</target>
+        <citation>https://en.wikipedia.org/wiki/History_of_Brazil_(1889%E2%80%931930)</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>Vincent van Gogh paints <em>Starry Night</em>
+        <prompt>
+            Vincent van Gogh paints <em>Starry Night</em>
         </prompt>
         <target>1889</target>
         <citation>https://en.wikipedia.org/wiki/Starry_Night</citation>
     </question>
+
     <question topic="arts">
-        <prompt>Vincent van Gogh dies</prompt>
+        <prompt>
+            Vincent van Gogh dies
+        </prompt>
         <target>1890</target>
         <citation>https://en.wikipedia.org/wiki/Vincent_van_Gogh</citation>
     </question>
+
+    <question topic="technology">
+        <prompt>
+            Robert Gair invents the pre-cut cardboard box
+        </prompt>
+        <target>1890</target>
+        <citation>https://en.wikipedia.org/wiki/Cardboard_box#History_of_Cardboard(HOC)</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>Sir Arthur Conan Doyle's Sherlock Holmes first appears in <em>Strand</em> magazine</prompt>
+        <prompt>
+            Sir Arthur Conan Doyle's Sherlock Holmes first appears in <em>Strand</em> magazine
+        </prompt>
         <target>1891</target>
         <citation>https://en.wikipedia.org/wiki/Sherlock_Holmes</citation>
     </question>
+
+    <question topic="sport">
+        <prompt>
+            basketball invented
+        </prompt>
+        <target>1891</target>
+        <citation>https://en.wikipedia.org/wiki/Basketball</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Juan Vucetich establishes the world's fingerprint bureau in Argentina
+        </prompt>
+        <target>1892</target>
+        <citation>https://en.wikipedia.org/wiki/Fingerprint#History</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            women's suffrage first enacted in New Zealand
+        </prompt>
+        <target>1893</target>
+        <citation>https://en.wikipedia.org/wiki/Women%27s_suffrage</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            x-rays identified by Wilhelm Röntgen
+        </prompt>
+        <target>1895</target>
+        <citation>https://en.wikipedia.org/wiki/X-ray#Discovery_by_R%C3%B6ntgen</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            volleyball invented
+        </prompt>
+        <target>1895</target>
+        <citation>https://en.wikipedia.org/wiki/Volleyball#Origin_of_volleyball</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Athens hosts the revival of the Olympic Games
+        </prompt>
+        <target>1896</target>
+        <citation>https://en.wikipedia.org/wiki/1896_Summer_Olympics</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Radium discovered by Marie and Pierre Curie
+        </prompt>
+        <target>1898</target>
+        <citation>https://www.historytoday.com/richard-cavendish/curies-discover-radium</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Cuban achieves independence from Spain at the end of the Cuban War of Independence
+        </prompt>
+        <target>1898</target>
+        <citation>https://en.wikipedia.org/wiki/Cuban_War_of_Independence</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Henry Dunant, founder of the Red Cross, becomes the joint first winner of the Nobel Peace Prize
+        </prompt>
+        <target>1901</target>
+        <citation>https://en.wikipedia.org/wiki/Henry_Dunant</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Emily Hobhouse delivers her damning report on conditions in British concentration camps in South Africa
+        </prompt>
+        <target>1901</target>
+        <citation>https://en.wikipedia.org/wiki/Emily_Hobhouse#Conditions_in_the_camps</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Guglielmo Marconi receives the first trans-Atlantic wireless transmission
+        </prompt>
+        <target>1901</target>
+        <citation>https://en.wikipedia.org/wiki/Guglielmo_Marconi#Transatlantic_transmissions</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Willis Carrier invents the first air-conditioning unit
+        </prompt>
+        <target>1902</target>
+        <citation>https://en.wikipedia.org/wiki/Willis_Carrier</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>Frida Kahlo born</prompt>
+        <prompt>
+            first <em>The Wizard of Oz</em> musical premiers on Broadway
+        </prompt>
+        <target>1902</target>
+        <citation>https://en.wikipedia.org/wiki/The_Wizard_of_Oz_(1902_musical)</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            the Wright brothers make the first heavier-than-air flight
+        </prompt>
+        <target>1903</target>
+        <citation>http://www.eyewitnesstohistory.com/wright.htm</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            the teddy bear is invented separately in the USA and Germany
+        </prompt>
+        <target>1903</target>
+        <citation>https://en.wikipedia.org/wiki/Teddy_bear#History</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Russian Social Democratic Labour Party splits into Bolsheviks and Mensheviks
+        </prompt>
+        <target>1903</target>
+        <citation>https://en.wikipedia.org/wiki/Russian_Social_Democratic_Labour_Party#Internal_divisions</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            first Tour de France bicycle race
+        </prompt>
+        <target>1903</target>
+        <citation>https://en.wikipedia.org/wiki/Tour_de_France#The_first_Tour_de_France_(1903)</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            dissolution of the union between Norway and Sweden
+        </prompt>
+        <target>1905</target>
+        <citation>https://en.wikipedia.org/wiki/Dissolution_of_the_union_between_Norway_and_Sweden</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Albert Einstein publishes the theory of special relativity
+        </prompt>
+        <target>1905</target>
+        <citation>https://en.wikipedia.org/wiki/Theory_of_relativity#Development_and_acceptance</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            inaugural elections to the Parliament of Finland are the first parliamentary elections with woman candidates
+        </prompt>
+        <target>1906</target>
+        <citation>https://en.wikipedia.org/wiki/Parliament_of_Finland</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            artist Frida Kahlo born
+        </prompt>
         <target>1907</target>
         <citation>https://en.wikipedia.org/wiki/Frida_Kahlo</citation>
     </question>
+
+    <question topic="politics">
+        <prompt>
+            Port Arthur, Canada becomes the first city to enact Daylight Savings Time
+        </prompt>
+        <target>1908</target>
+        <citation>https://en.wikipedia.org/wiki/Daylight_saving_time#History</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Bureau of Investigation (later Federal Bureau of Investigation) founded in the USA
+        </prompt>
+        <target>1908</target>
+        <citation>https://en.wikipedia.org/wiki/Federal_Bureau_of_Investigation#Creation</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Tunguska event flattens 2000km<sup>2</sup> of forest in the Eastern Siberian Taiga
+        </prompt>
+        <target>1908</target>
+        <citation>https://en.wikipedia.org/wiki/Tunguska_event</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            'Father of Psychology' William James dies
+        </prompt>
+        <target>1910</target>
+        <citation>https://en.wikipedia.org/wiki/William_James</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            first photographs of Halley's Comet
+        </prompt>
+        <target>1910</target>
+        <citation>https://en.wikipedia.org/wiki/Halley%27s_Comet#History</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Roald Amundsen reaches the South Pole
+        </prompt>
+        <target>1911</target>
+        <citation>https://en.wikipedia.org/wiki/Roald_Amundsen</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Triangle Shirtwaist Factory fire kills 146 workers and leads to workplace safety reforms
+        </prompt>
+        <target>1911</target>
+        <citation>https://en.wikipedia.org/wiki/Triangle_Shirtwaist_Factory_fire</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Eugene Burton Ely performs the first aeroplane landing on a ship
+        </prompt>
+        <target>1911</target>
+        <citation>https://en.wikipedia.org/wiki/Eugene_Burton_Ely#Naval_aviation_firsts</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            RMS <em>Titanic</em> begins her maiden voyage
+        </prompt>
+        <target>1912</target>
+        <citation>https://en.wikipedia.org/wiki/RMS_Titanic</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Chinese Empire ends with the establishment of the Republic of China
+        </prompt>
+        <target>1912</target>
+        <citation>https://en.wikipedia.org/wiki/Republic_of_China_(1912%E2%80%9349)</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            foundation of the South African Native National Congress (later the African National Congress) to campaign for black and mixed-race suffrage
+        </prompt>
+        <target>1912</target>
+        <citation>https://en.wikipedia.org/wiki/Republic_of_China_(1912%E2%80%9349)</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Emily Wilding Davison dies pursuing women's suffrage
+        </prompt>
+        <target>1913</target>
+        <citation>https://www.bl.uk/votes-for-women/articles/womens-suffrage-timeline</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Federal Reserve is created in the USA to alleviate financial crises
+        </prompt>
+        <target>1913</target>
+        <citation>https://en.wikipedia.org/wiki/Federal_Reserve</citation>
+    </question>
+
     <question topic="arts">
-        <prompt>Igor Stravinsky's ballet <em>The Rite of Spring</em> premiers
+        <prompt>
+            Igor Stravinsky's ballet <em>The Rite of Spring</em> premiers
         </prompt>
         <target>1913</target>
         <citation>https://en.wikipedia.org/wiki/The_Rite_of_Spring#Premiere</citation>
     </question>
-    <question topic="arts">
-        <prompt>sisters Laura Richards, Maud Elliott, and Florence Hall win
-            the inaugural Pulitzer Prize for Biography</prompt>
-        <target>1917</target>
-        <citation>https://en.wikipedia.org/wiki/1917_Pulitzer_Prize</citation>
-    </question>
-    <question topic="arts">
-        <prompt>James Joyce's <em>Ulysses</em> published in book form</prompt>
-        <target>1922</target>
-        <citation>https://en.wikipedia.org/wiki/Ulysses_(novel)</citation>
-    </question>
-    <question topic="arts">
-        <prompt>W.B. Yeats awarded the Nobel Prize in Literature</prompt>
-        <target>1923</target>
-        <citation>https://www.historytoday.com/richard-cavendish/death-wb-yeats</citation>
-    </question>
-    <question topic="arts">
-        <prompt>George Gershwin's <em>Rhapsody in Blue</em></prompt>
-        <target>1924</target>
-        <citation>https://en.wikipedia.org/wiki/Rhapsody_in_Blue</citation>
-    </question>
-    <question topic="arts">
-        <prompt>Janet Gaynor wins 'Best Actress' at the first Academy Awards
-            (Oscars)</prompt>
-        <target>1929</target>
-        <citation>https://en.wikipedia.org/wiki/Academy_Award_for_Best_Actress#Winners_and_nominees</citation>
-    </question>
-    <question topic="arts">
-        <prompt>The USA officially adopts
-            <em>The Star-Spangled Banner</em> as its national anthem</prompt>
-        <target>1931</target>
-        <citation>https://en.wikipedia.org/wiki/The_Star-Spangled_Banner</citation>
-    </question>
-    <question topic="military">
-        <prompt>Charge of the Light Brigade at the Battle of Balaclava during the Crimean War</prompt>
-        <target>1854</target>
-        <citation>https://en.wikipedia.org/wiki/Charge_of_the_Light_Brigade</citation>
-    </question>
-    <question topic="military">
-        <prompt>American Civil War ends with the surrender of
-            the Army of Northern Virginia</prompt>
-        <target>1865</target>
-        <citation>https://en.wikipedia.org/wiki/American_Civil_War</citation>
-    </question>
-    <question topic="military">
-        <prompt>Anglo-Zulu war in South Africa</prompt>
-        <target>1879</target>
-        <citation>https://en.wikipedia.org/wiki/Anglo-Zulu_War</citation>
-    </question>
-    <question topic="military">
-        <prompt>Greece and Turkey fight the Thirty Days' War</prompt>
-        <target>1897</target>
-        <citation>https://en.wikipedia.org/wiki/Greco-Turkish_War_(1897)</citation>
-    </question>
-    <question topic="military">
-        <prompt>Cuban achieves independence from Spain at the end of the Cuban
-            War of Independence</prompt>
-        <target>1898</target>
-        <citation>https://en.wikipedia.org/wiki/Cuban_War_of_Independence</citation>
-    </question>
-    <question topic="military">
-        <prompt>RMS <em>Lusitania</em> sunk by a German U-boat</prompt>
-        <target>1915</target>
-        <citation>https://en.wikipedia.org/wiki/RMS_Lusitania</citation>
-    </question>
-    <question topic="military">
-        <prompt>the Arab Revolt begins against the Ottoman Empire</prompt>
-        <target>1916</target>
-        <citation>https://en.wikipedia.org/wiki/Arab_Revolt</citation>
-    </question>
-    <question topic="military">
-        <prompt>World War I Armistice declared</prompt>
-        <target>1918</target>
-        <citation>https://en.wikipedia.org/wiki/Armistice_of_11_November_1918</citation>
-    </question>
-    <question topic="military">
-        <prompt>Estonia wins independence from Soviet Russia following
-            the Estonian War of Independence</prompt>
-        <target>1920</target>
-        <citation>https://en.wikipedia.org/wiki/Estonian_War_of_Independence#Tartu_Peace_Treaty</citation>
-    </question>
-    <question topic="military">
-        <prompt>Ireland achieves independence from Britain following the
-            Irish War of Independence</prompt>
-        <target>1922</target>
-        <citation>https://en.wikipedia.org/wiki/Anglo-Irish_Treaty</citation>
-    </question>
-    <question topic="military">
-        <prompt>Spanish Civil War begins</prompt>
-        <target>1936</target>
-        <citation>https://en.wikipedia.org/wiki/Spanish_Civil_War</citation>
-    </question>
-    <question topic="military">
-        <prompt>Japanese invasion of China begins the Second
-            Sino-Japanese War</prompt>
-        <target>1937</target>
-        <citation>https://en.wikipedia.org/wiki/Second_Sino-Japanese_War</citation>
-    </question>
-    <question topic="military">
-        <prompt>nuclear bombs dropped on Hiroshima and Nagasaki</prompt>
-        <target>1945</target>
-        <citation>https://en.wikipedia.org/wiki/Atomic_bombings_of_Hiroshima_and_Nagasaki</citation>
-    </question>
-    <question topic="military">
-        <prompt>creation of the North Atlantic Treaty Organisation</prompt>
-        <target>1949</target>
-        <citation>https://en.wikipedia.org/wiki/NATO</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Japanese isolationism ends following the
-            <em>Convention of Kanagawa</em></prompt>
-        <target>1854</target>
-        <citation>https://en.wikipedia.org/wiki/Convention_of_Kanagawa</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Abraham Lincoln issues the <em>Emancipation Proclamation</em></prompt>
-        <target>1863</target>
-        <citation>https://www.britannica.com/list/riding-freedom-10-milestones-in-us-civil-rights-history</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the samurai of Japan are replaced with a more modern,
-            conscripted army</prompt>
-        <target>1873</target>
-        <citation>https://en.wikipedia.org/wiki/Samurai#Decline</citation>
-    </question>
-    <question topic="politics">
-        <prompt>beginning of the First Brazilian Republic</prompt>
-        <target>1889</target>
-        <citation>https://en.wikipedia.org/wiki/History_of_Brazil_(1889%E2%80%931930)</citation>
-    </question>
-    <question topic="politics">
-        <prompt>women's suffrage first enacted in New Zealand</prompt>
-        <target>1893</target>
-        <citation>https://en.wikipedia.org/wiki/Women%27s_suffrage</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Henry Dunant, founder of the Red Cross, becomes the
-            joint first winner of the Nobel Peace Prize</prompt>
-        <target>1901</target>
-        <citation>https://en.wikipedia.org/wiki/Henry_Dunant</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Emily Hobhouse delivers her damning report on conditions in
-            British concentration camps in South Africa</prompt>
-        <target>1901</target>
-        <citation>https://en.wikipedia.org/wiki/Emily_Hobhouse#Conditions_in_the_camps</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Russian Social Democratic Labour Party splits into
-            Bolsheviks and Mensheviks</prompt>
-        <target>1903</target>
-        <citation>https://en.wikipedia.org/wiki/Russian_Social_Democratic_Labour_Party#Internal_divisions</citation>
-    </question>
-    <question topic="politics">
-        <prompt>dissolution of the union between Norway and Sweden</prompt>
-        <target>1905</target>
-        <citation>https://en.wikipedia.org/wiki/Dissolution_of_the_union_between_Norway_and_Sweden</citation>
-    </question>
-    <question topic="politics">
-        <prompt>inaugural elections to the Parliament of Finland are
-            the first parliamentary elections with woman candidates</prompt>
-        <target>1906</target>
-        <citation>https://en.wikipedia.org/wiki/Parliament_of_Finland</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Port Arthur, Canada becomes the first city to enact
-            Daylight Savings Time</prompt>
-        <target>1908</target>
-        <citation>https://en.wikipedia.org/wiki/Daylight_saving_time#History</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Triangle Shirtwaist Factory fire kills 146 workers and
-            leads to workplace safety reforms</prompt>
-        <target>1911</target>
-        <citation>https://en.wikipedia.org/wiki/Triangle_Shirtwaist_Factory_fire</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Chinese Empire ends with the establishment of the
-            Republic of China</prompt>
-        <target>1912</target>
-        <citation>https://en.wikipedia.org/wiki/Republic_of_China_(1912%E2%80%9349)</citation>
-    </question>
-    <question topic="politics">
-        <prompt>foundation of the South African Native National Congress
-            (later the African National Congress) to campaign for black and
-            mixed-race suffrage</prompt>
-        <target>1912</target>
-        <citation>https://en.wikipedia.org/wiki/Republic_of_China_(1912%E2%80%9349)</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Emily Wilding Davison dies pursuing women's suffrage</prompt>
-        <target>1913</target>
-        <citation>https://www.bl.uk/votes-for-women/articles/womens-suffrage-timeline</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Federal Reserve is created in the USA to alleviate
-            financial crises</prompt>
-        <target>1913</target>
-        <citation>https://en.wikipedia.org/wiki/Federal_Reserve</citation>
-    </question>
-    <question topic="politics">
-        <prompt>murder of Russian mystic Grigori Rasputin</prompt>
-        <target>1916</target>
-        <citation>https://en.wikipedia.org/wiki/Grigori_Rasputin#Death</citation>
-    </question>
-    <question topic="politics">
-        <prompt>October Revolution in Russia</prompt>
-        <target>1917</target>
-        <citation>https://en.wikipedia.org/wiki/October_Revolution</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Nancy Astor, Viscountess Astor becomes first female Member of the UK Parliament to take her seat</prompt>
-        <target>1919</target>
-        <citation>https://en.wikipedia.org/wiki/Nancy_Astor,_Viscountess_Astor</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Mahatma Gandhi's first non-cooperation movement begins in
-            India</prompt>
-        <target>1920</target>
-        <citation>https://en.wikipedia.org/wiki/Non-cooperation_movement</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Benito Mussolini founds the National Fascist Party in
-            Italy</prompt>
-        <target>1921</target>
-        <citation>https://en.wikipedia.org/wiki/National_Fascist_Party</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Turkish Republic forms with the abolition of the Ottoman
-            Caliphate</prompt>
-        <target>1924</target>
-        <citation>https://en.wikipedia.org/wiki/Caliphate#Abolition_of_the_Caliphate_(1924)</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Bureau of Investigation (later Federal Bureau of
-            Investigation) founded in the USA</prompt>
-        <target>1924</target>
-        <citation>https://en.wikipedia.org/wiki/J._Edgar_Hoover</citation>
-    </question>
-    <question topic="politics">
-        <prompt>birth of Queen Elizabeth II of the United Kingdom</prompt>
-        <target>1926</target>
-        <citation>https://en.wikipedia.org/wiki/Elizabeth_II</citation>
-    </question>
-    <question topic="politics">
-        <prompt>creation of the British Broadcasting Corporation</prompt>
-        <target>1927</target>
-        <citation>https://en.wikipedia.org/wiki/BBC#1927_to_1939</citation>
-    </question>
-    <question topic="politics">
-        <prompt>foundation of the Muslim Brotherhood by Hassan al-Banna</prompt>
-        <target>1928</target>
-        <citation>https://en.wikipedia.org/wiki/Muslim_Brotherhood</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Wall Street crash begins the Great Depression in
-            the USA</prompt>
-        <target>1929</target>
-        <citation>https://en.wikipedia.org/wiki/Wall_Street_crash_of_1929</citation>
-    </question>
-    <question topic="politics">
-        <prompt>the Lateran Treaty establishes Vatican City as a
-            sovereign state</prompt>
-        <target>1929</target>
-        <citation>https://en.wikipedia.org/wiki/Vatican_City</citation>
-    </question>
-    <question topic="politics">
-        <prompt>British Commonwealth of Nations created</prompt>
-        <target>1931</target>
-        <citation>https://en.wikipedia.org/wiki/Statute_of_Westminster_1931</citation>
-    </question>
-    <question topic="politics">
-        <prompt>prohibition abolished in the USA</prompt>
-        <target>1933</target>
-        <citation>https://en.wikipedia.org/wiki/Prohibition_in_the_United_States</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Germany enacts the Nuremberg racial laws</prompt>
-        <target>1935</target>
-        <citation>https://en.wikipedia.org/wiki/Nuremberg_Laws</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Joseph Stalin's Great Purge begins</prompt>
-        <target>1936</target>
-        <citation>https://en.wikipedia.org/wiki/Great_Purge</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Winston Churchill becomes Prime Minister of Britain for
-        the first time</prompt>
-        <target>1940</target>
-        <citation>https://en.wikipedia.org/wiki/Winston_Churchill</citation>
-    </question>
-    <question topic="politics">
-        <prompt>partition of India into the Dominions of India and
-            Pakistan</prompt>
-        <target>1947</target>
-        <citation>https://en.wikipedia.org/wiki/Partition_of_India</citation>
-    </question>
-    <question topic="politics">
-        <prompt>creation of the Central Intelligence Agency in the USA</prompt>
-        <target>1947</target>
-        <citation>https://en.wikipedia.org/wiki/Central_Intelligence_Agency</citation>
-    </question>
-    <question topic="politics">
-        <prompt>World Health Organisation founded</prompt>
-        <target>1948</target>
-        <citation>https://en.wikipedia.org/wiki/World_Health_Organization</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Israel established as an independent state by the United
-            Nations</prompt>
-        <target>1948</target>
-        <citation>https://en.wikipedia.org/wiki/Israeli_Declaration_of_Independence</citation>
-    </question>
-    <question topic="politics">
-        <prompt>apartheid begins in South Africa</prompt>
-        <target>1948</target>
-        <citation>https://en.wikipedia.org/wiki/Apartheid</citation>
-    </question>
-    <question topic="politics">
-        <prompt>Mao Zedong establishes the People's Republic of China</prompt>
-        <target>1949</target>
-        <citation>https://en.wikipedia.org/wiki/Chinese_Soviet_Republic</citation>
-    </question>
-    <question topic="science">
-        <prompt>publication of Charles Darwin's <em>On the Origin of Species</em></prompt>
-        <target>1859</target>
-        <citation>https://en.wikipedia.org/wiki/On_the_Origin_of_Species</citation>
-    </question>
-    <question topic="science">
-        <prompt>Louis Pasteur invents a more efficient method of sterilizing wine</prompt>
-        <target>1864</target>
-        <citation>https://en.wikipedia.org/wiki/Pasteurization</citation>
-    </question>
-    <question topic="science">
-        <prompt>the periodic table is created by Dmitri Mendeleev</prompt>
-        <target>1869</target>
-        <citation>https://en.wikipedia.org/wiki/Dmitri_Mendeleev</citation>
-    </question>
-    <question topic="science">
-        <prompt>Opening of the Suez Canal</prompt>
-        <target>1869</target>
-        <citation>https://en.wikipedia.org/wiki/Suez_Canal</citation>
-    </question>
-    <question topic="science">
-        <prompt>the first national park is created at Yellowstone, USA</prompt>
-        <target>1872</target>
-        <citation>https://en.wikipedia.org/wiki/Yellowstone_National_Park</citation>
-    </question>
-    <question topic="science">
-        <prompt>Asaph Hall discovers Phobos and Deimos, the moons of
-            Mars</prompt>
-        <target>1877</target>
-        <citation>https://en.wikipedia.org/wiki/Moons_of_Mars</citation>
-    </question>
-    <question topic="science">
-        <prompt>devastating eruption of Krakatoa</prompt>
-        <target>1883</target>
-        <citation>https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa</citation>
-    </question>
-    <question topic="science">
-        <prompt>x-rays identified by Wilhelm Röntgen</prompt>
-        <target>1895</target>
-        <citation>https://en.wikipedia.org/wiki/X-ray#Discovery_by_R%C3%B6ntgen</citation>
-    </question>
-    <question topic="science">
-        <prompt>Radium discovered by Marie and Pierre Curie</prompt>
-        <target>1898</target>
-        <citation>https://www.historytoday.com/richard-cavendish/curies-discover-radium</citation>
-    </question>
-    <question topic="science">
-        <prompt>Albert Einstein publishes the theory of special
-            relativity</prompt>
-        <target>1905</target>
-        <citation>https://en.wikipedia.org/wiki/Theory_of_relativity#Development_and_acceptance</citation>
-    </question>
-    <question topic="science">
-        <prompt>penicillin discovered by Alexander Fleming</prompt>
-        <target>1928</target>
-        <citation>https://en.wikipedia.org/wiki/Alexander_Fleming</citation>
-    </question>
-    <question topic="science">
-        <prompt>Pluto discovered by Clyde Tombaugh</prompt>
-        <target>1930</target>
-        <citation>https://en.wikipedia.org/wiki/Clyde_Tombaugh</citation>
-    </question>
-    <question topic="science">
-        <prompt>Tunguska event flattens 2000km<sup>2</sup> of forest in
-        the Eastern Siberian Taiga</prompt>
-        <target>1908</target>
-        <citation>https://en.wikipedia.org/wiki/Tunguska_event</citation>
-    </question>
-    <question topic="science">
-        <prompt>'Father of Psychology' William James dies</prompt>
-        <target>1910</target>
-        <citation>https://en.wikipedia.org/wiki/William_James</citation>
-    </question>
-    <question topic="science">
-        <prompt>first photographs of Halley's Comet</prompt>
-        <target>1910</target>
-        <citation>https://en.wikipedia.org/wiki/Halley%27s_Comet#History</citation>
-    </question>
-    <question topic="science">
-        <prompt>Roald Amundsen reaches the South Pole</prompt>
-        <target>1911</target>
-        <citation>https://en.wikipedia.org/wiki/Roald_Amundsen</citation>
-    </question>
-    <question topic="science">
-        <prompt>death of Martha, the last known passenger pigeon</prompt>
-        <target>1914</target>
-        <citation>https://en.wikipedia.org/wiki/Martha_(passenger_pigeon)</citation>
-    </question>
-    <question topic="science">
-        <prompt>discovery of Tutankhamen's tomb by Howard Carter</prompt>
-        <target>1922</target>
-        <citation>https://en.wikipedia.org/wiki/Tutankhamen%27s_tomb</citation>
-    </question>
-    <question topic="science">
-        <prompt>initiation of the Manhattan Project</prompt>
-        <target>1942</target>
-        <citation>https://en.wikipedia.org/wiki/Manhattan_Project</citation>
-    </question>
-    <question topic="sport">
-        <prompt>the first football association in the world, The Football
-            Association, is formed</prompt>
-        <target>1863</target>
-        <citation>https://en.wikipedia.org/wiki/The_Football_Association</citation>
-    </question>
-    <question topic="sport">
-        <prompt>Australia and England play the first test cricket match</prompt>
-        <target>1877</target>
-        <citation>https://en.wikipedia.org/wiki/Test_cricket#Early_history</citation>
-    </question>
-    <question topic="sport">
-        <prompt>basketball invented</prompt>
-        <target>1891</target>
-        <citation>https://en.wikipedia.org/wiki/Basketball</citation>
-    </question>
-    <question topic="sport">
-        <prompt>volleyball invented</prompt>
-        <target>1895</target>
-        <citation>https://en.wikipedia.org/wiki/Volleyball#Origin_of_volleyball</citation>
-    </question>
-    <question topic="sport">
-        <prompt>Athens hosts the revival of the Olympic Games</prompt>
-        <target>1896</target>
-        <citation>https://en.wikipedia.org/wiki/1896_Summer_Olympics</citation>
-    </question>
-    <question topic="sport">
-        <prompt>first Tour de France bicycle race</prompt>
-        <target>1903</target>
-        <citation>https://en.wikipedia.org/wiki/Tour_de_France#The_first_Tour_de_France_(1903)</citation>
-    </question>
-    <question topic="sport">
-        <prompt>first FIFA World Cup</prompt>
-        <target>1930</target>
-        <citation>https://en.wikipedia.org/wiki/1930_FIFA_World_Cup</citation>
-    </question>
-    <question topic="sport">
-        <prompt>George Nissen and Larry Griswold build the first modern
-        trampoline</prompt>
-        <target>1936</target>
-        <citation>https://en.wikipedia.org/wiki/Trampoline#First_modern_trampolines</citation>
-    </question>
+
     <question topic="technology">
-        <prompt>blue jeans patented by Jacob W. Davis and Levi Strauss</prompt>
-        <target>1873</target>
-        <citation>https://en.wikipedia.org/wiki/Jeans</citation>
-    </question>
-    <question topic="technology">
-        <prompt>Karl Benz patents the first practical automobile</prompt>
-        <target>1886</target>
-        <citation>https://en.wikipedia.org/wiki/Karl_Benz</citation>
-    </question>
-    <question topic="technology">
-        <prompt>Robert Gair invents the pre-cut cardboard box</prompt>
-        <target>1890</target>
-        <citation>https://en.wikipedia.org/wiki/Cardboard_box#History_of_Cardboard(HOC)</citation>
-    </question>
-    <question topic="technology">
-        <prompt>Juan Vucetich establishes the world's fingerprint
-            bureau in Argentina</prompt>
-        <target>1892</target>
-        <citation>https://en.wikipedia.org/wiki/Fingerprint#History</citation>
-    </question>
-    <question topic="technology">
-        <prompt>Guglielmo Marconi receives the first trans-Atlantic
-            wireless transmission</prompt>
-        <target>1901</target>
-        <citation>https://en.wikipedia.org/wiki/Guglielmo_Marconi#Transatlantic_transmissions</citation>
-    </question>
-    <question topic="technology">
-        <prompt>Willis Carrier invents the first air-conditioning unit</prompt>
-        <target>1902</target>
-        <citation>https://en.wikipedia.org/wiki/Willis_Carrier</citation>
-    </question>
-    <question topic="technology">
-        <prompt>the Wright brothers make the first heavier-than-air flight</prompt>
-        <target>1903</target>
-        <citation>http://www.eyewitnesstohistory.com/wright.htm</citation>
-    </question>
-    <question topic="technology">
-        <prompt>the teddy bear is invented separately in the USA and
-            Germany</prompt>
-        <target>1903</target>
-        <citation>https://en.wikipedia.org/wiki/Teddy_bear#History</citation>
-    </question>
-    <question topic="technology">
-        <prompt>Eugene Burton Ely performs the first aeroplane landing
-            on a ship</prompt>
-        <target>1911</target>
-        <citation>https://en.wikipedia.org/wiki/Eugene_Burton_Ely#Naval_aviation_firsts</citation>
-    </question>
-    <question topic="technology">
-        <prompt>RMS <em>Titanic</em> begins her maiden voyage</prompt>
-        <target>1912</target>
-        <citation>https://en.wikipedia.org/wiki/RMS_Titanic</citation>
-    </question>
-    <question topic="technology">
-        <prompt>first moving assembly line introduced at the Ford Motor
-            Company</prompt>
+        <prompt>
+            first moving assembly line introduced at the Ford Motor Company
+        </prompt>
         <target>1913</target>
         <citation>https://en.wikipedia.org/wiki/Assembly_line#20th_century</citation>
     </question>
+
     <question topic="technology">
-        <prompt>Panama Canal opens</prompt>
+        <prompt>
+            Panama Canal opens
+        </prompt>
         <target>1914</target>
         <citation>https://en.wikipedia.org/wiki/Panama_Canal</citation>
     </question>
+
+    <question topic="science">
+        <prompt>
+            death of Martha, the last known passenger pigeon
+        </prompt>
+        <target>1914</target>
+        <citation>https://en.wikipedia.org/wiki/Martha_(passenger_pigeon)</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            RMS <em>Lusitania</em> sunk by a German U-boat
+        </prompt>
+        <target>1915</target>
+        <citation>https://en.wikipedia.org/wiki/RMS_Lusitania</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            the Arab Revolt begins against the Ottoman Empire
+        </prompt>
+        <target>1916</target>
+        <citation>https://en.wikipedia.org/wiki/Arab_Revolt</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            murder of Russian mystic Grigori Rasputin
+        </prompt>
+        <target>1916</target>
+        <citation>https://en.wikipedia.org/wiki/Grigori_Rasputin#Death</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            October Revolution in Russia
+        </prompt>
+        <target>1917</target>
+        <citation>https://en.wikipedia.org/wiki/October_Revolution</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            sisters Laura Richards, Maud Elliott, and Florence Hall win the inaugural Pulitzer Prize for Biography
+        </prompt>
+        <target>1917</target>
+        <citation>https://en.wikipedia.org/wiki/1917_Pulitzer_Prize</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            World War I Armistice declared
+        </prompt>
+        <target>1918</target>
+        <citation>https://en.wikipedia.org/wiki/Armistice_of_11_November_1918</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Nancy Astor, Viscountess Astor becomes first female Member of the UK Parliament to take her seat
+        </prompt>
+        <target>1919</target>
+        <citation>https://en.wikipedia.org/wiki/Nancy_Astor,_Viscountess_Astor</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Mahatma Gandhi's first non-cooperation movement begins in India
+        </prompt>
+        <target>1920</target>
+        <citation>https://en.wikipedia.org/wiki/Non-cooperation_movement</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Estonia wins independence from Soviet Russia following the Estonian War of Independence
+        </prompt>
+        <target>1920</target>
+        <citation>https://en.wikipedia.org/wiki/Estonian_War_of_Independence#Tartu_Peace_Treaty</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Benito Mussolini founds the National Fascist Party in Italy
+        </prompt>
+        <target>1921</target>
+        <citation>https://en.wikipedia.org/wiki/National_Fascist_Party</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Ireland achieves independence from Britain following the Irish War of Independence
+        </prompt>
+        <target>1922</target>
+        <citation>https://en.wikipedia.org/wiki/Anglo-Irish_Treaty</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            discovery of Tutankhamen's tomb by Howard Carter
+        </prompt>
+        <target>1922</target>
+        <citation>https://en.wikipedia.org/wiki/Tutankhamen%27s_tomb</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            James Joyce's <em>Ulysses</em> published in book form
+        </prompt>
+        <target>1922</target>
+        <citation>https://en.wikipedia.org/wiki/Ulysses_(novel)</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            W.B. Yeats awarded the Nobel Prize in Literature
+        </prompt>
+        <target>1923</target>
+        <citation>https://www.historytoday.com/richard-cavendish/death-wb-yeats</citation>
+    </question>
+
     <question topic="technology">
-        <prompt>Frigidaire begins selling the first self-contained domestic refrigerator</prompt>
+        <prompt>
+            Frigidaire begins selling the first self-contained domestic refrigerator
+        </prompt>
         <target>1923</target>
         <citation>https://www.appliancecity.co.uk/news/updates/the-history-of-the-refrigerator/</citation>
     </question>
+
     <question topic="technology">
-        <prompt>foundation of Disney Brothers Cartoon Studio (later The Walt
-            Disney Company)</prompt>
+        <prompt>
+            foundation of Disney Brothers Cartoon Studio (later The Walt Disney Company)
+        </prompt>
         <target>1923</target>
         <citation>https://en.wikipedia.org/wiki/The_Walt_Disney_Company</citation>
     </question>
+
+    <question topic="politics">
+        <prompt>
+            the Turkish Republic forms with the abolition of the Ottoman Caliphate
+        </prompt>
+        <target>1924</target>
+        <citation>https://en.wikipedia.org/wiki/Caliphate#Abolition_of_the_Caliphate_(1924)</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            George Gershwin's <em>Rhapsody in Blue</em>
+        </prompt>
+        <target>1924</target>
+        <citation>https://en.wikipedia.org/wiki/Rhapsody_in_Blue</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Virginia Wolfe publishes <em>Mrs Dalloway</em>
+        </prompt>
+        <target>1925</target>
+        <citation>https://en.wikipedia.org/wiki/Mrs_Dalloway</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            high school teacher John T. Scopes is prosecuted for teaching evolution in Tennessee
+        </prompt>
+        <target>1925</target>
+        <citation>https://en.wikipedia.org/wiki/Scopes_Trial</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            birth of Queen Elizabeth II of the United Kingdom
+        </prompt>
+        <target>1926</target>
+        <citation>https://en.wikipedia.org/wiki/Elizabeth_II</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            creation of the British Broadcasting Corporation
+        </prompt>
+        <target>1927</target>
+        <citation>https://en.wikipedia.org/wiki/BBC#1927_to_1939</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            foundation of the Muslim Brotherhood by Hassan al-Banna
+        </prompt>
+        <target>1928</target>
+        <citation>https://en.wikipedia.org/wiki/Muslim_Brotherhood</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            penicillin discovered by Alexander Fleming
+        </prompt>
+        <target>1928</target>
+        <citation>https://en.wikipedia.org/wiki/Alexander_Fleming</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Wall Street crash begins the Great Depression in the USA
+        </prompt>
+        <target>1929</target>
+        <citation>https://en.wikipedia.org/wiki/Wall_Street_crash_of_1929</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Lateran Treaty establishes Vatican City as a sovereign state
+        </prompt>
+        <target>1929</target>
+        <citation>https://en.wikipedia.org/wiki/Vatican_City</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Janet Gaynor wins 'Best Actress' at the first Academy Awards (Oscars)
+        </prompt>
+        <target>1929</target>
+        <citation>https://en.wikipedia.org/wiki/Academy_Award_for_Best_Actress#Winners_and_nominees</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Pluto discovered by Clyde Tombaugh
+        </prompt>
+        <target>1930</target>
+        <citation>https://en.wikipedia.org/wiki/Clyde_Tombaugh</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            first FIFA World Cup
+        </prompt>
+        <target>1930</target>
+        <citation>https://en.wikipedia.org/wiki/1930_FIFA_World_Cup</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            The USA officially adopts <em>The Star-Spangled Banner</em> as its national anthem
+        </prompt>
+        <target>1931</target>
+        <citation>https://en.wikipedia.org/wiki/The_Star-Spangled_Banner</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            British Commonwealth of Nations created
+        </prompt>
+        <target>1931</target>
+        <citation>https://en.wikipedia.org/wiki/Statute_of_Westminster_1931</citation>
+    </question>
+
     <question topic="technology">
-        <prompt>the <em>Flying Scotsman</em> becomes the first UK locomotive to reach 100mph</prompt>
+        <prompt>
+            draughtsman Harry Beck designs the schematic Tube map of the London Underground
+        </prompt>
+        <target>1931</target>
+        <citation>https://en.wikipedia.org/wiki/Tube_map</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            King George VI gives the first Christmas Broadcast on BBC radio
+        </prompt>
+        <target>1932</target>
+        <citation>https://www.royal.uk/history-christmas-broadcast</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            prohibition abolished in the USA
+        </prompt>
+        <target>1933</target>
+        <citation>https://en.wikipedia.org/wiki/Prohibition_in_the_United_States</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            the <em>Flying Scotsman</em> becomes the first UK locomotive to reach 100mph
+        </prompt>
         <target>1934</target>
         <citation>http://www.flyingscotsman.org.uk/about/</citation>
     </question>
+
+    <question topic="politics">
+        <prompt>
+            Germany enacts the Nuremberg racial laws
+        </prompt>
+        <target>1935</target>
+        <citation>https://en.wikipedia.org/wiki/Nuremberg_Laws</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Joseph Stalin's Great Purge begins
+        </prompt>
+        <target>1936</target>
+        <citation>https://en.wikipedia.org/wiki/Great_Purge</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Spanish Civil War begins
+        </prompt>
+        <target>1936</target>
+        <citation>https://en.wikipedia.org/wiki/Spanish_Civil_War</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            George Nissen and Larry Griswold build the first modern trampoline
+        </prompt>
+        <target>1936</target>
+        <citation>https://en.wikipedia.org/wiki/Trampoline#First_modern_trampolines</citation>
+    </question>
+
     <question topic="technology">
-        <prompt>the Hoover Dam is completed</prompt>
+        <prompt>
+            the Hoover Dam is completed
+        </prompt>
         <target>1936</target>
         <citation>https://en.wikipedia.org/wiki/Hoover_Dam</citation>
     </question>
+
     <question topic="technology">
-        <prompt>the zeppelin <em>Hindenburg</em> crashes</prompt>
+        <prompt>
+            the zeppelin <em>Hindenburg</em> crashes
+        </prompt>
         <target>1937</target>
         <citation>https://en.wikipedia.org/wiki/Hindenburg_disaster</citation>
     </question>
+
+    <question topic="military">
+        <prompt>
+            Japanese invasion of China begins the Second Sino-Japanese War
+        </prompt>
+        <target>1937</target>
+        <citation>https://en.wikipedia.org/wiki/Second_Sino-Japanese_War</citation>
+    </question>
+
     <question topic="technology">
-        <prompt>Colossus, the first electronic computer, begins
-            operation</prompt>
+        <prompt>
+            synthetic polymer nylon patented by DuPont company
+        </prompt>
+        <target>1938</target>
+        <citation>https://en.wikipedia.org/wiki/Nylon#History</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Winston Churchill becomes Prime Minister of Britain for the first time
+        </prompt>
+        <target>1940</target>
+        <citation>https://en.wikipedia.org/wiki/Winston_Churchill</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Charlie Chaplin's <em>The Great Dictator</em>
+        </prompt>
+        <target>1940</target>
+        <citation>https://en.wikipedia.org/wiki/The_Great_Dictator</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Orson Welles' <em>Citizen Kane</em>
+        </prompt>
+        <target>1941</target>
+        <citation>https://en.wikipedia.org/wiki/Citizen_Kane</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            initiation of the Manhattan Project
+        </prompt>
+        <target>1942</target>
+        <citation>https://en.wikipedia.org/wiki/Manhattan_Project</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Colossus, the first electronic computer, begins operation
+        </prompt>
         <target>1944</target>
         <citation>https://en.wikipedia.org/wiki/Colossus_computer</citation>
     </question>
+
+    <question topic="military">
+        <prompt>
+            nuclear bombs dropped on Hiroshima and Nagasaki
+        </prompt>
+        <target>1945</target>
+        <citation>https://en.wikipedia.org/wiki/Atomic_bombings_of_Hiroshima_and_Nagasaki</citation>
+    </question>
+
     <question topic="technology">
-        <prompt>first photograph of Earth from space</prompt>
+        <prompt>
+            first photograph of Earth from space
+        </prompt>
         <target>1946</target>
         <citation>https://cosmosmagazine.com/space/the-first-photograph-of-earth-taken-from-space</citation>
     </question>
+
     <question topic="technology">
-        <prompt>Chuck Yeager officially breaks the sound barrier in level flight
-            in the X-1 jet</prompt>
+        <prompt>
+            Chuck Yeager officially breaks the sound barrier in level flight in the X-1 jet
+        </prompt>
         <target>1947</target>
         <citation>https://en.wikipedia.org/wiki/Sound_barrier#Sound_barrier_officially_broken_in_aircraft</citation>
     </question>
+
+    <question topic="politics">
+        <prompt>
+            partition of India into the Dominions of India and Pakistan
+        </prompt>
+        <target>1947</target>
+        <citation>https://en.wikipedia.org/wiki/Partition_of_India</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            creation of the Central Intelligence Agency in the USA
+        </prompt>
+        <target>1947</target>
+        <citation>https://en.wikipedia.org/wiki/Central_Intelligence_Agency</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            World Health Organisation founded
+        </prompt>
+        <target>1948</target>
+        <citation>https://en.wikipedia.org/wiki/World_Health_Organization</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Israel established as an independent state by the United Nations
+        </prompt>
+        <target>1948</target>
+        <citation>https://en.wikipedia.org/wiki/Israeli_Declaration_of_Independence</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            apartheid begins in South Africa
+        </prompt>
+        <target>1948</target>
+        <citation>https://en.wikipedia.org/wiki/Apartheid</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Simone de Beauvoir publishes <em>The Second Sex</em>
+        </prompt>
+        <target>1949</target>
+        <citation>https://en.wikipedia.org/wiki/The_Second_Sex</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Mao Zedong establishes the People's Republic of China
+        </prompt>
+        <target>1949</target>
+        <citation>https://en.wikipedia.org/wiki/Chinese_Soviet_Republic</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            George Orwell publishes <em>Nineteen Eighty-Four</em>
+        </prompt>
+        <target>1949</target>
+        <citation>https://en.wikipedia.org/wiki/Nineteen_Eighty-Four</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            creation of the North Atlantic Treaty Organisation
+        </prompt>
+        <target>1949</target>
+        <citation>https://en.wikipedia.org/wiki/NATO</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Chinese invasion of Tibet
+        </prompt>
+        <target>1950</target>
+        <citation>https://en.wikipedia.org/wiki/Battle_of_Chamdo</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            J.D. Salinger publishes <em>The Catcher in the Rye</em> in book form
+        </prompt>
+        <target>1951</target>
+        <citation>https://en.wikipedia.org/wiki/The_Catcher_in_the_Rye</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            King George VI dies
+        </prompt>
+        <target>1952</target>
+        <citation>https://en.wikipedia.org/wiki/George_VI</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            premier of John Cage's <em>4'33</em>
+        </prompt>
+        <target>1952</target>
+        <citation>https://en.wikipedia.org/wiki/4%E2%80%B233%E2%80%B3#Premiere_and_reception</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Edmund Hillary and Tenzing Norgay become the first people to successfully scale Mount Everest
+        </prompt>
+        <target>1953</target>
+        <citation>https://en.wikipedia.org/wiki/1953_British_Mount_Everest_expedition</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Roger Bannister runs the first 4-minute mile
+        </prompt>
+        <target>1954</target>
+        <citation>https://en.wikipedia.org/wiki/Four-minute_mile</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            first Disneyland opens in Anaheim, California
+        </prompt>
+        <target>1955</target>
+        <citation>https://en.wikipedia.org/wiki/Disneyland</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Egypt invaded by Israel, the United Kingdom, and France after nationalising the Suez Canal
+        </prompt>
+        <target>1956</target>
+        <citation>https://en.wikipedia.org/wiki/Suez_Crisis</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>Jack Kerouac publishes <em>On the Road</em></prompt>
+        <target>1957</target>
+        <citation>https://en.wikipedia.org/wiki/On_the_Road</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>Charles de Gaulle elected as President of the French Republic</prompt>
+        <target>1958</target>
+        <citation>https://en.wikipedia.org/wiki/Charles_de_Gaulle</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            the first Mini automobile is launched
+        </prompt>
+        <target>1959</target>
+        <citation>https://en.wikipedia.org/wiki/Mini#Mark_I_Mini:_1959%E2%80%931967</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Harper Lee publishes <em>To Kill a Mockingbird</em>
+        </prompt>
+        <target>1960</target>
+        <citation>https://en.wikipedia.org/wiki/To_Kill_a_Mockingbird</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            American Food and Drug Administration approves the first oral contraceptive pill
+        </prompt>
+        <target>1960</target>
+        <citation>https://en.wikipedia.org/wiki/Combined_oral_contraceptive_pill#Public_availability</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            public prosecution of Penguin Books Ltd. for the publication of D.H. Lawrence's <em>Lady Chatterley's Lover</em>
+        </prompt>
+        <target>1960</target>
+        <citation>https://en.wikipedia.org/wiki/R_v_Penguin_Books_Ltd</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Soviet cosmonaut Yuri Gagarin becomes the first human to travel in space
+        </prompt>
+        <target>1961</target>
+        <citation>https://en.wikipedia.org/wiki/Yuri_Gagarin</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Thalidomide is withdrawn in the UK after being shown to have caused birth defects in around 2,000 children
+        </prompt>
+        <target>1961</target>
+        <citation>https://en.wikipedia.org/wiki/Thalidomide#Birth_defect_crisis</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Sean Connery plays James Bond in the first film, <em>Dr. No</em>
+        </prompt>
+        <target>1962</target>
+        <citation>https://www.imdb.com/title/tt0055928/</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            actress Marilyn Munroe commits suicide
+        </prompt>
+        <target>1962</target>
+        <citation>https://en.wikipedia.org/wiki/Marilyn_Monroe#Death</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Cuban Missile Crisis marks the height of the Cold War
+        </prompt>
+        <target>1962</target>
+        <citation>https://en.wikipedia.org/wiki/Cuban_Missile_Crisis</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            US poet Sylvia Plath commits suicide shortly after publishing <em>The Bell Jar</em>
+        </prompt>
+        <target>1963</target>
+        <citation>https://en.wikipedia.org/wiki/Sylvia_Plath</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            assassination of US President John F. Kennedy
+        </prompt>
+        <target>1963</target>
+        <citation>https://en.wikipedia.org/wiki/John_F._Kennedy</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            last two judicial executions in the UK before the abolition of capital punishment
+        </prompt>
+        <target>1964</target>
+        <citation>https://en.wikipedia.org/wiki/Capital_punishment_in_the_United_Kingdom#Last_executions</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Civil Rights Act outlaws racial segregation in the US
+        </prompt>
+        <target>1964</target>
+        <citation>https://en.wikipedia.org/wiki/Civil_Rights_Act_of_1964</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Austrian bodybuilder Arnold Schwarzenegger wins his first bodybuilding title, Junior Mr. Europe, at age 18
+        </prompt>
+        <target>1965</target>
+        <citation>https://en.wikipedia.org/wiki/Arnold_Schwarzenegger#List_of_competitions[48]</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            144 people die in Aberfan, Wales when landslide of mine spoil buries a primary school
+        </prompt>
+        <target>1966</target>
+        <citation>https://en.wikipedia.org/wiki/Aberfan_disaster</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            capture and execution of Argentine Marxist revolutionary Che Geuvara
+        </prompt>
+        <target>1967</target>
+        <citation>https://en.wikipedia.org/wiki/Che_Guevara</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            assassination of civil rights activist Martin Luther King Jr.
+        </prompt>
+        <target>1968</target>
+        <citation>https://en.wikipedia.org/wiki/Martin_Luther_King_Jr.</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            maiden flight of Concorde, the first supersonic passenger airliner
+        </prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/Concorde</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            first link established in ARPANET, precursor to the Internet
+        </prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/History_of_the_Internet#ARPANET</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>Maya Angelou publishes <em>I Know Why the Caged Bird Sings</em></prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/I_Know_Why_the_Caged_Bird_Sings</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Woodstock Music Festival takes place in New York
+        </prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/Woodstock</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            <em>Monty Python's Flying Circus</em> first broadcast
+        </prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/Monty_Python%27s_Flying_Circus</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Stonewall riots in New York spark a campaign for Gay and Lesbian rights
+        </prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/Stonewall_riots</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Neil Armstrong becomes first human to walk on the moon
+        </prompt>
+        <target>1969</target>
+        <citation>https://en.wikipedia.org/wiki/Apollo_11</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Germaine Greer publishes <em>The Female Eunuch</em>
+        </prompt>
+        <target>1970</target>
+        <citation>https://en.wikipedia.org/wiki/The_Female_Eunuch</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Britain replaces pounds, shillings, and pence replaced with decimalised currency
+        </prompt>
+        <target>1971</target>
+        <citation>https://en.wikipedia.org/wiki/Decimal_Day</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            break-in at the Democratic National Committee headquarters in the Watergate office complex
+        </prompt>
+        <target>1972</target>
+        <citation>https://en.wikipedia.org/wiki/Watergate_scandal</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Augusto Pinochet begins a brutal dictatorship of Chile
+        </prompt>
+        <target>1973</target>
+        <citation>https://en.wikipedia.org/wiki/Augusto_Pinochet</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            US Supreme Court rules that criminalisation of abortion violates rights to privacy in Roe v. Wade
+        </prompt>
+        <target>1973</target>
+        <citation>https://en.wikipedia.org/wiki/Roe_v._Wade</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            ballet dancer Mikhail Baryshnikov defects from the USSR to Canada while on tour
+        </prompt>
+        <target>1974</target>
+        <citation>https://en.wikipedia.org/wiki/Mikhail_Baryshnikov#1974:_Defection_to_Canada</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Saigon (now Ho Chi Minh City) captured by North Vietnamese forces
+        </prompt>
+        <target>1975</target>
+        <citation>https://en.wikipedia.org/wiki/Fall_of_Saigon</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Steve Jobs and Steve Wozniak release the Apple-1 desktop computer
+        </prompt>
+        <target>1976</target>
+        <citation>https://en.wikipedia.org/wiki/Apple_I</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            death of Elvis Presley
+        </prompt>
+        <target>1977</target>
+        <citation>https://en.wikipedia.org/wiki/Elvis_Presley</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            birth of Louise Brown, the first "test tube baby"
+        </prompt>
+        <target>1978</target>
+        <citation>https://en.wikipedia.org/wiki/In_vitro_fertilisation#History</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Douglas Adams' <em>The Hitchhiker's Guide to the Galaxy</em> first broadcast on BBC Radio 4
+        </prompt>
+        <target>1978</target>
+        <citation>https://en.wikipedia.org/wiki/The_Hitchhiker%27s_Guide_to_the_Galaxy</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Margaret Thatcher becomes Britain's first female prime minister
+        </prompt>
+        <target>1979</target>
+        <citation>https://en.wikipedia.org/wiki/Margaret_Thatcher</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            John Lennon murdered
+        </prompt>
+        <target>1980</target>
+        <citation>https://en.wikipedia.org/wiki/John_Lennon#8_December_1980:_Shooting_and_death</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            musical <em>Cats</em> opens in London's West End
+        </prompt>
+        <target>1981</target>
+        <citation>https://en.wikipedia.org/wiki/Cats_(musical)</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            Britain and Argentina fight the Falklands War
+        </prompt>
+        <target>1982</target>
+        <citation>https://en.wikipedia.org/wiki/Falklands_War</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            technology companies Philips and Sony release the compact disc (CD)
+        </prompt>
+        <target>1982</target>
+        <citation>https://en.wikipedia.org/wiki/Compact_disc</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Human Immunodeficiency Virus (HIV) identified independently by American and French research groups
+        </prompt>
+        <target>1983</target>
+        <citation>https://en.wikipedia.org/wiki/HIV#History</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Live Aid concert held in London and Philadelphia to raise money to combat famine in Ethiopia
+        </prompt>
+        <target>1985</target>
+        <citation>https://en.wikipedia.org/wiki/Live_Aid</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Space Shuttle <em>Challenger</em> explodes shortly after liftoff
+        </prompt>
+        <target>1986</target>
+        <citation>https://en.wikipedia.org/wiki/Space_Shuttle_Challenger_disaster</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            meltdown at Chernobyl Nuclear Power Plant
+        </prompt>
+        <target>1986</target>
+        <citation>https://en.wikipedia.org/wiki/Chernobyl_disaster</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Mike Tyson becomes the youngest ever WBC world heavyweight champion after defeating Trevor Berbick
+        </prompt>
+        <target>1986</target>
+        <citation>https://en.wikipedia.org/wiki/Mike_Tyson</citation>
+    </question>
+
+    <question topic="sport">
+        <prompt>
+            Steffi Graf becomes world #1 tennis player at 18 years old
+        </prompt>
+        <target>1987</target>
+        <citation>https://en.wikipedia.org/wiki/Steffi_Graf#Breakthrough_year:_1987</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Salman Rushdie publishes <em>Satanic Verses</em>
+        </prompt>
+        <target>1988</target>
+        <citation>https://en.wikipedia.org/wiki/The_Satanic_Verses</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            thousands of protestors are killed by military personnel in Tiananmen Square
+        </prompt>
+        <target>1989</target>
+        <citation>https://en.wikipedia.org/wiki/1989_Tiananmen_Square_protests</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Velvet Revolution results in non-violent restoration of parliamentary democracy in Czechoslovakia
+        </prompt>
+        <target>1989</target>
+        <citation>https://en.wikipedia.org/wiki/Velvet_Revolution</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            launch of the Hubble Space Telescope
+        </prompt>
+        <target>1990</target>
+        <citation>https://en.wikipedia.org/wiki/Hubble_Space_Telescope</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            Tim Berners-Lee publishes first formal proposal for the World Wide Web
+        </prompt>
+        <target>1991</target>
+        <citation>https://en.wikipedia.org/wiki/History_of_the_World_Wide_Web#1980%E2%80%931991:_Invention_and_implementation_of_the_Web</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            US-led coalition expels the Iraqi Army from Kuwait in Operation Desert Storm
+        </prompt>
+        <target>1991</target>
+        <citation>https://en.wikipedia.org/wiki/Gulf_War</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            the Soviet Union is officially dissolved
+        </prompt>
+        <target>1991</target>
+        <citation>https://en.wikipedia.org/wiki/Dissolution_of_the_Soviet_Union</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            riots in Los Angeles follow the acquittal of four police officers filmed assaulting Rodney King
+        </prompt>
+        <target>1992</target>
+        <citation>https://en.wikipedia.org/wiki/1992_Los_Angeles_riots</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            Steven Spielberg directs <em>Jurassic Park</em> and <em>Schindler's List</em>
+        </prompt>
+        <target>1993</target>
+        <citation>https://en.wikipedia.org/wiki/Steven_Spielberg#Filmography</citation>
+    </question>
+
+    <question topic="military">
+        <prompt>
+            up to 1 million people die during the Rwandan genocide
+        </prompt>
+        <target>1994</target>
+        <citation>https://en.wikipedia.org/wiki/Rwandan_genocide</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            oldest known cave paintings discovered in Chauvet-Pont-d'Arc Cave in southern France
+        </prompt>
+        <target>1994</target>
+        <citation>https://en.wikipedia.org/wiki/Chauvet_Cave</citation>
+    </question>
+
+    <question topic="technology">
+        <prompt>
+            opening of the Channel Tunnel linking mainland Britain and mainland Europe
+        </prompt>
+        <target>1994</target>
+        <citation>https://en.wikipedia.org/wiki/Channel_Tunnel</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            168 people die in the Oaklahoma City bombing
+        </prompt>
+        <target>1995</target>
+        <citation>https://en.wikipedia.org/wiki/Oklahoma_City_bombing</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            Andrew Wiles publishes his proof of Fermat's Last Theorem
+        </prompt>
+        <target>1995</target>
+        <citation>https://en.wikipedia.org/wiki/Fermat%27s_Last_Theorem</citation>
+    </question>
+
+    <question topic="science">
+        <prompt>
+            successful mammalian cloning results in the birth of Dolly the Sheep
+        </prompt>
+        <target>1996</target>
+        <citation>https://en.wikipedia.org/wiki/Dolly_(sheep)</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            end of British rule in Hong Kong
+        </prompt>
+        <target>1997</target>
+        <citation>https://en.wikipedia.org/wiki/British_Hong_Kong</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            Diana, Princess of Wales dies in a car crash
+        </prompt>
+        <target>1997</target>
+        <citation>https://en.wikipedia.org/wiki/Diana,_Princess_of_Wales</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            first episode of <em>Who Wants to be a Millionaire?</em> on UK television
+        </prompt>
+        <target>1998</target>
+        <citation>https://en.wikipedia.org/wiki/Who_Wants_to_Be_a_Millionaire%3F_(UK_game_show)#Original_series</citation>
+    </question>
+
+    <question topic="politics">
+        <prompt>
+            introduction of the Euro (&#x20AC;)
+        </prompt>
+        <target>1999</target>
+        <citation>https://en.wikipedia.org/wiki/History_of_the_euro</citation>
+    </question>
+
+    <question topic="arts">
+        <prompt>
+            first exhibition of Tracy Enim's <em>My Bed</em>
+        </prompt>
+        <target>1999</target>
+        <citation>https://en.wikipedia.org/wiki/My_Bed</citation>
+    </question>
+
 </questionSet>

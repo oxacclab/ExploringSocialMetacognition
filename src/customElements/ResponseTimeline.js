@@ -383,12 +383,9 @@ customElements.define('esm-response-timeline',
                 document.head.appendChild(style);
             }
 
-            const min = parseFloat(this.dataset.min);
-            const max = parseFloat(this.dataset.max);
-            const w = this.querySelector(".response-line").clientWidth / (max - min);
-            const thin = (parseFloat(this.dataset.markerWidthThin) * w) + "px";
-            const med = (parseFloat(this.dataset.markerWidthMedium) * w) + "px";
-            const thick = (parseFloat(this.dataset.markerWidthThick) * w) + "px";
+            const thin = this.valueToPixels(parseFloat(this.dataset.markerWidthThin) - 1, true) + "px";
+            const med = this.valueToPixels(parseFloat(this.dataset.markerWidthMedium) - 1, true) + "px";
+            const thick = this.valueToPixels(parseFloat(this.dataset.markerWidthThick) - 1, true) + "px";
 
             style.innerHTML = ".response-marker.thin {width: " +
                 thin + "} " +
@@ -396,6 +393,21 @@ customElements.define('esm-response-timeline',
             ".response-marker.thick {width: " + thick + "}";
 
             this.querySelector(".confirm").classList.remove("enabled");
+        }
+
+        /**
+         * Move the feedback marker
+         * @param value {number} correct answer value
+         */
+        feedbackMarker(value) {
+            let marker = this.querySelector(".response-marker.correct.feedback");
+            if(!marker) {
+                marker = document.createElement("div");
+                marker.classList.add("response-marker", "correct", "feedback");
+                marker.innerHTML = "&starf;";
+                this.querySelector(".response-line").appendChild(marker);
+            }
+            marker.style.left = this.valueToPixels(value) + "px";
         }
     }
 );

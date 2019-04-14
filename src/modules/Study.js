@@ -241,6 +241,8 @@ class Study extends ControlObject {
     }
 
     async introduction() {
+        document.getElementById("content").requestFullscreen();
+
         return new Promise(function(resolve) {
             let data = [];
             Study._updateInstructions("instr-intro",
@@ -427,38 +429,15 @@ class Study extends ControlObject {
         const feedbackDuration = 1000;
 
         const correctAnswer = trial.data.correctAnswer;
-        const answer = trial.data.responseEstimate;
-        const error = Math.abs(answer - correctAnswer);
-        const correct = error < .25;
-
-        document.getElementById("content").classList
-            .add(correct? "correct" : "incorrect", "feedback");
         document.getElementById("prompt").innerHTML =
             "Answer: <span>" + correctAnswer.toString() + "</span>";
 
         // Draw marker
-        const marker = document.querySelector(
-            "esm-response-widget .response-marker.correct.feedback"
-        );
-        const d = document.querySelector("esm-response-widget")
-            .valueToProportion(correctAnswer, 1);
-        let box = document.querySelector(".response-hBar")
-            .getBoundingClientRect();
-        // General position format is %(span) + adjustment
-        marker.style.left =
-            (d.estimateProportion * (box.width - box.height) +
-                ((box.height - marker.clientWidth) / 2)) + "px";
-        box = document.querySelector(".response-vBar")
-            .getBoundingClientRect();
-        marker.style.top = "calc(" +
-            ((1 - d.confidence) * (box.height - marker.clientHeight)) +
-            "px - var(--response-vBar-offset))";
+        document.getElementById("response-panel").feedbackMarker(correctAnswer);
 
         setTimeout(()=> {
-            document.getElementById("content").classList
-                .remove(correct? "correct" : "incorrect", "feedback");
             document.getElementById("prompt").innerText = "";
-            document.querySelector("esm-response-widget").reset();
+            document.querySelector("esm-response-timeline").reset();
         }, feedbackDuration - 10);
         return new Promise((resolve) => {
             setTimeout(resolve, feedbackDuration);
@@ -476,6 +455,9 @@ class Study extends ControlObject {
             // Run the trial
             await this._runNextBlock();
         }
+
+        if(document.fullscreenElement)
+            document.exitFullscreen();
 
         return this;
     }
