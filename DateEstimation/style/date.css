@@ -10,6 +10,10 @@ body {
     animation: 1s forwards ease-in tumbleIn;
 }
 
+.centre {
+    text-align: center;
+}
+
 @keyframes tumbleIn {
     from {
         background-color: black;

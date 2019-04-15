@@ -52,6 +52,14 @@
         </esm-instruction>
     </template>
 
+    <template id="instr-bad-response">
+        <esm-instruction>
+            <esm-instruction-page>
+                <p class="centre">error text here...</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+
     <template id="question">
         <div id="questionWrapper">
             <div class="question"></div>
@@ -653,6 +661,37 @@
      * Save the response. Queue up the next question or the feedback.
      */
     function recordResponse() {
+        // Check validity of response
+        const estimate = parseInt(document.querySelector("#estimate").value);
+        const before = parseInt(document.querySelector("#before").value);
+        const after = parseInt(document.querySelector("#after").value);
+
+        let msg = "";
+
+        if(after > estimate) {
+            document.querySelector("#after").value = "";
+            msg = "The AFTER year (" + after +
+                ") cannot be later than your BEST GUESS (" + estimate + ").";
+        }
+        if(estimate > before) {
+            document.querySelector("#before").value = "";
+            msg = "The BEFORE year (" + before +
+                ") cannot be earlier than your BEST GUESS (" + estimate + ").";
+        }
+
+        if(msg !== "") {
+            const instr = document.querySelector("#instructions");
+            instr.innerHTML = "";
+
+            instr.appendChild(
+                document.importNode(
+                    document.getElementById("instr-bad-response").content,
+                    true));
+
+            instr.querySelector("p").innerHTML = msg;
+            return false;
+        }
+
         saveInput();
 
         if(X.question.number < X.maxQuestions)
@@ -755,7 +794,7 @@
 
     window.X = {
         studyName: "dateCheck",
-        studyVersion: "0.9.4",
+        studyVersion: "0.9.5",
         trials: [],
         question: null,
         maxQuestions
@@ -780,8 +819,6 @@
                         askQuestion();
                 });
         });
-
-    // Begin the experiment
 
 </script>
 </body>

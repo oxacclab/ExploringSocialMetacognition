@@ -23,13 +23,13 @@ set.seed(20190402)
 ## Load data
 
 ```{r}
-version <- "0.9.4"
+version <- "0.9.5"
 
 DE <- as.tibble(read.csv("../data/public/dateCheck_trialStream.csv"))
 DE.general <- as.tibble(read.csv("../data/private/dateCheck_general-feedback.csv"))
 
 DE <- DE[DE$studyVersion == version, ]
-DE.general <- DE[DE$studyVersion == version, ]
+DE.general <- DE.general[DE.general$studyVersion == version, ]
 
 if (F) {
   # assign new ids by sequential qNumber
