@@ -1,0 +1,106 @@
+---
+title: "Date Estimation questions"
+output:
+  html_document:
+    df_print: paged
+---
+
+[Script run `r Sys.time()`]
+
+```{r prematter, include = F}
+
+library(knitr)
+library(tidyverse)
+library(lsr)
+library(prettyMD)
+library(XML)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20190402)
+
+cleanHTML <- function(s) {
+  if (length(s) > 1) 
+    sapply(1:length(s), function(i) cleanHTML(s[i]))
+  
+  # strip newlines and html tags from prompts
+  s <- gsub("[\r\n]", "", s)
+  s <- gsub("  ", "", s, fixed = T)
+  s <- gsub("<[^>]*>([^<]*)[^>]*>", "\\1", s)
+  s
+}
+
+```
+
+## Load questions
+
+```{r}
+
+dates <- xmlToDataFrame("../../DateEstimation/assets/etc/questions.xml")
+
+dates$prompt <- cleanHTML(dates$prompt)
+dates$target <- parse_integer(dates$target)
+dates$okay <- parse_logical(dates$okay)
+
+dates
+
+```
+
+We have `r nrow(dates)` questions, of which `r sum(dates$okay == T)` are deemed 'okay' after testing.
+
+## Check distributions
+
+```{r}
+
+ggplot(dates, aes(target)) +
+  geom_histogram(data = dates[dates$okay == 1, ], binwidth = 10) +
+  geom_freqpoly(binwidth = 10) + 
+  geom_point(aes(y = 10, colour = okay), 
+             position = position_jitter(width = NULL, height = 1))
+
+```
+
+## Okay question stats
+
+```{r}
+
+DE <- as.tibble(read.csv("../../data/public/dateCheck_trialStream.csv"))
+DE$qPrompt <- cleanHTML(DE$qPrompt)
+
+DE <- DE[DE$qPrompt %in% dates$prompt[dates$okay], ]
+
+DE$okayResponse <- factor(T)
+levels(DE$okayResponse) <- c(T,
+                             "Estimate out of range",
+                             "After out of range",
+                             "Before out of range",
+                             "After after estimate",
+                             "Before before estimate")
+
+DE$okayResponse[DE$estimate > 2010 | DE$estimate < 1890] <- "Estimate out of range"
+DE$okayResponse[DE$after < 1890] <- "After out of range"
+DE$okayResponse[DE$before > 2010] <- "Before out of range"
+DE$okayResponse[DE$after > DE$estimate] <- "After after estimate"
+DE$okayResponse[DE$before < DE$estimate] <- "Before before estimate"
+
+table(DE$okayResponse)
+
+DE <- DE[DE$okayResponse == T, ]
+```
+
+```{r}
+
+DE$error <- abs(DE$estimate - DE$qTarget)
+DE$bracketed <- as.numeric(DE$after <= DE$qTarget & DE$before >= DE$qTarget)
+DE$bWidth <- DE$before - DE$after
+DE$hit <- as.numeric(DE$estimate == DE$qTarget)
+
+tmp <- aggregate(cbind(qTarget, estimate, after, before, 
+                       timeA, error, bracketed, bWidth, hit) ~ qPrompt, 
+                 data = DE, FUN = mean)
+
+kable(num2str(tmp))
+
+kable(num2str(colMeans(tmp[, -1])))
+```
+

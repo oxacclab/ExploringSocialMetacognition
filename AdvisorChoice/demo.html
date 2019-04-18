@@ -16,6 +16,7 @@
     <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
     <link rel="stylesheet" type="text/css" href="../style/function.css"/>
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
+    <link rel="stylesheet" type="text/css" href="style/advisorChoice.css"/>
 
     <!-- Templates -->
     <template id="countdown">
@@ -29,12 +30,8 @@
     </template>
     <template id="advisor-key">
         <div class="advisor-key-row">
-            <div class="marker">
-                <svg>
-                    <circle r="0.5em" cx="50%" cy="50%"></circle>
-                </svg>
-            </div>
             <span>Advisor Name</span>
+            <div class="response-marker advisor medium static"></div>
             <esm-help data-group="interface" class="left">
                 This <em>tag</em> shows details for one of your advisors. The background colour shows you their group, and the <em>marker</em> shows you the colour used to indicate their advice.
             </esm-help>
@@ -45,10 +42,28 @@
         <esm-instruction>
             <esm-instruction-page>
                 <h1>Welcome</h1>
-                <img src="https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg" alt="Coin jar" style="float: right; height: 250px;"/>
-                <p>This experiment is pretty straightforward. You'll see several jars full of coins, which look the one on the right.</p>
-                <p>Your task is to use the response bar at the bottom of the screen to indicate how much you think the coins in the jar are worth, and how sure you are about your estimate.</p>
+                <p>We first need to switch to fullscreen mode to begin the study.</p>
             </esm-instruction-page>
+            <!--<esm-instruction-page>
+                <h1>About the study</h1>
+                <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. Your task is to identify the year in which that event occurred. You will do this by dragging a marker onto a timeline.</p>
+                <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the study.</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Scoring</h1>
+                <p>You will have three markers to choose from, a thick marker, a medium marker, and a thin marker. The markers are worth different numbers of points. When your score is calculated, you will get the number of points the marker is worth for all the questions where a marker touches the correct year.</p>
+                <p>The thinner the marker is, the fewer years it covers, but the more points you get if you get the answer right. This means you will do better if you use different markers depending upon how confident you are that you know the answer.</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Advice</h1>
+                <p>To help you complete the task, you will receive advice from advisors. You will see the advisors who are giving you advice on the left of your screen. One or more of those advisors may give you advice on each question.</p>
+                <p>The advisors will mark their advice on the timeline by adding their own marker. The advisors aren't always correct, but they are quite good at the task. Part of your job is to identify which advisors are best and to weigh their advice accordingly.</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Summary</h1>
+                <p>For most questions you will give an initial answer, see advice, and then give a final answer. For some questions you will just give an initial answer.</p>
+                <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the study.</p>
+            </esm-instruction-page>-->
         </esm-instruction>
     </template>
     <template id="instr-practice">
@@ -56,7 +71,8 @@
             <esm-instruction-page>
                 <h1>Practice</h1>
                 <p>You will now have an opportunity to practice the task. You will get feedback on your performance while you are doing the practice, and you'll be told how well you did overall once you have done all the practice rounds.</p>
-                <p>When you get the answer within &pound;0.25 of the correct value you'll see the screen go pink. Where you are more than &pound;0.25 away from the correct answer you'll see the screen turn grey.</p>
+                <p>Throughout the practice you can use the ? in the top-right to see the help for any part of the screen again.</p>
+                <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the study.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -97,28 +113,25 @@
         </div>
         <div class="frame top">
             <div class="left">
-                <div class="advisor-key-row group-bg-2 group-border-2">
-                    You are in Group 2
-                    <esm-help data-group="interface" class="right">
-                        This <em>tag</em> shows which group you've been assigned to.
-                    </esm-help>
-                </div>
                 <div class="advisor-key"></div>
+                <esm-help data-group="interface" class="right">
+                    This area of the screen will display the advisors who might give you advice on a question. At the moment you don't have any advisors so the area is empty.
+                </esm-help>
             </div>
             <div class="middle">
                 <div id="stimulus"></div>
                 <div id="prompt">Prompt text</div>
-                <esm-help data-group="interface">
-                    This is the <em>stimulus</em> you have to respond to. Below is the <em>prompt</em> area which tells you how to respond and provides further information.
+                <esm-help data-group="interface" class="bottom">
+                    This is the <em>question</em> you have to answer.
                 </esm-help>
             </div>
             <!--<div class="right"></div>-->
         </div>
         <div class="frame bottom">
-            <esm-response-timeline id="response-panel" data-min="1825"
-                                 data-max="1975" data-prefix=""
+            <esm-response-timeline id="response-panel" data-min="1890"
+                                 data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="25" data-marker-width-thin="3" data-marker-width-medium="9" data-marker-width-thick="27">
+                                 data-no-confidence="true" data-label-step="10" data-marker-width-thin="3" data-marker-width-medium="9" data-marker-width-thick="27">
                 <div class="response-timeline">
                     <div class="response-line"></div>
                 </div>
@@ -136,15 +149,18 @@
                         <div class="response-marker thick"></div>
                     </div>
                     <div>
-                        <button class="confirm">&check;</button>
+                        <div class="buttons">
+                            <button class="confirm" title="confirm response">&check;
+                            </button>
+                            <!--<button class="comment" title="write a note or complaint about this question">!?
+                            </button>-->
+                        </div>
                     </div>
                 </div>
             </esm-response-timeline>
             <esm-help data-group="interface" data-parent-click-closes="false" class="top">
                 This <em>response panel</em> allows you to indicate your
-                answer. When enabled, the marker will follow your mouse
-                movements. <strong>Click</strong> or <strong>Tap</strong> to
-                indicate your answer. Try entering a response now.
+                answer. When enabled, you will pick up one of the markers and drag it to the desired place on the timeline. A correct answer is one where the marker covers the actual year of the event. Try entering a response now.
             </esm-help>
         </div>
         <button id="help-button" onclick="toggleHelp()">?</button>
@@ -172,16 +188,24 @@
     import {Study, DatesStudy} from "../src/modules/Study.js";
     import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
     import {Advisor} from "../src/modules/Advisor.js";
+    import * as utils from "../src/utils.js";
 
     // Procedural stuff
 
     AdvisedTrial.reset();
 
+    window.DEBUG = {};
+    DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
+
     const studyBlueprint = {
-        blockLength: [2, 2],
+        attentionCheckTrials: [2],
+        blockLength: [5, 5],
         practiceBlocks: 1,
         questionsXML: "assets/etc/questions.xml"
     };
+
+    if(DEBUG.level >= 1)
+        studyBlueprint.blockLength = [2, 2];
 
     window.study = new DatesStudy(studyBlueprint);
     study.run()

@@ -58,7 +58,8 @@ class Study extends ControlObject {
     _setDefaults() {
         super._setDefaults();
 
-        this.name = "newStudy";
+        this.studyName = "datesStudy";
+        this.studyVersion = "0.0.1";
         this.platformId = "not set";
         this.debriefComments = "";
 
@@ -68,6 +69,7 @@ class Study extends ControlObject {
         this.blockLength = [0];
         this.practiceBlocks = 0;
         this.trials = [];
+        this.attentionCheckTrials = [];
         this.countdownTime = 1;
 
         this.advisors =
@@ -81,7 +83,8 @@ class Study extends ControlObject {
             correctAnswer: () => {return 1 + Math.random() * 4},
             prompt: "How much are the coins worth?",
             displayFeedback: this.displayFeedback,
-            advisors: this.advisors
+            advisors: this.advisors,
+            attentionCheck:  false
         };
         this.trialBlueprint.stim.src = "https://cdn.instructables.com/FMU/YSFR/IDRP7INH/FMUYSFRIDRP7INH.LARGE.jpg";
     }
@@ -91,14 +94,44 @@ class Study extends ControlObject {
             // "splashScreen",
             // "consent",
             // "demographics",
-            // "introduction",
-            // "training",
+            "introduction",
+            "training",
             "practiceInstructions",
             "practice",
             "coreInstructions",
             "core",
             "debrief"
         ];
+    }
+
+    /**
+     * Set the content of the instructions div to be a copy of an
+     * esm-instruction template.
+     * @param newTemplateId {string} id of the new template to use for
+     * instructions
+     * @param [callback] {function(buttonName, event)} function to use as
+     * the callback for instruction buttons. By default simply hide the
+     * instruction div.
+     */
+    static _updateInstructions(newTemplateId, callback) {
+        let instr = document.getElementById("instructions");
+
+        if(typeof callback !== "function")
+            callback = (name, event) => {
+                console.log(name);
+            };
+
+        instr.innerHTML = "";
+
+        // Add new
+        instr.appendChild(
+            document.importNode(
+                document.getElementById(newTemplateId).content,
+                true));
+
+        instr.querySelector("esm-instruction").callback = callback;
+
+        instr.classList.remove("hidden");
     }
 
     /**
@@ -180,36 +213,6 @@ class Study extends ControlObject {
     }
 
     /**
-     * Set the content of the instructions div to be a copy of an
-     * esm-instruction template.
-     * @param newTemplateId {string} id of the new template to use for
-     * instructions
-     * @param [callback] {function(buttonName, event)} function to use as
-     * the callback for instruction buttons. By default simply hide the
-     * instruction div.
-     */
-    static _updateInstructions(newTemplateId, callback) {
-        let instr = document.getElementById("instructions");
-
-        if(typeof callback !== "function")
-            callback = (name, event) => {
-                console.log(name);
-            };
-
-        instr.innerHTML = "";
-
-        // Add new
-        instr.appendChild(
-            document.importNode(
-                document.getElementById(newTemplateId).content,
-                true));
-
-        instr.querySelector("esm-instruction").callback = callback;
-
-        instr.classList.remove("hidden");
-    }
-
-    /**
      * Insert an advisor's info tab with an animation for visibility.
      * @param advisor {Advisor}
      * @return {Promise<HTMLElement>}
@@ -241,12 +244,13 @@ class Study extends ControlObject {
     }
 
     async introduction() {
-        document.getElementById("content").requestFullscreen();
-
         return new Promise(function(resolve) {
             let data = [];
             Study._updateInstructions("instr-intro",
                 (name) => {
+                    if(!document.fullscreenElement &&
+                        document.querySelector("esm-instruction-page:not(.cloak)").id == "Instruction0Page0")
+                        document.querySelector("#content").requestFullscreen();
                     let now = new Date().getTime();
                     data.push({name, now});
                     if(name === "end")
@@ -327,6 +331,9 @@ class Study extends ControlObject {
 
             await gotoNextStep(help);
 
+            // Pause the progress bar animation
+            document.querySelector(".progress-bar .outer").style.animationPlayState = "paused";
+
             Study._hideHelp(help);
 
             await T.nextPhase("begin");
@@ -337,20 +344,28 @@ class Study extends ControlObject {
             await gotoNextStep(help);
 
             Study._hideHelp(help);
+
+            help = Study._showHelp(
+                document.querySelector(".frame.top > .left > esm-help")
+            );
+
+            await gotoNextStep(help);
+            Study._hideHelp(help);
+
             instr.innerHTML =
                 "Enter an estimate to move on...";
             instr.classList.add("top");
             let data = T.nextPhase("hideStim");
 
             help = Study._showHelp(
-                document.querySelector("esm-response-widget ~ esm-help"));
+                document.querySelector("esm-response-timeline ~ esm-help"));
 
             await T.nextPhase("getResponse");
 
             Study._hideHelp(help);
 
             // finish the trial
-            await T.run("end");
+            await T.run("showFeedback");
 
             // Reset progress bar
             study.updateProgressBar(false);
@@ -574,7 +589,8 @@ class Study extends ControlObject {
         tables.meta = this.extractPrivateData();
 
         const data = JSON.stringify({
-            studyId: this.name,
+            studyId: this.studyName,
+            studyVersion: this.studyVersion,
             raw: this,
             tables
             });
@@ -609,7 +625,10 @@ class DatesStudy extends Study {
             .then(() => {
                 this.trials = [];
                 for(let i = 0; i < utils.sumList(this.blockLength); i++) {
-                    this.trials.push(new AdvisedTrial(this.trialBlueprint))
+                    if(this.attentionCheckTrials.indexOf(i) !== -1)
+                        this.trials.push(new Trial(this.attentionCheckBlueprint));
+                    else
+                        this.trials.push(new AdvisedTrial(this.trialBlueprint))
                 }
             });
     }
@@ -663,7 +682,8 @@ class DatesStudy extends Study {
                 parseInt(q.getElementsByTagName("target")[0].innerHTML),
             prompt: "",
             displayFeedback: this.displayFeedback,
-            advisors: this.advisors
+            advisors: this.advisors,
+            attentionCheck: false
         };
         bp.stim.innerHTML = q.getElementsByTagName("prompt")[0].innerHTML;
 
@@ -672,6 +692,20 @@ class DatesStudy extends Study {
 
     set trialBlueprint(bp) {
         this._trialBlueprint = bp;
+    }
+
+    get attentionCheckBlueprint() {
+        let ans = 1900 + Math.floor(Math.random() * 100);
+
+        let bp = {
+            stim: document.createElement("p"),
+            correctAnswer: ans,
+            prompt: "",
+            attentionCheck: true
+        };
+        bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
+
+        return bp;
     }
 }
 

@@ -36,6 +36,9 @@ Trial-cleanup
 .Study-training #training-instructions {
     display: unset;
 }
+.Study-training .progress-bar .outer {
+    animation: progress-demo 10s linear infinite;
+}
 
 /* Downgrade the visual appeal of the task while it's not interactable */
 body:not(.Trial-any):not(.Study-training):not(.Study-practice):not(.Study-core) #content {
@@ -60,9 +63,13 @@ body:not(.Study-practice) #help-button {
 .Trial-showFeedback #response-panel {
     opacity: 1;
 }
-.Trial-getResponse #response-panel:hover,
-.Trial-getFinalResponse #response-panel:hover {
-    box-shadow: inset 0px 0px 4px 0px black;
+
+/* interactable markers should look interactable */
+.Trial-getResponse #response-panel .response-marker:not(.advisor),
+.Trial-showAdvice #response-panel .response-marker:not(.advisor),
+.Trial-getFinalResponse #response-panel .response-marker:not(.advisor),
+.Trial-showFeedback #response-panel .response-marker:not(.advisor) {
+    cursor: pointer;
 }
 
 /* Reveal the feedback marker during feedback phase */
@@ -70,13 +77,13 @@ body:not(.Study-practice) #help-button {
     display: unset;
 }
 
-/* Show the advice during advice phase,
-and advice and ghost during final decision phase */
+/* Show the advice and ghost during advice and final decision phases */
 .Trial-showAdvice .response-marker.advisor,
 .Trial-getFinalResponse .response-marker.advisor,
 .Trial-showFeedback .response-marker.advisor,
-.Trial-getFinalResponse .response-marker.ghost,
-.Trial-getResponse .response-marker.ghost {
+.Trial-getResponse .response-marker.ghost,
+.Trial-showAdvice .response-marker.ghost,
+.Trial-getFinalResponse .response-marker.ghost {
     display: block;
 }
 

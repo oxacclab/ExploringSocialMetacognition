@@ -2,6 +2,13 @@
  *  Matt Jaquiery, Feb 2018
  */
 
+function getQueryStringValue(key) {
+    let regex = new RegExp("[?&]?" + key + "=([^&]+)", "i");
+    let test = regex.exec(window.location.search);
+    if(test)
+        return test[1];
+    return null;
+}
 
 function applyClassToChildren (element, classname, recursive = true) {
     for (let i=0; i<element.childElementCount; i++) {
@@ -267,4 +274,45 @@ function min(list, abs = false) {
     return min;
 }
 
-export {shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence}
+/**
+ * Express a number (e.g. 20) as letters (e.g. two zero)
+ * @param num {number}
+ * @return {string}
+ */
+function numberToLetters(num) {
+    let out = "";
+
+    let s = num.toString();
+    for(let i = 0; i < s.length; i++) {
+        if(i > 0)
+            out += " ";
+        switch(s[i]) {
+            case ".":
+                out += "point"; break;
+            case "0":
+                out += "zero"; break;
+            case "1":
+                out += "one"; break;
+            case "2":
+                out += "two"; break;
+            case "3":
+                out += "three"; break;
+            case "4":
+                out += "four"; break;
+            case "5":
+                out += "five"; break;
+            case "6":
+                out += "six"; break;
+            case "7":
+                out += "seven"; break;
+            case "8":
+                out += "eight"; break;
+            case "9":
+                out += "nine"; break;
+        }
+    }
+
+    return out;
+}
+
+export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters}

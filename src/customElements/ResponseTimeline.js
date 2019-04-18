@@ -210,6 +210,7 @@ customElements.define('esm-response-timeline',
             let left = rm.left < rl.left? 0 : rm.left - rl.left;
             if(rm.right > rl.right)
                 left = rl.width - rm.width;
+            left = this.valueToPixels(Math.floor(this.pixelsToValue(left)));
 
             this.ghost.style.left = left + "px";
 
@@ -275,6 +276,7 @@ customElements.define('esm-response-timeline',
                 return;
 
             timeline.responseData = {
+                estimateLeft: Math.round(timeline.pixelsToValue(timeline.ghost.offsetLeft)),
                 markerWidth: Math.round(timeline.pixelsToValue(timeline.ghost.clientWidth) - timeline.dataset.min),
                 estimateLabelLeft: timeline.ghost.querySelector(".left").innerHTML,
                 estimateLabelRight: timeline.ghost.querySelector(".right").innerHTML,
@@ -322,6 +324,7 @@ customElements.define('esm-response-timeline',
 
             // clear data
             this.responseData = {
+                estimateLeft: null,
                 markerWidth: null,
                 estimateLabelLeft: null,
                 estimateLabelRight: null,
@@ -383,9 +386,9 @@ customElements.define('esm-response-timeline',
                 document.head.appendChild(style);
             }
 
-            const thin = this.valueToPixels(parseFloat(this.dataset.markerWidthThin) - 1, true) + "px";
-            const med = this.valueToPixels(parseFloat(this.dataset.markerWidthMedium) - 1, true) + "px";
-            const thick = this.valueToPixels(parseFloat(this.dataset.markerWidthThick) - 1, true) + "px";
+            const thin = (this.valueToPixels(parseFloat(this.dataset.markerWidthThin), true) - 1) + "px";
+            const med = (this.valueToPixels(parseFloat(this.dataset.markerWidthMedium), true) - 1) + "px";
+            const thick = (this.valueToPixels(parseFloat(this.dataset.markerWidthThick), true) - 1) + "px";
 
             style.innerHTML = ".response-marker.thin {width: " +
                 thin + "} " +
@@ -401,10 +404,14 @@ customElements.define('esm-response-timeline',
          */
         feedbackMarker(value) {
             let marker = this.querySelector(".response-marker.correct.feedback");
+            const correct =
+                value >= this.responseData.estimateLeft &&
+                value <= this.responseData.estimateLeft +
+                this.responseData.markerWidth;
             if(!marker) {
                 marker = document.createElement("div");
                 marker.classList.add("response-marker", "correct", "feedback");
-                marker.innerHTML = "&starf;";
+                marker.innerHTML = correct? "&starf;" : "&star;";
                 this.querySelector(".response-line").appendChild(marker);
             }
             marker.style.left = this.valueToPixels(value) + "px";

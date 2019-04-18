@@ -29,9 +29,9 @@ class Advisor extends BaseObject {
      */
     createMarker(appendTo = null) {
         this.marker =
-            this.getInfoTab().querySelector(".marker").cloneNode(true);
+            this.getInfoTab().querySelector(".response-marker").cloneNode(true);
 
-        this.marker.classList.add("advisor", "response-marker");
+        this.marker.classList.remove("static", "medium");
 
         if(appendTo !== null)
             appendTo.appendChild(this.marker);
@@ -90,7 +90,8 @@ class Advisor extends BaseObject {
 
         // General position format is %(span) + adjustment
         this.marker.style.left =
-            TL.valueToPixels(this.getAdvice(false).estimate) + "px";
+            TL.valueToPixels(this.getAdvice(false).estimate -
+            this.getAdvice(false).confidence) + "px";
 
         this.marker.style.width = TL.valueToPixels(this.getAdvice(false).confidence * 10, true) + "px";
 
@@ -115,7 +116,7 @@ class Advisor extends BaseObject {
             let confidence = 0.5;
 
             this.lastAdvice = {
-                estimate: 1850 + (Math.random() *
+                estimate: 1900 + (Math.random() *
                     (100 - Math.round(confidence * 10))),
                 confidence
             };
@@ -139,7 +140,7 @@ class Advisor extends BaseObject {
             "group-bg-" + this.group,
             "group-border-" + this.group
         );
-        elm.querySelector(".marker svg circle").classList.add(
+        elm.querySelector(".response-marker").classList.add(
             "advisor-bg-" + this.id,
             "advisor-border-" + this.id
         );

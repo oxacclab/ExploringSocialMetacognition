@@ -51,6 +51,9 @@ div {
 
 /* Sizing for non-fullscreen displays */
 @media screen and (max-height: 500px) {
+    body {
+        font-size: 14px;
+    }
     #content {
         width: 100%;
         height: 100%;
@@ -84,6 +87,7 @@ div {
     border-radius: 5px;
     margin: auto;
     overflow: hidden;
+    background-color: white;
 }
 
 #content > .frame {
@@ -164,6 +168,11 @@ div {
     top: 0;
 }
 
+@keyframes progress-demo {
+    from { width: 0; }
+    to { width: 100% }
+}
+
 .progress-bar {
     display: block;
     height: .2em;
@@ -207,14 +216,14 @@ div {
 /* Markers */
 @keyframes adviceAnimation1st {
     from {
-        top: -252px;
-        left: -11px;
+        left: calc(-5% + 6.5em);
+        top: calc(2em - 300px - 20vh - 9.5em);
     }
 }
 @keyframes adviceAnimation2nd {
     from {
-        top: -147px;
-        left: -11px;
+        left: calc(-5% + 6.5em);
+        top: calc(2em - 300px - 20vh - 4.5em);
     }
 }
 
@@ -230,18 +239,30 @@ div {
 
 .response-marker {
     font-size: 14px;
+    z-index: 10;
+}
+
+.response-marker:not(.advisor) {
+    background-color: var(--group-1-primary);
 }
 
 .response-marker.advisor {
     position: absolute;
-    width: 1.2em;
     height: 1.2em;
+    top: -1.2em;
     animation: adviceAnimation1st 1s forwards ease-in-out;
+    z-index: 1;
 }
 .response-marker.advisor + .response-marker.advisor {
     animation-name: adviceAnimation2nd;
 }
-.response-marker.advisor,
+.response-marker.advisor.static {
+    animation: none;
+    position: unset;
+    top: 0;
+}
+
+.response-marker.advisor:not(.static),
 .response-marker.feedback,
 .response-marker.ghost {
     display: none;
@@ -249,9 +270,10 @@ div {
 
 .response-marker.feedback {
     color: #ffe96e;
+    font-size: 14px;
     font-weight: bold;
     position: absolute;
-    transform: scale(3);
+    transform: translateX(calc(-50% - 2px)) scale(3);
     background-color: transparent;
     border: none;
     box-shadow: none;
@@ -259,12 +281,13 @@ div {
 }
 .response-marker.feedback::before {
     left: 50%;
+    transform: translateX(-50%);
     background-color: black;
-    height: 150%;
+    height: 120%;
     content: "";
     width: 1px;
     border-radius: 100%;
-    top: 50%;
+    top: 80%;
     position: absolute;
     z-index: -1;
 }
@@ -284,7 +307,7 @@ div {
     height: 2em;
     border: 1px solid black;
     background-color: transparent;
-    bottom: 0;
+    top: 0;
     right: 0;
 }
 #help-button.show-help {

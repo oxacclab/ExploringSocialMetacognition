@@ -1,0 +1,30 @@
+#content {
+    justify-content: space-evenly;
+}
+
+#content > .progress-bar {
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+#content > .frame.top,
+#content > .frame.bottom {
+    height: unset;
+}
+
+#content > .frame.top {
+    min-height: 33%;
+}
+
+#content > .frame.top > .left {
+    justify-content: center;
+}
+
+#stimulus {
+    margin-top: 1.25em;
+}
+
+esm-response-timeline .response-timeline {
+    height: 100px;
+}

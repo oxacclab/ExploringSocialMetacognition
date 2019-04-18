@@ -8,13 +8,6 @@
     --response-min-opacity: 0.4;
 }
 
-.group-bg-gradient-1 {
-    background-image: linear-gradient(var(--group-1-primary), rgba(var(--group-1-p), var(--response-min-opacity)));
-}
-.group-bg-gradient-2 {
-    background-image: linear-gradient(var(--group-2-primary), rgba(var(--group-2-p), var(--response-min-opacity)));
-}
-
 .response-timeline {
     position: relative;
     width: 90%;
@@ -64,7 +57,6 @@
 
 .response-marker {
     height: 1.5em;
-    background-color: var(--group-1-primary);
     margin: auto;
     box-shadow: 0 1px 2px 0 black;
 }
