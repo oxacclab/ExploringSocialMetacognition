@@ -247,12 +247,16 @@
     }
 
     async function loadFeedback() {
-        let test = /[?&]fb=([0-9a-z]+)/i.exec(window.location.search);
-        let idCode = test[1];
+        let test = /[?&]fb=([0-9a-z\-.]+)/i.exec(window.location.search);
+        let input = test[1];
+        let idCode = input.split("-")[0];
+        let version = input.split("-")[1];
+        if(!version)
+            version = "";
 
-        await fetch("../readSerial.php",
+        await fetch("../readSerial.php?tbl=trialStream",
             {method: "POST", body: JSON.stringify(
-                {idCode, studyId: X.studyName})
+                {idCode, version, studyId: X.studyName})
             })
             .then(async (r) => await r.text())
             .then((txt) => JSON.parse(txt))
@@ -267,12 +271,20 @@
      * Get an id from the save script by not submitting any data
      */
     async function getSaveId() {
-        return await fetch("../saveSerial.php?tbl=participantMetadata", {
+        return await fetch("../saveSerial.php", {
             method: "POST",
             body: JSON.stringify({
-                studyId: X.studyName,
-                studyVersion: X.studyVersion,
-                prolificId: window.prolificID
+                metadata: {
+                    fileName: "participant-metadata",
+                    isPublic: false,
+                    studyId: X.studyName,
+                    studyVersion: X.studyVersion
+                },
+                data: JSON.stringify({
+                    studyId: X.studyName,
+                    studyVersion: X.studyVersion,
+                    prolificId: window.prolificID
+                })
             })
         })
             .then(async (r)=> await r.text())
@@ -281,10 +293,16 @@
 
     async function saveInput() {
         // collate data for saving
+        const metadata = {
+            fileName: "trialStream",
+            isPublic: true,
+            studyId: X.studyName,
+            studyVersion: X.studyVersion
+        };
         const data = {
             studyId: X.studyName,
             studyVersion: X.studyVersion,
-            id: X.id,
+            pid: X.id,
             estimate: document.querySelector("#estimate").value,
             after: document.querySelector("#after").value,
             before: document.querySelector("#before").value,
@@ -292,16 +310,22 @@
             qPrompt: X.question.prompt,
             qTarget: X.question.target,
             qTopic: X.question.topic,
-            timeQ: X.question.timeOn
+            timeQ: X.question.timeOn,
+            timeA: new Date().getTime() - X.question.timeOn
         };
-        data.timeA = new Date().getTime() - data.timeQ;
 
         // keep a local copy for feedback purposes
         X.trials.push(data);
 
         // save
-        let response = await fetch("../saveSerial.php?tbl=trial",
-            {method: "POST", body: JSON.stringify(data)})
+        let response = await fetch("../saveSerial.php",
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    metadata,
+                    data: JSON.stringify(data)
+                })
+            })
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt));
 
@@ -328,21 +352,27 @@
     };
 
     window.qualitativeFeedback = function() {
-        const data = {
+        const metadata = {
+            fileName: "qualitative-feedback",
+            isPublic: false,
+            studyId: X.studyName,
+            studyVersion: X.studyVersion
+        };
+        const data = JSON.stringify({
             studyId: X.studyName,
             studyVersion: X.studyVersion,
-            id: X.id,
+            pid: X.id,
             qualitativeFeedback: document.querySelector(
                 "#commentBox textarea").value,
             qNumber: X.question.number,
             qPrompt: X.question.prompt,
             qTarget: X.question.target,
             qTopic: X.question.topic
-        };
+        });
 
         // save
-        fetch("../saveSerial.php?tbl=qualitativeFeedback",
-            {method: "POST", body: JSON.stringify(data)})
+        fetch("../saveSerial.php",
+            {method: "POST", body: JSON.stringify({metadata, data})})
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt))
             .then((response) => {
@@ -363,17 +393,21 @@
         if(window.event)
             window.event.preventDefault();
         // Save then show feedback
-        const data = {
+        const metadata = {
+            fileName: "general-feedback",
+            isPublic: false,
             studyId: X.studyName,
-            studyVersion: X.studyVersion,
-            id: X.id,
+            studyVersion: X.studyVersion
+        };
+        const data = JSON.stringify({
+            pid: X.id,
             hard_easy: document.getElementById("easy").value,
             dull_fun: document.getElementById("fun").value,
             tooLong_tooShort: document.getElementById("short").value
-        };
+        });
 
-        fetch("../saveSerial.php?tbl=generalFeedback",
-            {method: "POST", body: JSON.stringify(data)})
+        fetch("../saveSerial.php",
+            {method: "POST", body: JSON.stringify({metadata, data})})
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt))
             .then((response) => {
@@ -454,7 +488,7 @@
             const conf = Math.round(Math.random() * 15);
             X.trials.push({
                 studyId: X.studyName,
-                id: X.id,
+                pid: X.id,
                 estimate: guess,
                 after: guess - Math.round(Math.random() * 5) - conf,
                 before: guess + Math.round(Math.random() * 5) + conf,
@@ -518,7 +552,7 @@
             window.location.origin + window.location.pathname :
             "http://tinyurl.com/acclab-de";
         document.querySelector(".feedback-wrapper .display span.permalink")
-            .innerHTML = link + "?fb=" + X.id;
+            .innerHTML = link + "?fb=" + X.id + "-" + X.studyVersion;
 
         // Hide payment link for revisits
         if(/[?&]fb=/i.test(window.location.search))
@@ -794,7 +828,7 @@
 
     window.X = {
         studyName: "dateCheck",
-        studyVersion: "0.9.5",
+        studyVersion: "0.9.7",
         trials: [],
         question: null,
         maxQuestions

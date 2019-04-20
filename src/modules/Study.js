@@ -91,17 +91,26 @@ class Study extends ControlObject {
 
     static get listPhases() {
         return [
-            // "splashScreen",
-            // "consent",
-            // "demographics",
+            "splashScreen",
+            "consent",
+            "demographics",
             "introduction",
             "training",
             "practiceInstructions",
             "practice",
             "coreInstructions",
             "core",
-            "debrief"
+            "debrief",
+            "results"
         ];
+    }
+
+    async consent() {
+        return new Promise(resolve => {
+            this.saveCSVRow("consent",false,{
+                consentTime: "not yet implemented"//new Date().getTime()
+            }).then(reply => resolve(reply));
+        });
     }
 
     /**
@@ -249,7 +258,7 @@ class Study extends ControlObject {
             Study._updateInstructions("instr-intro",
                 (name) => {
                     if(!document.fullscreenElement &&
-                        document.querySelector("esm-instruction-page:not(.cloak)").id == "Instruction0Page0")
+                        document.querySelector("esm-instruction-page:not(.cloak)").id === "Instruction0Page0")
                         document.querySelector("#content").requestFullscreen();
                     let now = new Date().getTime();
                     data.push({name, now});
@@ -297,6 +306,10 @@ class Study extends ControlObject {
             // Run the trial
             this.trials[this.currentTrial] =
                 await this.trials[this.currentTrial].run();
+
+            // Save trial data
+            this.saveCSVRow(this.trials[this.currentTrial].constructor.name,
+                true, this.trials[this.currentTrial].toTable());
 
             // Inter-trial interval
             await this.ITI();
@@ -400,6 +413,10 @@ class Study extends ControlObject {
 
     async practice() {
 
+        // Save the advisors' CSV entries
+        this.advisors.forEach(a =>
+            this.saveCSVRow("advisors", true, a.toTable()));
+
         let b = this.practiceBlocks;
 
         for(let i = 0; i < b; i++) {
@@ -428,7 +445,7 @@ class Study extends ControlObject {
 
     async debrief() {
         Study._updateInstructions("instr-debrief");
-        this.save(console.log);
+        await this.save(console.log);
 
         return new Promise(function(resolve) {
             setTimeout(resolve, 0, "debrief");
@@ -475,43 +492,6 @@ class Study extends ControlObject {
             document.exitFullscreen();
 
         return this;
-    }
-
-    /**
-     * Flatten the data to CSV-able tables
-     * Each element in the output is a list of entries
-     * @param [headers=true] {boolean} whether the first row in each list
-     * should be the column headers
-     * @return {{study: Array, trials: Array, advisors: Array}}
-     */
-    toTables(headers = true, fixLengths = true) {
-        const out = {
-            study: null,
-            advisors: [],
-            trials: []
-        };
-
-        out.study = this.toTable(headers);
-
-        // Get the headers based on the last of each entity
-        if(headers) {
-            out.advisors.push(this.advisors[this.advisors.length - 1].tableHeaders);
-            out.trials.push(this.trials[this.trials.length - 1].tableHeaders);
-        }
-
-        let aHead = null;
-        let tHead = null;
-        if(fixLengths) {
-            aHead = out.advisors[0];
-            tHead = out.trials[0];
-        }
-        this.advisors.forEach(async (a) =>
-            out.advisors.push(a.toTable(aHead)));
-
-        this.trials.forEach(async (t) =>
-            out.trials.push(t.toTable(tHead)));
-
-        return out;
     }
 
     /**
@@ -584,27 +564,92 @@ class Study extends ControlObject {
         if(typeof onError !== "function")
             onError = (reply)=>console.error("Error: ", reply);
 
-        // Prepare data for saving
-        const tables = this.toTables();
-        tables.meta = this.extractPrivateData();
+        const privateData = this.extractPrivateData();
 
-        const data = JSON.stringify({
-            studyId: this.studyName,
-            studyVersion: this.studyVersion,
-            raw: this,
-            tables
-            });
-
-        // Save
-        return fetch("../saveCSV.php", {
+        // Save raw data JSON
+        return fetch("../saveJSON.php", {
             method: "POST",
             cache: "no-cache",
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: data
+            body: JSON.stringify({
+                metadata: {
+                    studyId: this.studyName,
+                    studyVersion: this.studyVersion,
+                    idCode: this.id
+                },
+                data: JSON.stringify(this),
+                privateData: JSON.stringify(privateData)
+            })
         })
             .then(response => response.text())
             .then(response => callback(response))
             .catch(error => onError(error));
+    }
+
+    /**
+     * Save a row to a CSV file (attempt to create if non-existent)
+     * @param table {string} name of the table
+     * @param publicData {boolean} whether the table is publicly accessible
+     * @param data {object} column-cell pairs for writing to the file
+     * @param [callback] {function} to execute on the server's response
+     * @param [onError] {function} on fetch error
+     * @return {Promise<string | never>}
+     */
+    async saveCSVRow(table, publicData, data, callback, onError) {
+        this.info("Save CSV row");
+
+        if(typeof callback !== "function")
+            callback = () => {};
+        if(typeof onError !== "function")
+            onError = (reply)=>console.error("Error: ", reply);
+
+        const metadata = {
+            fileName: table,
+            isPublic: publicData === true,
+            studyId: this.studyName,
+            studyVersion: this.studyVersion
+        };
+
+        data = JSON.stringify({
+            studyId: this.studyName,
+            studyVersion: this.studyVersion,
+            pid: await this.getSaveId(),
+            ...data
+        });
+
+        return fetch("../saveSerial.php", {
+            method: "POST",
+            body: JSON.stringify({metadata, data})
+        })
+            .then(response => response.text())
+            .then(response => callback(response))
+            .catch(error => onError(error));
+    }
+
+    async getSaveId() {
+        if(this.id)
+            return this.id;
+
+        await fetch("../saveSerial.php", {
+            method: "POST",
+            body: JSON.stringify({
+                metadata: {
+                    isPublic: false,
+                    fileName: "participant-metadata",
+                    studyId: this.studyName,
+                    studyVersion: this.studyVersion
+                },
+                data: JSON.stringify({
+                    studyId: this.studyName,
+                    studyVersion: this.studyVersion,
+                    prolificId: utils.getQueryStringValue("PROLIFIC_PID")
+                })
+            })
+        })
+            .then(async (r)=> await r.text())
+            .then((txt) => JSON.parse(txt))
+            .then(id => this.id = id.id);
+
+        return this.id;
     }
 }
 
@@ -636,6 +681,19 @@ class DatesStudy extends Study {
     // Override the prefix so styling can use Trial rather than duplicating
     get _phaseClassPrefix() {
         return "Study";
+    }
+
+    async awaitTrialLoading() {
+        const me = this;
+        return new Promise(resolve => {
+           const check = function() {
+               if(me.trials.length)
+                   resolve(true);
+               else
+                   setTimeout(check, 25);
+           };
+           check();
+        });
     }
 
     /**
@@ -706,6 +764,228 @@ class DatesStudy extends Study {
         bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
 
         return bp;
+    }
+
+    async results() {
+        let trialList = [];
+
+        // Simulate results if we're testing feedback
+        if(DEBUG.level >= 1 && utils.getQueryStringValue("fb"))
+            for(let t = 0; t < this.trials.length; t++) {
+                this.trials[t].data.responseMarkerWidthFinal =
+                    utils.shuffle([3, 9, 27])[0];
+                this.trials[t].data.responseEstimateLeftFinal =
+                    1900 +
+                    Math.floor(Math.random() *
+                        (100 - this.trials[t].data.responseMarkerWidthFinal));
+                trialList.push(this.trials[t].toTable());
+            }
+        else {
+            let idCode = "";
+            let version = "";
+            if(utils.getQueryStringValue("fb")) {
+                idCode = utils.getQueryStringValue("fb").split("-")[0];
+                this.id = idCode;
+                version = utils.getQueryStringValue("fb").split("-")[1];
+                this.studyVersion = version;
+            } else {
+                idCode = this.id;
+                version = this.studyVersion;
+            }
+            await fetch("../readSerial.php?tbl=AdvisedTrial",
+                {method: "POST", body: JSON.stringify(
+                        { idCode, version, studyId: this.studyName})})
+                .then(async (r) => await r.text())
+                .then((txt) => JSON.parse(txt))
+                .then((o) => trialList = JSON.parse(o.content));
+        }
+
+        trialList = trialList.filter(t => t.isAttentionCheck !== 1);
+
+        // Typecast the numerical variables and use final answer if available
+        trialList.forEach(t => {
+            t.responseMarkerWidth = t.responseMarkerWidthFinal?
+                parseInt(t.responseMarkerWidthFinal) :
+                parseInt(t.responseMarkerWidth);
+            t.responseEstimateLeft = t.responseEstimateLeftFinal?
+                parseInt(t.responseEstimateLeftFinal) :
+                parseInt(t.responseEstimateLeft);
+        });
+
+        const playMarker = function() {
+            const e = window.event;
+
+            e.stopPropagation();
+
+            const marker = e.currentTarget;
+
+            // show confidence guides
+            document.querySelectorAll(".marker.target").forEach((elm) => {
+                elm.classList.remove("detail");
+            });
+
+            if(marker.classList.contains("marker"))
+                marker.classList.add("detail");
+
+            // show correct answer
+            const targetId = "estimate" + marker.dataset.number;
+            document.querySelectorAll(".marker.estimate").forEach((elm) => {
+                if(elm.id === targetId)
+                    elm.style.display = "block";
+                else
+                    elm.style.display = "";
+            });
+
+            // show prompt in the prompt area
+            if(marker.classList.contains("marker"))
+                document.querySelector(".feedback-wrapper .prompt").innerHTML =
+                    marker.dataset.prompt + " (" + marker.dataset.target + ")";
+            else
+                document.querySelector(".feedback-wrapper .prompt").innerHTML =
+                    "Click a marker for more info...";
+        };
+
+        const content = document.querySelector("#content");
+        content.innerHTML = "";
+        content.appendChild(
+            document.importNode(
+                document.getElementById("feedback").content, true
+            ));
+
+        // Update the permalink
+        let link = window.location.host === "localhost"?
+            window.location.origin + window.location.pathname :
+            "http://tinyurl.com/acclab-de";
+        let code = this.id + "-" + this.studyVersion;
+        document.querySelector(".feedback-wrapper .display span.permalink")
+            .innerHTML = link + "?fb=" + code;
+
+        // Hide payment link for revisits
+        if(utils.getQueryStringValue("fb"))
+            document.querySelector(".payment-link").style.display = "none";
+        else
+            document.querySelector(".payment-link").innerHTML =
+                "Payment code: <a href='https://app.prolific.ac/submissions/complete?cc=" + code + "' target='_blank'>" + code + "</a>";
+
+        // Update the score spans
+        let n = 0;
+        let nCorrect = 0;
+        let score = 0;
+        trialList.forEach((t) => {
+            n++;
+            if(t.responseEstimateLeft <= t.correctAnswer &&
+            t.responseEstimateLeft + t.responseMarkerWidth >= t.correctAnswer) {
+                score += 27 / t.responseMarkerWidth;
+                nCorrect++;
+            }
+        });
+        document.querySelector("span.nCorrect").innerHTML = nCorrect.toString();
+        document.querySelector("span.n").innerHTML = n.toString();
+        document.querySelector("span.percentCorrect").innerHTML =
+            (nCorrect / n * 100).toFixed(2);
+        document.querySelector("span.score").innerHTML = score.toString();
+
+        const TL = content.querySelector(".line");
+
+        TL.parentElement.addEventListener("click", playMarker);
+
+        // Draw timeline labels
+        let min = Infinity;
+        let max = -Infinity;
+        trialList.forEach(t => {
+            if(parseInt(t.responseEstimateLeft) < min)
+                min = parseInt(t.responseEstimateLeft);
+            if(parseInt(t.correctAnswer) < min)
+                min = parseInt(t.correctAnswer);
+            if(parseInt(t.responseEstimateLeft) +
+                parseInt(t.responseMarkerWidth) > max)
+                max = parseInt(t.responseEstimateLeft) +
+                    parseInt(t.responseMarkerWidth);
+            if(parseInt(t.correctAnswer) > max)
+                max = parseInt(t.correctAnswer);
+        });
+        const step = 10;
+        // add a little buffer to the next marker
+        max = max + step - (max % step);
+        min = min - (min % step);
+
+        for(let t = min; t <= max; t += step) {
+            let elm = document.createElement("div");
+            elm.classList.add("label");
+            elm.innerText = t.toString();
+            TL.appendChild(elm);
+            elm.style.left = ((t - min) / (max - min) * TL.clientWidth) + "px";
+        }
+
+        window.feedbackMarker = null;
+
+        // Draw markers
+        let x = -1;
+        const year = TL.clientWidth / (max - min);
+        trialList.forEach((t) => {
+            x++;
+
+            // Answer marker
+            const marker = document.createElement('div');
+            marker.id = "estimate" + x.toString();
+            marker.classList.add("response-marker", "marker", "estimate");
+            marker.style.width = (year * (t.responseMarkerWidth + 1) - 1) + "px";
+            marker.style.left = ((t.responseEstimateLeft - min) / (max - min) * TL.clientWidth) +
+                "px";
+            marker.title = t.responseEstimateLeft.toString() + " - " +
+                (t.responseEstimateLeft + t.responseMarkerWidth).toString();
+            TL.appendChild(marker);
+
+            // Actual answer
+            const ans = document.createElement('div');
+            ans.id = "answer" + x.toString();
+            // pull the prompt out of its <p> tags
+            let prompt = /^<p[^>]*?>([\s\S]*)<\/p>\s*$/i.exec(t.stimHTML);
+            ans.dataset.prompt = prompt? prompt[1] : t.stimHTML;
+            ans.title = t.correctAnswer;
+            ans.dataset.target = t.correctAnswer;
+            ans.dataset.number = x.toString();
+            ans.addEventListener("click", playMarker);
+            ans.classList.add("marker", "target");
+            ans.style.left = ((t.correctAnswer - min) / (max - min) *
+                TL.clientWidth + year / 2) +
+                "px";
+            ans.style.top = "-1em";
+            if(t.responseEstimateLeft <= t.correctAnswer &&
+                t.responseEstimateLeft + t.responseMarkerWidth >= t.correctAnswer)
+                ans.innerHTML = "&starf;";
+            else
+                ans.innerHTML = "&star;";
+
+            // avoid collisions
+            const others = TL.querySelectorAll(".marker.target");
+            TL.appendChild(ans);
+            let my = ans.getBoundingClientRect();
+
+            let i = 0;
+            while(true) {
+                if(i++ > 100) {
+                    console.error("loop did not break");
+                    break;
+                }
+
+                let okay = true;
+                for(let o of others) {
+                    let r = o.getBoundingClientRect();
+                    if(((my.top <= r.bottom && my.bottom >= r.top) ||
+                        (my.bottom > r.top && my.top < r.bottom)) &&
+                        ((my.left <= r.right && my.right >= r.left) ||
+                            (my.right > r.left && my.left < r.right)))
+                        okay = false;
+                }
+
+                if(okay)
+                    break;
+
+                ans.style.top = (i * -my.height / 3) + "px";
+                my = ans.getBoundingClientRect();
+            }
+        });
     }
 }
 

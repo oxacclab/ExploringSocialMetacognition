@@ -153,17 +153,17 @@ class Advisor extends BaseObject {
      * Fetch the data for the study in a flat format suitable for CSVing
      * @param [headers=null] {string[]|null} values to read. Defaults to
      * this.tableHeaders
-     * @return {string[]}
+     * @return {object} key-value pairs where all values are single items
      */
     toTable(headers=null) {
-        const out = [];
+        const out = {};
 
         // Use own headers if not supplied
         if(headers === null)
             headers = this.tableHeaders;
 
         for(let h of headers)
-            out.push(typeof this[h] === "undefined"? null : this[h]);
+            out[h] = typeof this[h] === "undefined"? null : this[h];
 
         return out;
     }

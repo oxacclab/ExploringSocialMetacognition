@@ -272,8 +272,11 @@ customElements.define('esm-response-timeline',
             const timeline = this.closest("esm-response-timeline");
 
             // Quit if there's no ghost to process
-            if(!timeline.ghost)
+            if(!timeline.ghost ||
+                !timeline.querySelector(".confirm").classList.contains("enabled"))
                 return;
+
+            timeline.querySelector(".confirm").classList.remove("enabled");
 
             timeline.responseData = {
                 estimateLeft: Math.round(timeline.pixelsToValue(timeline.ghost.offsetLeft)),

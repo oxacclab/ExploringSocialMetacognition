@@ -278,17 +278,19 @@ class Trial extends ControlObject {
      * Fetch the data for the study in a flat format suitable for CSVing
      * @param [headers=null] {string[]|null} values to read. Defaults to
      * this.tableHeaders
-     * @return {string[]}
+     * @return {object} key-value pairs where all values are single items
      */
     toTable(headers=null) {
-        const out = [];
+        this.data.isAttentionCheck = this.attentionCheck + 0; // cast to int
+
+        const out = {};
 
         // Use own headers if not supplied
         if(headers === null)
             headers = this.tableHeaders;
 
         for(let h of headers)
-            out.push(typeof this.data[h] === "undefined"? null : this.data[h]);
+            out[h] = typeof this.data[h] === "undefined"? null : this.data[h];
 
         return out;
     }

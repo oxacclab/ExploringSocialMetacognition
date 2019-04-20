@@ -8,27 +8,20 @@
  */
 
 /*
-The $_POST[] array will contain a JSON string which decomposes into either:
+The $_POST[] array will contain a JSON string which decomposes into:
 {
+    fileName: name of the CSV file to save to (e.g. "participant-metadata")
+    isPublic: (boolean) whether to put the file in the private/ or public/ folder
     studyId: study identifier (becomes eid below)
     prolificId: participant's prolific ID
+    ...: key-value pairs for writing to the file
 }
-{
-    studyId: study identifier (becomes eid below). Contained in the study but
- included for simplicity of access. Alphanumeric only.
-    various fields constituting a single trial for inclusion in a csv file
-}
-
-PRIVATE data must ONLY appear in the meta file. This is likely only to be the
- participant platform ID
 
 Data are tagged with an experiment ID code (eid) and a sequential ID code
 (pid; unique within experiment). This links the private (meta) data with the
 public advisors and trials data.
 
-Data are saved in the ./data/ directory as follows:
-    [meta appended to] ./data/private/[eid]_participant-metadata.csv
-    [trials appended to] ./data/public/[eid]_trialStream.csv
+Data are saved in the ./data/ directory into a private/ or public/ folder as specified in the incoming data.
 
 All .csv files have a header row containing the variable names. The headers
 are assumed(!) to match within a given study eid.
@@ -57,109 +50,106 @@ function sulk($err, $code) {
     die(json_encode($out));
 }
 
-// Table id comes from GET
-$tid = $_GET["tbl"];
-
 // Unpack POST data
 $json = json_decode(file_get_contents("php://input"), true);
 
-$eid = (string) $json["studyId"];
+$meta = $json["metadata"];
+$data = json_decode($json["data"], true);
 
-// Check study ID is valid
+$public = (boolean) $meta["isPublic"];
+$tid = (string) $meta["fileName"];
+$eid = (string) $meta["studyId"];
+$version = (string) $meta["studyVersion"];
+$version = str_replace(".", "-", $version);
 
-function is_alphanumeric($str) {
+// Check input is valid
+function is_alphanumeric($str, $allowHyphen = false) {
+    if($allowHyphen)
+        return (bool) preg_match('/^[0-9a-z\-]+$/i', $str);
     return (bool) preg_match('/^[0-9a-z]+$/i', $str);
 }
 
-if(!is_alphanumeric($eid)) {
+if(!is_bool($public))
+    $public = false;
+
+if(!is_alphanumeric($version, true))
+    sulk("Invalid version format '$version'.", 403);
+
+if(!is_alphanumeric($tid, true))
+    sulk("Invalid table name '$tid'.", 403);
+
+if(!is_alphanumeric($eid, true)) {
     sulk("Invalid studyId '$eid'.", 403);
 }
 
 const PATH = "./data/";
-$fileNames = array(
-    "meta" => PATH . "private/" . $eid . "_participant-metadata.csv",
-    "trials" => PATH . "public/" .$eid . "_trialStream.csv",
-    "qualitative" => PATH . "private/" . $eid . "_qualitative-feedback.csv",
-    "general" => PATH . "private/" . $eid . "_general-feedback.csv"
-);
+$privacy = $public? "public" : "private";
+$prefix = $eid . "_v" . $version;
+$filename = PATH . $privacy . "/" . $prefix . "_" . $tid . ".csv";
 
 $pid = 0;
 
-// Initial responses will have a prolificId
-if(array_key_exists("prolificId", $json) && $tid === "participantMetadata") {
+// Initial responses will have a prolificId and will require an id to be assigned
+if(array_key_exists("prolificId", $data)) {
 
-    $json["id"] = "awaiting";
-    $json["serverTime"] = date('c');
+    $data["pid"] = "awaiting";
+    $data["serverTime"] = date('c');
 
-    if(!file_exists($fileNames["meta"])) {
-        if(($handle = fopen($fileNames["meta"], "wb")) !== false) {
-            fputcsv($handle, array_keys($json));
+    if(!file_exists($filename)) {
+        if(($handle = fopen($filename, "wb")) !== false) {
+            fputcsv($handle, array_keys($data));
         } else
             sulk("Unable to create metadata file.", 500);
-    } else {
-        // work out the id
-        if(($handle = fopen($fileNames["meta"], 'rb')) !== false) {
-            $existingIds = array();
-
-            $index = -1;
-            while(($data = fgetcsv($handle)) !== false) {
-                // first row: get the index of the pid field
-                if($index == -1)
-                    $index = array_search("id", $data, true);
-                else
-                    array_push($existingIds, $data[$index]);
-            }
-            fclose($handle);
-
-            $i = 1679616;
-            do {
-                $pid = substr(md5($eid.$i++), 0, 8);
-            } while(in_array($pid, $existingIds));
-
-            if($index == -1)
-                sulk("No id field found in previous results.", 500);
-
-        } else
-            sulk("Unable to read existing data for id assignment.", 500);
     }
 
-    $json["id"] = $pid;
+    // work out the id
+    if(($handle = fopen($filename, 'rb')) !== false) {
+        $existingIds = array();
+
+        $index = -1;
+        while(($line = fgetcsv($handle)) !== false) {
+            // first row: get the index of the pid field
+            if($index == -1)
+                $index = array_search("pid", $line, true);
+            else
+                array_push($existingIds, $line[$index]);
+        }
+        fclose($handle);
+
+        $i = 0;
+        do {
+            $pid = substr(md5($prefix.$i++), 0, 8);
+        } while(in_array($pid, $existingIds));
+
+        if($index == -1)
+            sulk("No id field found in previous results.", 500);
+
+    } else
+        sulk("Unable to read existing data for id assignment.", 500);
+
+
+    $data["pid"] = $pid;
 
     // record in the metadata file
-    if(($handle = fopen($fileNames["meta"], "ab")) !== false) {
-        fputcsv($handle, $json);
+    if(($handle = fopen($filename, "ab")) !== false) {
+        fputcsv($handle, $data);
     } else
         sulk("Unable to save metadata.", 500);
 
     die(json_encode(array("id" => $pid)));
 }
 
-$fname = "";
-switch($tid) {
-    case "qualitativeFeedback":
-        $fname = $fileNames["qualitative"];
-        break;
-    case "trial":
-        $fname = $fileNames["trials"];
-        break;
-    case "generalFeedback":
-        $fname = $fileNames["general"];
-        break;
-    default:
-        sulk("Uninterpretable metadata.", 403);
-}
-
 // Create file if necessary
-if(!file_exists($fname)) {
-    if(($handle = fopen($fname, "wb")) !== false) {
-        fputcsv($handle, array_keys($json));
+if(!file_exists($filename)) {
+    if(($handle = fopen($filename, "wb")) !== false) {
+        fputcsv($handle, array_keys($data));
     } else
         sulk("Unable to create file.", 500);
 }
 
 // Save data
-if(($handle = fopen($fname, "ab")) !== false) {
-    fputcsv($handle, $json);
+if(($handle = fopen($filename, "ab")) !== false) {
+    fputcsv($handle, $data);
 } else
     sulk("Unable to save result.", 500);
 

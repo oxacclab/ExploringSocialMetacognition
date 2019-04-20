@@ -18,6 +18,8 @@
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
     <link rel="stylesheet" type="text/css" href="style/advisorChoice.css"/>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <!-- Templates -->
     <template id="countdown">
         <!-- Inspired by https://codepen.io/carsy/pen/VvqJwm -->
@@ -99,6 +101,27 @@
             </esm-instruction-page>
         </esm-instruction>
     </template>
+    <template id="feedback">
+        <div class="feedback-wrapper">
+            <div class="debrief">
+                <p class="payment-link">
+                    Payment code: <a href="https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4" target="_blank">MX5PC2Z4</a>
+                </p>
+                <p>Overall you got <span class="nCorrect"></span>/<span class="n"></span> (<span class="percentCorrect"></span>%) correct (filled stars), giving you a total of <span class="score"></span> points.</p>
+            </div>
+            <div class="display">
+                <p>Your answers are shown below. Click/touch a marker to see the correct answer and your confidence interval.</p>
+                <div class="legend permalink">
+                    link
+                    <div><span class="permalink" title="Direct link to these results" onclick="document.execCommand('copy')"></span></div>
+                </div>
+                <div class="timeline">
+                    <div class="line"></div>
+                </div>
+                <p class="prompt">Click a marker for more info...</p>
+            </div>
+        </div>
+    </template>
 </head>
 <body tabindex="0">
 <div class="content-wrapper">
@@ -137,15 +160,15 @@
                 </div>
                 <div class="response-marker-pool">
                     <div>
-                        <div class="label">&plusmn;1 year (9Kr)</div>
+                        <div class="label">&plusmn;1 year (9pts)</div>
                         <div class="response-marker thin"></div>
                     </div>
                     <div>
-                        <div class="label">&plusmn;4 years (3Kr)</div>
+                        <div class="label">&plusmn;4 years (3pts)</div>
                         <div class="response-marker medium"></div>
                     </div>
                     <div>
-                        <div class="label">&plusmn;13 years (1Kr)</div>
+                        <div class="label">&plusmn;13 years (1pts)</div>
                         <div class="response-marker thick"></div>
                     </div>
                     <div>
@@ -158,7 +181,7 @@
                     </div>
                 </div>
             </esm-response-timeline>
-            <esm-help data-group="interface" data-parent-click-closes="false" class="top">
+            <esm-help data-group="interface" data-parent-click-closes="false" class="top wide">
                 This <em>response panel</em> allows you to indicate your
                 answer. When enabled, you will pick up one of the markers and drag it to the desired place on the timeline. A correct answer is one where the marker covers the actual year of the event. Try entering a response now.
             </esm-help>
@@ -197,19 +220,26 @@
     window.DEBUG = {};
     DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
 
-    const studyBlueprint = {
+    let studyBlueprint = {
         attentionCheckTrials: [2],
         blockLength: [5, 5],
         practiceBlocks: 1,
         questionsXML: "assets/etc/questions.xml"
     };
 
-    if(DEBUG.level >= 1)
+    // shorter study in debug mode
+    if(DEBUG.level >= 1 && !utils.getQueryStringValue("fb"))
         studyBlueprint.blockLength = [2, 2];
 
     window.study = new DatesStudy(studyBlueprint);
-    study.run()
-        .then(console.log);
+
+    if(utils.getQueryStringValue("fb"))
+        study.awaitTrialLoading()
+            .then(()=>study.run("results")
+                .then(console.log));
+    else
+        study.run()
+            .then(console.log);
 
     // Hoist for debugging
     window.Study = Study;

@@ -40,23 +40,41 @@ $json = json_decode(file_get_contents("php://input"), true);
 
 $eid = (string) $json["studyId"];
 $pid = (string) $json["idCode"];
+$tid = (string) $_GET["tbl"];
+$version = (string) $json["version"];
+$version = str_replace(".", "-", $version);
 
-// Check study ID is valid
-
-function is_alphanumeric($str) {
+// Check input is valid
+function is_alphanumeric($str, $allowHyphen = false) {
+    if($allowHyphen)
+        return (bool) preg_match('/^[0-9a-z\-]+$/i', $str);
     return (bool) preg_match('/^[0-9a-z]+$/i', $str);
 }
 
-if(!is_alphanumeric($eid)) {
+if(!is_alphanumeric($tid))
+    sulk("Bad table request '$tid'.", 403);
+
+if(strlen($version) && !is_alphanumeric($version, true))
+    sulk("Invalid version format '$version'.", 403);
+
+if(!is_alphanumeric($eid, true)) {
     sulk("Invalid study id '$eid'.", 403);
 }
 
-$dataFileName = "./data/public/" .$eid . "_trialStream.csv";
+if(strlen($version))
+    $dataFileName = "./data/public/" .$eid . "_v" . $version. "_" . $tid . ".csv";
+else
+    $dataFileName = "./data/public/" .$eid . "_trialStream.csv";
 
 // Create trialStream.csv file if necessary
 if(!file_exists($dataFileName)) {
     sulk("Unknown study id '$eid'.", 500);
 }
+
+if($eid == "dateCheck" && !strlen($version))
+    $needle = "id";
+else
+    $needle = "pid";
 
 $myData = array();
 // Load trial data
@@ -66,8 +84,8 @@ if(($handle = fopen($dataFileName, "rb")) !== false) {
     while(($line = fgetcsv($handle)) !== false) {
         if($index === -1) {
             $fields = $line;
-            if(in_array("id", $line))
-                $index = array_search("id", $line, true);
+            if(in_array($needle, $line))
+                $index = array_search($needle, $line, true);
             else
                 sulk("No id field found in data.", 500);
         }

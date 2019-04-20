@@ -56,12 +56,18 @@ body:not(.Study-practice) #help-button {
     display: none;
 }
 
+/* Hide response panel until it's first needed */
+.Study-training:not(.Trial-getResponse) #response-panel {
+    opacity: 0;
+}
+
 /* Show fully-opaque response panel when it should be the focus of attention. */
 .Trial-getResponse #response-panel,
 .Trial-showAdvice #response-panel,
 .Trial-getFinalResponse #response-panel,
 .Trial-showFeedback #response-panel {
     opacity: 1;
+    z-index: 2;
 }
 
 /* interactable markers should look interactable */

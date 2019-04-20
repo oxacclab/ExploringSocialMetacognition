@@ -49,31 +49,6 @@ div {
     background-color: white;
 }
 
-/* Sizing for non-fullscreen displays */
-@media screen and (max-height: 500px) {
-    body {
-        font-size: 14px;
-    }
-    #content {
-        width: 100%;
-        height: 100%;
-        border: none;
-        border-radius: 0;
-    }
-    #instructions {
-        height: 100%;
-    }
-    esm-instruction {
-        width: 100%;
-        height: 100%;
-        top: 0;
-    }
-    esm-instruction-page {
-        border: none;
-        border-radius: 0;
-    }
-}
-
 #content {
     height: calc(var(--content-height) * 1px);
     width: calc(var(--content-width) * 1px);
@@ -341,4 +316,26 @@ div {
     width: 20px;
     line-height: 20px;
     font-size: 14px;
+}
+
+/* Sizing for non-fullscreen displays */
+@media screen and (max-height: 500px) {
+    body {
+        font-size: 14px;
+    }
+    #content {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 0;
+    }
+    esm-instruction {
+        width: 100%;
+        height: 100%;
+        top: 0;
+    }
+    esm-instruction-page {
+        border: none;
+        border-radius: 0;
+    }
 }
