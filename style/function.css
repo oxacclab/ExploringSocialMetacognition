@@ -98,3 +98,10 @@ body:not(.Study-practice) #help-button {
     justify-content: center;
     transform: scale(4);
 }
+
+@media screen and (max-height: 500px) {
+    .Study-practice:not(.Trial-any) #stimulus,
+    .Study-core:not(.Trial-any) #stimulus {
+        transform: unset;
+    }
+}

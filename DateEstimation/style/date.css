@@ -255,94 +255,18 @@ body {
 }
 
 /* Feedback display; quite complex */
-.feedback-wrapper {
-    height: 100%;
-    width: 100%;
-}
-.feedback-wrapper p {
-    margin: 0;
-}
 .debrief {
-    height: calc(100% - 400px);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-.debrief span {
-    font-weight: bold;
-}
-.display {
-    height: 400px;
-}
-.legend {
-    position: absolute;
-    width: 100px;
-    height: min-content;
-    right: 10px;
-    top: 30px;
-    border: 1px solid black;
-    text-align: center;
-    padding: .5em;
-    background-color: white;
-    transition: all 250ms;
-    z-index: 10;
-}
-.legend.permalink {
-    width: min-content;
-    left: 10px;
-    right: unset;
-}
-.legend:hover {
-    width: 150px;
-    height: fit-content;
-}
-.legend.permalink:hover {
-    width: fit-content;
-    width: -moz-fit-content;
-}
-.legend > div {
-    display: none;
-}
-.legend:hover > div {
-    display: flex;
-}
-span.permalink {
-    user-select: all;
-    cursor: copy;
-    -moz-user-select: all;
+    height: unset;
 }
 .timeline {
-    position: relative;
-    width: 90%;
-    margin: auto;
-    height: 300px;
+    height: 100%;
 }
-.timeline .line {
-    top: calc(100% - 2em);
-    height: 5px;
-    width: 100%;
-    margin: auto;
-    background-color: black;
-}
-.timeline .label {
-    position: absolute;
-    top: calc(50% + 3px);
-    transform: translateX(calc(-50% - 1px));
-    cursor: default;
-}
-.timeline .label::before {
-    content: "";
-    width: 2px;
-    height: 10px;
-    background-color: black;
-    position: absolute;
-    top: -5px;
-    left: 50%;
+p.prompt {
+    min-height: 5em;
 }
 .timeline .marker {
     height: 1px;
     width: 1px;
-    position: absolute;
 }
 .timeline .marker.answer .estimate,
 .legend .marker.answer {
