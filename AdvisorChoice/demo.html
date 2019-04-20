@@ -92,6 +92,14 @@
             </esm-instruction-page>
         </esm-instruction>
     </template>
+    <template id="block-break">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Break</h1>
+                <p>You may take a short break here if you wish. Use the button below when you're ready to continue.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
     <template id="instr-debrief">
         <esm-instruction data-no-buttons="true">
             <esm-instruction-page>
@@ -221,8 +229,8 @@
     DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
 
     let studyBlueprint = {
-        attentionCheckTrials: [2],
-        blockLength: [5, 5],
+        attentionCheckTrials: [10,17],
+        blockLength: [2, 15, 15],
         practiceBlocks: 1,
         questionsXML: "assets/etc/questions.xml"
     };

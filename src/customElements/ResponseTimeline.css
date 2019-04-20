@@ -13,6 +13,10 @@
     width: 90%;
     margin: auto;
     height: 300px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 .response-timeline .response-line {
     top: calc(100% - 2em);
@@ -42,6 +46,10 @@
     flex-direction: row;
     justify-content: space-evenly;
     margin-bottom: 1em;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .response-marker-pool > div {

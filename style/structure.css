@@ -386,6 +386,10 @@ span.permalink {
     width: 90%;
     margin: auto;
     height: 300px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 .timeline .line {
     top: calc(100% - 2em);

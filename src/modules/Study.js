@@ -70,7 +70,7 @@ class Study extends ControlObject {
         this.practiceBlocks = 0;
         this.trials = [];
         this.attentionCheckTrials = [];
-        this.countdownTime = 1;
+        this.countdownTime = DEBUG.level? 1 : 3;
 
         this.advisors =
             [
@@ -411,6 +411,19 @@ class Study extends ControlObject {
         await this.countdown(this.countdownTime);
     }
 
+    async postBlock() {
+        return new Promise(function(resolve) {
+            let data = [];
+            Study._updateInstructions("block-break",
+                (name) => {
+                    let now = new Date().getTime();
+                    data.push({name, now});
+                    if(name === "end")
+                        resolve(data);
+                });
+        });
+    }
+
     async practice() {
 
         // Save the advisors' CSV entries
@@ -425,6 +438,9 @@ class Study extends ControlObject {
 
             // Run the trial
             await this._runNextBlock();
+
+            if(b > 1 && i < b-1)
+                await this.postBlock();
         }
 
         return this;
@@ -486,6 +502,9 @@ class Study extends ControlObject {
 
             // Run the trial
             await this._runNextBlock();
+
+            if(i < b-1)
+                await this.postBlock();
         }
 
         if(document.fullscreenElement)

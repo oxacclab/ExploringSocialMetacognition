@@ -80,7 +80,7 @@ customElements.define('esm-response-timeline',
             timeline.draggedMarker.style.left = r.x + "px";
             timeline.draggedMarker.style.top = r.y + "px";
 
-            if(e instanceof TouchEvent) {
+            if(window.TouchEvent && e instanceof TouchEvent) {
                 timeline.draggedMarker.dragOffsetX = e.targetTouches[0].clientX - r.x;
                 timeline.draggedMarker.dragOffsetY = e.targetTouches[0].clientY - r.y;
             } else {
@@ -102,7 +102,7 @@ customElements.define('esm-response-timeline',
             }
 
             // Don't process mouse event if we already processed the touch event
-            if(e instanceof TouchEvent)
+            if(window.TouchEvent && e instanceof TouchEvent)
                 return false;
         }
 
@@ -129,8 +129,8 @@ customElements.define('esm-response-timeline',
 
             e.stopPropagation();
 
-            const x = e instanceof TouchEvent? e.targetTouches[0].clientX : e.clientX;
-            const y = e instanceof TouchEvent? e.targetTouches[0].clientY : e.clientY;
+            const x = window.TouchEvent && e instanceof TouchEvent? e.targetTouches[0].clientX : e.clientX;
+            const y = window.TouchEvent && e instanceof TouchEvent? e.targetTouches[0].clientY : e.clientY;
 
             m.style.left = (x - m.dragOffsetX) + "px";
             m.style.top = (y - m.dragOffsetY) + "px";
@@ -138,7 +138,7 @@ customElements.define('esm-response-timeline',
             timeline.updateGhost();
 
             // Don't process mouse event if we already processed the touch event
-            if(e instanceof TouchEvent)
+            if(window.TouchEvent && e instanceof TouchEvent)
                 return false;
         }
 
@@ -260,7 +260,7 @@ customElements.define('esm-response-timeline',
                 timeline.querySelector(".confirm").classList.remove("enabled");
 
             // Don't process mouse event if we already processed the touch event
-            if(e instanceof TouchEvent)
+            if(window.TouchEvent && e instanceof TouchEvent)
                 return false;
         }
 
