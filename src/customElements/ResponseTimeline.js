@@ -94,11 +94,16 @@ customElements.define('esm-response-timeline',
             document.addEventListener("mousemove", timeline.moveMarker);
             document.addEventListener("touchmove", timeline.moveMarker);
 
-            // remove ghost
             if(timeline.ghost) {
-                timeline.ghost.remove();
-                // disable responding
-                timeline.querySelector(".confirm").classList.remove("enabled");
+                // allow simply clicking ghost to confirm
+                if(e.currentTarget === timeline.ghost)
+                    timeline.querySelector(".confirm").classList.add("enabled");
+                else {
+                    // remove ghost
+                    timeline.ghost.remove();
+                    // disable responding
+                    timeline.querySelector(".confirm").classList.remove("enabled");
+                }
             }
 
             // Don't process mouse event if we already processed the touch event
