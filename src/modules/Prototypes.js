@@ -71,6 +71,35 @@ class BaseObject {
     }
 
     /**
+     * Save a dump of the Study to the server and throw an error
+     * @param content {string} content of the error message
+     */
+    error(content) {
+        if(window.study) {
+            // prevent spamming log entries while undertaking fetch operation
+            if(window.crashing)
+                return;
+            window.crashing = true;
+
+            const metadata = {
+                studyId: study.studyName,
+                studyVersion: study.studyVersion,
+                idCode: study.id,
+                error: content
+            };
+            const data = JSON.stringify(study);
+
+            fetch("../saveErrorDump.php", {
+                method: "POST",
+                body: JSON.stringify({metadata, data})
+            }).finally(() => {
+                throw new Error(content);
+            });
+        } else
+            throw new Error(content);
+    }
+
+    /**
      * Register a warning
      * @param content {*} log entry
      * @param [echoToConsole=true] {boolean} also show in console?

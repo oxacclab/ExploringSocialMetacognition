@@ -8,7 +8,7 @@
 
 "use strict";
 
-import {Advisor} from "./Advisor.js";
+import {Advisor, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_DISAGREE, ADVICE_CORRECT_AGREE, AdviceProfile} from "./Advisor.js";
 import {Trial, AdvisedTrial} from "./Trial.js";
 import {ControlObject} from "./Prototypes.js";
 import * as utils from "../utils.js";
@@ -74,8 +74,34 @@ class Study extends ControlObject {
 
         this.advisors =
             [
-                new Advisor({id: 1, group: 1, name: "Advisor #37", templateId: "advisor-key"}),
-                new Advisor({id: 2, group: 2, name: "Advisor #09", templateId: "advisor-key"})
+                new Advisor({
+                    id: 1,
+                    group: 1,
+                    name: "Advisor #37",
+                    templateId: "advisor-key",
+                    confidence: 9,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_CORRECT_DISAGREE.copy(4),
+                            ADVICE_INCORRECT_REFLECTED.copy(1),
+                            ADVICE_CORRECT.copy(0)
+                        ]
+                    })
+                }),
+                new Advisor({
+                    id: 2,
+                    group: 2,
+                    name: "Advisor #09",
+                    templateId: "advisor-key",
+                    confidence: 9,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_INCORRECT_REFLECTED.copy(1),
+                            ADVICE_CORRECT_AGREE.copy(4),
+                            ADVICE_CORRECT.copy(0)
+                        ]
+                    })
+                })
             ];
 
         this.trialBlueprint = {
@@ -690,9 +716,9 @@ class DatesStudy extends Study {
                 this.trials = [];
                 for(let i = 0; i < utils.sumList(this.blockLength); i++) {
                     if(this.attentionCheckTrials.indexOf(i) !== -1)
-                        this.trials.push(new Trial(this.attentionCheckBlueprint));
+                        this.trials.push(new Trial({...this.attentionCheckBlueprint, number: i}));
                     else
-                        this.trials.push(new AdvisedTrial(this.trialBlueprint))
+                        this.trials.push(new AdvisedTrial({...this.trialBlueprint, number: i}))
                 }
             });
     }

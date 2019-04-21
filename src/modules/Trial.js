@@ -409,7 +409,7 @@ class AdvisedTrial extends Trial {
      */
     async showAdvice() {
         for(let a of this.advisors) {
-            const advice = a.getAdvice();
+            const advice = a.getAdvice(this);
             Object.keys(advice).forEach((k)=> {
                 this.data["advisor" + a.id.toString() + k] = advice[k];
             });

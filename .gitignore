@@ -13,5 +13,6 @@ analysis/explore
 analysis/spss
 data/public/raw/*.JSON
 data/*/*.csv
+data/private/*
 .htaccess
 .htpasswd

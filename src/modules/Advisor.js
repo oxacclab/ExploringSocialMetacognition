@@ -8,14 +8,25 @@
 "use strict";
 
 import {BaseObject} from "./Prototypes.js";
+import * as utils from "../utils.js";
 
+/**
+ * @class Advisor
+ * @classdesc Advisors are responsible for tendering advice to participants.
+ * Advisors are constructed with a set of target behaviours which they
+ * attempt to fulfil. They may, for instance, have a specific number of trials
+ * on which they must agree with the participant, or on which they must give
+ * the correct answer, etc.
+ * @property id {int|string} advisor's identification
+ * @property name {string} advisor's displayed name
+ * @property group {int|string} group(id|name) to which the advisor belongs
+ * @property confidence {int} width of the advisor's marker
+ * @property adviceProfile {AdviceProfile} target behaviours
+ */
 class Advisor extends BaseObject {
     constructor(blueprint) {
         super(blueprint);
 
-        this.id = blueprint.id;
-        this.name = blueprint.name;
-        this.group = blueprint.group;
         this.lastAdvice = null;
         this.marker = null;
 
@@ -60,8 +71,8 @@ class Advisor extends BaseObject {
 
         const d = document.querySelector("esm-response-widget")
             .valueToProportion(
-                this.getAdvice(false).estimate,
-                this.getAdvice(false).confidence
+                this.getAdvice(false).advice,
+                this.getAdvice(false).adviceWidth
             );
 
         let box = document.querySelector(".response-hBar")
@@ -76,7 +87,7 @@ class Advisor extends BaseObject {
         box = document.querySelector(".response-vBar").getBoundingClientRect();
 
         this.marker.style.top = "calc(" +
-            ((1 - d.confidence) * (box.height - this.marker.clientHeight)) + "px" +
+            ((1 - d.adviceWidth) * (box.height - this.marker.clientHeight)) + "px" +
             " - " +
             "var(--response-vBar-offset))";
     }
@@ -88,12 +99,11 @@ class Advisor extends BaseObject {
 
         const TL = document.querySelector("esm-response-timeline");
 
-        // General position format is %(span) + adjustment
         this.marker.style.left =
-            TL.valueToPixels(this.getAdvice(false).estimate -
-            this.getAdvice(false).confidence) + "px";
+            TL.valueToPixels(this.getAdvice(false).advice -
+            this.getAdvice(false).adviceWidth / 2) + "px";
 
-        this.marker.style.width = TL.valueToPixels(this.getAdvice(false).confidence * 10, true) + "px";
+        this.marker.style.width = TL.valueToPixels(this.getAdvice(false).adviceWidth, true) + "px";
 
         console.log(this.getAdvice(false))
     }
@@ -105,22 +115,23 @@ class Advisor extends BaseObject {
         }
     }
 
-    getAdvice(recalculate = true) {
+    /**
+     * Fetch the advice on this trial from the advisor's AdviceProfile
+     * @param trial {Trial|boolean} trial to calculate advice for, or false to fetch from memory
+     * @return {object}
+     */
+    getAdvice(trial) {
 
-        if(recalculate || this.lastAdvice === null) {
-            if(this.lastAdvice === null && !recalculate)
-                this.warn("Advice requested where none exists; recalculating.");
-            else
-                this.info("Calculating advice");
+        if(trial) {
+            this.info("Calculating advice");
 
-            let confidence = 0.5;
+            if(!this.adviceProfile instanceof AdviceProfile)
+                this.error("Invalid adviceProfile found when fetching advice.");
 
-            this.lastAdvice = {
-                estimate: 1900 + (Math.random() *
-                    (100 - Math.round(confidence * 10))),
-                confidence
-            };
-        }
+            this.lastAdvice = this.adviceProfile.getAdvice(trial, this);
+        } else
+            if(!this.lastAdvice)
+                this.error("No last advice found and no trial supplied.");
 
         return this.lastAdvice;
     }
@@ -178,4 +189,320 @@ class Advisor extends BaseObject {
     }
 }
 
-export {Advisor};
+/**
+ * @class AdviceProfile
+ * @classdesc An AdviceProfile contains different kinds of advice, specifying
+ * their definitions and their desired quantities. It also tracks the number
+ * of times each advice type has actually been used, which allows for recording
+ * the empirical provision of advice as well as the desired provision.
+ * @property adviceTypes {AdviceType[]}
+ */
+class AdviceProfile extends BaseObject {
+    constructor(blueprint) {
+        super(blueprint);
+
+        this.usedTypes = {};
+        this.adviceTypes.forEach(aT => {
+            this.usedTypes[aT.flag] = 0;
+        });
+    }
+
+    /**
+     * Verifies the blueprint contains the correct fields
+     * @param blueprint {object}
+     * @return {boolean}
+     * @protected
+     */
+    _verifyBlueprint(blueprint = null) {
+        if(!blueprint)
+            blueprint = this.blueprint;
+        if(!super._verifyBlueprint(blueprint))
+            return false;
+
+        return Object.keys(blueprint).indexOf("adviceTypes") !== -1;
+    }
+
+    /**
+     * Return the centre of the advice for a trial
+     * @param trial {Trial}
+     * @param advisor {Advisor}
+     * @return {number} centre for the advice
+     */
+    getAdvice(trial, advisor) {
+        const out = {};
+
+        // Find qualified matches
+        let validQuantities = {};
+        let validFlags = 0;
+        let allQuantities = {};
+        this.adviceTypes.forEach(aT => {
+            allQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
+
+            if(!aT.match(trial, advisor))
+                return;
+
+            validQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
+            validFlags += aT.flag;
+        });
+
+        let fallback = false;
+        if(utils.sumList(validQuantities) <= 0)
+            fallback = true;
+
+        // Allow fallbacks if nothing qualifies
+        let types = fallback?
+            Object.keys(allQuantities) : Object.keys(validQuantities);
+        let sum = utils.sumList(fallback? allQuantities : validQuantities);
+
+        // Select a type by weighted random selection accounting for past
+        // selections
+        let type = null;
+        let x = Math.random();
+        for(type of types) {
+            x -= allQuantities[type] / sum;
+            if(x < 0)
+                break;
+        }
+
+        // Selected type
+        let aT = null;
+        this.adviceTypes.forEach(t => {
+            if(t.name === type)
+                aT = t;
+        });
+        out.validTypes = Object.keys(validQuantities).join(", ");
+        out.validTypeFlags = validFlags;
+        out.nominalType = aT.name;
+        out.nominalTypeFlag = aT.flag;
+        this.usedTypes[out.nominalTypeFlag]++;
+
+        if(fallback) {
+            let t = aT;
+            while(t.match(trial, advisor) === null) {
+                this.adviceTypes.forEach(x => {
+                    if(x.name === t.fallback || x.flag === t.fallback) {
+                        t = x;
+                        break;
+                    }
+                });
+                if(t === aT || t === null)
+                    this.error("No valid adviceType and no fallback.");
+            }
+            aT = t;
+        }
+
+        // Actual type
+        out.actualType = aT.name;
+        out.actualTypeFlag = aT.flag;
+        // Advice is selected as the middle of the available values
+        let range = aT.match(trial, advisor);
+        out.advice = Math.round((range[1] - range[0]) / 2) + range[0];
+        out.adviceWidth = advisor.confidence;
+
+        // Reset the used types
+        if(utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
+            Object.keys(this.usedTypes).forEach(k => this.usedTypes[k] = 0);
+            this.info("Used all advice instances; resetting.");
+        }
+
+        return out;
+    }
+}
+
+/**
+ * @class AdviceType
+ * @classdesc AdviceTypes define the circumstances which must obtain on a trial
+ * in order for the advisor to offer the particular kind of advice. E.g. if
+ * we desire the advisor to give an answer which spans both the participant's
+ * response and the correct answer, this will be possible on some trials and
+ * impossible on others given some limitations on advice width.
+ * AdviceTypes offer a fallback AdviceType for use when they are not available.
+ * AdviceTypes are shallow objects to enable easy copying of the pre-defined
+ * examples presented here.
+ *
+ * @property name {string}
+ * @property flag {int} flag number (e.g. 2^x)
+ * @property fallback {string|int} name or flag of another AdviceType to use
+ * where this type is inadmissable (fallbacks will fall back themselves if not
+ * suitable, and an error arises if no fallback is possible)
+ * @property matches {<number[]|null>function(<Trial>, <Advisor>)} given a trial
+ * object, return a range specifying which values for the middle of the advice are
+ * consistent with this advice type (null if none are)
+ */
+class AdviceType extends BaseObject {
+    constructor(blueprint) {
+        super(blueprint);
+    }
+
+    /**
+     * Produce a mutable copy of this object for actual use
+     * @param quantity {int} number of these trials desired
+     * @return {{quantity: int}} copy of this object + a quantity property
+     */
+    copy(quantity) {
+        return {...this, quantity};
+    }
+}
+
+/*
+* Specific AdviceTypes
+* It is not expected that AdviceType is instantiated except by using one of the
+* below.
+* When supplying fallbacks, they should be included with quantity 0.
+* */
+
+// Agreement is always possible
+const ADVICE_AGREE = Object.freeze(new AdviceType({
+    name: "agree",
+    flag: 1,
+    fallback: null,
+    /**
+     * Values for middle consistent with agreement
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]|null}
+     */
+    match: (t, a) => {
+        const w = Math.floor(a.confidence / 2);
+        return [
+            t.data.responseEstimateLeft - w,
+            t.data.responseEstimateLeft + t.data.responseMarkerWidth + w
+        ];
+    }
+}));
+
+// Correct advice is always possible
+const ADVICE_CORRECT = Object.freeze(new AdviceType({
+    name: "correct",
+    flag: 2,
+    fallback: null,
+    /**
+     * Values for middle consistent with correctness
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]|null}
+     */
+    match: (t, a) => {
+        const w = Math.floor(a.confidence / 2);
+        return [
+            t.correctAnswer - w,
+            t.correctAnswer + w
+        ];
+    }
+}));
+
+// Incorrect advice is the correct answer reflected on the participant's answer
+const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
+    name: "disagreeReflected",
+    flag: 4,
+    fallback: null,
+    /**
+     * Values for middle consistent with simultaneous disagreement and
+     * correctness
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]|null}
+     */
+    match: (t, a) => {
+        const w = Math.floor(a.confidence / 2);
+        // Agreement values
+        const minA = t.data.responseEstimateLeft - w;
+        const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
+
+        // Target is the correct answer reflected in the participant's answer
+        let target = t.correctAnswer +
+            (-1 * (t.correctAnswer -
+            Math.round(
+                t.data.responseEstimateLeft +
+                t.data.responseMarkerWidth / 2)));
+
+        if(target < parseFloat(t.responseWidget.dataset.min))
+            target = parseFloat(t.responseWidget.dataset.min);
+        else
+            if(target > parseFloat(t.responseWidget.dataset.max))
+                target = parseFloat(t.responseWidget.dataset.max);
+
+        // If there's no conflict with the participant, return the target value
+        let min = target - w;
+        let max = target + w;
+        if(min > maxA || max < minA)
+            return [min, max];
+
+        // If the participant is correct just avoid the participant's response
+        // by the minimum amount possible
+        if(target - minA < maxA - target)
+            return [min - (target - minA) - 1, max - (target - minA) - 1];
+        else
+            return [min + (maxA - target) + 1, max + (maxA - target) + 1];
+    },
+}));
+
+// Agreeing and being correct falls back to being correct
+const ADVICE_CORRECT_AGREE = Object.freeze(new AdviceType({
+    name: "correctAgree",
+    flag: 8,
+    fallback: 2,
+    /**
+     * Values for middle consistent with simultaneous correctness and agreement
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]|null}
+     */
+    match: (t, a) => {
+        const w = Math.floor(a.confidence / 2);
+        // Agreement values
+        const minA = t.data.responseEstimateLeft - w;
+        const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
+        // Correctness values
+        const minC = t.correctAnswer - w;
+        const maxC = t.correctAnswer + w;
+
+        // find the intersected region
+        let min = minA > minC? minA : minC;
+        let max = maxA < maxC? maxA : maxC;
+        // check for non-overlapping
+        if(min > max)
+            return null;
+
+        return [min, max];
+    }
+}));
+
+// Being correct and disagreeing falls back to being correct
+const ADVICE_CORRECT_DISAGREE = Object.freeze(new AdviceType({
+    name: "correctDisagree",
+    flag: 16,
+    fallback: 2,
+    /**
+     * Values for middle consistent with simultaneous disagreement and
+     * correctness
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]|null}
+     */
+    match: (t, a) => {
+        const w = Math.floor(a.confidence / 2);
+
+        // If the participant is correct this will not be possible
+        const minA = t.data.responseEstimateLeft - w;
+        const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
+        if(minA <= t.correctAnswer && maxA >= t.correctAnswer)
+            return null;
+
+        // Correctness values
+        const minC = t.correctAnswer - w;
+        const maxC = t.correctAnswer + w;
+
+        // If the spans don't overlap just return correctness
+        if(maxA < minC || minA > maxC)
+            return [minC, maxC];
+
+        if(minA < minC)
+            return [maxA, maxC];
+        return [minC, minA];
+    },
+}));
+
+
+
+export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE};
