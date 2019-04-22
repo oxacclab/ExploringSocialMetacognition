@@ -120,6 +120,7 @@ function orderArray(array, order) {
 }
 
 /**
+ * TODO: remove this and replace with call to Number.toFixed()
  * Round x to a specified number of decimal places
  * @param x {number} - number to round
  * @param {number} [decimals=0] - number of decimal places to which to round x
@@ -253,7 +254,7 @@ function max(list, abs = false) {
     list.forEach(function(x) {
         x = parseFloat(x);
         if(x > max || (Math.abs(x) > max && abs))
-            max;
+            max = x;
     });
     return max;
 }
@@ -269,7 +270,7 @@ function min(list, abs = false) {
     list.forEach(function(x) {
         x = parseFloat(x);
         if(x < min || (Math.abs(x) < min && abs))
-            min;
+            min = x;
     });
     return min;
 }
@@ -315,4 +316,16 @@ function numberToLetters(num) {
     return out;
 }
 
-export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters}
+/**
+ * Generate a random number between min and max (inclusive)
+ * @param [min=0]
+ * @param [max=1]
+ * @param [int=true] {boolean} whether to return an int
+ * @return {number}
+ */
+function randomNumber(min = 0, max = 1, int = true) {
+    let x = Math.random() * (max - min + 1) + min;
+    return int? Math.floor(x) : x;
+}
+
+export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, randomNumber}

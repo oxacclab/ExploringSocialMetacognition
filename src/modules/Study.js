@@ -59,7 +59,7 @@ class Study extends ControlObject {
         super._setDefaults();
 
         this.studyName = "datesStudy";
-        this.studyVersion = "0.0.1";
+        this.studyVersion = "notSet";
         this.platformId = "not set";
         this.debriefComments = "";
 
@@ -80,6 +80,7 @@ class Study extends ControlObject {
                     name: "Advisor #37",
                     templateId: "advisor-key",
                     confidence: 9,
+                    confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECT_DISAGREE.copy(4),
@@ -94,6 +95,7 @@ class Study extends ControlObject {
                     name: "Advisor #09",
                     templateId: "advisor-key",
                     confidence: 9,
+                    confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_INCORRECT_REFLECTED.copy(1),

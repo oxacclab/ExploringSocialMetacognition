@@ -20,7 +20,8 @@ import * as utils from "../utils.js";
  * @property id {int|string} advisor's identification
  * @property name {string} advisor's displayed name
  * @property group {int|string} group(id|name) to which the advisor belongs
- * @property confidence {int} width of the advisor's marker
+ * @property confidence {number} width of the advisor's marker
+ * @param confidenceVariation {number} adjustment allowed around advisor's marker trial-by-trial
  * @property adviceProfile {AdviceProfile} target behaviours
  */
 class Advisor extends BaseObject {
@@ -279,12 +280,12 @@ class AdviceProfile extends BaseObject {
         if(fallback) {
             let t = aT;
             while(t.match(trial, advisor) === null) {
-                this.adviceTypes.forEach(x => {
+                for(let x of this.adviceTypes)
                     if(x.name === t.fallback || x.flag === t.fallback) {
                         t = x;
                         break;
                     }
-                });
+
                 if(t === aT || t === null)
                     this.error("No valid adviceType and no fallback.");
             }
@@ -296,8 +297,16 @@ class AdviceProfile extends BaseObject {
         out.actualTypeFlag = aT.flag;
         // Advice is selected as the middle of the available values
         let range = aT.match(trial, advisor);
-        out.advice = Math.round((range[1] - range[0]) / 2) + range[0];
+        out.adviceCentre = Math.round((range[1] - range[0]) / 2) + range[0];
         out.adviceWidth = advisor.confidence;
+
+        // Add some variation around the mean
+        let room = utils.min([
+            out.adviceCentre - range[0],
+            advisor.confidenceVariation,
+            range[1] - out.adviceCentre
+        ], true);
+        out.advice = utils.randomNumber(out.adviceCentre - room, out.adviceCentre + room);
 
         // Reset the used types
         if(utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
@@ -363,10 +372,15 @@ const ADVICE_AGREE = Object.freeze(new AdviceType({
      * @return {number[]|null}
      */
     match: (t, a) => {
-        const w = Math.floor(a.confidence / 2);
+        const w = Math.ceil(a.confidence / 2);
+        let min = t.data.responseEstimateLeft - w;
+        let max = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
+        // constrain to scale
+        let minS = parseFloat(t.responseWidget.dataset.min);
+        let maxS = parseFloat(t.responseWidget.dataset.max);
         return [
-            t.data.responseEstimateLeft - w,
-            t.data.responseEstimateLeft + t.data.responseMarkerWidth + w
+            utils.max([min, minS]),
+            utils.min([max, maxS])
         ];
     }
 }));
@@ -383,44 +397,54 @@ const ADVICE_CORRECT = Object.freeze(new AdviceType({
      * @return {number[]|null}
      */
     match: (t, a) => {
-        const w = Math.floor(a.confidence / 2);
+        const w = Math.ceil(a.confidence / 2);
+        let min = t.correctAnswer - w;
+        let max = t.correctAnswer + w;
+        // constrain to scale
+        let minS = parseFloat(t.responseWidget.dataset.min);
+        let maxS = parseFloat(t.responseWidget.dataset.max);
         return [
-            t.correctAnswer - w,
-            t.correctAnswer + w
+            utils.max([min, minS]),
+            utils.min([max, maxS])
         ];
     }
 }));
 
 // Incorrect advice is the correct answer reflected on the participant's answer
+// Advice should disagree
 const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
     name: "disagreeReflected",
     flag: 4,
     fallback: null,
     /**
-     * Values for middle consistent with simultaneous disagreement and
-     * correctness
+     * Values for middle indicating incorrect answers roughly as wrong as the
+     * participant's answer, but in the other direction.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
      * @return {number[]|null}
      */
     match: (t, a) => {
-        const w = Math.floor(a.confidence / 2);
+        const w = Math.ceil(a.confidence / 2);
         // Agreement values
         const minA = t.data.responseEstimateLeft - w;
         const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
 
-        // Target is the correct answer reflected in the participant's answer
+        // Target is the correct answer reflected in the middle of the
+        // participant's answer
         let target = t.correctAnswer +
-            (-1 * (t.correctAnswer -
+            (t.correctAnswer -
             Math.round(
                 t.data.responseEstimateLeft +
-                t.data.responseMarkerWidth / 2)));
+                t.data.responseMarkerWidth / 2));
 
-        if(target < parseFloat(t.responseWidget.dataset.min))
-            target = parseFloat(t.responseWidget.dataset.min);
+        // Keep target within the boundaries of the scale, assuming we have
+        // one step either side of the true answer limits
+        let step = parseFloat(t.responseWidget.dataset.labelStep);
+        if(target < parseFloat(t.responseWidget.dataset.min) + step)
+            target = parseFloat(t.responseWidget.dataset.min) + step;
         else
-            if(target > parseFloat(t.responseWidget.dataset.max))
-                target = parseFloat(t.responseWidget.dataset.max);
+            if(target > parseFloat(t.responseWidget.dataset.max) - step)
+                target = parseFloat(t.responseWidget.dataset.max) - step;
 
         // If there's no conflict with the participant, return the target value
         let min = target - w;
@@ -428,12 +452,11 @@ const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
         if(min > maxA || max < minA)
             return [min, max];
 
-        // If the participant is correct just avoid the participant's response
-        // by the minimum amount possible
-        if(target - minA < maxA - target)
-            return [min - (target - minA) - 1, max - (target - minA) - 1];
-        else
-            return [min + (maxA - target) + 1, max + (maxA - target) + 1];
+        // If the participant is correct avoid the participant's response
+        if(target - minA < maxA - target) // target below estimate
+            return [min, minA - 1];
+        else // estimate below target
+            return [maxA + 1, max];
     },
 }));
 
@@ -449,7 +472,7 @@ const ADVICE_CORRECT_AGREE = Object.freeze(new AdviceType({
      * @return {number[]|null}
      */
     match: (t, a) => {
-        const w = Math.floor(a.confidence / 2);
+        const w = Math.ceil(a.confidence / 2);
         // Agreement values
         const minA = t.data.responseEstimateLeft - w;
         const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
@@ -458,8 +481,8 @@ const ADVICE_CORRECT_AGREE = Object.freeze(new AdviceType({
         const maxC = t.correctAnswer + w;
 
         // find the intersected region
-        let min = minA > minC? minA : minC;
-        let max = maxA < maxC? maxA : maxC;
+        let min = utils.max([minA, minC]);
+        let max = utils.min([maxA, maxC]);
         // check for non-overlapping
         if(min > max)
             return null;
@@ -481,13 +504,17 @@ const ADVICE_CORRECT_DISAGREE = Object.freeze(new AdviceType({
      * @return {number[]|null}
      */
     match: (t, a) => {
-        const w = Math.floor(a.confidence / 2);
+        const w = Math.ceil(a.confidence / 2);
 
         // If the participant is correct this will not be possible
+        if(t.data.responseEstimateLeft <= t.correctAnswer &&
+            t.data.responseEstimateLeft + t.data.responseMarkerWidth >=
+            t.correctAnswer)
+            return null;
+
+        // Agreement values
         const minA = t.data.responseEstimateLeft - w;
         const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
-        if(minA <= t.correctAnswer && maxA >= t.correctAnswer)
-            return null;
 
         // Correctness values
         const minC = t.correctAnswer - w;
