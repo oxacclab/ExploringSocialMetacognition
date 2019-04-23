@@ -41,7 +41,7 @@ Trial-cleanup
 }
 
 /* Downgrade the visual appeal of the task while it's not interactable */
-body:not(.Trial-any):not(.Study-training):not(.Study-practice):not(.Study-core) #content {
+body:not(.Trial-any):not(.Study-training):not(.Study-practice):not(.Study-core):not(.Study-debrief):not(.Study-debriefAdvisors) #content {
     background-color: lightgrey;
 }
 
@@ -53,6 +53,11 @@ body:not(.Trial-any):not(.Study-practice):not(.Study-core) #content #stimulus {
 
 /* Hide the help button when we're not in practice */
 body:not(.Study-practice) #help-button {
+    display: none;
+}
+
+/* Hide the issue raising button during training */
+body:not(.Study-practice):not(.Study-core) #report-button {
     display: none;
 }
 
@@ -97,6 +102,12 @@ body:not(.Study-practice) #help-button {
 .Study-core:not(.Trial-any) #stimulus {
     justify-content: center;
     transform: scale(4);
+}
+
+/* Issue reporting */
+body.report-issue #report-issue {
+    display: flex;
+    z-index: 10;
 }
 
 @media screen and (max-height: 500px) {

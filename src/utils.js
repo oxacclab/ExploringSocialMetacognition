@@ -151,6 +151,9 @@ function round (x, decimals = 0, asPaddedString=false) {
 function shuffle(array) {
     let counter = array.length;
 
+    if(counter === 2)
+        return Math.random() < .5? array : array.reverse();
+
     // While there are elements in the array
     while (counter > 0) {
         // Pick a random index

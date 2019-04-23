@@ -410,12 +410,12 @@ const ADVICE_CORRECT = Object.freeze(new AdviceType({
     }
 }));
 
-// Incorrect advice is the correct answer reflected on the participant's answer
+// Incorrect advice is the participant's answer reflected on the correct answer
 // Advice should disagree
 const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
     name: "disagreeReflected",
     flag: 4,
-    fallback: null,
+    fallback: 32,
     /**
      * Values for middle indicating incorrect answers roughly as wrong as the
      * participant's answer, but in the other direction.
@@ -437,14 +437,14 @@ const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
                 t.data.responseEstimateLeft +
                 t.data.responseMarkerWidth / 2));
 
-        // Keep target within the boundaries of the scale, assuming we have
-        // one step either side of the true answer limits
-        let step = parseFloat(t.responseWidget.dataset.labelStep);
-        if(target < parseFloat(t.responseWidget.dataset.min) + step)
-            target = parseFloat(t.responseWidget.dataset.min) + step;
+        // Keep target within the boundaries of the scale
+        let minS = parseFloat(t.responseWidget.dataset.min);
+        let maxS = parseFloat(t.responseWidget.dataset.max);
+        if(target < minS + 2 * w)
+            target = minS + 2 * w;
         else
-            if(target > parseFloat(t.responseWidget.dataset.max) - step)
-                target = parseFloat(t.responseWidget.dataset.max) - step;
+            if(target > maxS - 2 * w)
+                target = maxS - 2 * w;
 
         // If there's no conflict with the participant, return the target value
         let min = target - w;
@@ -454,9 +454,15 @@ const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
 
         // If the participant is correct avoid the participant's response
         if(target - minA < maxA - target) // target below estimate
-            return [min, minA - 1];
+            if(min < minA - 1) // room for a marker
+                return [min, minA - 1];
+            else // no room; shift away from participant (missing target)
+                return minA - 1 - w > minS? [minA - 1, minA - 1] : null;
         else // estimate below target
-            return [maxA + 1, max];
+            if(maxA + 1 < max) // room for marker
+                return [maxA + 1, max];
+            else // no room; shift away from participant (missing target)
+                return maxA + 1 + w < maxS? [maxA + 1, maxA + 1]: null;
     },
 }));
 
@@ -531,5 +537,59 @@ const ADVICE_CORRECT_DISAGREE = Object.freeze(new AdviceType({
 }));
 
 
+// Incorrect advice is the correct answer reflected on the participant's answer
+// Advice should disagree. This is a fallback for disagreeReflected
+const ADVICE_INCORRECT_REVERSED = Object.freeze(new AdviceType({
+    name: "disagreeReversed",
+    flag: 32,
+    fallback: null,
+    /**
+     * Values for middle indicating incorrect answers roughly twice as wrong as the
+     * participant's answer, in the same direction.
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]|null}
+     */
+    match: (t, a) => {
+        const w = Math.ceil(a.confidence / 2);
+        // Agreement values
+        const minA = t.data.responseEstimateLeft - w;
+        const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
 
-export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE};
+        // Target is the correct answer reflected in the middle of the
+        // participant's answer
+        let ans = Math.round(t.data.responseEstimateLeft +
+            t.data.responseMarkerWidth / 2);
+        let target = ans + (ans - t.correctAnswer);
+
+        // Keep target within the boundaries of the scale
+        let minS = parseFloat(t.responseWidget.dataset.min);
+        let maxS = parseFloat(t.responseWidget.dataset.max);
+        if(target < minS + 2 * w)
+            target = minS + 2 * w;
+        else
+            if(target > maxS - 2 * w)
+                target = maxS - 2 * w;
+
+        // If there's no conflict with the participant, return the target value
+        let min = target - w;
+        let max = target + w;
+        if(min > maxA || max < minA)
+            return [min, max];
+
+        // If the participant is correct avoid the participant's response
+        if(target - minA < maxA - target) // target below estimate
+            if(min < minA - 1) // room for a marker
+                return [min, minA - 1];
+            else // no room; shift away from participant (missing target)
+                return minA - 1 - w > minS? [minA - 1, minA - 1] : null;
+        else // estimate below target
+            if(maxA + 1 < max) // room for marker
+                return [maxA + 1, max];
+            else // no room; shift away from participant (missing target)
+                return maxA + 1 + w < maxS? [maxA + 1, maxA + 1]: null;
+    },
+}));
+
+
+export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED};

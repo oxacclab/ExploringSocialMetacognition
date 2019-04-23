@@ -29,6 +29,8 @@ customElements.define('esm-help',
 
             let me = this;
             this.sendShowHelpEvent = function(e) {
+                e.stopPropagation();
+                e.preventDefault();
                 me.dispatchEvent(new CustomEvent("showHelp", {
                     bubbles: false,
                     detail: {

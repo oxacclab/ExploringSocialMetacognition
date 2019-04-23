@@ -8,7 +8,7 @@
 
 "use strict";
 
-import {Advisor, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_DISAGREE, ADVICE_CORRECT_AGREE, AdviceProfile} from "./Advisor.js";
+import {Advisor, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_DISAGREE, ADVICE_CORRECT_AGREE, ADVICE_INCORRECT_REVERSED, AdviceProfile} from "./Advisor.js";
 import {Trial, AdvisedTrial} from "./Trial.js";
 import {ControlObject} from "./Prototypes.js";
 import * as utils from "../utils.js";
@@ -79,12 +79,14 @@ class Study extends ControlObject {
                     group: 1,
                     name: "Advisor #37",
                     templateId: "advisor-key",
-                    confidence: 9,
+                    confidence: 8,
                     confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECT_DISAGREE.copy(4),
                             ADVICE_INCORRECT_REFLECTED.copy(1),
+                            // fallbacks
+                            ADVICE_INCORRECT_REVERSED.copy(0),
                             ADVICE_CORRECT.copy(0)
                         ]
                     })
@@ -94,12 +96,14 @@ class Study extends ControlObject {
                     group: 2,
                     name: "Advisor #09",
                     templateId: "advisor-key",
-                    confidence: 9,
+                    confidence: 8,
                     confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_INCORRECT_REFLECTED.copy(1),
                             ADVICE_CORRECT_AGREE.copy(4),
+                            // fallbacks
+                            ADVICE_INCORRECT_REVERSED.copy(0),
                             ADVICE_CORRECT.copy(0)
                         ]
                     })
@@ -356,13 +360,17 @@ class Study extends ControlObject {
         return new Promise(async function(resolve) {
             // Spacebar moves onwards
             const gotoNextStep = function(target) {
-                return(new Promise((resolve)=> {
+
+                if(DEBUG.level)
+                    return new Promise(r => r());
+
+                return new Promise((resolve)=> {
                     function next() {
                         target.removeEventListener("click", next);
                         resolve();
                     }
                     target.addEventListener("click", next);
-                }))
+                });
             };
 
             let T = new Trial(study.trialBlueprint);
@@ -374,6 +382,8 @@ class Study extends ControlObject {
 
             // Pause the progress bar animation
             document.querySelector(".progress-bar .outer").style.animationPlayState = "paused";
+
+            instr.classList.add("top");
 
             Study._hideHelp(help);
 
@@ -393,13 +403,23 @@ class Study extends ControlObject {
             await gotoNextStep(help);
             Study._hideHelp(help);
 
-            instr.innerHTML =
-                "Enter an estimate to move on...";
-            instr.classList.add("top");
             let data = T.nextPhase("hideStim");
+            T.nextPhase("getResponse");
 
-            help = Study._showHelp(
-                document.querySelector("esm-response-timeline ~ esm-help"));
+            help = Study._showHelp(document.querySelector(".response-timeline ~ esm-help"));
+            await gotoNextStep(help);
+            Study._hideHelp(help);
+
+            help = Study._showHelp(document.querySelector(".response-marker-pool > div ~ esm-help"));
+            await gotoNextStep(help);
+            Study._hideHelp(help);
+
+            help = Study._showHelp(document.querySelector("#response-panel .buttons ~ esm-help"));
+            await gotoNextStep(help);
+            Study._hideHelp(help);
+
+            instr.innerHTML =
+                "Enter a response to continue";
 
             await T.nextPhase("getResponse");
 
@@ -541,33 +561,51 @@ class Study extends ControlObject {
         return this;
     }
 
+    reportIssue() {
+        const me = this;
+
+        // Reset reporting form
+        const div = document.querySelector("#report-issue");
+        div.innerHTML = "";
+        div.appendChild(document.importNode(document.querySelector("#issue-report").content, true));
+
+        div.querySelector("form").addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.querySelector("#report-issue form");
+            if(form.querySelector("[name='issueContent']").value !== "") {
+
+                const data = {
+                    ...me.toTable(),
+                    ...me.trials[me.currentTrial].toTable()
+                };
+                form.querySelectorAll("textarea, select, input:not([type='submit'])").forEach(i => data[i.name] = i.value);
+
+                me.info("User issue report!");
+                me.saveCSVRow("issue-report", false, data);
+            }
+
+            form.classList.add("exit");
+            setTimeout(() => document.body.classList.remove("report-issue"), 1000);
+        });
+
+        // Show the reporting form
+        document.body.classList.add("report-issue");
+    }
+
     /**
      * Fetch the data for the study in a flat format suitable for CSVing
      * @param headers {boolean} whether to include column headers
-     * @return {string[]}
+     * @return {object} key-value pairs
      */
-    toTable(headers) {
-        const out = [
-            ...this.blockLength,
-            this.countdownTime,
-            this.practiceBlocks
-        ];
-
-        if(!headers)
-            return out;
-
-        let head = [];
+    toTable() {
+        const out = {};
         for(let i = 0; i < this.blockLength.length; i++)
-            head.push("block" + i.toString() + "length");
-        head = [
-            ...head,
-            ...[
-                "countdownTime",
-                "practiceBlocks"
-            ]
-        ];
+            out["block" + i.toString() + "length"] = this.blockLength[i];
 
-        return [head, out];
+        out.countdownTime = this.countdownTime;
+        out.practiceBlocks = this.practiceBlocks;
+
+        return out;
     }
 
     /**
@@ -660,6 +698,7 @@ class Study extends ControlObject {
             studyId: this.studyName,
             studyVersion: this.studyVersion,
             pid: await this.getSaveId(),
+            clientTime: new Date().getTime(),
             ...data
         });
 
@@ -728,6 +767,23 @@ class DatesStudy extends Study {
     // Override the prefix so styling can use Trial rather than duplicating
     get _phaseClassPrefix() {
         return "Study";
+    }
+
+    static get listPhases() {
+        return [
+            "splashScreen",
+            "consent",
+            "demographics",
+            "introduction",
+            "training",
+            "practiceInstructions",
+            "practice",
+            "coreInstructions",
+            "core",
+            "debriefAdvisors",
+            "debrief",
+            "results"
+        ];
     }
 
     async awaitTrialLoading() {
@@ -813,7 +869,101 @@ class DatesStudy extends Study {
         return bp;
     }
 
+    async debriefAdvisors() {
+
+        const me = this;
+        const advisors = utils.shuffle(this.advisors);
+
+        // Show the debrief questions
+        const setForm = function (resolve) {
+            const content = document.querySelector("#content");
+            content.innerHTML = "";
+            content.appendChild(
+                document.importNode(
+                    document.getElementById("debrief-advisors").content, true
+                ));
+
+            const form = document.querySelector("form");
+
+            const advisor = advisors.pop();
+            const div = form.querySelector(".subject");
+            div.dataset.id = advisor.id;
+            div.appendChild(advisor.getInfoTab());
+
+            // Disable form submission until an input or textarea has been clicked
+            const submit = form.querySelector("input[type='submit'");
+            submit.disabled = "disabled";
+            form.querySelectorAll("input[type='range'], form textarea")
+                .forEach(i => i.addEventListener("click", ()=> submit.disabled = ""));
+
+            // Register submit function
+            form.addEventListener("submit", e=>{
+                e.preventDefault();
+                const data = {};
+                form.querySelectorAll("input:not([type='submit']), textarea").forEach(i => data[i.name] = i.value);
+                data.advisorId = form.querySelector(".subject").dataset.id;
+                me.saveCSVRow("debrief-advisors", true, data);
+                if(advisors.length)
+                    setForm(resolve);
+                else
+                    resolve("debriefAdvisors");
+            });
+        };
+
+        return new Promise(function(resolve) {
+            setForm(resolve);
+        });
+    }
+
+    async debrief() {
+
+        const me = this;
+
+        const checkInput = function() {
+            // Has anything been written in the mandatory fields?
+            let okay = true;
+            document.querySelectorAll("form textarea.mandatory").forEach(elm => {
+                if(elm.value === "") {
+                    elm.classList.add("invalid");
+                    okay = false;
+                }
+            });
+            return okay;
+        };
+
+        return new Promise(function(resolve) {
+            // Show the debrief questions
+            const content = document.querySelector("#content");
+            content.innerHTML = "";
+            content.appendChild(
+                document.importNode(
+                    document.getElementById("debrief").content, true
+                ));
+            document.querySelector("form").addEventListener("submit", e=>{
+                e.preventDefault();
+
+                if(!checkInput())
+                    return false;
+
+                const priv = {
+                    comment: document.querySelector("form textarea[name='generalComments']").value
+                };
+                const pub = {
+                    comment: document.querySelector("form textarea[name='advisorDifference']").value
+                };
+                me.saveCSVRow("debrief-form", false, priv);
+                me.saveCSVRow("debrief-form", true, pub);
+
+                resolve("debrief");
+            });
+        });
+    }
+
     async results() {
+        // Save the study in the background
+        if(DEBUG.level < 3)
+            this.save(console.log);
+
         let trialList = [];
 
         // Simulate results if we're testing feedback
@@ -902,7 +1052,7 @@ class DatesStudy extends Study {
         // Update the permalink
         let link = window.location.host === "localhost"?
             window.location.origin + window.location.pathname :
-            "http://tinyurl.com/acclab-de";
+            "http://tinyurl.com/acclab-ac";
         let code = this.id + "-" + this.studyVersion;
         document.querySelector(".feedback-wrapper .display span.permalink")
             .innerHTML = link + "?fb=" + code;

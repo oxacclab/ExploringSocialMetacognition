@@ -171,10 +171,12 @@ div {
     padding: .25em 0;
     margin: 0.25em 0 0 0;
     font-size: var(--font-size-small);
+    border-radius: var(--tag-border-radius);
+    box-shadow: 0px 1px 1px 0 black;
 }
 .left .advisor-key-row {
-    border-top-right-radius: var(--tag-border-radius);
-    border-bottom-right-radius: var(--tag-border-radius);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
     box-shadow: 1px 1px 1px 0 black;
 
     width: 100%;
@@ -289,6 +291,60 @@ esm-response-timeline .response-timeline {
     background-color: yellow;
 }
 
+#report-button {
+    position: absolute;
+    bottom: .5em;
+    right: .5em;
+    font-size: 1em;
+    background: transparent;
+    border: none;
+    opacity: .3;
+}
+#report-button:hover {
+    cursor: pointer;
+    opacity: 1;
+}
+#report-button svg {
+    height: 2em;
+    width: 2em;
+    fill: lightgrey;
+}
+#report-button:hover #outline {
+    fill: #f4c430;
+}
+#report-button:hover .bang {
+    fill: black;
+}
+
+#report-issue {
+    position: absolute;
+    height: 100vh;
+    width: 100vw;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    background-color: rgba(99,99,99,.66);
+}
+@keyframes scrollUp {
+    0% {transform: translateY(-125%)}
+}
+@keyframes scrollUpOut {
+    100% {transform: translateY(-125%)}
+}
+#report-issue form {
+    height: 90%;
+    width: 90%;
+    margin: auto;
+    background-color: white;
+    border-radius: 2em;
+    border: 2px solid black;
+    animation: scrollUp 1s ease-in-out;
+}
+#report-issue form.exit {
+    animation-name: scrollUpOut;
+}
+
+
 /* Counter widget */
 @keyframes tickAway {
     from {
@@ -316,6 +372,76 @@ esm-response-timeline .response-timeline {
     width: 20px;
     line-height: 20px;
     font-size: 14px;
+}
+
+/* Debrief questionnaire */
+@keyframes formIn {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(0%);
+    }
+}
+form.questionnaire {
+    animation: formIn 1s ease-in;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+form .subject {
+    width: 25%;
+}
+form .item {
+    display: flex;
+    margin: auto;
+    width: 100%;
+    justify-content: center;
+}
+form .item > * {
+    padding: .5em;
+}
+form .item > *:not(input) {
+    width: 25%;
+}
+form input[type="range"] {
+    width: 50%;
+}
+form .bottom, form .question {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+form .bottom {
+    margin-bottom: .5em;
+}
+form .bottom textarea {
+    width: 50%;
+    height: 80px;
+    margin: unset;
+}
+form input[type="submit"] {
+    height: 80px;
+    width: 80px;
+    color: var(--group-1-primary);
+    font-weight: bold;
+    font-size: 3em;
+    font-family: monospace;
+    opacity: .6;
+}
+form input[type="submit"]:not([disabled]) {
+    cursor: pointer;
+    opacity: 1;
+}
+form textarea {
+    width: 75%;
+    margin: auto;
+    height: 4em;
+    font-size: var(--font-size-small);
+}
+form textarea.invalid {
+    box-shadow: 0 0 10px 0 crimson;
 }
 
 /* Feedback display; quite complex */
@@ -475,5 +601,15 @@ span.permalink {
     }
     .counter {
         transform: scale(3);
+    }
+    form.general input[type="submit"] {
+        height: 40px;
+        width: 40px;
+        font-size: 1em;
+    }
+    #report-button {
+        bottom: .25em;
+        right: .25em;
+        z-index: 5;
     }
 }
