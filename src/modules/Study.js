@@ -1092,7 +1092,7 @@ class DatesStudy extends Study {
         // Update the permalink
         let link = window.location.host === "localhost"?
             window.location.origin + window.location.pathname :
-            "http://tinyurl.com/acclab-ac";
+            "http://tinyurl.com/acclab-ac2/";
         let code = this.id + "-" + this.studyVersion;
         document.querySelector(".feedback-wrapper .display span.permalink")
             .innerHTML = link + "?fb=" + code;
