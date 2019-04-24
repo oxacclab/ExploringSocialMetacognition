@@ -185,7 +185,12 @@ class Advisor extends BaseObject {
      */
     get tableHeaders() {
         return [
-            "id", "group", "name"
+            "id",
+            "idDescription",
+            "group",
+            "name",
+            "confidence",
+            "confidenceVariation"
         ];
     }
 }

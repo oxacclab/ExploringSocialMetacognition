@@ -85,8 +85,8 @@ foreach(array("private", "public") as $privacy) {
     else
         $write = $data;
 
-    if(!file_exists($filename)) {
-        if(($handle = fopen($filename, "wb")) !== false) {
+    if(!file_exists($filename) && !is_null($write) && count($write)) {
+        if(($handle = fopen($filename, "wb+")) !== false) {
             fwrite($handle, $write);
         } else
             sulk("Unable to create file.", 500);

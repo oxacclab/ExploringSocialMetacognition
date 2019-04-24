@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.3">
+<head data-version="0.0.4">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -276,7 +276,7 @@
 
     import {Study, DatesStudy} from "../src/modules/Study.js";
     import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor} from "../src/modules/Advisor.js";
+    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
 
     // Procedural stuff
@@ -286,12 +286,72 @@
     window.DEBUG = {};
     DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
 
+    let advisors =
+        [
+            new Advisor({ // practice advisor
+                id: 0,
+                idDescription: "Practice",
+                group: 0,
+                name: "Practice advisor",
+                templateId: "advisor-key",
+                confidence: 8,
+                confidenceVariation: 3,
+                adviceProfile: new AdviceProfile({
+                    adviceTypes: [
+                        ADVICE_CORRECT_AGREE.copy(1),
+                        ADVICE_CORRECT.copy(0)
+                    ]
+                })
+            }),
+            new Advisor({
+                id: 1,
+                idDescription: "Accurate",
+                group: 0,
+                name: "Advisor #" + parseInt(10 + Math.random() * 50),
+                templateId: "advisor-key",
+                confidence: 8,
+                confidenceVariation: 3,
+                adviceProfile: new AdviceProfile({
+                    adviceTypes: [
+                        ADVICE_CORRECT_DISAGREE.copy(4),
+                        ADVICE_INCORRECT_REFLECTED.copy(1),
+                        // fallbacks
+                        ADVICE_INCORRECT_REVERSED.copy(0),
+                        ADVICE_CORRECT.copy(0)
+                    ]
+                })
+            }),
+            new Advisor({
+                id: 2,
+                idDescription: "Agreeing",
+                group: 0,
+                name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
+                templateId: "advisor-key",
+                confidence: 8,
+                confidenceVariation: 3,
+                adviceProfile: new AdviceProfile({
+                    adviceTypes: [
+                        ADVICE_CORRECT_AGREE.copy(4),
+                        ADVICE_INCORRECT_REFLECTED.copy(1),
+                        // fallbacks
+                        ADVICE_INCORRECT_REVERSED.copy(0),
+                        ADVICE_CORRECT.copy(0)
+                    ]
+                })
+            })
+        ];
+    while(advisors[0].name === advisors[1].name)
+        advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
+
+    advisors = [advisors[0], ...utils.shuffle([advisors[1], advisors[2]])];
+
     let studyBlueprint = {
         studyVersion: document.querySelector("head").dataset.version,
         attentionCheckTrials: [10,22],
-        blockLength: [2, 15, 15],
+        blockLength: [3, 15, 15],
         practiceBlocks: 1,
-        questionsXML: "assets/etc/questions.xml"
+        questionsXML: "assets/etc/questions.xml",
+        advisors
     };
 
     // shorter study in debug mode

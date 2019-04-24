@@ -108,7 +108,7 @@ div {
 
 #prompt {
     margin: .25em 0;
-    font-size: var(--font-size-medium);
+    font-size: var(--font-size-small);
     height: 2em;
 }
 
@@ -377,15 +377,17 @@ esm-response-timeline .response-timeline {
 /* Debrief questionnaire */
 @keyframes formIn {
     0% {
-        transform: translateX(100%);
-    }
-    100% {
-        transform: translateX(0%);
+        transform: translateX(120%);
     }
 }
+@keyframes formOut {
+    100% { transform: translateX(-120%) }
+}
 form.questionnaire {
-    animation: formIn 1s ease-in;
+    animation: formIn 0.2s linear;
+    position: relative;
     height: 100%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
@@ -461,9 +463,6 @@ form textarea.invalid {
 }
 .debrief span {
     font-weight: bold;
-}
-.display {
-    height: 400px;
 }
 .legend {
     position: absolute;
@@ -583,6 +582,9 @@ span.permalink {
         width: 100vw;
         height: 100vh;
         top: 0;
+    }
+    esm-instruction::before {
+        display: none;
     }
     esm-instruction-page {
         border: none;

@@ -60,8 +60,6 @@ class Study extends ControlObject {
 
         this.studyName = "datesStudy";
         this.studyVersion = "notSet";
-        this.platformId = "not set";
-        this.debriefComments = "";
 
         this.currentTrial = 0;
         this.currentBlock = 0;
@@ -100,8 +98,8 @@ class Study extends ControlObject {
                     confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_INCORRECT_REFLECTED.copy(1),
                             ADVICE_CORRECT_AGREE.copy(4),
+                            ADVICE_INCORRECT_REFLECTED.copy(1),
                             // fallbacks
                             ADVICE_INCORRECT_REVERSED.copy(0),
                             ADVICE_CORRECT.copy(0)
@@ -294,7 +292,7 @@ class Study extends ControlObject {
                         document.querySelector("#content").requestFullscreen();
                     let now = new Date().getTime();
                     data.push({name, now});
-                    if(name === "end")
+                    if(name === "exit")
                         resolve(data);
                 });
         });
@@ -336,12 +334,11 @@ class Study extends ControlObject {
         for(let i = 0; i < n; i++) {
 
             // Run the trial
-            this.trials[this.currentTrial] =
-                await this.trials[this.currentTrial].run();
+            const t = await this.trials[this.currentTrial].run();
 
             // Save trial data
-            this.saveCSVRow(this.trials[this.currentTrial].constructor.name,
-                true, this.trials[this.currentTrial].toTable());
+            let table = t.saveTableName? t.saveTableName : t.constructor.name;
+            this.saveCSVRow(table, true, t.toTable());
 
             // Inter-trial interval
             await this.ITI();
@@ -442,16 +439,41 @@ class Study extends ControlObject {
                 (name) => {
                     let now = new Date().getTime();
                     data.push({name, now});
-                    if(name === "end")
+                    if(name === "exit")
                         resolve(data);
                 });
         });
     }
 
+    /**
+     * Return a list of unique advisors registered to trials in a block
+     * @param [block=null] {int|null} a block number or null for the current block
+     * @return {Advisor[]}
+     */
+    getBlockAdvisors(block = null) {
+        if(block === null)
+            block = this.currentBlock;
+
+        let firstTrial = 0;
+        for(let i = 0; i < block; i++)
+            firstTrial += this.blockLength[i];
+
+        // Find advisors in the upcoming block
+        let advisors = [];
+        for(let i = firstTrial; i < firstTrial + this.blockLength[block]; i++)
+            if(this.trials[i].advisors)
+                this.trials[i].advisors.forEach(a => {
+                    if(advisors.indexOf(a) === -1)
+                        advisors.push(a);
+                });
+
+        return advisors;
+    }
+
     async preBlock(introduceAdvisors = true) {
 
         if(introduceAdvisors) {
-            await this._introduceAdvisors(this.advisors);
+            await this._introduceAdvisors(this.getBlockAdvisors());
         }
 
         // Pre-block delay
@@ -466,7 +488,7 @@ class Study extends ControlObject {
                 (name) => {
                     let now = new Date().getTime();
                     data.push({name, now});
-                    if(name === "end")
+                    if(name === "exit")
                         resolve(data);
                 });
         });
@@ -501,7 +523,7 @@ class Study extends ControlObject {
                 (name) => {
                     let now = new Date().getTime();
                     data.push({name, now});
-                    if(name === "end")
+                    if(name === "exit")
                         resolve(data);
                 });
         });
@@ -546,7 +568,9 @@ class Study extends ControlObject {
 
         for(let i = this.practiceBlocks; i < b; i++) {
 
-            await this.preBlock(false);
+            let intro = i === 0? false : this.getBlockAdvisors(i) !== this.getBlockAdvisors(i - 1);
+
+            await this.preBlock(intro);
 
             // Run the trial
             await this._runNextBlock();
@@ -612,9 +636,7 @@ class Study extends ControlObject {
     * @return {string[]} headers for the private columns
     */
     get privateTableHeaders() {
-        return [
-            "platformId", "debriefComments"
-        ];
+        return [];
     }
 
     /**
@@ -649,7 +671,11 @@ class Study extends ControlObject {
         if(typeof onError !== "function")
             onError = (reply)=>console.error("Error: ", reply);
 
-        const privateData = this.extractPrivateData();
+        let privateData = this.extractPrivateData();
+        if(privateData.length)
+            privateData = JSON.stringify(privateData);
+        else
+            privateData = null;
 
         // Save raw data JSON
         return fetch("../saveJSON.php", {
@@ -662,7 +688,7 @@ class Study extends ControlObject {
                     idCode: this.id
                 },
                 data: JSON.stringify(this),
-                privateData: JSON.stringify(privateData)
+                privateData
             })
         })
             .then(response => response.text())
@@ -755,11 +781,26 @@ class DatesStudy extends Study {
         this.parseQuestionsXML()
             .then(() => {
                 this.trials = [];
+
+                let practiceTrials = 0;
+                for(let i = 0; i < this.practiceBlocks; i++)
+                    practiceTrials += this.blockLength[i];
+
                 for(let i = 0; i < utils.sumList(this.blockLength); i++) {
-                    if(this.attentionCheckTrials.indexOf(i) !== -1)
-                        this.trials.push(new Trial({...this.attentionCheckBlueprint, number: i}));
-                    else
-                        this.trials.push(new AdvisedTrial({...this.trialBlueprint, number: i}))
+                    if(i < practiceTrials) {
+                        this.trials.push(new AdvisedTrial({
+                            ...this.trialBlueprint,
+                            advisors: [this.advisors[0]],
+                            number: i,
+                            saveTableName: "practiceTrial",
+                            displayFeedback: this.displayFeedback,
+                        }))
+                    } else {
+                        if(this.attentionCheckTrials.indexOf(i) !== -1)
+                            this.trials.push(new Trial({...this.attentionCheckBlueprint, number: i}));
+                        else
+                            this.trials.push(new AdvisedTrial({...this.trialBlueprint, number: i}));
+                    }
                 }
             });
     }
@@ -842,8 +883,7 @@ class DatesStudy extends Study {
             correctAnswer:
                 parseInt(q.getElementsByTagName("target")[0].innerHTML),
             prompt: "",
-            displayFeedback: this.displayFeedback,
-            advisors: this.advisors,
+            advisors: [this.advisors[1], this.advisors[2]],
             attentionCheck: false
         };
         bp.stim.innerHTML = q.getElementsByTagName("prompt")[0].innerHTML;
@@ -872,7 +912,7 @@ class DatesStudy extends Study {
     async debriefAdvisors() {
 
         const me = this;
-        const advisors = utils.shuffle(this.advisors);
+        const advisors = utils.shuffle(this.advisors).filter(a => a.id !== 0);
 
         // Show the debrief questions
         const setForm = function (resolve) {
@@ -1161,7 +1201,7 @@ class DatesStudy extends Study {
 
             let i = 0;
             while(true) {
-                if(i++ > 100) {
+                if(i++ > 300) {
                     console.error("loop did not break");
                     break;
                 }
@@ -1179,7 +1219,7 @@ class DatesStudy extends Study {
                 if(okay)
                     break;
 
-                ans.style.top = (i * -my.height / 3) + "px";
+                ans.style.top = (ans.offsetTop - 1).toString() + "px";
                 my = ans.getBoundingClientRect();
             }
         });

@@ -850,7 +850,7 @@
                 setTimeout(generalQuestions, 1000);
             else
                 showInstructions("instr-intro", (name)=> {
-                    if(name === "end")
+                    if(name === "exit")
                         document.querySelector("#content").requestFullscreen();
                         askQuestion();
                 });

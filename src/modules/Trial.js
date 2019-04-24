@@ -282,6 +282,7 @@ class Trial extends ControlObject {
      */
     toTable(headers=null) {
         this.data.isAttentionCheck = this.attentionCheck + 0; // cast to int
+        this.data.number = this.number;
 
         const out = {};
 
@@ -342,12 +343,11 @@ class AdvisedTrial extends Trial {
 
         // Register advisors in the data output
         for(let i = 0; i < this.advisors.length; i++) {
-            const a = this.advisors[i];
+            const a = this.advisors[i].toTable();
             const s = "advisor" + a.id;
             this.data[s + "position"] = i;
-            this.data[s + "id"] = a.id;
-            this.data[s + "name"] = a.name;
-            this.data[s + "group"] = a.group;
+            for(let x in a)
+                this.data[s + x] = a[x];
         }
 
         AdvisedTrial.reset();

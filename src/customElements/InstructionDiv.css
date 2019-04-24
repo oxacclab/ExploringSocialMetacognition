@@ -2,12 +2,14 @@
 
 }
 
-@keyframes fadeIn {
+@keyframes scrollFromRight {
     from {
-        color: transparent;
+        transform: translateX(120%);
     }
+}
+@keyframes scrollToLeft {
     to {
-        color: unset;
+        transform: translateX(-120%);
     }
 }
 
@@ -16,8 +18,9 @@ esm-instruction::before {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 400vw;
+    height: 400vh;
+    transform: translate(-50%, -50%);
     background-color: rgba(123, 123, 123, 0.21);
 }
 
@@ -31,7 +34,7 @@ esm-instruction {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    animation: fadeIn 1s forwards ease-in;
+    animation: scrollFromRight 200ms linear;
 }
 
 esm-instruction-page {
@@ -72,6 +75,10 @@ esm-instruction div:last-child button:focus {
     background-color: #2196F3;
     color: whitesmoke;
     cursor: pointer;
+}
+
+esm-instruction.exit {
+    animation: scrollToLeft forwards 200ms;
 }
 
 esm-instruction.cloak,

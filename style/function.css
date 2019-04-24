@@ -40,11 +40,6 @@ Trial-cleanup
     animation: progress-demo 10s linear infinite;
 }
 
-/* Downgrade the visual appeal of the task while it's not interactable */
-body:not(.Trial-any):not(.Study-training):not(.Study-practice):not(.Study-core):not(.Study-debrief):not(.Study-debriefAdvisors) #content {
-    background-color: lightgrey;
-}
-
 /* Hide the stimulus when it's not needed. */
 .Trial-begin #content #stimulus,
 body:not(.Trial-any):not(.Study-practice):not(.Study-core) #content #stimulus {

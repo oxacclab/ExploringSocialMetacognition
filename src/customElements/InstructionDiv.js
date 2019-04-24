@@ -193,7 +193,21 @@ customElements.define('esm-instruction',
             const me = e? e.currentTarget.closest("esm-instruction") : this;
             me.sendCallback("end", e);
 
-            me.classList.add("cloak");
+            me.classList.add("exit");
+            let delay = /([0-9.]+)(m?s)/.exec(window.getComputedStyle(me).animationDuration);
+
+            const finish = function() {
+                me.classList.replace("exit", "cloak");
+                me.sendCallback("exit", e);
+            };
+
+            if(delay) {
+                const t = delay[2] === "s"?
+                    parseFloat(delay[1]) * 1000 : parseInt(delay[1]);
+                setTimeout(finish, t);
+            }
+            else
+                finish();
         }
     }
 );
