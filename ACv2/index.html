@@ -281,6 +281,29 @@
 
     // Procedural stuff
 
+    // Check consent
+
+    let prolificId = utils.getQueryStringValue("PROLIFIC_PID");
+    if(!prolificId)
+        window.prolificID = "NoIdSupplied";
+    else
+        window.prolificID = prolificId;
+
+    // redirect if we don't have consent for participation
+    let consent = utils.getQueryStringValue("consent") === "true";
+    if(!consent &&
+        !utils.getQueryStringValue("fb") &&
+        !utils.getQueryStringValue("debug")) {
+        const redirectURL =
+            "../consent.html" +
+            window.location.search +
+            (/\?/.test(window.location.search)? "&" : "?") +
+            "study=ACv2";
+        window.location.replace(redirectURL); // simulate redirect (no history)
+    }
+
+    // Run trial
+
     AdvisedTrial.reset();
 
     window.DEBUG = {};
