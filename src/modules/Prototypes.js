@@ -10,7 +10,7 @@
 
 "use strict";
 
-import {utils} from "../exploringSocialMetacognition";
+import * as utils from "../utils.js";
 
 /**
  * @class BaseObject

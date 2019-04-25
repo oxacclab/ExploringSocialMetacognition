@@ -318,6 +318,7 @@
     window.DEBUG = {};
     DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
     DEBUG.feedback = parseInt(utils.getQueryStringValue("feedback"));
+    DEBUG.qCount = parseInt(utils.getQueryStringValue("qCount"));
 
     let advisors =
         [
@@ -391,6 +392,8 @@
     // shorter study in debug mode
     if(DEBUG.level >= 1 && !utils.getQueryStringValue("fb"))
         studyBlueprint.blockLength = [2, 2];
+    if(DEBUG.qCount > 1 && !utils.getQueryStringValue("fb"))
+        studyBlueprint.blockLength = [1, DEBUG.qCount];
 
     window.study = new DatesStudy(studyBlueprint);
 
