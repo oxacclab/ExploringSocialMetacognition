@@ -603,14 +603,27 @@ class Study extends ControlObject {
             const form = document.querySelector("#report-issue form");
             if(form.querySelector("[name='issueContent']").value !== "") {
 
-                const data = {
-                    ...me.toTable(),
-                    ...me.trials[me.currentTrial].toTable()
+                let data = {
+                    currentTrial: me.currentTrial,
+                    question: me.trials[me.currentTrial].stimHTML
                 };
                 form.querySelectorAll("textarea, select, input:not([type='submit'])").forEach(i => data[i.name] = i.value);
 
                 me.info("User issue report!");
                 me.saveCSVRow("issue-report", false, data);
+
+                const metadata = {
+                    studyId: study.studyName,
+                    studyVersion: study.studyVersion,
+                    idCode: study.id,
+                    error: data.content,
+                    userIssue: true
+                };
+
+                fetch("../saveErrorDump.php", {
+                    method: "POST",
+                    body: JSON.stringify({metadata, data: JSON.stringify(me)})
+                })
             }
 
             form.classList.add("exit");

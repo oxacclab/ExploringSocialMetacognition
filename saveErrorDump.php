@@ -40,6 +40,7 @@ $eid = (string) $meta["studyId"];
 $version = (string) $meta["studyVersion"];
 $version = str_replace(".", "-", $version);
 $pid = $meta["idCode"];
+$userIssue = (boolean) $meta["userIssue"];
 
 // Check input is valid
 function is_alphanumeric($str, $allowHyphen = false) {
@@ -56,12 +57,15 @@ if(!is_alphanumeric($version, true) ||
 const PATH = "./data/private/error/";
 $prefix = $eid . "_v" . $version;
 $body = date('Y-m-d_H-i-s') . "_" . $prefix . "_" . $pid;
+$suffix = $userIssue? "user-issue" : "error-dump";
 
-$filename = PATH . $body . "_error-dump.json";
+$logPath = $userIssue? PATH . "issues.log" : PATH . "error.log";
+
+$filename = PATH . $body . "_" . $suffix . ".json";
 
 if(($handle = fopen($filename, "wb")) !== false)
     fwrite($handle, $data);
 
 // Create/update error log
-if(($handle = fopen(PATH . "error.log", "ab+")) !== false)
+if(($handle = fopen(PATH . $logPath, "ab+")) !== false)
     fwrite($handle, "File: $filename; Error: $error" . PHP_EOL);

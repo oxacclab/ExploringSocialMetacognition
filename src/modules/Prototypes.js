@@ -88,7 +88,8 @@ class BaseObject {
                 studyId: study.studyName,
                 studyVersion: study.studyVersion,
                 idCode: study.id,
-                error: content
+                error: content,
+                userIssue: false
             };
             const data = JSON.stringify(study);
 
