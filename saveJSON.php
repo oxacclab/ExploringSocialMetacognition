@@ -85,13 +85,24 @@ foreach(array("private", "public") as $privacy) {
     else
         $write = $data;
 
-    if(!file_exists($filename) && !is_null($write) && count($write)) {
-        if(($handle = fopen($filename, "wb+")) !== false) {
-            fwrite($handle, $write);
+    $empty = true;
+
+    foreach(json_decode($write) as $x)
+        if(count($x)) {
+            $empty = false;
+            break;
+        }
+
+    if(!$empty) {
+        if (!file_exists($filename)) {
+            if (($handle = fopen($filename, "wb+")) !== false) {
+                fwrite($handle, $write);
+                fclose($handle);
+            } else
+                sulk("Unable to create file.", 500);
         } else
-            sulk("Unable to create file.", 500);
-    } else
-        sulk("File already exists!", 500);
+            sulk("File already exists!", 500);
+    }
 }
 
 // Send back the all clear

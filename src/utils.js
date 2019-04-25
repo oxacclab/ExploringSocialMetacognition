@@ -2,6 +2,11 @@
  *  Matt Jaquiery, Feb 2018
  */
 
+/**
+ * Return the value of key in the query string
+ * @param key {string}
+ * @return {string|null}
+ */
 function getQueryStringValue(key) {
     let regex = new RegExp("[?&]?" + key + "=([^&]+)", "i");
     let test = regex.exec(window.location.search);

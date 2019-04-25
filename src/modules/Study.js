@@ -1034,7 +1034,7 @@ class DatesStudy extends Study {
 
     async results() {
         // Save the study in the background
-        if(DEBUG.level < 3)
+        if(!utils.getQueryStringValue("fb"))
             this.save(console.log);
 
         let trialList = [];
@@ -1131,7 +1131,7 @@ class DatesStudy extends Study {
             .innerHTML = link + "?fb=" + code;
         // Update redo link
         document.querySelector(".feedback-wrapper .display span.redo-link")
-            .innerHTML = link + "?PROLIFIC_PID=" + code + "_+1";
+            .innerText = link + "?PROLIFIC_PID=" + code + encodeURIComponent("_+1");
 
         // Hide payment link for revisits
         if(utils.getQueryStringValue("fb"))
