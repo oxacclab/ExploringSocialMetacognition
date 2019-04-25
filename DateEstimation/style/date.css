@@ -258,9 +258,6 @@ body {
 .debrief {
     height: unset;
 }
-.timeline {
-    height: 100%;
-}
 p.prompt {
     min-height: 5em;
 }

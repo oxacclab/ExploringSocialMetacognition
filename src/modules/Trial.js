@@ -236,8 +236,11 @@ class Trial extends ControlObject {
      */
     async showFeedback() {
 
-        if(typeof this.displayFeedback !== "function")
+        if(typeof this.displayFeedback !== "function") {
+            this.data.timeFeedbackOn = null;
+            this.data.timeFeedbackOff = null;
             return this;
+        }
 
         // Run the user-supplied feedback function.
         this.data.timeFeedbackOn = this.trialTime;

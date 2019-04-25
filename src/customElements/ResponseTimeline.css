@@ -113,7 +113,6 @@
 .response-marker-pool .confirm {
     height: 80px;
     width: 80px;
-    color: var(--group-1-primary);
     font-weight: bold;
     font-size: 3em;
     font-family: monospace;

@@ -8,7 +8,7 @@
 
 "use strict";
 
-import {Advisor, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_DISAGREE, ADVICE_CORRECT_AGREE, ADVICE_INCORRECT_REVERSED, AdviceProfile} from "./Advisor.js";
+import {Advisor, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_DISAGREE, ADVICE_CORRECT_AGREE, ADVICE_INCORRECT_REVERSED, AdviceProfile} from "./Advisor.js";
 import {Trial, AdvisedTrial} from "./Trial.js";
 import {ControlObject} from "./Prototypes.js";
 import * as utils from "../utils.js";
@@ -143,12 +143,19 @@ class Study extends ControlObject {
         });
     }
 
+
+    /**
+     * @callback Study~instructionCallback
+     * @param {string} buttonName
+     * @param {Event} originatingEvent
+     */
+
     /**
      * Set the content of the instructions div to be a copy of an
      * esm-instruction template.
      * @param newTemplateId {string} id of the new template to use for
      * instructions
-     * @param [callback] {function(buttonName, event)} function to use as
+     * @param [callback] {Study~instructionCallback} function to use as
      * the callback for instruction buttons. By default simply hide the
      * instruction div.
      */
@@ -156,9 +163,7 @@ class Study extends ControlObject {
         let instr = document.getElementById("instructions");
 
         if(typeof callback !== "function")
-            callback = (name, event) => {
-                console.log(name);
-            };
+            callback = name => console.log(name);
 
         instr.innerHTML = "";
 
@@ -618,7 +623,6 @@ class Study extends ControlObject {
 
     /**
      * Fetch the data for the study in a flat format suitable for CSVing
-     * @param headers {boolean} whether to include column headers
      * @return {object} key-value pairs
      */
     toTable() {
@@ -733,7 +737,13 @@ class Study extends ControlObject {
             body: JSON.stringify({metadata, data})
         })
             .then(response => response.text())
-            .then(response => callback(response))
+            .then(response => {
+                const r = JSON.parse(response);
+                if(r.code !== 200)
+                    onError(response);
+                else
+                    callback(r);
+            })
             .catch(error => onError(error));
     }
 
@@ -799,7 +809,17 @@ class DatesStudy extends Study {
                         if(this.attentionCheckTrials.indexOf(i) !== -1)
                             this.trials.push(new Trial({...this.attentionCheckBlueprint, number: i}));
                         else
-                            this.trials.push(new AdvisedTrial({...this.trialBlueprint, number: i}));
+                            if(this.feedback)
+                                this.trials.push(new AdvisedTrial({
+                                    ...this.trialBlueprint,
+                                    number: i,
+                                    displayFeedback: this.displayFeedback
+                                }));
+                            else
+                                this.trials.push(new AdvisedTrial({
+                                    ...this.trialBlueprint,
+                                    number: i
+                                }));
                     }
                 }
             });
@@ -1096,6 +1116,9 @@ class DatesStudy extends Study {
         let code = this.id + "-" + this.studyVersion;
         document.querySelector(".feedback-wrapper .display span.permalink")
             .innerHTML = link + "?fb=" + code;
+        // Update redo link
+        document.querySelector(".feedback-wrapper .display span.redo-link")
+            .innerHTML = link + "?PROLIFIC_PID=" + code + "_+1";
 
         // Hide payment link for revisits
         if(utils.getQueryStringValue("fb"))
@@ -1223,6 +1246,16 @@ class DatesStudy extends Study {
                 my = ans.getBoundingClientRect();
             }
         });
+    }
+
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @return {object} key-value pairs
+     */
+    toTable() {
+        const out = super.toTable();
+
+        return {...out, feedback: this.feedback};
     }
 }
 

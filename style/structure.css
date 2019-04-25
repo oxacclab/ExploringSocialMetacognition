@@ -219,7 +219,11 @@ div {
 }
 
 .response-marker:not(.advisor) {
-    background-color: var(--group-1-primary);
+    background-color: var(--group-0-primary);
+}
+
+.confirm, input[type="submit"] {
+    color: var(--group-0-primary);
 }
 
 .response-marker.advisor {
@@ -409,6 +413,7 @@ form .item > *:not(input) {
 }
 form input[type="range"] {
     width: 50%;
+    cursor: pointer;
 }
 form .bottom, form .question {
     display: flex;
@@ -426,7 +431,6 @@ form .bottom textarea {
 form input[type="submit"] {
     height: 80px;
     width: 80px;
-    color: var(--group-1-primary);
     font-weight: bold;
     font-size: 3em;
     font-family: monospace;
@@ -443,7 +447,7 @@ form textarea {
     font-size: var(--font-size-small);
 }
 form textarea.invalid {
-    box-shadow: 0 0 10px 0 crimson;
+    box-shadow: 0 0 10px 0 var(--group-0-primary);
 }
 
 /* Feedback display; quite complex */
@@ -482,11 +486,16 @@ form textarea.invalid {
     left: 10px;
     right: unset;
 }
+.legend.redo-link {
+    right: 10px;
+}
 .legend:hover {
     width: 150px;
     height: fit-content;
+    z-index: 10000;
 }
-.legend.permalink:hover {
+.legend.permalink:hover,
+.legend.redo-link:hover {
     width: fit-content;
     width: -moz-fit-content;
 }
@@ -496,10 +505,12 @@ form textarea.invalid {
 .legend:hover > div {
     display: flex;
 }
-span.permalink {
+span.permalink,
+span.redo-link {
     user-select: all;
     cursor: copy;
     -moz-user-select: all;
+    font-weight: bold;
 }
 .timeline {
     position: relative;
@@ -552,7 +563,7 @@ span.permalink {
     position: absolute;
 }
 .timeline .marker.target.detail {
-    background-color: var(--group-1-primary);
+    background-color: var(--group-0-primary);
     border-radius: 100%;
 }
 
