@@ -297,8 +297,6 @@ customElements.define('esm-response-timeline',
 
             if(timeline.timeoutTimer)
                 clearTimeout(timeline.timeoutTimer);
-
-            console.log(timeline.responseData)
         }
 
         /**

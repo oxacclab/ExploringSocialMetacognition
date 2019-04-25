@@ -13,7 +13,6 @@
         let consent = window.location.search.match("[?&]consent=true");
         if(consent === null &&
             !/[?&]fb=[0-9a-z]+/i.test(window.location.search)) {
-            console.log(window.location)
             redirectURL = "../consent.html" + window.location.search +
                 (/\?/.test(window.location.search)? "&" : "?") + "study=DateEstimation";
             window.location.replace(redirectURL); // simulate redirect (no history)

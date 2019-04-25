@@ -7,7 +7,10 @@
  * to all the objects in the experiment.
  */
 
+
 "use strict";
+
+import {utils} from "../exploringSocialMetacognition";
 
 /**
  * @class BaseObject
@@ -119,6 +122,17 @@ class BaseObject {
         if(echoToConsole)
             console.log(content);
         this._writeToLog(content, "Info");
+    }
+
+    /**
+     * Echo a debugging item to the console
+     * @param content {*} content of the debugging message
+     * @param level {int} minimum verbosity level for message
+     */
+    debug(content, level = 1) {
+        if((DEBUG && DEBUG.level >= level) ||
+            parseInt(utils.getQueryStringValue("debug")) >= level)
+            console.log(content);
     }
 
     /**

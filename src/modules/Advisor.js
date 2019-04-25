@@ -106,7 +106,7 @@ class Advisor extends BaseObject {
 
         this.marker.style.width = TL.valueToPixels(this.getAdvice(false).adviceWidth, true) + "px";
 
-        console.log(this.getAdvice(false))
+        this.debug(this.getAdvice(false));
     }
 
     hideAdvice() {
