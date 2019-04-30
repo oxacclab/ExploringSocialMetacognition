@@ -475,7 +475,7 @@ const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
 const ADVICE_CORRECT_AGREE = Object.freeze(new AdviceType({
     name: "correctAgree",
     flag: 8,
-    fallback: 2,
+    fallback: 1,
     /**
      * Values for middle consistent with simultaneous correctness and agreement
      * @param t {Trial} at the post-initial-decision phase

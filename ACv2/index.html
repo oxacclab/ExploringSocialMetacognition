@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.8">
+<head data-version="0.0.9">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -285,7 +285,7 @@
 
     import {Study, DatesStudy} from "../src/modules/Study.js";
     import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
+    import {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
 
     // Procedural stuff
@@ -332,8 +332,7 @@
                 confidenceVariation: 3,
                 adviceProfile: new AdviceProfile({
                     adviceTypes: [
-                        ADVICE_CORRECT_AGREE.copy(1),
-                        ADVICE_CORRECT.copy(0)
+                        ADVICE_CORRECT.copy(1)
                     ]
                 })
             }),
@@ -369,7 +368,7 @@
                         ADVICE_INCORRECT_REFLECTED.copy(1),
                         // fallbacks
                         ADVICE_INCORRECT_REVERSED.copy(0),
-                        ADVICE_CORRECT.copy(0)
+                        ADVICE_AGREE.copy(0)
                     ]
                 })
             })
