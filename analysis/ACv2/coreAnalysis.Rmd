@@ -4,12 +4,12 @@ author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
 output:
   html_document:
     df_print: paged
-    toc: no
+    toc: yes
     toc_depth: '3'
   html_notebook:
     includes:
       after_body: ../src/toc_menu.html
-    toc: no
+    toc: yes
     toc_depth: 3
 editor_options:
   chunk_output_type: inline
@@ -23,9 +23,13 @@ April 2019
 ```{r prematter, include = F}
 
 library(testthat)
-library(knitr)
+
 library(tidyverse)
+
 library(lsr)
+library(BayesFactor)
+
+library(knitr)
 library(prettyMD)
 
 opts_chunk$set('echo' = F)
@@ -53,6 +57,23 @@ markerPoints <- function(width) 27 / width
 ```
 
 ```{r miscFunctions}
+
+#' strip newlines and html tags from string
+stripTags <- function(s) {
+  s <- gsub("[\r\n]", "", s)
+  
+  while (any(grepl("  ", s, fixed = T)))
+    s <- gsub("  ", " ", s, fixed = T)
+  
+  s <- gsub("^ ", "", s, perl = T)
+  s <- gsub(" $", "", s, perl = T)
+  
+  while (any(grepl("<([^\\s>]+)[^>]*>([\\s\\S]*?)<\\/\\1>", s, perl = T)))
+    s <- gsub("<([^\\s>]+)[^>]*>([\\s\\S]*?)<\\/\\1>", "\\2", s, perl = T)
+  
+  s <- gsub("<[^>]+\\/>", "", s)
+  s
+}
 
 #' Return the first match for a regexpr
 reFirstMatch <- function(pattern, str, ...) {
@@ -109,7 +130,7 @@ expect_equal(uniqueTotal(c("a", "b", "c")),
 ## Load data
 
 ```{r loadData}
-version <- "0-0-8"
+version <- "0-0-9"
 prefix <- paste0("datesStudy_v", version)
 
 files <- list.files("../../data/public/", full.names = T)
@@ -125,10 +146,7 @@ for (f in files) {
     tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
   
   if ("stimHTML" %in% names(tmp)) {
-    # strip newlines and html tags from prompts
-    tmp$stimHTML <- gsub("[\r\n]", "", tmp$stimHTML)
-    tmp$stimHTML <- gsub("  ", "", tmp$stimHTML, fixed = T)
-    tmp$stimHTML <- gsub("<[^>]*>([^<]*)[^>]*>", "\\1", tmp$stimHTML)
+    tmp$stimHTML <- stripTags(tmp$stimHTML)
   }
   
   # type coersion
@@ -139,6 +157,11 @@ for (f in files) {
             names(tmp), value = T)
   for (x in n)
     tmp[, x] <- lapply(tmp[, x], as.character)
+  
+  n <- grep("responseEstimateLabel", names(tmp), value = T)
+  for (x in n)
+    tmp[, x] <- lapply(tmp[, x], function(y) 
+      as.numeric(stripTags((as.character(y)))))
   
   if ("responseMarkerWidth" %in% names(tmp))
     tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
@@ -194,11 +217,15 @@ decisions <- AdvisedTrial[, !grepl("^response(?=\\S+Final$)",
                                    perl = T)]
 
 decisions <- rbind(decisions, decisions)
-decisions$decision <- "first"
+decisions$decision <- sapply(1:nrow(decisions), 
+                             function(x) 
+                               if (x <= nrow(AdvisedTrial)) "first" else "last")
+
 for (i in (nrow(AdvisedTrial) + 1):nrow(decisions)) {
-  decisions$decision[i] <- "last"
-  for (n in names(decisions)[grepl("^response", names(decisions), perl = T)])
+  for (n in names(decisions)[grepl("^response", names(decisions), perl = T)]) {
     decisions[i, n] <- AdvisedTrial[i - nrow(AdvisedTrial), paste0(n, "Final")]
+  }
+    
 }
 
 ```
@@ -329,15 +356,24 @@ We can now check for participants who are outliers as a whole, and remove them. 
 checkList <- c("timeEnd", "responseError", "responseCorrect")
 
 for (v in checkList) {
-  tmp <- scale(PP[[v]])
-  PP$excluded[abs(tmp) > zThresh] <- 
-    ifelse(PP$excluded[abs(tmp) > zThresh] == F,
-           v, paste(PP$excluded, v, collapse = ", "))
+  p <- aggregate(as.formula(paste(v, "~ pid + hasFeedback")), 
+                 AdvisedTrial, 
+                 mean)
+  p[, v] <- scale(p[, v])
   
-  if (any(abs(tmp) > zThresh))
-    print(ggplot(PP, aes(x = "", y = !!ensym(v))) +
+  for (i in 1:nrow(p)) {
+    if (abs(p[i, v] <= zThresh))
+        next()
+    
+    PP$excluded[PP$pid == p$pid[i]] <- 
+      if (PP$excluded[PP$pid == p$pid[i]] == F) v else
+        paste(PP$excluded[PP$pid == p$pid[i]], ", ", v)
+  }
+  
+  if (any(abs(p[, v]) > zThresh))
+    print(ggplot(p, aes(x = "", y = !!ensym(v), colour = hasFeedback)) +
             geom_violin(alpha = .25, color = NA, fill = "grey75") + 
-            geom_boxplot(outlier.shape = NA, fill = NA) + 
+            geom_boxplot(outlier.shape = NA, fill = NA, aes(group = 1)) + 
             geom_point(position = position_jitter(.33), alpha = .5) +
             labs(x = "participants"))
 }
@@ -348,11 +384,12 @@ for (p in exclusions$pid)
       exclusions$excluded[exclusions$pid == p], 
       unique(PP$excluded[PP$pid == p]), collapse = ", ")
 
+
 table(exclusions$excluded)
 
 ```
 
-Our final participant list consists of `r length(unique(PP$pid))` participants who completed an average of `r num2str(mean(aggregate(number ~ pid, PP, function(x) sum(x) / 2)$number))` trials each. 
+Our final participant list consists of `r length(unique(PP$pid))` participants who completed an average of `r num2str(mean(aggregate(number ~ pid, PP, function(x) sum(x) / 2)$number))` trials each. `r sum(aggregate(hasFeedback ~ pid, PP, any)$hasFeedback)` of these received feedback on the task, while the remaining `r sum(!aggregate(hasFeedback ~ pid, PP, any)$hasFeedback)` did not.  
 
 ## Task performance
 
@@ -458,7 +495,7 @@ num2str.tibble(tmp$last, isProportion = T, precision = 3)
 ```
 
 **Marker usage summary table (means) for initial and final decisions**  
-*Shows mean marker usage proportion for final and initial decisions for each feedback condition. Columns with *NA* represent totals across that variable.*  
+*Shows mean marker usage proportion for final and initial decisions for each feedback condition. Columns with NA represent totals across that variable.*  
 *Data are aggregated within each participant before combination (and hence do not sum to 1). Except where otherwise mentioned, data presented will be in this manner - aggregations of individual participants' means.*
 
 ```{r markerGraph}
@@ -468,7 +505,7 @@ ggplot(PP[!is.na(PP$responseMarker), ],
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
   geom_boxplot(fill = NA, outlier.color = NA) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid), position = position_jitter(.33)) +
+  geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(hasFeedback ~ decision, labeller = label_both) +
@@ -499,7 +536,7 @@ ggplot(aggregate(responseCorrect ~
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
   geom_boxplot(fill = NA, outlier.color = NA) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid), position = position_jitter(.33)) +
+  geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(hasFeedback ~ decision, labeller = label_both) +
@@ -530,7 +567,7 @@ ggplot(aggregate(responseError ~
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
   geom_boxplot(fill = NA, outlier.color = NA) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid), position = position_jitter(.33)) +
+  geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(hasFeedback ~ decision, labeller = label_both) +
@@ -561,7 +598,7 @@ ggplot(aggregate(responseScore ~
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
   geom_boxplot(fill = NA, outlier.color = NA) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid), position = position_jitter(.33)) +
+  geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(hasFeedback ~ decision, labeller = label_both) +
@@ -583,15 +620,16 @@ We can, however, use one of the following:
 
 ### Timing
 
-First we can look at the response time - the difference between the time the response is opened and the time the response is received.  
+Firstly, we can consider the time taken for the entire trial.
 
 ```{r timeTotal}
 
 tmp <- markerBreakdown(timeEnd, decisions)
-num2str.tibble(tmp$first)
 num2str.tibble(tmp$last)
 
 ```
+
+Second we can look at the response time - the difference between the time the response is opened and the time the response is received.  
 
 ```{r timeTotalGraph}
 
@@ -603,7 +641,7 @@ ggplot(aggregate(timeEnd ~
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
   geom_boxplot(fill = NA, outlier.color = NA) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid), position = position_jitter(.33)) +
+  geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(hasFeedback ~ decision, labeller = label_both) +
@@ -633,7 +671,7 @@ ggplot(aggregate(rt ~
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
   geom_boxplot(fill = NA, outlier.color = NA) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid), position = position_jitter(.33)) +
+  geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(hasFeedback ~ decision, labeller = label_both) +
@@ -718,13 +756,14 @@ It is possible for advice to be both accurate and agreeing, to be one but not th
 
 The following advice types are available:
 
-Name | description | fallback
---- | --- | ---
+Name      | description     | fallback
+:--------:|:----------------|:---------------  
 **Correct** | The advisor gives a correct answer | *none*
-**Correct Agree** | The advisor gives advice which is both correct and agreeing | Correct
+**Agree** | The advisor gives an agreeing answer | *none*
+**Correct Agree** | The advisor gives advice which is both correct and agreeing | Agree
 **Correct Disagree** | The advisor gives advice which is correct, but which does not agree | Correct
 **Disagree Reflected** | The advisor gives advice which is the participant's answer reflected in the correct answer, while disagreeing with the participant | Disagree Reversed
-** Disagree Reversed** | The advisor gives advice which is the correct answer reflected in the participant's answer, while disagreeing with the participant | *always possible if Disagree Reflected is not*
+**Disagree Reversed** | The advisor gives advice which is the correct answer reflected in the participant's answer, while disagreeing with the participant | *always possible if Disagree Reflected is not*
 
 #### Advice profile order
 
@@ -747,9 +786,12 @@ tibble(hasFeedback = c(T, F), meanPosition = c(mean(advisors$meanPosition
 
 #### Advice offered
 
+The advice offered, both nominal and actual, should be equivalent between feedback conditions.
+
 The **nominal type** of the advice is the advice selected for the advisor to give.
 ```{r adviceRequested}
 
+out <- list()
 for (f in unique(AdvisedTrial$hasFeedback)) {
   m <- AdvisedTrial$hasFeedback == f
     
@@ -765,15 +807,19 @@ for (f in unique(AdvisedTrial$hasFeedback)) {
     tmp <- rbind(tmp, r)
   }
 
-  print(prop2str(tmp, precision = 3))
+  out[[as.character(f)]] <- tmp
 }
 
+prop2str(out$`TRUE`, precision = 3)
+prop2str(out$`FALSE`, precision = 3)
 
 ```
 
 The **actual type** of advice is the advice the advisor actually gave, i.e. allowing for fallbacks where the requested advice type could not be supplied. 
 
 ```{r adviceGiven}
+
+out <- list()
 for (f in unique(AdvisedTrial$hasFeedback)) {
   m <- AdvisedTrial$hasFeedback == f
  
@@ -789,14 +835,17 @@ for (f in unique(AdvisedTrial$hasFeedback)) {
     tmp <- rbind(tmp, r)
   }
   
-  print(prop2str(tmp, precision = 3))
+  out[[as.character(f)]] <- tmp
 }
+
+prop2str(out$`TRUE`, precision = 3)
+prop2str(out$`FALSE`, precision = 3)
 
 ```
 
 ### Accuracy
 
-Advisors are supposed to differ in their accuracy. This is expected to hold true whether accuracy is cast in terms of %correct or mean error. 
+Advisors are supposed to differ in their accuracy. This is expected to hold true whether accuracy is cast in terms of the proportion of advice which is correct or mean error. These values should also be stable between feedback conditions.
 
 ```{r adviceAccuracy}
 
@@ -837,7 +886,10 @@ tmp <- gather(tmp, "var", "value", accuracy:error)
 ggplot(tmp, aes(x = advisor, y = value, colour = pid)) +
   geom_violin(colour = NA, fill = "grey75", alpha = .25) +
   geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-  geom_point(position = position_jitter(.33)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_grid(var ~ feedback, scales = "free_y", labeller = label_both)
 
 ```
@@ -881,7 +933,10 @@ prop2str(as.tibble(aggregate(agreement ~ advisor + feedback, tmp, mean)),
 ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
   geom_violin(colour = NA, fill = "grey75", alpha = .25) +
   geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-  geom_point(position = position_jitter(.33)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_wrap(~feedback, labeller = label_both)
 
 ```
@@ -890,7 +945,9 @@ ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
 
 The measure of influence is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
 $$\text{WoA} = (\text{final} - \text{inital}) / (\text{advice} - \text{initial})$$
-, or the degree to which the final decision moves towards the advised answer. 
+, or the degree to which the final decision moves towards the advised answer.
+
+Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
 
 ```{r woa}
 
@@ -928,7 +985,10 @@ prop2str(as.tibble(aggregate(WoA ~ advisor + feedback, tmp, mean)),
 ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
   geom_violin(colour = NA, fill = "grey75", alpha = .25) +
   geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-  geom_point(position = position_jitter(.33)) + 
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_wrap(~feedback, labeller = label_both)
 
 ```
@@ -953,7 +1013,9 @@ num2str(as.tibble(aggregate(accuracyChange ~ hasFeedback, tmp, mean)))
 ggplot(tmp, aes(x = hasFeedback, y = accuracyChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, aes(group = hasFeedback)) +
-  geom_point(position = position_jitter(.33))
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid))
 
 ```
 
@@ -977,7 +1039,9 @@ num2str(as.tibble(aggregate(scoreChange ~ hasFeedback, tmp, mean)))
 ggplot(tmp, aes(x = hasFeedback, y = scoreChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, aes(group = hasFeedback)) +
-  geom_point(position = position_jitter(.33))
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid))
 
 ```
 
@@ -987,8 +1051,8 @@ It can be helpful to get a sense of how much participants are adjusting their re
 
 ```{r meanShift}
 
-AdvisedTrial$estimateLeftChange <- AdvisedTrial$responseEstimateLeftFinal -
-  AdvisedTrial$responseEstimateLeft
+AdvisedTrial$estimateLeftChange <- abs(AdvisedTrial$responseEstimateLeftFinal -
+  AdvisedTrial$responseEstimateLeft)
 
 tmp <- aggregate(estimateLeftChange ~ pid + hasFeedback, AdvisedTrial, mean)
 
@@ -1001,7 +1065,9 @@ num2str(as.tibble(aggregate(estimateLeftChange ~ hasFeedback, tmp, mean)))
 ggplot(tmp, aes(x = hasFeedback, y = estimateLeftChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, aes(group = hasFeedback)) +
-  geom_point(position = position_jitter(.33))
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) + 
+  geom_point(alpha = .5, aes(colour = pid))
 
 ```
 
@@ -1026,7 +1092,9 @@ num2str(as.tibble(aggregate(confidenceChange ~ hasFeedback, tmp, mean)))
 ggplot(tmp, aes(x = hasFeedback, y = confidenceChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, aes(group = hasFeedback)) +
-  geom_point(position = position_jitter(.33))
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid))
 
 ```
 
@@ -1062,7 +1130,10 @@ num2str(as.tibble(aggregate(agreementChange ~ hasFeedback, tmp, mean)))
 ggplot(tmp, aes(x = advisor, y = agreementChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, aes(group = advisor)) +
-  geom_point(position = position_jitter(.33)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_wrap(~hasFeedback, labeller = label_both)
 
 ```
@@ -1081,15 +1152,117 @@ The hypotheses being tested here are:
 
 ### Benefits of advice
 
+Participants should have *lower error on their last decisions than on their first decisions*.
 
+```{r h1, results='asis'}
+
+tmp <- aggregate(cbind(responseError, responseErrorFinal) ~ pid, 
+                 AdvisedTrial, 
+                 mean)
+
+r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, c("*M*|last", "*M*|first"))
+cat(r)
+
+```
+
+Supporting this primary result, participants should also score *more points on their last answer than on their first answer*, although given that they are allowed to change their confidence, they may sometimes miss the correct answer because they choose a thinner marker.
+
+```{r h1score, results='asis'}
+
+tmp <- aggregate(cbind(responseScore, responseScoreFinal) ~ pid, 
+                 AdvisedTrial, 
+                 mean)
+
+r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, c("*M*|last", "*M*|first"))
+cat(r)
+
+```
 
 #### with feedback
 
+The above effect should hold for participants in the feedback condition.
+
+```{r h1a, results='asis'}
+
+tmp <- aggregate(cbind(responseError, responseErrorFinal) ~ pid, 
+                 AdvisedTrial[AdvisedTrial$hasFeedback, ], 
+                 mean)
+
+r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, c("*M*|last", "*M*|first"))
+cat(r)
+
+```
+
+And for score as the outcome:
+
+```{r h1aScore, results='asis'}
+
+tmp <- aggregate(cbind(responseScore, responseScoreFinal) ~ pid, 
+                 AdvisedTrial[AdvisedTrial$hasFeedback, ], 
+                 mean)
+
+r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, c("*M*|last", "*M*|first"))
+cat(r)
+
+```
+
 #### without feedback
+
+The effect should also hold for participants in the no-feedback condition.
+
+```{r h1b, results='asis'}
+
+tmp <- aggregate(cbind(responseError, responseErrorFinal) ~ pid, 
+                 AdvisedTrial[!AdvisedTrial$hasFeedback, ], 
+                 mean)
+
+r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, c("*M*|last", "*M*|first"))
+cat(r)
+
+```
+
+And for score as the outcome:
+
+```{r h1bScore, results='asis'}
+
+tmp <- aggregate(cbind(responseScore, responseScoreFinal) ~ pid, 
+                 AdvisedTrial[!AdvisedTrial$hasFeedback, ], 
+                 mean)
+
+r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, c("*M*|last", "*M*|first"))
+cat(r)
+
+```
 
 ### Weighting of accuracy by feedback
 
+Participants in the feedback condition should have *higher weight on advice for the accurate advisor* than participants in the no-feedback condition. 
+
+```{r h2, results='asis'}
+
+tmp <- aggregate(Accurate.woa ~ pid + hasFeedback, AdvisedTrial, mean)
+
+r <- md.ttest(tmp$Accurate.woa[tmp$hasFeedback], 
+                tmp$Accurate.woa[!tmp$hasFeedback],
+                labels = c("*M*|feedback", "*M*|¬feedback"))
+cat(r)
+
+```
+
 ### Weighting of agreement by feedback
+
+The opposite pattern is expected for the agreeing advisor: feedback should result in *lower weight on advice*. 
+
+```{r h3, results='asis'}
+
+tmp <- aggregate(Agreeing.woa ~ pid + hasFeedback, AdvisedTrial, mean)
+
+r <- md.ttest(tmp$Agreeing.woa[tmp$hasFeedback], 
+                tmp$Agreeing.woa[!tmp$hasFeedback],
+                labels = c("*M*|feedback", "*M*|¬feedback"))
+cat(r)
+
+```
 
 ## Update modelling
 

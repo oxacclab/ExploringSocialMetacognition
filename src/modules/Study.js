@@ -158,9 +158,10 @@ class Study extends ControlObject {
      * @param [callback] {Study~instructionCallback} function to use as
      * the callback for instruction buttons. By default simply hide the
      * instruction div.
+     * @param [targetElement="instructions"] {string} target HTML element id
      */
-    static _updateInstructions(newTemplateId, callback) {
-        let instr = document.getElementById("instructions");
+    static _updateInstructions(newTemplateId, callback, targetElement = "instructions") {
+        let instr = document.getElementById(targetElement);
 
         if(typeof callback !== "function")
             callback = name => console.log(name);
@@ -287,6 +288,47 @@ class Study extends ControlObject {
         }
     }
 
+    static checkFullscreen(elm) {
+        if(document.fullscreenElement !== elm) {
+            document.body.classList.add("fullscreen-error");
+        } else {
+            document.body.classList.remove("fullscreen-error");
+        }
+        elm.fullscreenTimeOut = setTimeout(Study.checkFullscreen, 100, elm);
+    }
+
+    /**
+     * Ensure element is fullscreen and prevent continuation when it is not
+     * @param element {HTMLElement}
+     * @return {Promise<void>}
+     */
+    static async lockFullscreen(element) {
+        document.body.classList.remove("fullscreen-error");
+
+        await element.requestFullscreen();
+
+        Study._updateInstructions("fullscreen-instructions",
+            () => element.requestFullscreen(),
+            "fullscreen-warning");
+
+        element.fullscreenTimeOut = setTimeout(Study.checkFullscreen, 100, element);
+    }
+
+    static async unlockFullscreen(element) {
+        document.body.classList.remove("fullscreen-error");
+
+        clearTimeout(element.fullscreenTimeOut);
+
+        await document.exitFullscreen();
+    }
+
+    static _navGuard() {
+        if(utils.getQueryStringValue("debug"))
+            return "";
+
+        return "Leaving now may mean some of your data are not saved!";
+    }
+
     async introduction() {
         return new Promise(function(resolve) {
             let data = [];
@@ -294,7 +336,7 @@ class Study extends ControlObject {
                 (name) => {
                     if(!document.fullscreenElement &&
                         document.querySelector("esm-instruction-page:not(.cloak)").id === "Instruction0Page0")
-                        document.querySelector("#content").requestFullscreen();
+                        Study.lockFullscreen(document.querySelector("#content"));
                     let now = new Date().getTime();
                     data.push({name, now});
                     if(name === "exit")
@@ -334,6 +376,13 @@ class Study extends ControlObject {
      */
     async _runNextBlock() {
 
+        let modelTrial = null;
+        if(this.currentBlock > 1) {
+            modelTrial = this.trials.filter(t => {
+                return !t.attentionCheck && t.advisors.length > 1;
+            })[0];
+        }
+
         let n = this.blockLength[this.currentBlock];
 
         for(let i = 0; i < n; i++) {
@@ -343,7 +392,10 @@ class Study extends ControlObject {
 
             // Save trial data
             let table = t.saveTableName? t.saveTableName : t.constructor.name;
-            this.saveCSVRow(table, true, t.toTable());
+            let headers = null;
+            if(modelTrial && !t.attentionCheck)
+                headers = modelTrial.tableHeaders;
+            this.saveCSVRow(table, true, t.toTable(headers));
 
             // Inter-trial interval
             await this.ITI();
@@ -501,6 +553,8 @@ class Study extends ControlObject {
 
     async practice() {
 
+        window.onbeforeunload = Study._navGuard;
+
         // Save the advisors' CSV entries
         this.advisors.forEach(a =>
             this.saveCSVRow("advisors", true, a.toTable()));
@@ -573,7 +627,7 @@ class Study extends ControlObject {
 
         for(let i = this.practiceBlocks; i < b; i++) {
 
-            let intro = i === 0? false : this.getBlockAdvisors(i) !== this.getBlockAdvisors(i - 1);
+            let intro = i === 0? false : !this.getBlockAdvisors(i).every(x => this.getBlockAdvisors(i - 1).includes(x));
 
             await this.preBlock(intro);
 
@@ -585,7 +639,7 @@ class Study extends ControlObject {
         }
 
         if(document.fullscreenElement)
-            document.exitFullscreen();
+            Study.unlockFullscreen(document.fullscreenElement);
 
         return this;
     }
@@ -675,6 +729,46 @@ class Study extends ControlObject {
     }
 
     /**
+     * Notify the user that there is a problem with saving their data
+     * @param errStr {string} JSON error string returned from PHP save file
+     */
+    async saveErrorNotification(errStr) {
+        this.warn("Save error");
+
+        document.body.appendChild(
+            document.createElement("div")).id = "save-warning";
+
+        return new Promise(resolve => {
+            Study._updateInstructions("save-error",
+                resolve,
+                "save-warning");
+
+            let str = "";
+            let err = null;
+
+            try {
+                err = JSON.parse(errStr);
+            } catch(e) {
+                err = {};
+            } finally {
+                err = {
+                    id: typeof this.id === "undefined"? "unset" : this.id,
+                    stage: document.body.classList.toString(),
+                    ...err
+                };
+
+                for(let key in err) {
+                    if(err[key].length && err.hasOwnProperty(key))
+                        str += "<p><strong>" + key + "</strong>: " +
+                            err[key] + "</p>";
+                }
+            }
+
+            document.body.querySelector(".error-content").innerHTML = str;
+        });
+    }
+
+    /**
      * Save the data for the Study
      * @param [callback] {function} function to execute on the server response
      * @param [onError] {function} function to execute on fetch error
@@ -686,7 +780,7 @@ class Study extends ControlObject {
         if(typeof callback !== "function")
             callback = () => {};
         if(typeof onError !== "function")
-            onError = (reply)=>console.error("Error: ", reply);
+            onError = async (err) => await this.saveErrorNotification(err);
 
         let privateData = this.extractPrivateData();
         if(privateData.length)
@@ -709,7 +803,13 @@ class Study extends ControlObject {
             })
         })
             .then(response => response.text())
-            .then(response => callback(response))
+            .then(response => {
+                const r = JSON.parse(response);
+                if(r.code !== 200)
+                    onError(response);
+                else
+                    callback(r);
+            })
             .catch(error => onError(error));
     }
 
@@ -728,7 +828,7 @@ class Study extends ControlObject {
         if(typeof callback !== "function")
             callback = () => {};
         if(typeof onError !== "function")
-            onError = (reply)=>console.error("Error: ", reply);
+            onError = async (err) => await this.saveErrorNotification(err);
 
         const metadata = {
             fileName: table,
@@ -745,24 +845,29 @@ class Study extends ControlObject {
             ...data
         });
 
-        return fetch("../saveSerial.php", {
-            method: "POST",
-            body: JSON.stringify({metadata, data})
-        })
-            .then(response => response.text())
-            .then(response => {
-                const r = JSON.parse(response);
-                if(r.code !== 200)
-                    onError(response);
-                else
-                    callback(r);
+        return new Promise((resolve) => {
+            fetch("../saveSerial.php", {
+                method: "POST",
+                body: JSON.stringify({metadata, data})
             })
-            .catch(error => onError(error));
+                .then(response => response.text())
+                .then(response => {
+                    const r = JSON.parse(response);
+                    if(r.code !== 200)
+                        onError(response);
+                    else
+                        callback(r);
+                })
+                .catch(error => onError(error))
+                .finally(r => resolve(r));
+        });
     }
 
     async getSaveId() {
         if(this.id)
             return this.id;
+
+        let me = this;
 
         await fetch("../saveSerial.php", {
             method: "POST",
@@ -782,7 +887,8 @@ class Study extends ControlObject {
         })
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt))
-            .then(id => this.id = id.id);
+            .then(id => this.id = id.id)
+            .catch((r) => me.saveErrorNotification(r));
 
         return this.id;
     }
@@ -835,6 +941,26 @@ class DatesStudy extends Study {
                                 }));
                     }
                 }
+            })
+            .then(() => {
+                // One advisor per trial in the second block
+                let attnChecks = 0;
+                for(let t = this.blockLength[0] + this.blockLength[1];
+                    t < utils.sumList(this.blockLength);
+                    t++)
+                    attnChecks += this.trials[t].attentionCheck;
+
+                const indexes = [0, 1];
+                const advisors = utils.shuffleShoe(indexes,
+                    (this.blockLength[2] - 1) / indexes.length);
+
+                for(let t = this.blockLength[0] + this.blockLength[1];
+                    t < utils.sumList(this.blockLength);
+                    t++)
+                    if(!this.trials[t].attentionCheck)
+                        this.trials[t].advisors = [
+                            this.trials[t].advisors[advisors.pop()]
+                        ];
             });
     }
 
@@ -1034,8 +1160,10 @@ class DatesStudy extends Study {
 
     async results() {
         // Save the study in the background
-        if(!utils.getQueryStringValue("fb"))
-            this.save(console.log);
+        if(!utils.getQueryStringValue("fb")) {
+            this.save(console.log)
+                .then(() => window.onbeforeunload = null);
+        }
 
         let trialList = [];
 

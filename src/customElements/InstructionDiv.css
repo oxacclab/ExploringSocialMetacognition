@@ -49,7 +49,7 @@ esm-instruction-page {
 }
 
 /*Navigation buttons*/
-esm-instruction div:last-child {
+esm-instruction > div:last-child {
     z-index: 3000;
     position: absolute;
     bottom: 0;

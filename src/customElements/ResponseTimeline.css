@@ -61,6 +61,7 @@
 .response-marker-pool {
     margin-top: .25em;
     padding-top: .25em;
+    transition: background-color 500ms;
 }
 
 .response-marker {

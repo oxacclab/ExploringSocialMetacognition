@@ -70,6 +70,11 @@ body:not(.Study-practice):not(.Study-core) #report-button {
     z-index: 2;
 }
 
+/* Background dimming for response options during advice */
+.Trial-showAdvice #response-panel .response-marker-pool {
+    background-color: #e3e3e3;
+}
+
 /* interactable markers should look interactable */
 .Trial-getResponse #response-panel .response-marker:not(.advisor),
 .Trial-showAdvice #response-panel .response-marker:not(.advisor),
@@ -103,6 +108,12 @@ body:not(.Study-practice):not(.Study-core) #report-button {
 body.report-issue #report-issue {
     display: flex;
     z-index: 10;
+}
+
+.fullscreen-error #fullscreen-warning {
+    width: 100vw;
+    height: 100vh;
+    display: block;
 }
 
 @media screen and (max-height: 500px) {

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.9">
+<head data-version="0.0.10">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -180,6 +180,23 @@
             </div>
         </div>
     </template>
+    <template id="fullscreen-instructions">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Fullscreen</h1>
+                <p>This study will not work outside fullscreen mode. Please put the study back into fullscreen mode by pressing the button below.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="save-error">
+        <esm-instruction data-no-buttons="true">
+            <esm-instruction-page>
+                <h1>Save error</h1>
+                <p>There was an error saving your information. If you are using the Prolific platform you should report this issue there including your <strong>browser</strong>, <strong>device</strong>, and the following information:</p>
+                <div class="error-content"></div>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
 </head>
 <body tabindex="0">
 <div class="content-wrapper">
@@ -270,6 +287,10 @@
         </div>
     </div>
 </div>
+<div id="fullscreen-warning">
+    Fullscreen warning
+</div>
+<!--<div id="save-warning"></div>-->
 <script type="text/javascript">
     /**
      * Toggle between help enabled/disabled.
@@ -343,7 +364,7 @@
                 name: "Advisor #" + parseInt(10 + Math.random() * 50),
                 templateId: "advisor-key",
                 confidence: 8,
-                confidenceVariation: 3,
+                confidenceVariation: 5,
                 adviceProfile: new AdviceProfile({
                     adviceTypes: [
                         ADVICE_CORRECT_DISAGREE.copy(4),
@@ -361,7 +382,7 @@
                 name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
                 templateId: "advisor-key",
                 confidence: 8,
-                confidenceVariation: 3,
+                confidenceVariation: 5,
                 adviceProfile: new AdviceProfile({
                     adviceTypes: [
                         ADVICE_CORRECT_AGREE.copy(4),
@@ -373,8 +394,14 @@
                 })
             })
         ];
-    while(advisors[0].name === advisors[1].name)
+    while(advisors[1].name === advisors[2].name)
         advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
+
+    // Shuffle advisor ids
+    if(Math.random() < .5) {
+        advisors[1].id = 2;
+        advisors[2].id = 1;
+    }
 
     advisors = [advisors[0], ...utils.shuffle([advisors[1], advisors[2]])];
 

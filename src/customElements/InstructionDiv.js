@@ -5,6 +5,7 @@ customElements.define('esm-instruction',
      * Contains pages of instructions which can be navigated.
      * Properties are defined using the data-* HTML properties.
      *
+     * @property [noButtons=false] {boolean} whether to hide all buttons
      * @property [showBackNavigation=true] {boolean} whether to show the 'previous' arrow
      * @property [prevButtonText="< Back"] {string} text of 'previous' button
      * @property [nextButtonText="Next >"] {string} text of 'next' button

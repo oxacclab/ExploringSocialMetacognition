@@ -121,9 +121,26 @@ div {
     opacity: 0.2;
 }
 
-#instructions {
+#instructions, #fullscreen-warning, #save-warning {
     position: absolute;
     width: 100%;
+}
+
+#fullscreen-warning, #save-warning {
+    top: 0;
+}
+
+#save-warning {
+    height: 100vh;
+    overflow-y: scroll;
+}
+
+#fullscreen-warning {
+    display: none;
+}
+#fullscreen-warning esm-instruction,
+#save-warning esm-instruction {
+    display: flex;
 }
 
 #training-instructions {
@@ -271,6 +288,10 @@ div {
 
 .response-marker.ghost {
     opacity: .5;
+}
+
+.response-marker-pool {
+    background-color: white;
 }
 
 esm-response-timeline .response-timeline {

@@ -350,7 +350,8 @@ class AdvisedTrial extends Trial {
             const s = "advisor" + a.id;
             this.data[s + "position"] = i;
             for(let x in a)
-                this.data[s + x] = a[x];
+                if(a.hasOwnProperty(x))
+                    this.data[s + x] = a[x];
         }
 
         AdvisedTrial.reset();
