@@ -291,7 +291,7 @@ div {
 }
 
 .response-marker-pool {
-    background-color: white;
+    background-color: transparent;
 }
 
 esm-response-timeline .response-timeline {
