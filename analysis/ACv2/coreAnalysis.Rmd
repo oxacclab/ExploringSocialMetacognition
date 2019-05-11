@@ -47,7 +47,7 @@ theme_set(theme_light() +
 
 zThresh <- 3 # threshold for outliers
 
-markerList <- list(thin = 3, medium = 9, wide = 27)
+markerList <- list(thin = 1, medium = 3, wide = 9)
 
 ```
 
@@ -131,7 +131,7 @@ expect_equal(uniqueTotal(c("a", "b", "c")),
 ## Load data
 
 ```{r loadData}
-version <- "0-0-10"
+version <- "0-0-12"
 prefix <- paste0("datesStudy_v", version)
 
 files <- list.files("../../data/public/", full.names = T)
@@ -189,10 +189,13 @@ for (i in 1:length(grep("advisor[0-9+]idDescription", names(AdvisedTrial)))) {
   x <- lapply(AdvisedTrial[paste0("advisor", i, "idDescription")], as.character)
   advisorNames <- unique(c(advisorNames, unique(unlist(x))))
   
-  y <- lapply(AdvisedTrial[paste0("advisor", i, "actualType")], as.character)
-  adviceTypes <- unique(c(adviceTypes, unique(unlist(y))))
-  y <- lapply(AdvisedTrial[paste0("advisor", i, "nominalType")], as.character)
-  adviceTypes <- unique(c(adviceTypes, unique(unlist(y))))
+  if (length(grep(paste0("advisor", i, "actualType"), names(AdvisedTrial)))) {
+    y <- lapply(AdvisedTrial[paste0("advisor", i, "actualType")], as.character)
+    adviceTypes <- unique(c(adviceTypes, unique(unlist(y))))
+    
+    y <- lapply(AdvisedTrial[paste0("advisor", i, "nominalType")], as.character)
+    adviceTypes <- unique(c(adviceTypes, unique(unlist(y))))
+  }
 }
 
 adviceTypes <- adviceTypes[nchar(adviceTypes) > 0]
@@ -208,9 +211,13 @@ for (v in names(AdvisedTrial)[grepl("advisor1", names(AdvisedTrial))]) {
     AdvisedTrial[, s] <- AdvisedTrial[, paste0("advisor1", suffix)]
     
     for (i in 1:length(grep("^advisor[0-9]+id$", names(AdvisedTrial)))) {
-      AdvisedTrial[AdvisedTrial[paste0("advisor", i, "idDescription")] == a, s] <-
-        AdvisedTrial[AdvisedTrial[paste0("advisor", i, "idDescription")] == a, 
-                  paste0("advisor", i, suffix)]
+      if (length(grep(paste0("^advisor", i, suffix), names(AdvisedTrial)))) {
+        AdvisedTrial[AdvisedTrial[paste0("advisor", 
+                                         i, 
+                                         "idDescription")] == a, s] <-
+          AdvisedTrial[AdvisedTrial[paste0("advisor", i, "idDescription")] == a,
+                       paste0("advisor", i, suffix)]
+      }
     }
   }
 }
@@ -360,7 +367,7 @@ for (p in unique(exclusions$pid)) {
   tmp <- Trial[Trial$pid == p, ]
   if (any(tmp$responseCorrect == F))
     excluded <- c(excluded, "attnCheckYear")
-  if (any(tmp$responseMarkerWidth != 3))
+  if (any(tmp$responseMarkerWidth != 1))
     excluded <- c(excluded, "attnCheckMarker")
   
   exclusions$excluded[exclusions$pid == p] <- ifelse(is.null(excluded), 
@@ -502,10 +509,10 @@ Lastly, we can check the debrief information for participants who appeared to gu
 
 ```{r manualExclusions}
 
-debrief.form$guessedManipulation <- 
-  c(F, F, F, F, F, T, F, F, F, F,
-    T, T, F, F, F, F, F, F, F, F, 
-    F, F, F, F, F, F, F, F, F, F)
+debrief.form$guessedManipulation <- T
+  # c(F, F, F, F, F, T, F, F, F, F,
+  #   T, T, F, F, F, F, F, F, F, F, 
+  #   F, F, F, F, F, F, F, F, F, F)
 debrief.form[, c("pid", "comment", "guessedManipulation")]
 
 for (p in exclusions$pid) {

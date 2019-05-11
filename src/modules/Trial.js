@@ -344,16 +344,6 @@ class AdvisedTrial extends Trial {
     constructor(blueprint, callback) {
         super(blueprint, callback);
 
-        // Register advisors in the data output
-        for(let i = 0; i < this.advisors.length; i++) {
-            const a = this.advisors[i].toTable();
-            const s = "advisor" + a.id;
-            this.data[s + "position"] = i;
-            for(let x in a)
-                if(a.hasOwnProperty(x))
-                    this.data[s + x] = a[x];
-        }
-
         AdvisedTrial.reset();
     }
 
@@ -412,7 +402,17 @@ class AdvisedTrial extends Trial {
      * @return {Promise<AdvisedTrial>}
      */
     async showAdvice() {
-        for(let a of this.advisors) {
+
+        // Register advisors in the data output
+        for(let i = 0; i < this.advisors.length; i++) {
+            const a = this.advisors[i];
+            const tbl = a.toTable();
+            const s = "advisor" + tbl.id;
+            this.data[s + "position"] = i;
+            for(let x in tbl)
+                if(tbl.hasOwnProperty(x))
+                    this.data[s + x] = tbl[x];
+
             const advice = a.getAdvice(this);
             Object.keys(advice).forEach((k)=> {
                 this.data["advisor" + a.id.toString() + k] = advice[k];
