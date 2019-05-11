@@ -131,7 +131,7 @@ expect_equal(uniqueTotal(c("a", "b", "c")),
 ## Load data
 
 ```{r loadData}
-version <- "0-0-12"
+version <- "0-0-13"
 prefix <- paste0("datesStudy_v", version)
 
 files <- list.files("../../data/public/", full.names = T)
@@ -174,6 +174,7 @@ for (f in files) {
   name <- sub("-", ".", name)
   assign(name, tmp)
 }
+
 
 ```
 
@@ -509,7 +510,7 @@ Lastly, we can check the debrief information for participants who appeared to gu
 
 ```{r manualExclusions}
 
-debrief.form$guessedManipulation <- T
+debrief.form$guessedManipulation <- F
   # c(F, F, F, F, F, T, F, F, F, F,
   #   T, T, F, F, F, F, F, F, F, F, 
   #   F, F, F, F, F, F, F, F, F, F)
@@ -653,7 +654,7 @@ singleAdvisorTrials <- function(df) {
   }
   out
 }
-
+AdvisedTrial[, grep(".advice", names(AdvisedTrial))]
 block2 <- singleAdvisorTrials(AdvisedTrial)
 block2Decisions <- singleAdvisorTrials(decisions)
 ```

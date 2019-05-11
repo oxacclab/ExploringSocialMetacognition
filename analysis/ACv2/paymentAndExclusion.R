@@ -17,6 +17,15 @@ key$excluded <- sapply(key$pid, function(x)
 print(paste("Exclusions: ", sum(key$excluded != F)))
 key[key$excluded != F, c("prolificId", "pid", "excluded")]
 
+for (i in grep("attnCheck", key$excluded)) {
+  x <- Trial[Trial$pid %in% key$pid[i], c("pid", "stimHTML", 
+                                          "responseMarkerWidth", 
+                                          "responseEstimateLeft")]
+  x$stimHTML <- sub("for this question use the smallest marker to cover the year ", 
+                    "...", x$stimHTML)
+  print(x)
+}
+
 
 # Bonus payments ----------------------------------------------------------
 

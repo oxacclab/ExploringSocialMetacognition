@@ -407,7 +407,7 @@ class AdvisedTrial extends Trial {
         for(let i = 0; i < this.advisors.length; i++) {
             const a = this.advisors[i];
             const tbl = a.toTable();
-            const s = "advisor" + tbl.id;
+            const s = "advisor" + i.toString();
             this.data[s + "position"] = i;
             for(let x in tbl)
                 if(tbl.hasOwnProperty(x))
@@ -415,7 +415,8 @@ class AdvisedTrial extends Trial {
 
             const advice = a.getAdvice(this);
             Object.keys(advice).forEach((k)=> {
-                this.data["advisor" + a.id.toString() + k] = advice[k];
+                if(advice.hasOwnProperty(k))
+                    this.data["advisor" + i.toString() + k] = advice[k];
             });
             a.drawAdvice();
             await this.wait(1000);
