@@ -283,7 +283,9 @@ class Study extends ControlObject {
         document.getElementById("prompt").innerHTML = "New advisors!";
         await this.wait(500);
 
+        let i = 0;
         for(let advisor of advisors) {
+            advisor.position = i++;
             await this._introduceAdvisor(advisor);
         }
     }

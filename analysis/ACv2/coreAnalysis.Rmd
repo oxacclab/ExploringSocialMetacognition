@@ -131,7 +131,7 @@ expect_equal(uniqueTotal(c("a", "b", "c")),
 ## Load data
 
 ```{r loadData}
-version <- "0-0-13"
+version <- "0-0-14"
 prefix <- paste0("datesStudy_v", version)
 
 files <- list.files("../../data/public/", full.names = T)
@@ -184,41 +184,54 @@ for (f in files) {
 
 # Reference variables 
 # Gather a list of advisor names and advice types
-advisorNames <- NULL
-adviceTypes <- NULL
-for (i in 1:length(grep("advisor[0-9+]idDescription", names(AdvisedTrial)))) {
-  x <- lapply(AdvisedTrial[paste0("advisor", i, "idDescription")], as.character)
-  advisorNames <- unique(c(advisorNames, unique(unlist(x))))
-  
-  if (length(grep(paste0("advisor", i, "actualType"), names(AdvisedTrial)))) {
-    y <- lapply(AdvisedTrial[paste0("advisor", i, "actualType")], as.character)
-    adviceTypes <- unique(c(adviceTypes, unique(unlist(y))))
-    
-    y <- lapply(AdvisedTrial[paste0("advisor", i, "nominalType")], as.character)
-    adviceTypes <- unique(c(adviceTypes, unique(unlist(y))))
-  }
-}
 
-adviceTypes <- adviceTypes[nchar(adviceTypes) > 0]
+names <- NULL
+types <- NULL
+i <- 0
+while (T) {
+  if (!length(grep(paste0("advisor", i), names(AdvisedTrial)))) {
+    break()
+  }
+  names <- unique(c(names, 
+                    unique(AdvisedTrial[, paste0("advisor", i, 
+                                                 "idDescription")])))
+  types <- unique(c(types,
+                    unique(AdvisedTrial[, paste0("advisor", i, 
+                                                 "actualType")]),
+                    unique(AdvisedTrial[, paste0("advisor", i,
+                                                 "nominalType")])))
+  i <- i + 1
+}
+advisorNames <- unlist(names)
+advisorTypes <- unlist(types)
+
 
 # Produce equivalents of the advisor1|2... variables which are named for the 
 # advisor giving the advice
-for (v in names(AdvisedTrial)[grepl("advisor1", names(AdvisedTrial))]) {
-  suffix <- reFirstMatch("advisor1(\\S+)", v)
-  for (a in unique(c(as.character(AdvisedTrial$advisor1idDescription),
-                     as.character(AdvisedTrial$advisor2idDescription)))) {
+
+for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
+  suffix <- reFirstMatch("advisor0(\\S+)", v)
+  for (a in advisorNames) {
     
     s <- paste0(a, ".", suffix)
-    AdvisedTrial[, s] <- AdvisedTrial[, paste0("advisor1", suffix)]
+    AdvisedTrial[, s] <- NA
     
-    for (i in 1:length(grep("^advisor[0-9]+id$", names(AdvisedTrial)))) {
-      if (length(grep(paste0("^advisor", i, suffix), names(AdvisedTrial)))) {
-        AdvisedTrial[AdvisedTrial[paste0("advisor", 
-                                         i, 
-                                         "idDescription")] == a, s] <-
-          AdvisedTrial[AdvisedTrial[paste0("advisor", i, "idDescription")] == a,
-                       paste0("advisor", i, suffix)]
+    for (i in 1:nrow(AdvisedTrial)) {
+      x <- 0
+      while (T) {
+        if (!length(grep(paste0("advisor", x), 
+                                names(AdvisedTrial)))) {
+          break()
+        }
+        
+        if (AdvisedTrial[i, paste0("advisor", x, "idDescription")] == a) {
+          AdvisedTrial[i, s] <- AdvisedTrial[i, paste0("advisor", x, suffix)]
+          break()
+        }
+        
+        x <- x + 1
       }
+      
     }
   }
 }

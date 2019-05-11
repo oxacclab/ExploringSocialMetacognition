@@ -408,7 +408,7 @@ class AdvisedTrial extends Trial {
             const a = this.advisors[i];
             const tbl = a.toTable();
             const s = "advisor" + i.toString();
-            this.data[s + "position"] = i;
+            this.data[s] = i;
             for(let x in tbl)
                 if(tbl.hasOwnProperty(x))
                     this.data[s + x] = tbl[x];
