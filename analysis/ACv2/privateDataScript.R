@@ -13,5 +13,5 @@ okay <- data.frame(pid = key$pid, okay = key$isOkay)
 
 write.csv(okay, paste0("../data/public/datesStudy_v", version,
                                       "_okayIds.csv"))
-
+key[, c("prolificId", "pid", "isOkay")]
 rm("key", "okay")

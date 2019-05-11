@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.10">
+<head data-version="0.0.11">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -230,7 +230,7 @@
             <esm-response-timeline id="response-panel" data-min="1890"
                                  data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="10" data-marker-width-thin="3" data-marker-width-medium="9" data-marker-width-thick="27">
+                                 data-no-confidence="true" data-label-step="10" data-marker-width-thin="1" data-marker-width-medium="3" data-marker-width-thick="9">
                 <div class="response-timeline">
                     <div class="response-line"></div>
                 </div>
@@ -239,15 +239,15 @@
                 </esm-help>
                 <div class="response-marker-pool">
                     <div>
-                        <div class="label">&plusmn;1 year (9pts)</div>
+                        <div class="label">&plusmn;0 year (27pts)</div>
                         <div class="response-marker thin"></div>
                     </div>
                     <div>
-                        <div class="label">&plusmn;4 years (3pts)</div>
+                        <div class="label">&plusmn;1 years (9pts)</div>
                         <div class="response-marker medium"></div>
                     </div>
                     <div>
-                        <div class="label">&plusmn;13 years (1pts)</div>
+                        <div class="label">&plusmn;4 years (3pts)</div>
                         <div class="response-marker thick"></div>
                     </div>
                     <esm-help data-group="interface" class="top wide">
@@ -306,7 +306,7 @@
 
     import {Study, DatesStudy} from "../src/modules/Study.js";
     import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
+    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_AGREEISH, ADVICE_CORRECTISH, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
 
     // Procedural stuff
@@ -330,106 +330,105 @@
             (/\?/.test(window.location.search)? "&" : "?") +
             "study=ACv2";
         window.location.replace(redirectURL); // simulate redirect (no history)
+    } else {
+
+        // Run trial
+
+        AdvisedTrial.reset();
+
+        window.DEBUG = {};
+        DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
+        DEBUG.feedback = parseInt(utils.getQueryStringValue("feedback"));
+        DEBUG.qCount = parseInt(utils.getQueryStringValue("qCount"));
+
+        let advisors =
+            [
+                new Advisor({ // practice advisor
+                    id: 0,
+                    idDescription: "Practice",
+                    group: 0,
+                    name: "Practice advisor",
+                    templateId: "advisor-key",
+                    confidence: 8,
+                    confidenceVariation: 3,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_CORRECT.copy(1)
+                        ]
+                    })
+                }),
+                new Advisor({
+                    id: 1,
+                    idDescription: "Accurate",
+                    group: 0,
+                    name: "Advisor #" + parseInt(10 + Math.random() * 50),
+                    templateId: "advisor-key",
+                    confidence: 4,
+                    confidenceVariation: 5,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_CORRECTISH.copy(4),
+                            ADVICE_INCORRECT_REFLECTED.copy(1),
+                            // fallbacks
+                            ADVICE_INCORRECT_REVERSED.copy(0)
+                        ]
+                    })
+                }),
+                new Advisor({
+                    id: 2,
+                    idDescription: "Agreeing",
+                    group: 0,
+                    name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
+                    templateId: "advisor-key",
+                    confidence: 4,
+                    confidenceVariation: 5,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_AGREEISH.copy(4),
+                            ADVICE_INCORRECT_REFLECTED.copy(1),
+                            // fallbacks
+                            ADVICE_INCORRECT_REVERSED.copy(0)
+                        ]
+                    })
+                })
+            ];
+        while (advisors[1].name === advisors[2].name)
+            advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
+
+        // Shuffle advisor ids
+        if (Math.random() < .5) {
+            advisors[1].id = 2;
+            advisors[2].id = 1;
+        }
+
+        advisors = [advisors[0], ...utils.shuffle([advisors[1], advisors[2]])];
+
+        let studyBlueprint = {
+            studyVersion: document.querySelector("head").dataset.version,
+            attentionCheckTrials: [10, 22],
+            blockLength: [3, 15, 15],
+            practiceBlocks: 1,
+            questionsXML: "assets/etc/questions.xml",
+            feedback: !isNaN(DEBUG.feedback) ? DEBUG.feedback > 0 : Math.random() > .5,
+            advisors
+        };
+
+        // shorter study in debug mode
+        if (DEBUG.level >= 1 && !utils.getQueryStringValue("fb"))
+            studyBlueprint.blockLength = [2, 2];
+        if (DEBUG.qCount > 1 && !utils.getQueryStringValue("fb"))
+            studyBlueprint.blockLength = [1, DEBUG.qCount];
+
+        window.study = new DatesStudy(studyBlueprint);
+
+        if (utils.getQueryStringValue("fb"))
+            study.awaitTrialLoading()
+                .then(() => study.run("results")
+                    .then(console.log));
+        else
+            study.run()
+                .then(console.log);
     }
-
-    // Run trial
-
-    AdvisedTrial.reset();
-
-    window.DEBUG = {};
-    DEBUG.level = parseInt(utils.getQueryStringValue("debug"));
-    DEBUG.feedback = parseInt(utils.getQueryStringValue("feedback"));
-    DEBUG.qCount = parseInt(utils.getQueryStringValue("qCount"));
-
-    let advisors =
-        [
-            new Advisor({ // practice advisor
-                id: 0,
-                idDescription: "Practice",
-                group: 0,
-                name: "Practice advisor",
-                templateId: "advisor-key",
-                confidence: 8,
-                confidenceVariation: 3,
-                adviceProfile: new AdviceProfile({
-                    adviceTypes: [
-                        ADVICE_CORRECT.copy(1)
-                    ]
-                })
-            }),
-            new Advisor({
-                id: 1,
-                idDescription: "Accurate",
-                group: 0,
-                name: "Advisor #" + parseInt(10 + Math.random() * 50),
-                templateId: "advisor-key",
-                confidence: 8,
-                confidenceVariation: 5,
-                adviceProfile: new AdviceProfile({
-                    adviceTypes: [
-                        ADVICE_CORRECT_DISAGREE.copy(4),
-                        ADVICE_INCORRECT_REFLECTED.copy(1),
-                        // fallbacks
-                        ADVICE_INCORRECT_REVERSED.copy(0),
-                        ADVICE_CORRECT.copy(0)
-                    ]
-                })
-            }),
-            new Advisor({
-                id: 2,
-                idDescription: "Agreeing",
-                group: 0,
-                name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
-                templateId: "advisor-key",
-                confidence: 8,
-                confidenceVariation: 5,
-                adviceProfile: new AdviceProfile({
-                    adviceTypes: [
-                        ADVICE_CORRECT_AGREE.copy(4),
-                        ADVICE_INCORRECT_REFLECTED.copy(1),
-                        // fallbacks
-                        ADVICE_INCORRECT_REVERSED.copy(0),
-                        ADVICE_AGREE.copy(0)
-                    ]
-                })
-            })
-        ];
-    while(advisors[1].name === advisors[2].name)
-        advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
-
-    // Shuffle advisor ids
-    if(Math.random() < .5) {
-        advisors[1].id = 2;
-        advisors[2].id = 1;
-    }
-
-    advisors = [advisors[0], ...utils.shuffle([advisors[1], advisors[2]])];
-
-    let studyBlueprint = {
-        studyVersion: document.querySelector("head").dataset.version,
-        attentionCheckTrials: [10,22],
-        blockLength: [3, 15, 15],
-        practiceBlocks: 1,
-        questionsXML: "assets/etc/questions.xml",
-        feedback: !isNaN(DEBUG.feedback)? DEBUG.feedback > 0 : Math.random() > .5,
-        advisors
-    };
-
-    // shorter study in debug mode
-    if(DEBUG.level >= 1 && !utils.getQueryStringValue("fb"))
-        studyBlueprint.blockLength = [2, 2];
-    if(DEBUG.qCount > 1 && !utils.getQueryStringValue("fb"))
-        studyBlueprint.blockLength = [1, DEBUG.qCount];
-
-    window.study = new DatesStudy(studyBlueprint);
-
-    if(utils.getQueryStringValue("fb"))
-        study.awaitTrialLoading()
-            .then(()=>study.run("results")
-                .then(console.log));
-    else
-        study.run()
-            .then(console.log);
 
     // Hoist for debugging
     window.Study = Study;
@@ -437,6 +436,7 @@
     window.Trial = Trial;
     window.AdvisedTrial = AdvisedTrial;
     window.Advisor = Advisor;
+    window.utils = utils;
 
 </script>
 </body>

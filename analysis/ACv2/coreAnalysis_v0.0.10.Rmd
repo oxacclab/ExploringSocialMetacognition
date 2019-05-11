@@ -1689,5 +1689,6 @@ cat(paste('Time stamp:', Sys.time(), '\n\n'))
 cat('Runtime \n')
 proc.time()
 cat('\n')
+cat('Session Info:\n')
 sessionInfo()
 ```

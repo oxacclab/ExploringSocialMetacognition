@@ -28,6 +28,7 @@ data <- aggregate(cbind(timeEnd,
                         responseScore) ~ pid, 
                   decisions[decisions$decision == "last", ], mean)
 
+data <- data[data$pid %in% key$pid, ]
 data[, 2:5] <- scale(data[, 2:5])
 
 # While there is some correlation in response stats, it's not strong enough

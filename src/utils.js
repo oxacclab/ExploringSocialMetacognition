@@ -336,4 +336,7 @@ function randomNumber(min = 0, max = 1, int = true) {
     return int? Math.floor(x) : x;
 }
 
+
+
+
 export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, randomNumber}

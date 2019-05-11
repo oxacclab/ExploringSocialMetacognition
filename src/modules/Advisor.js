@@ -573,8 +573,8 @@ const ADVICE_INCORRECT_REVERSED = Object.freeze(new AdviceType({
         if(target < minS + 2 * w)
             target = minS + 2 * w;
         else
-            if(target > maxS - 2 * w)
-                target = maxS - 2 * w;
+        if(target > maxS - 2 * w)
+            target = maxS - 2 * w;
 
         // If there's no conflict with the participant, return the target value
         let min = target - w;
@@ -589,12 +589,104 @@ const ADVICE_INCORRECT_REVERSED = Object.freeze(new AdviceType({
             else // no room; shift away from participant (missing target)
                 return minA - 1 - w > minS? [minA - 1, minA - 1] : null;
         else // estimate below target
-            if(maxA + 1 < max) // room for marker
-                return [maxA + 1, max];
-            else // no room; shift away from participant (missing target)
-                return maxA + 1 + w < maxS? [maxA + 1, maxA + 1]: null;
+        if(maxA + 1 < max) // room for marker
+            return [maxA + 1, max];
+        else // no room; shift away from participant (missing target)
+            return maxA + 1 + w < maxS? [maxA + 1, maxA + 1]: null;
     },
 }));
 
 
-export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED};
+// Correct-normDist advice has a centre sampled from a (roughly) normal
+// distribution around the correct answer. Out-of-range responses are replaced
+// with another sampled response until a sample is found within the scale
+// boundaries.
+const ADVICE_CORRECTISH = Object.freeze(new AdviceType({
+    name: "correctish",
+    flag: 64,
+    fallback: null,
+    /**
+     * Values for middle point sampled from normal-like (combined uniform)
+     * distribution.
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]}
+     */
+    match: (t, a) => {
+        const w = Math.ceil(a.confidence / 2);
+        const minS = parseFloat(t.responseWidget.dataset.min);
+        const maxS = parseFloat(t.responseWidget.dataset.max);
+
+        // Effectively rolling 3d6 and subtracting the expected value
+        const nDraws = 3;
+        const nMin = 1;
+        const nMax = 6;
+
+        let c;
+        let min;
+        let max;
+
+        do {
+            c = t.correctAnswer;
+            c -= (nMax - nMin) / 2 * nDraws;
+            for(let i = 0; i < nDraws; i++)
+                c += utils.randomNumber(nMin, nMax);
+
+            c = Math.round(c);
+            min = c - w;
+            max = c + w;
+        } while(min < minS || max > maxS);
+
+        // constrain to scale
+        return [c, c];
+    }
+}));
+
+
+// Correct-normDist advice has a centre sampled from a (roughly) normal
+// distribution around the correct answer. Out-of-range responses are replaced
+// with another sampled response until a sample is found within the scale
+// boundaries.
+const ADVICE_AGREEISH = Object.freeze(new AdviceType({
+    name: "agreeish",
+    flag: 128,
+    fallback: null,
+    /**
+     * Values for middle point sampled from normal-like (combined uniform)
+     * distribution.
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]}
+     */
+    match: (t, a) => {
+        const w = Math.ceil(a.confidence / 2);
+        const minS = parseFloat(t.responseWidget.dataset.min);
+        const maxS = parseFloat(t.responseWidget.dataset.max);
+
+        // Effectively rolling 3d6 and subtracting the expected value
+        const nDraws = 3;
+        const nMin = 1;
+        const nMax = 6;
+
+        let c;
+        let min;
+        let max;
+
+        do {
+            c = t.data.responseEstimateLeft + t.data.responseMarkerWidth / 2;
+            c -= (nMax - nMin) / 2 * nDraws;
+            for(let i = 0; i < nDraws; i++)
+                c += utils.randomNumber(nMin, nMax);
+
+            c = Math.round(c);
+            min = c - w;
+            max = c + w;
+        } while(min < minS || max > maxS);
+
+        // constrain to scale
+        return [c, c];
+    }
+}));
+
+
+export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED, ADVICE_CORRECTISH, ADVICE_AGREEISH};

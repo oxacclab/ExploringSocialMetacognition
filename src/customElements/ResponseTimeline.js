@@ -413,14 +413,14 @@ customElements.define('esm-response-timeline',
             const correct =
                 value >= this.responseData.estimateLeft &&
                 value <= this.responseData.estimateLeft +
-                this.responseData.markerWidth;
+                this.responseData.markerWidth - 1;
             if(!marker) {
                 marker = document.createElement("div");
                 marker.classList.add("response-marker", "correct", "feedback");
                 marker.innerHTML = correct? "&starf;" : "&star;";
                 this.querySelector(".response-line").appendChild(marker);
             }
-            marker.style.left = this.valueToPixels(value) + "px";
+            marker.style.left = (this.valueToPixels(value + .5)) + "px";
         }
     }
 );

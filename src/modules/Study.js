@@ -603,7 +603,7 @@ class Study extends ControlObject {
      * @return {Promise<*>}
      */
     async displayFeedback(trial) {
-        const feedbackDuration = 1000;
+        const feedbackDuration = 2000;
 
         const correctAnswer = trial.data.correctAnswer;
         document.getElementById("prompt").innerHTML =
@@ -864,10 +864,31 @@ class Study extends ControlObject {
     }
 
     async getSaveId() {
+
         if(this.id)
             return this.id;
 
-        let me = this;
+        if(this.idFetchInProgress) {
+            // periodic check for save ID
+            const me = this;
+            await new Promise((resolve => {
+                const check = function() {
+                    if(me.id)
+                        resolve();
+                    else
+                        setTimeout(check, 25);
+                };
+                check();
+            }));
+
+            this.idFetchInProgress = !this.id;
+            return this.id;
+        }
+
+        this.info("Getting new save ID");
+
+        this.idFetchInProgress = true;
+        const me = this;
 
         await fetch("../saveSerial.php", {
             method: "POST",
@@ -890,6 +911,7 @@ class Study extends ControlObject {
             .then(id => this.id = id.id)
             .catch((r) => me.saveErrorNotification(r));
 
+        this.info("Acquired save ID '" + this.id + "'", true);
         return this.id;
     }
 }
@@ -943,18 +965,18 @@ class DatesStudy extends Study {
                 }
             })
             .then(() => {
-                // One advisor per trial in the second block
+                // One advisor per trial
                 let attnChecks = 0;
-                for(let t = this.blockLength[0] + this.blockLength[1];
+                for(let t = this.blockLength[0];
                     t < utils.sumList(this.blockLength);
                     t++)
                     attnChecks += this.trials[t].attentionCheck;
 
                 const indexes = [0, 1];
                 const advisors = utils.shuffleShoe(indexes,
-                    (this.blockLength[2] - 1) / indexes.length);
+                    (utils.sumList(this.blockLength) - this.blockLength[0] - 1) / indexes.length);
 
-                for(let t = this.blockLength[0] + this.blockLength[1];
+                for(let t = this.blockLength[0];
                     t < utils.sumList(this.blockLength);
                     t++)
                     if(!this.trials[t].attentionCheck)
@@ -1097,6 +1119,7 @@ class DatesStudy extends Study {
 
             // Register submit function
             form.addEventListener("submit", e=>{
+                e = e || window.event();
                 e.preventDefault();
                 const data = {};
                 form.querySelectorAll("input:not([type='submit']), textarea").forEach(i => data[i.name] = i.value);
@@ -1139,6 +1162,7 @@ class DatesStudy extends Study {
                     document.getElementById("debrief").content, true
                 ));
             document.querySelector("form").addEventListener("submit", e=>{
+                e = e || window.event();
                 e.preventDefault();
 
                 if(!checkInput())
@@ -1272,11 +1296,12 @@ class DatesStudy extends Study {
         let n = 0;
         let nCorrect = 0;
         let score = 0;
+        const scoreFactor = 27;
         trialList.forEach((t) => {
             n++;
             if(t.responseEstimateLeft <= t.correctAnswer &&
             t.responseEstimateLeft + t.responseMarkerWidth >= t.correctAnswer) {
-                score += 27 / t.responseMarkerWidth;
+                score += scoreFactor / t.responseMarkerWidth;
                 nCorrect++;
             }
         });
