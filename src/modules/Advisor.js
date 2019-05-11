@@ -620,7 +620,7 @@ const ADVICE_CORRECTISH = Object.freeze(new AdviceType({
         // Effectively rolling 3d6 and subtracting the expected value
         const nDraws = 3;
         const nMin = 1;
-        const nMax = 6;
+        const nMax = 3;
 
         let c;
         let min;
@@ -666,7 +666,7 @@ const ADVICE_AGREEISH = Object.freeze(new AdviceType({
         // Effectively rolling 3d6 and subtracting the expected value
         const nDraws = 3;
         const nMin = 1;
-        const nMax = 6;
+        const nMax = 3;
 
         let c;
         let min;
