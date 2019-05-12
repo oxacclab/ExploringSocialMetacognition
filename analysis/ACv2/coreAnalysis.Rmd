@@ -131,13 +131,17 @@ expect_equal(uniqueTotal(c("a", "b", "c")),
 ## Load data
 
 ```{r loadData}
-version <- "0-0-14"
+version <- "0-0-15"
 prefix <- paste0("datesStudy_v", version)
 
 files <- list.files("../../data/public/", full.names = T)
 files <- files[grepl(prefix, files, fixed = T)]
 
-okayIds <- read.csv(paste0("../../data/public/", prefix, "_okayIds.csv"))
+idsCSV <- paste0("../../data/public/", prefix, "_okayIds.csv")
+if (!file.exists(idsCSV)) {
+  source("privateDataScript.R")
+}
+okayIds <- read.csv(idsCSV)
 
 for (f in files) {
   tmp <- as.tibble(read.csv(f))
@@ -639,32 +643,27 @@ markerBreakdown <- function(v, df, hideMarkerTotal = F, missingValue = NA, ...) 
 }
 
 #' Return a version of df with only the trials with a single advisor, 
-#' and with all advice columns accessible as onlyAdvisor.x where x is the 
+#' and with all advice columns accessible as advisor0x where x is the 
 #' name of the advisor column.
 #' @param df data frame to process
 singleAdvisorTrials <- function(df) {
   # Find the number of advisors by counting advisorXadvice columns
-  advCols <- grep("advisor[0-9]+advice$", names(df))
-  df$advisorCount <- sapply(1:nrow(df), function(x) sum(!is.na(df[x, advCols])))
+  df$advisorCount <- 0
+  for (r in 1:nrow(df)) {
+    i <- 0
+    while (T) {
+      if (!length(grep(paste0("advisor", i), names(df)))) {
+        break()
+      }
+      
+      i <- i + 1
+    }
+    df$advisorCount[r] <- i
+  }
   
   # Only keep trials with a single advisor
   out <- df[df$advisorCount == 1, ]
   
-  if (nrow(out) <= 0) return(NULL)
-  
-  # fill in advisor info for the single advisor on each trial
-  for (v in grep(advisorNames[1], names(out))) {
-    x <- reFirstMatch(paste0(advisorNames[1], "(.\\S+)$"), names(out)[v])
-    y <- sapply(1:nrow(out), 
-                function(i)
-                  for (n in grep("\\.advice$", names(out))) {
-                    if (!is.na(out[i, n]))
-                      return(out[i, sub("^(\\S+)\\.advice$", 
-                                           paste0("\\1", x), names(out)[n])])
-                  })
-    
-    out[, paste0("onlyAdvisor", x)] <- unlist(y)
-  }
   out
 }
 AdvisedTrial[, grep(".advice", names(AdvisedTrial))]
@@ -1151,7 +1150,7 @@ ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
   
 tmp <- NULL
 for (a in advisorNames) {
-  x <- block2[block2$onlyAdvisor.idDescription == a, ]
+  x <- block2[block2$advisor0idDescription == a, ]
   
   eq <- as.formula(paste0(a, ".woa ~ pid + hasFeedback"))
   r <- aggregate(eq, x, mean, na.rm = T)
@@ -1191,17 +1190,17 @@ low <- 0
 high <- 1
 n <- 11
 block2$woa <- ""
-block2$woa[block2$onlyAdvisor.woaRaw >= 1] <- ">=1"
+block2$woa[block2$advisor0woaRaw >= 1] <- ">=1"
 for (x in rev(seq(low, high, length.out = n))) {
-  block2$woa[block2$onlyAdvisor.woaRaw < x] <- paste0("<", x)
+  block2$woa[block2$advisor0woaRaw < x] <- paste0("<", x)
 }
 block2$woa <- factor(block2$woa)
 
-block2 <- block2[!is.nan(block2$onlyAdvisor.woaRaw), ]
+block2 <- block2[!is.nan(block2$advisor0woaRaw), ]
 
 ggplot(block2, aes(woa)) + 
   geom_histogram(stat = "count") +
-  facet_grid(hasFeedback ~ onlyAdvisor.idDescription, labeller = label_both)
+  facet_grid(hasFeedback ~ advisor0idDescription, labeller = label_both)
 
 ```
 
@@ -1236,11 +1235,11 @@ ggplot(tmp, aes(x = hasFeedback, y = accuracyChange, colour = pid)) +
 
 ```{r accuracyChangesBlock2}
 
-tmp <- aggregate(accuracyChange ~ pid + hasFeedback + onlyAdvisor.idDescription, 
+tmp <- aggregate(accuracyChange ~ pid + hasFeedback + advisor0idDescription, 
                  block2, mean, na.rm = T)
 
 num2str(as.tibble(aggregate(accuracyChange ~ 
-                              hasFeedback + onlyAdvisor.idDescription, 
+                              hasFeedback + advisor0idDescription, 
                             tmp, mean, na.rm = T)))
 
 ```
@@ -1250,10 +1249,10 @@ num2str(as.tibble(aggregate(accuracyChange ~
 ```{r accuracyChangeGraphBlock2}
 
 ggplot(tmp, 
-       aes(x = onlyAdvisor.idDescription, y = accuracyChange, colour = pid)) + 
+       aes(x = advisor0idDescription, y = accuracyChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, 
-               aes(group = onlyAdvisor.idDescription)) +
+               aes(group = advisor0idDescription)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   geom_point(alpha = .5, aes(colour = pid)) +
@@ -1290,11 +1289,11 @@ ggplot(tmp, aes(x = hasFeedback, y = scoreChange, colour = pid)) +
 
 ```{r scoreChangesBlock2}
 
-tmp <- aggregate(scoreChange ~ pid + hasFeedback + onlyAdvisor.idDescription, 
+tmp <- aggregate(scoreChange ~ pid + hasFeedback + advisor0idDescription, 
                  block2, mean, na.rm = T)
 
 num2str(as.tibble(aggregate(scoreChange ~ 
-                              hasFeedback + onlyAdvisor.idDescription, 
+                              hasFeedback + advisor0idDescription, 
                             tmp, mean, na.rm = T)))
 
 ```
@@ -1303,10 +1302,10 @@ num2str(as.tibble(aggregate(scoreChange ~
 
 ```{r scoreChangeGraphBlock2}
 
-ggplot(tmp, aes(x = onlyAdvisor.idDescription, y = scoreChange, colour = pid)) + 
+ggplot(tmp, aes(x = advisor0idDescription, y = scoreChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, 
-               aes(group = onlyAdvisor.idDescription)) +
+               aes(group = advisor0idDescription)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   geom_point(alpha = .5, aes(colour = pid)) +
@@ -1346,11 +1345,11 @@ ggplot(tmp, aes(x = hasFeedback, y = estimateLeftChange, colour = pid)) +
 ```{r meanShiftBlock2}
 
 tmp <- aggregate(estimateLeftChange ~ 
-                   pid + hasFeedback + onlyAdvisor.idDescription, 
+                   pid + hasFeedback + advisor0idDescription, 
                  block2, mean, na.rm = T)
 
 num2str(as.tibble(aggregate(estimateLeftChange ~ 
-                              hasFeedback + onlyAdvisor.idDescription, 
+                              hasFeedback + advisor0idDescription, 
                             tmp, mean, na.rm = T)))
 
 ```
@@ -1360,10 +1359,10 @@ num2str(as.tibble(aggregate(estimateLeftChange ~
 ```{r meanShiftGraphBlock2}
 
 ggplot(tmp, 
-       aes(x = onlyAdvisor.idDescription, y = estimateLeftChange, colour = pid)) + 
+       aes(x = advisor0idDescription, y = estimateLeftChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, 
-               aes(group = onlyAdvisor.idDescription)) +
+               aes(group = advisor0idDescription)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) + 
   geom_point(alpha = .5, aes(colour = pid)) +
@@ -1403,11 +1402,11 @@ ggplot(tmp, aes(x = hasFeedback, y = confidenceChange, colour = pid)) +
 ```{r confidenceShiftBlock2}
 
 tmp <- aggregate(confidenceChange ~ 
-                   pid + hasFeedback + onlyAdvisor.idDescription, 
+                   pid + hasFeedback + advisor0idDescription, 
                  block2, mean, na.rm = T)
 
 num2str(as.tibble(aggregate(confidenceChange ~ 
-                              hasFeedback + onlyAdvisor.idDescription, 
+                              hasFeedback + advisor0idDescription, 
                             tmp, mean, na.rm = T)))
 
 ```
@@ -1417,10 +1416,10 @@ num2str(as.tibble(aggregate(confidenceChange ~
 ```{r confidenceShiftGraphBlock2}
 
 ggplot(tmp, 
-       aes(x = onlyAdvisor.idDescription, y = confidenceChange, colour = pid)) + 
+       aes(x = advisor0idDescription, y = confidenceChange, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
   geom_boxplot(fill = NA, outlier.color = NA, 
-               aes(group = onlyAdvisor.idDescription)) +
+               aes(group = advisor0idDescription)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) + 
   geom_point(alpha = .5, aes(colour = pid)) +
@@ -1619,22 +1618,22 @@ We can also ask which advisor was preferred (if any) by participants in each con
 
 ```{r advisorPreference, results='asis'}
 
-tmp <- aggregate(onlyAdvisor.woa ~ 
-                   pid + hasFeedback + onlyAdvisor.idDescription, 
+tmp <- aggregate(advisor0woa ~ 
+                   pid + hasFeedback + advisor0idDescription, 
                  block2, mean)
 
 cat("No feedback: ")
-cat(md.ttest(tmp$onlyAdvisor.woa[tmp$hasFeedback & 
-                                   tmp$onlyAdvisor.idDescription == "Agreeing"],
-             tmp$onlyAdvisor.woa[tmp$hasFeedback & 
-                                   tmp$onlyAdvisor.idDescription != "Agreeing"],
+cat(md.ttest(tmp$advisor0woa[tmp$hasFeedback & 
+                                   tmp$advisor0idDescription == "Agreeing"],
+             tmp$advisor0woa[tmp$hasFeedback & 
+                                   tmp$advisor0idDescription != "Agreeing"],
              labels = c("*M*|agr", "*M*|acc")))
 
 cat("\nFeedback: ")
-cat(md.ttest(tmp$onlyAdvisor.woa[!tmp$hasFeedback & 
-                                   tmp$onlyAdvisor.idDescription == "Agreeing"],
-             tmp$onlyAdvisor.woa[!tmp$hasFeedback & 
-                                   tmp$onlyAdvisor.idDescription != "Agreeing"],
+cat(md.ttest(tmp$advisor0woa[!tmp$hasFeedback & 
+                                   tmp$advisor0idDescription == "Agreeing"],
+             tmp$advisor0woa[!tmp$hasFeedback & 
+                                   tmp$advisor0idDescription != "Agreeing"],
              labels = c("*M*|agr", "*M*|acc")))
 
 ```
@@ -1647,12 +1646,12 @@ The questions above can perhaps be more suitably answered using a heirachical Ba
 
 # calculate woa for the advisor
 
-tmp <- aggregate(onlyAdvisor.woa ~ 
-                   pid + hasFeedback + onlyAdvisor.idDescription,
+tmp <- aggregate(advisor0woa ~ 
+                   pid + hasFeedback + advisor0idDescription,
                  block2, mean, na.rm = T)
 tmp$hasFeedback <- factor(tmp$hasFeedback)
 
-r <- BANOVA.Normal(l1_formula = onlyAdvisor.woa ~ onlyAdvisor.idDescription,
+r <- BANOVA.Normal(l1_formula = advisor0woa ~ advisor0idDescription,
                    l2_formula = ~ hasFeedback, 
                    data = tmp,
                    id = tmp$pid)
