@@ -26,6 +26,8 @@ library(testthat)
 
 library(tidyverse)
 
+library(curl)
+
 library(lsr)
 library(BayesFactor)
 library(BANOVA)
@@ -126,16 +128,40 @@ uniqueTotal <- function(x) {
 
 expect_equal(uniqueTotal(c("a", "b", "c")), 
              list("a", "b", "c", c("a", "b", "c")))
+
+#' List the files on the server matching the specified version
+listServerFiles <- function(version) {
+  rDir <- "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/"
+  
+  out <- NULL
+  
+  con <- curl(rDir)
+  open(con, "rb")
+  while (isIncomplete(con)) {
+    buffer <- readLines(con, n = 1)
+    if (length(buffer)) {
+      f <- reFirstMatch(paste0(">(datesStudy_v", version, "_[^<]+)"),
+                        buffer)
+      if (nchar(f)) {
+        out <- c(out, paste0(rDir, f))
+      }
+    }
+  }
+  close(con)
+  
+  out
+}
+
 ```
 
 ## Load data
 
 ```{r loadData}
-version <- "0-0-15"
+version <- "0-0-16"
 prefix <- paste0("datesStudy_v", version)
 
-files <- list.files("../../data/public/", full.names = T)
-files <- files[grepl(prefix, files, fixed = T)]
+# files <- list.files("../../data/public/", full.names = T)
+files <- listServerFiles(version)
 
 idsCSV <- paste0("../../data/public/", prefix, "_okayIds.csv")
 if (!file.exists(idsCSV)) {
@@ -351,7 +377,8 @@ for (i in 1:nrow(advisors)) {
     next()
   }
   tmp <- AdvisedTrial[AdvisedTrial$pid %in% advisors$pid[i], ]
-  advisors$meanPosition[i] <- mean(tmp[[paste0(advisors$idDescription[i], ".position")]])
+  advisors$meanPosition[i] <- 
+    mean(tmp[[paste0(advisors$idDescription[i], ".position")]], na.rm = T)
 }
   
 
@@ -671,7 +698,7 @@ singleAdvisorTrials <- function(df) {
   
   out
 }
-AdvisedTrial[, grep(".advice", names(AdvisedTrial))]
+
 block2 <- singleAdvisorTrials(AdvisedTrial)
 block2Decisions <- singleAdvisorTrials(decisions)
 ```

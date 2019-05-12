@@ -136,6 +136,39 @@ if(array_key_exists("prolificId", $data)) {
     } else
         sulk("Unable to save metadata.", 500);
 
+    // We also record the id we're assigning in a public-facing file which tells the curious about the kind of participants creating the data
+    $metaFile = PATH."/public/".$prefix."_metadata.csv";
+    if(!file_exists($metaFile)) {
+        if(($handle = fopen($metaFile, "a+b")) !== false) {
+            // Write headers
+            fputcsv($handle, array("pid", "tags"));
+        }
+    }
+    if(($handle = fopen($metaFile, "a+b")) !== false) {
+        // Collate tags
+        $tags = array();
+
+        // Prolific
+        if(preg_match("^[0-9a-f]{24}$", $data["prolificId"])) {
+            array_push($tags, "prolific");
+            array_push($tags, "paid");
+        }
+
+        if(preg_match("/test/i", $data["prolificId"])) {
+            array_push($tags, "test");
+        }
+
+        if(preg_match("/(\+1|%2B1)$/i", $data["prolificId"])) {
+            array_push($tags, "plus1");
+        }
+
+        $tags = join(", ", $tags);
+
+        // Write data
+        fputcsv($handle, array($pid, $tags));
+    }
+
+
     die(json_encode(array("id" => $pid)));
 }
 
