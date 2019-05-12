@@ -2,7 +2,7 @@
 
 # Read private data and provide a list of proper study ids to the main analysis
 # script
-print(getwd())
+
 key <- read.csv(paste0("../../data/private/datesStudy_v", version,
                        "_participant-metadata.csv"))
 

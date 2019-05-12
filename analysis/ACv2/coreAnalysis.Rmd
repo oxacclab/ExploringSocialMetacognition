@@ -207,7 +207,7 @@ while (T) {
   i <- i + 1
 }
 advisorNames <- unlist(names)
-advisorTypes <- unlist(types)
+adviceTypes <- unlist(types)
 
 
 # Produce equivalents of the advisor1|2... variables which are named for the 
@@ -330,6 +330,11 @@ for (a in advisorNames) {
     
     AdvisedTrial[, paste0(a, ".agree", d)] <- 
       ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP))  
+    
+    # Distance
+    reMid <- minP + (maxP - minP) / 2
+    advice <- AdvisedTrial[, paste0(a, ".advice")]
+    AdvisedTrial[, paste0(a, ".distance", d)] <- abs(reMid - advice)
   }
   
   # Agreement change
@@ -1104,6 +1109,43 @@ ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
 
 ```
 
+### Distance
+
+Distance is the continuous version of agreement - the difference between the centre of the advice and the centre of the initial estimate. 
+
+```{r adviceDistance}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".distance ~ pid + hasFeedback"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "feedback", "distance")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(distance ~ advisor + feedback, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceDistanceGraph}
+
+ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_wrap(~ feedback, labeller = label_both)
+
+```
+
 ### Influence
 
 The measure of influence is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
@@ -1189,7 +1231,13 @@ It's good to keep a general eye on the distribution of weight-on-advice on a tri
 low <- 0
 high <- 1
 n <- 11
+
 block2$woa <- ""
+block2$advisor0woaRaw <- sapply(1:nrow(block2), function(i)
+  unlist(block2[i, 
+                paste0(as.character(block2$advisor0idDescription[i]), 
+                       ".woaRaw")]))
+
 block2$woa[block2$advisor0woaRaw >= 1] <- ">=1"
 for (x in rev(seq(low, high, length.out = n))) {
   block2$woa[block2$advisor0woaRaw < x] <- paste0("<", x)
