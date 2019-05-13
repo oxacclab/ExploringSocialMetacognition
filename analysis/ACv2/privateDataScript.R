@@ -3,6 +3,8 @@
 # Read private data and provide a list of proper study ids to the main analysis
 # script
 
+# read.csv(paste0("../data/private/datesStudy_v", version, "_participant-metadata.csv"))
+
 key <- read.csv(paste0("../../data/private/datesStudy_v", version,
                        "_participant-metadata.csv"))
 

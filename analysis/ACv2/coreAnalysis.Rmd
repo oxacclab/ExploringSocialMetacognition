@@ -163,11 +163,19 @@ prefix <- paste0("datesStudy_v", version)
 # files <- list.files("../../data/public/", full.names = T)
 files <- listServerFiles(version)
 
-idsCSV <- paste0("../../data/public/", prefix, "_okayIds.csv")
-if (!file.exists(idsCSV)) {
-  source("privateDataScript.R")
+# Screen for acceptable IDs
+if (!length(grep("metadata", files))) {
+  idsCSV <- paste0("../../data/public/", prefix, "_okayIds.csv")
+  if (!file.exists(idsCSV)) {
+    source("privateDataScript.R")
+  }
+  okayIds <- read.csv(idsCSV)
+} else {
+  f <- files[grep("metadata", files)]
+  okayIds <- read.csv(f)
+  
+  files <- files[grep("metadata", files, invert = T)]
 }
-okayIds <- read.csv(idsCSV)
 
 for (f in files) {
   tmp <- as.tibble(read.csv(f))
@@ -204,7 +212,6 @@ for (f in files) {
   name <- sub("-", ".", name)
   assign(name, tmp)
 }
-
 
 ```
 
@@ -544,7 +551,7 @@ for (v in checkList) {
             geom_violin(alpha = .25, color = NA, fill = "grey75") + 
             geom_boxplot(outlier.shape = NA, fill = NA, aes(group = 1)) + 
             geom_point(position = position_jitter(.33), alpha = .5) +
-            labs(x = "participants"))
+            labs(x = "participants", y = paste0(v, ".z")))
 }
 
 
@@ -559,10 +566,10 @@ Lastly, we can check the debrief information for participants who appeared to gu
 
 ```{r manualExclusions}
 
-debrief.form$guessedManipulation <- F
-  # c(F, F, F, F, F, T, F, F, F, F,
-  #   T, T, F, F, F, F, F, F, F, F, 
-  #   F, F, F, F, F, F, F, F, F, F)
+debrief.form$guessedManipulation <- 
+  c(F, F, F, F, F, F, F, F, F, F,
+    F, F, F, F, F, T, F, F, F, F,
+    F, F, F, F, F, F, F, F, F, F)
 debrief.form[, c("pid", "comment", "guessedManipulation")]
 
 for (p in exclusions$pid) {
@@ -577,6 +584,22 @@ for (p in exclusions$pid) {
   }
 }
 
+# Check for erroneous marker values
+okayMarkers <- c(1, 3, 9, 27)
+for (p in unique(AdvisedTrial$pid)) {
+  tmp <- AdvisedTrial[AdvisedTrial$pid == p, ]
+  if (!all(tmp$responseMarkerWidth %in% okayMarkers) |
+      !all(tmp$responseMarkerWidthFinal %in% okayMarkers)) {
+    if (p %in% exclusions$pid) {
+      exclusions$excluded[exclusions$pid == p] <- 
+        if (exclusions$excluded[exclusions$pid == p] == F)
+          "badMarker" else 
+            paste(c(exclusions$excluded[exclusions$pid == p], 
+                    "badMarker"), collapse = ", ")
+    }
+  }
+}
+
 table(exclusions$excluded)
 ```
 
@@ -584,7 +607,26 @@ table(exclusions$excluded)
 
 AdvisedTrial <- AdvisedTrial[AdvisedTrial$pid %in% 
                                exclusions$pid[exclusions$excluded == F], ]
+decisions <- decisions[decisions$pid %in% 
+                         exclusions$pid[exclusions$excluded == F], ]
 PP <- PP[PP$pid %in% exclusions$pid[exclusions$excluded == F], ]
+
+# Drop extraneous factor levels
+for (n in ls()) {
+  dirty <- F
+  x <- get(n)
+  if ("data.frame" %in% class(x)) {
+    for (i in 1:ncol(x)) {
+      if (is.factor(x[[i]])) {
+        x[[i]] <- factor(x[[i]]) # renew level assignment
+        dirty <- T
+      }
+    }
+  }
+  if (dirty) {
+    assign(n, x)
+  }
+}
 
 ```
 
@@ -986,7 +1028,9 @@ The following advice types are available:
 name      | description     | fallback
 :--------:|:----------------|:---------------  
 **Correct** | The advisor gives a correct answer | *none*
+**Correctish** | The advisor gives an answer sampled from a normalish distribution around the correct answer | *none*
 **Agree** | The advisor gives an agreeing answer | *none*
+**Agreeish** | The advisor gives an answer sampled from a normalish distribution around the participant's answer | *none*
 **Correct Agree** | The advisor gives advice which is both correct and agreeing | Agree
 **Correct Disagree** | The advisor gives advice which is correct, but which does not agree | Correct
 **Disagree Reflected** | The advisor gives advice which is the participant's answer reflected in the correct answer, while disagreeing with the participant | Disagree Reversed
@@ -1260,10 +1304,12 @@ high <- 1
 n <- 11
 
 block2$woa <- ""
-block2$advisor0woaRaw <- sapply(1:nrow(block2), function(i)
-  unlist(block2[i, 
-                paste0(as.character(block2$advisor0idDescription[i]), 
-                       ".woaRaw")]))
+for (x in c("woa", "woaRaw")) {
+  block2[, paste0("advisor0", x)] <- sapply(1:nrow(block2), function(i)
+    unlist(block2[i, 
+                  paste0(as.character(block2$advisor0idDescription[i]), 
+                         ".", x)]))
+}
 
 block2$woa[block2$advisor0woaRaw >= 1] <- ">=1"
 for (x in rev(seq(low, high, length.out = n))) {
@@ -1509,13 +1555,18 @@ Advisor agreement is calculated using the participant's initial decision and the
 ```{r agreementChange}
 
 eq <- NULL
+tmp <- NULL
 for (a in advisorNames) {
-  eq <- c(eq, paste0(a, ".agreementChange"))
+  eq <- as.formula(paste0(a, ".agreementChange", " ~ pid + hasFeedback"))
+  
+  x <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  if (is.null(tmp)) {
+    tmp <- x
+  } else {
+    tmp <- left_join(tmp, x, by = c("pid", "hasFeedback"))
+  }
 }
-
-eq <- paste0("cbind(", paste(eq, collapse = ", "), ") ~ pid + hasFeedback")
-
-tmp <- aggregate(as.formula(eq), AdvisedTrial, mean, na.rm = T)
 
 tmp <- gather(tmp, "advisor", "agreementChange", 
               grep("\\.agreementChange", names(tmp)))
@@ -1565,7 +1616,8 @@ tmp <- aggregate(cbind(responseError, responseErrorFinal) ~ pid,
                  block2, 
                  mean, na.rm = T)
 
-r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, c("*M*|last", "*M*|first"))
+r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, 
+              c("*M*|last", "*M*|first"), paired = T)
 cat(r)
 
 ```
@@ -1578,7 +1630,8 @@ tmp <- aggregate(cbind(responseScore, responseScoreFinal) ~ pid,
                  block2, 
                  mean, na.rm = T)
 
-r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, c("*M*|last", "*M*|first"))
+r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, 
+              c("*M*|last", "*M*|first"), paired = T)
 cat(r)
 
 ```
@@ -1593,7 +1646,8 @@ tmp <- aggregate(cbind(responseCorrect, responseCorrectFinal) ~ pid,
 
 r <- md.ttest(tmp$responseCorrectFinal, 
               tmp$responseCorrect, 
-              c("*M*|last", "*M*|first"))
+              c("*M*|last", "*M*|first"),
+              paired = T)
 
 cat(r)
 
@@ -1609,7 +1663,9 @@ tmp <- aggregate(cbind(responseError, responseErrorFinal) ~ pid,
                  AdvisedTrial[AdvisedTrial$hasFeedback, ], 
                  mean, na.rm = T)
 
-r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, c("*M*|last", "*M*|first"))
+r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, 
+              c("*M*|last", "*M*|first"),
+              paired = T)
 cat(r)
 
 ```
@@ -1622,7 +1678,9 @@ tmp <- aggregate(cbind(responseScore, responseScoreFinal) ~ pid,
                  AdvisedTrial[AdvisedTrial$hasFeedback, ], 
                  mean, na.rm = T)
 
-r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, c("*M*|last", "*M*|first"))
+r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, 
+              c("*M*|last", "*M*|first"),
+              paired = T)
 cat(r)
 
 ```
@@ -1637,7 +1695,9 @@ tmp <- aggregate(cbind(responseError, responseErrorFinal) ~ pid,
                  AdvisedTrial[!AdvisedTrial$hasFeedback, ], 
                  mean, na.rm = T)
 
-r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, c("*M*|last", "*M*|first"))
+r <- md.ttest(tmp$responseErrorFinal, tmp$responseError, 
+              c("*M*|last", "*M*|first"),
+              paired = T)
 cat(r)
 
 ```
@@ -1650,7 +1710,9 @@ tmp <- aggregate(cbind(responseScore, responseScoreFinal) ~ pid,
                  AdvisedTrial[!AdvisedTrial$hasFeedback, ], 
                  mean, na.rm = T)
 
-r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, c("*M*|last", "*M*|first"))
+r <- md.ttest(tmp$responseScoreFinal, tmp$responseScore, 
+              c("*M*|last", "*M*|first"), 
+              paired = T)
 cat(r)
 
 ```
@@ -1702,14 +1764,16 @@ cat(md.ttest(tmp$advisor0woa[tmp$hasFeedback &
                                    tmp$advisor0idDescription == "Agreeing"],
              tmp$advisor0woa[tmp$hasFeedback & 
                                    tmp$advisor0idDescription != "Agreeing"],
-             labels = c("*M*|agr", "*M*|acc")))
+             labels = c("*M*|agr", "*M*|acc"),
+             paired = T))
 
-cat("\nFeedback: ")
+cat("\n<br/>\nFeedback: ")
 cat(md.ttest(tmp$advisor0woa[!tmp$hasFeedback & 
                                    tmp$advisor0idDescription == "Agreeing"],
              tmp$advisor0woa[!tmp$hasFeedback & 
                                    tmp$advisor0idDescription != "Agreeing"],
-             labels = c("*M*|agr", "*M*|acc")))
+             labels = c("*M*|agr", "*M*|acc"),
+             paired = T))
 
 ```
 
@@ -1783,6 +1847,6 @@ Matt Jaquiery is funded by a studentship from the [Medical Research Council](htt
 cat(paste('Time stamp:', Sys.time(), '\n\n'))
 cat('Runtime \n')
 proc.time()
-cat('\n')
+cat('\n\n')
 sessionInfo()
 ```
