@@ -618,10 +618,14 @@ const ADVICE_CORRECTISH = Object.freeze(new AdviceType({
         const minS = parseFloat(t.responseWidget.dataset.min);
         const maxS = parseFloat(t.responseWidget.dataset.max);
 
-        // Effectively rolling 3d6 and subtracting the expected value
+        // Don't give exactly the participant's response because when advice matches initial response WoA is undefined
+        const pCentre = t.data.responseEstimateLeft +
+            Math.floor(t.data.responseMarkerWidth / 2);
+
+        // Effectively rolling 3d4-3 and subtracting the expected value
         const nDraws = 3;
-        const nMin = 1;
-        const nMax = 3;
+        const nMin = 0;
+        const nMax = a.confidenceVariation;
 
         let c;
         let min;
@@ -636,7 +640,7 @@ const ADVICE_CORRECTISH = Object.freeze(new AdviceType({
             c = Math.round(c);
             min = c - w;
             max = c + w;
-        } while(min < minS || max > maxS);
+        } while(min < minS || max > maxS || c === pCentre);
 
         // constrain to scale
         return [c, c];
@@ -664,17 +668,21 @@ const ADVICE_AGREEISH = Object.freeze(new AdviceType({
         const minS = parseFloat(t.responseWidget.dataset.min);
         const maxS = parseFloat(t.responseWidget.dataset.max);
 
-        // Effectively rolling 3d6 and subtracting the expected value
+        // Don't give exactly the participant's response because when advice matches initial response WoA is undefined
+        const pCentre = t.data.responseEstimateLeft +
+            Math.floor(t.data.responseMarkerWidth / 2);
+
+        // Effectively rolling 3d4-3 and subtracting the expected value
         const nDraws = 3;
-        const nMin = 1;
-        const nMax = 3;
+        const nMin = 0;
+        const nMax = a.confidenceVariation;
 
         let c;
         let min;
         let max;
 
         do {
-            c = t.data.responseEstimateLeft + t.data.responseMarkerWidth / 2;
+            c = pCentre;
             c -= (nMax - nMin) / 2 * nDraws;
             for(let i = 0; i < nDraws; i++)
                 c += utils.randomNumber(nMin, nMax);
@@ -682,7 +690,7 @@ const ADVICE_AGREEISH = Object.freeze(new AdviceType({
             c = Math.round(c);
             min = c - w;
             max = c + w;
-        } while(min < minS || max > maxS);
+        } while(min < minS || max > maxS || c === pCentre);
 
         // constrain to scale
         return [c, c];

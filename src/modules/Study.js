@@ -143,6 +143,71 @@ class Study extends ControlObject {
         });
     }
 
+    async demographics() {
+
+        const me = this;
+
+        const checkInput = function() {
+            const data = {};
+            // Has anything been written in the mandatory fields?
+            let okay = true;
+            // Get unique name list
+            const names = {};
+            document.querySelectorAll("form input").forEach(elm => {
+                if(typeof names[elm.name] === "undefined")
+                    names[elm.name] = elm.classList.contains("mandatory");
+            });
+
+            for(const n in names) {
+               const inputs = document.querySelectorAll("form input[name='" + n + "']");
+
+                inputs[0].parentElement.parentElement.classList.remove("invalid");
+
+               let inputOkay = false;
+               inputs.forEach(elm => {
+                   if(elm.checked || elm.type === "text") {
+                       inputOkay = true;
+                       data[n] = elm.value;
+                   }
+               });
+
+               if(!inputOkay && names[n]) {
+                   // missing mandatory input
+                   inputs[0].parentElement.parentElement.classList.add("invalid");
+                   okay = false;
+               }
+            };
+
+            if(!okay)
+                return false;
+            return data;
+        };
+
+        return new Promise(function(resolve) {
+            // Show the debrief questions
+            const questionnaire = document.querySelector("#questionnaire");
+            questionnaire.innerHTML = "";
+            questionnaire.appendChild(
+                document.importNode(
+                    document.getElementById("demographics").content, true
+                ));
+            document.querySelector("form button[name='submit']").addEventListener("click", e=>{
+                e = e || window.event();
+                e.preventDefault();
+
+                const data = checkInput();
+
+                if(!data)
+                    return false;
+
+                data["userAgent"] = navigator.userAgent;
+
+                me.saveCSVRow("demographics-form", true, data);
+
+                resolve("debrief");
+            });
+        });
+    }
 
     /**
      * @callback Study~instructionCallback
@@ -654,7 +719,7 @@ class Study extends ControlObject {
         div.innerHTML = "";
         div.appendChild(document.importNode(document.querySelector("#issue-report").content, true));
 
-        div.querySelector("form").addEventListener("submit", e => {
+        div.querySelector("form button[name='submit']").addEventListener("click", e => {
             e.preventDefault();
             const form = document.querySelector("#report-issue form");
             if(form.querySelector("[name='issueContent']").value !== "") {
@@ -1114,13 +1179,13 @@ class DatesStudy extends Study {
             div.appendChild(advisor.getInfoTab());
 
             // Disable form submission until an input or textarea has been clicked
-            const submit = form.querySelector("input[type='submit'");
+            const submit = form.querySelector("button[name='submit'");
             submit.disabled = "disabled";
             form.querySelectorAll("input[type='range'], form textarea")
                 .forEach(i => i.addEventListener("click", ()=> submit.disabled = ""));
 
             // Register submit function
-            form.addEventListener("submit", e=>{
+            submit.addEventListener("click", e=>{
                 e = e || window.event();
                 e.preventDefault();
                 const data = {};
@@ -1163,7 +1228,7 @@ class DatesStudy extends Study {
                 document.importNode(
                     document.getElementById("debrief").content, true
                 ));
-            document.querySelector("form").addEventListener("submit", e=>{
+            document.querySelector("form button[name='submit']").addEventListener("click", e=>{
                 e = e || window.event();
                 e.preventDefault();
 

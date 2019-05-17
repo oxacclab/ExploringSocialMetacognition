@@ -16,6 +16,9 @@
     <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
     <link rel="stylesheet" type="text/css" href="../style/function.css"/>
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+    <!--/ FontAwesome -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -96,6 +99,77 @@
             </esm-instruction-page>
         </esm-instruction>
     </template>
+    <template id="demographics">
+        <form class="questionnaire demographics">
+            <div class="question">
+                <p>We need some information about your browser and device to ensure we can interpret your results correctly:</p>
+            </div>
+            <div class="items">
+                <div>
+                    <label class="label">Device:</label>
+                    <div class="item">
+                        <input name="device" type="radio" class="mandatory" value="pc" id="pc"/>
+                        <label class="label" for="pc" title="Personal computer"><i class="fas fa-desktop"></i> / <i class="fas fa-laptop"></i></label>
+                    </div>
+                    <div class="item">
+                        <input name="device" type="radio" class="mandatory" value="tablet" id="tablet"/>
+                        <label class="label" for="tablet" title="Tablet"><i class="fas fa-tablet-alt"></i></label>
+                    </div>
+                    <div class="item">
+                        <input name="device" type="radio" class="mandatory" value="mobile" id="mobile"/>
+                        <label class="label" for="mobile" title="Smartphone"><i class="fas fa-mobile-alt"></i></label>
+                    </div>
+                    <div class="item">
+                        <input name="device" type="radio" class="mandatory" value="other" id="otherD"/>
+                        <label class="label" for="otherD" title="other (indicate which)"><input type="text" name="otherD" placeholder="device type" onclick="this.closest('div').querySelector('input[value=\'other\']').checked = true;"/></label>
+                    </div>
+                </div>
+                <div>
+                    <label class="label">OS / Type:</label>
+                    <div class="item">
+                        <input name="os" type="radio" class="mandatory" value="android" id="android"/>
+                        <label class="label" for="android" title="Android / Linux"><i class="fab fa-android"></i></label>
+                    </div>
+                    <div class="item">
+                        <input name="os" type="radio" class="mandatory" value="apple" id="apple"/>
+                        <label class="label" for="apple" title="Apple / MacOS"><i class="fab fa-apple"></i></label>
+                    </div>
+                    <div class="item">
+                        <input name="os" type="radio" class="mandatory" value="windows" id="windows"/>
+                        <label class="label" for="windows" title="Microsoft / Windows"><i class="fab fa-windows"></i></label>
+                    </div>
+                    <div class="item">
+                        <input name="os" type="radio" class="mandatory" value="other" id="otherOS"/>
+                        <label class="label" for="otherOS" title="other (indicate which)"><input type="text" name="otherOS" placeholder="OS name" onclick="this.closest('div').querySelector('input[value=\'other\']').checked = true;"/></label>
+                    </div>
+                </div>
+                <div>
+                    <div class="group">
+                        <label class="label">Browser:</label>
+                        <div class="item">
+                            <input name="browser" type="radio" class="mandatory" value="chrome" id="chrome"/>
+                            <label class="label" for="chrome" title="Google Chrome"><i class="fab fa-chrome"></i></label>
+                        </div>
+                        <div class="item">
+                            <input name="browser" type="radio" class="mandatory" value="firefox" id="ff"/>
+                            <label class="label" for="ff" title="Mozilla Firefox"><i class="fab fa-firefox"></i></label>
+                        </div>
+                        <div class="item">
+                            <input name="browser" type="radio" class="mandatory" value="safari" id="safari"/>
+                            <label class="label" for="safari" title="MacOS Safari"><i class="fab fa-safari"></i></label>
+                        </div>
+                        <div class="item">
+                            <input name="browser" type="radio" class="mandatory" value="other" id="otherB"/>
+                            <label class="label" for="otherB" title="other (indicate which)"><input type="text" name="otherB" placeholder="browser name" onclick="this.closest('div').querySelector('input[value=\'other\']').checked = true;"/></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <button name="submit" class="confirm">&check;</button>
+            </div>
+        </form>
+    </template>
     <template id="debrief-advisors">
         <form class="questionnaire advisors">
             <div class="question">
@@ -121,7 +195,7 @@
             </div>
             <div class="bottom">
                 <textarea name="comment" placeholder="Any particular comments about this advisor? (optional, public)" title="Your answer will be included in the public dataset, so please do not include personal information."></textarea>
-                <input type="submit" class="confirm" value="&check;"/>
+                <button name="submit" class="confirm">&check;</button>
             </div>
         </form>
     </template>
@@ -134,7 +208,7 @@
             <textarea name="advisorDifference" class="mandatory" placeholder="There was a difference between the advisors. What do you think it was? (mandatory, public)" title="Your answers will be included in the public dataset, so please do not include personal information."></textarea>
             <textarea name="generalComments" placeholder="Are there any other questions or comments you'd like to leave about the experiment? (optional, private)" title="Your answer to this question will only be visible to the experimenter and colleagues."></textarea>
             <div class="bottom">
-                <input type="submit" class="confirm" value="&check;"/>
+                <button name="submit" class="confirm">&check;</button>
             </div>
         </form>
     </template>
@@ -147,7 +221,7 @@
             </div>
             <div class="bottom">
                 <textarea name="issueContent" placeholder="Description of the issue (optional, private)" title="Your answer to this question will only be visible to the experimenter and colleagues."></textarea>
-                <input type="submit" class="confirm" value="&check;"/>
+                <button name="submit" class="confirm">&check;</button>
             </div>
         </form>
     </template>
@@ -284,6 +358,9 @@
         <div id="report-issue"></div>
         <div id="training-instructions" class="hidden">
             Click or Touch the tooltip above to move on...
+        </div>
+        <div id="questionnaire">
+            questionnaire
         </div>
     </div>
 </div>
