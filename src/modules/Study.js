@@ -1250,6 +1250,9 @@ class DatesStudy extends Study {
     }
 
     async results() {
+
+        const detail = utils.getQueryStringValue("detail") === "true";
+
         // Save the study in the background
         if(!utils.getQueryStringValue("fb")) {
             this.save(console.log)
@@ -1291,16 +1294,6 @@ class DatesStudy extends Study {
 
         trialList = trialList.filter(t => t.isAttentionCheck !== 1);
 
-        // Typecast the numerical variables and use final answer if available
-        trialList.forEach(t => {
-            t.responseMarkerWidth = t.responseMarkerWidthFinal?
-                parseInt(t.responseMarkerWidthFinal) :
-                parseInt(t.responseMarkerWidth);
-            t.responseEstimateLeft = t.responseEstimateLeftFinal?
-                parseInt(t.responseEstimateLeftFinal) :
-                parseInt(t.responseEstimateLeft);
-        });
-
         const playMarker = function() {
             const e = window.event;
 
@@ -1319,10 +1312,12 @@ class DatesStudy extends Study {
             // show correct answer
             const targetId = "estimate" + marker.dataset.number;
             document.querySelectorAll(".marker.estimate").forEach((elm) => {
-                if(elm.id === targetId)
+                if(/(estimate[0-9]+)/.exec(elm.id)[0] === targetId)
                     elm.style.display = "block";
                 else
                     elm.style.display = "";
+
+
             });
 
             // show prompt in the prompt area
@@ -1332,6 +1327,16 @@ class DatesStudy extends Study {
             else
                 document.querySelector(".feedback-wrapper .prompt").innerHTML =
                     "Click a marker for more info...";
+
+            if(detail) {
+                // Show some debugging info at the top
+                const p = document.querySelector(".timeline .debug");
+                p.innerHTML = "";
+                for(let k in marker.dataset) {
+                    p.innerHTML += "<strong>" + k + "</strong>: " +
+                        marker.dataset[k] + "<br/>";
+                }
+            }
         };
 
         const content = document.querySelector("#content");
@@ -1366,9 +1371,12 @@ class DatesStudy extends Study {
         const scoreFactor = 27;
         trialList.forEach((t) => {
             n++;
-            if(t.responseEstimateLeft <= t.correctAnswer &&
-            t.responseEstimateLeft + t.responseMarkerWidth >= t.correctAnswer) {
-                score += scoreFactor / t.responseMarkerWidth;
+            if(parseInt(t.responseEstimateLeftFinal) <=
+                parseInt(t.correctAnswer) &&
+            parseInt(t.responseEstimateLeftFinal) +
+                parseInt(t.responseMarkerWidthFinal) >=
+                parseInt(t.correctAnswer)) {
+                score += scoreFactor / parseInt(t.responseMarkerWidthFinal);
                 nCorrect++;
             }
         });
@@ -1386,16 +1394,41 @@ class DatesStudy extends Study {
         let min = Infinity;
         let max = -Infinity;
         trialList.forEach(t => {
-            if(parseInt(t.responseEstimateLeft) < min)
-                min = parseInt(t.responseEstimateLeft);
+            // Final response
+            if(parseInt(t.responseEstimateLeftFinal) < min)
+                min = parseInt(t.responseEstimateLeftFinal);
             if(parseInt(t.correctAnswer) < min)
                 min = parseInt(t.correctAnswer);
-            if(parseInt(t.responseEstimateLeft) +
-                parseInt(t.responseMarkerWidth) > max)
-                max = parseInt(t.responseEstimateLeft) +
-                    parseInt(t.responseMarkerWidth);
+            if(parseInt(t.responseEstimateLeftFinal) +
+                parseInt(t.responseMarkerWidthFinal) > max)
+                max = parseInt(t.responseEstimateLeftFinal) +
+                    parseInt(t.responseMarkerWidthFinal);
             if(parseInt(t.correctAnswer) > max)
                 max = parseInt(t.correctAnswer);
+            if(detail) {
+                // Initial response
+                if(parseInt(t.responseEstimateLeft) < min)
+                    min = parseInt(t.responseEstimateLeft);
+                if(parseInt(t.responseEstimateLeft) +
+                    parseInt(t.responseMarkerWidth) > max)
+                    max = parseInt(t.responseEstimateLeft) +
+                        parseInt(t.responseMarkerWidth);
+
+                // Advice
+                let i = 0;
+                while(Object.keys(t).indexOf("advisor" +
+                    i.toString() + "id") !== -1) {
+                    const p = "advisor" + i.toString();
+                    const w = parseInt(t[p + "confidence"]);
+
+                    if(parseInt(t[p + "advice"]) - w < min)
+                        min = parseInt(t[p + "advice"]) - w;
+                    if(parseInt(t[p + "advice"]) + w > max)
+                        max = parseInt(t[p + "advice"]) + w;
+
+                    i++;
+                }
+            }
         });
         const step = 10;
         // add a little buffer to the next marker
@@ -1415,19 +1448,54 @@ class DatesStudy extends Study {
         // Draw markers
         let x = -1;
         const year = TL.clientWidth / (max - min);
+
+        const makeMarker = function(left, width, type = "", classes = []) {
+            const l = parseFloat(left);
+            const w = parseFloat(width);
+            const marker = document.createElement('div');
+            marker.id = "estimate" + x.toString() + type;
+            marker.classList.add("response-marker", "marker", "estimate");
+            if(type)
+                marker.classList.add(type);
+            if(classes.length)
+                marker.classList.add(...classes);
+
+            marker.style.width = (year * (w + 1) - 1) + "px";
+            marker.style.left = ((l - min) /
+                (max - min) * TL.clientWidth) +
+                "px";
+            marker.title = left + " - " +  (l + w).toString();
+            return TL.appendChild(marker);
+        };
+
         trialList.forEach((t) => {
             x++;
 
+            if(detail) {
+                // Initial answer marker
+                makeMarker(t.responseEstimateLeft,
+                    t.responseMarkerWidth,
+                    "initial");
+
+                // Advice
+                let i = 0;
+                while(Object.keys(t).indexOf("advisor" +
+                    i.toString() +
+                    "id") !== -1) {
+                    const a = "advisor" + i.toString();
+                    const w = t[a + "confidence"];
+                    makeMarker(t[a + "advice"] - w,
+                        w,
+                        t[a + "idDescription"],
+                        ["advice"]);
+
+                    i++;
+                }
+            }
+
             // Answer marker
-            const marker = document.createElement('div');
-            marker.id = "estimate" + x.toString();
-            marker.classList.add("response-marker", "marker", "estimate");
-            marker.style.width = (year * (t.responseMarkerWidth + 1) - 1) + "px";
-            marker.style.left = ((t.responseEstimateLeft - min) / (max - min) * TL.clientWidth) +
-                "px";
-            marker.title = t.responseEstimateLeft.toString() + " - " +
-                (t.responseEstimateLeft + t.responseMarkerWidth).toString();
-            TL.appendChild(marker);
+            makeMarker(t.responseEstimateLeftFinal,
+                t.responseMarkerWidthFinal);
 
             // Actual answer
             const ans = document.createElement('div');
@@ -1444,13 +1512,31 @@ class DatesStudy extends Study {
                 TL.clientWidth + year / 2) +
                 "px";
             ans.style.top = "-1em";
-            if(t.responseEstimateLeft <= t.correctAnswer &&
-                t.responseEstimateLeft + t.responseMarkerWidth >= t.correctAnswer)
+            if(parseInt(t.responseEstimateLeftFinal) <=
+                parseInt(t.correctAnswer) &&
+                parseInt(t.responseEstimateLeftFinal) +
+                parseInt(t.responseMarkerWidthFinal) >=
+                parseInt(t.correctAnswer))
                 ans.innerHTML = "&starf;";
             else
                 ans.innerHTML = "&star;";
 
-            // avoid collisions
+            // Additional details
+            if(detail) {
+                let i = 0;
+                while(Object.keys(t).indexOf("advisor" +
+                    i.toString() + "id") !== -1) {
+                    const p = "advisor" + i.toString();
+                    ans.dataset[p + "idDescription"] =
+                        t[p + "idDescription"];
+                    ans.dataset[p + "actualType"] = t[p + "actualType"];
+                    ans.dataset[p + "nominalType"] = t[p + "nominalType"];
+
+                    i++;
+                }
+            }
+
+            // Avoid collisions
             const others = TL.querySelectorAll(".marker.target");
             TL.appendChild(ans);
             let my = ans.getBoundingClientRect();

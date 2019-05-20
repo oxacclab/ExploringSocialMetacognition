@@ -610,6 +610,16 @@ span.redo-link {
     top: -1em;
     display: none;
 }
+.timeline .marker.estimate.initial {
+    opacity: .5;
+    top: 100%;
+}
+.timeline .marker.estimate.advice {
+    height: 1em;
+    top: -2em;
+    background-color: black;
+    opacity: .5;
+}
 .timeline .marker.target {
     height: calc(var(--feedback-marker-size) * 2);
     width: calc(var(--feedback-marker-size) * 2);
@@ -623,6 +633,11 @@ span.redo-link {
 .timeline .marker.target.detail {
     background-color: var(--group-0-primary);
     border-radius: 100%;
+}
+.timeline .debug {
+    position: absolute;
+    left: 5%;
+    text-align: left;
 }
 
 .payment-link {
