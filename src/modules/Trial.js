@@ -403,6 +403,27 @@ class AdvisedTrial extends Trial {
      */
     async showAdvice() {
 
+        // Fade out advisors who won't be giving advice
+        const me = this;
+        let clean = true;
+        document.querySelectorAll(".advisor-key-row").forEach(
+            elm => {
+                const id = elm.dataset.advisorId;
+                if(id) {
+                    elm.classList.remove("gives-advice");
+
+                    me.advisors.forEach(a => {
+                        if(a.id.toString() === id) {
+                            elm.classList.add("gives-advice");
+                            clean = false;
+                        }
+                    });
+                }
+            });
+        // Allow time for animations to play
+        if(!clean)
+            await this.wait(1000);
+
         // Register advisors in the data output
         for(let i = 0; i < this.advisors.length; i++) {
             const a = this.advisors[i];

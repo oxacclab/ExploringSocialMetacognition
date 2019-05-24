@@ -10,7 +10,7 @@
 
 import {Advisor, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_DISAGREE, ADVICE_CORRECT_AGREE, ADVICE_INCORRECT_REVERSED, AdviceProfile} from "./Advisor.js";
 import {Trial, AdvisedTrial} from "./Trial.js";
-import {ControlObject} from "./Prototypes.js";
+import {ControlObject, BaseObject} from "./Prototypes.js";
 import * as utils from "../utils.js";
 
 /**
@@ -35,8 +35,7 @@ import * as utils from "../utils.js";
  *
  * Properties are set in the constructor's blueprint.
  *
- * @property blockLength {int[]} number of trials to run in each block
- * @property [practiceBlocks=1] {int} number of blocks which are practice blocks
+ * @property blocks {Block[]} number of trials to run in each block
  * @property trials {Trial[]|[]} the trials in the study
  */
 class Study extends ControlObject {
@@ -48,8 +47,15 @@ class Study extends ControlObject {
         let me = this;
         setTimeout(() => {
             if(!me.trials.length) {
-                for(let i = 0; i < utils.sumList(me.blockLength); i++) {
-                    me.trials.push(new AdvisedTrial(me.trialBlueprint))
+                for(let b = 0; b < me.blocks.length; b++) {
+                    for(let i = 0; i < me.blocks[b].trialCount; i++) {
+                        me.trials.push(new AdvisedTrial(
+                            {
+                                block: b,
+                                ...me.blocks[b],
+                                ...me.trialBlueprint
+                            }));
+                    }
                 }
             }
         }, 0);
@@ -62,10 +68,8 @@ class Study extends ControlObject {
         this.studyVersion = "notSet";
 
         this.currentTrial = 0;
-        this.currentBlock = 0;
 
-        this.blockLength = [0];
-        this.practiceBlocks = 0;
+        this.blocks = [{trialCount: 0, isPractice: true, advisors: []}];
         this.trials = [];
         this.attentionCheckTrials = [];
         this.countdownTime = DEBUG.level? 1 : 3;
@@ -128,6 +132,8 @@ class Study extends ControlObject {
             "training",
             "practiceInstructions",
             "practice",
+            "advisorPracticeInstructions",
+            "advisorPractice",
             "coreInstructions",
             "core",
             "debrief",
@@ -176,7 +182,7 @@ class Study extends ControlObject {
                    inputs[0].parentElement.parentElement.classList.add("invalid");
                    okay = false;
                }
-            };
+            }
 
             if(!okay)
                 return false;
@@ -204,7 +210,12 @@ class Study extends ControlObject {
 
                 me.saveCSVRow("demographics-form", true, data);
 
-                resolve("debrief");
+                if(data["browser"] === "safari" ||
+                    (data["userAgent"].toLowerCase().includes("safari") &&
+                    !data["userAgent"].toLowerCase().includes("chrome")))
+                    me.barSafari();
+                else
+                    resolve("debrief");
             });
         });
     }
@@ -287,21 +298,11 @@ class Study extends ControlObject {
     updateProgressBar(increment = true) {
         if(increment) {
             this.currentTrial++;
-
-            // Update block index
-            let i = 0;
-            for(let b = 0; b < this.blockLength.length; b++) {
-                i += this.blockLength[b];
-                if(this.currentTrial < i) {
-                    this.currentBlock = b;
-                    break;
-                }
-            }
         }
 
         document.querySelector(".progress-bar .outer").style.width =
             (this.currentTrial /
-                utils.sumList(this.blockLength) *
+                this.trials.length *
                 document.querySelector(".progress-bar").clientWidth) + "px";
     }
 
@@ -438,19 +439,16 @@ class Study extends ControlObject {
 
     /**
      * Run a block of trials
+     * @param block {int|object} an index of this.block or the object at that index
      * @return {Promise<Study>}
      * @protected
      */
-    async _runNextBlock() {
+    async _runBlock(block) {
 
-        let modelTrial = null;
-        if(this.currentBlock > 1) {
-            modelTrial = this.trials.filter(t => {
-                return !t.attentionCheck && t.advisors.length > 1;
-            })[0];
-        }
+        if(typeof block === "number")
+            block = this.blocks[block];
 
-        let n = this.blockLength[this.currentBlock];
+        let n = block.trialCount;
 
         for(let i = 0; i < n; i++) {
 
@@ -459,10 +457,7 @@ class Study extends ControlObject {
 
             // Save trial data
             let table = t.saveTableName? t.saveTableName : t.constructor.name;
-            let headers = null;
-            if(modelTrial && !t.attentionCheck)
-                headers = modelTrial.tableHeaders;
-            this.saveCSVRow(table, true, t.toTable(headers));
+            this.saveCSVRow(table, true, t.toTable());
 
             // Inter-trial interval
             await this.ITI();
@@ -517,12 +512,12 @@ class Study extends ControlObject {
 
             Study._hideHelp(help);
 
-            help = Study._showHelp(
-                document.querySelector(".frame.top > .left > esm-help")
-            );
-
-            await gotoNextStep(help);
-            Study._hideHelp(help);
+            // help = Study._showHelp(
+            //     document.querySelector(".frame.top > .left > esm-help")
+            // );
+            //
+            // await gotoNextStep(help);
+            // Study._hideHelp(help);
 
             let data = T.nextPhase("hideStim");
             T.nextPhase("getResponse");
@@ -569,35 +564,54 @@ class Study extends ControlObject {
         });
     }
 
-    /**
-     * Return a list of unique advisors registered to trials in a block
-     * @param [block=null] {int|null} a block number or null for the current block
-     * @return {Advisor[]}
-     */
-    getBlockAdvisors(block = null) {
-        if(block === null)
-            block = this.currentBlock;
+    async practice() {
 
-        let firstTrial = 0;
-        for(let i = 0; i < block; i++)
-            firstTrial += this.blockLength[i];
+        window.onbeforeunload = Study._navGuard;
 
-        // Find advisors in the upcoming block
-        let advisors = [];
-        for(let i = firstTrial; i < firstTrial + this.blockLength[block]; i++)
-            if(this.trials[i].advisors)
-                this.trials[i].advisors.forEach(a => {
-                    if(advisors.indexOf(a) === -1)
-                        advisors.push(a);
-                });
+        let blocks = this.blocks.filter(b => b.blockType === "practice");
 
-        return advisors;
+        for(let b = 0; b < blocks.length; b++) {
+
+            const block = blocks[b];
+
+            await this.preBlock(block, false);
+
+            // Run the trial
+            await this._runBlock(block);
+
+            if(blocks.length > 1 && b < blocks.length-1)
+                await this.postBlock();
+        }
+
+        return this;
     }
 
-    async preBlock(introduceAdvisors = true) {
+    async advisorPracticeInstructions() {
+        return new Promise(function(resolve) {
+            let data = [];
+            Study._updateInstructions("instr-practice-advisor",
+                (name) => {
+                    let now = new Date().getTime();
+                    data.push({name, now});
+                    if(name === "exit")
+                        resolve(data);
+                });
+        });
+    }
+
+    /**
+     * Handle pre-block tasks for a block of trials
+     * @param block {int|Block} an index of this.block or the object at that index
+     * @param [introduceAdvisors=true] {boolean} whether to conduct advisor introductions
+     * @return {Promise<Study>}
+     */
+    async preBlock(block, introduceAdvisors = true) {
+
+        if(typeof block === "number")
+            block = this.blocks[block];
 
         if(introduceAdvisors) {
-            await this._introduceAdvisors(this.getBlockAdvisors());
+            await this._introduceAdvisors(block.advisors);
         }
 
         // Pre-block delay
@@ -618,24 +632,25 @@ class Study extends ControlObject {
         });
     }
 
-    async practice() {
-
-        window.onbeforeunload = Study._navGuard;
+    async advisorPractice() {
 
         // Save the advisors' CSV entries
         this.advisors.forEach(a =>
             this.saveCSVRow("advisors", true, a.toTable()));
 
-        let b = this.practiceBlocks;
+        const blocks = this.blocks.filter(
+            b => b.blockType === "practiceAdvisor");
 
-        for(let i = 0; i < b; i++) {
+        for(let b = 0; b < blocks.length; b++) {
 
-            await this.preBlock();
+            const block = blocks[b];
+
+            await this.preBlock(block);
 
             // Run the trial
-            await this._runNextBlock();
+            await this._runBlock(block);
 
-            if(b > 1 && i < b-1)
+            if(b > 1 && b < blocks.length-1)
                 await this.postBlock();
         }
 
@@ -690,18 +705,20 @@ class Study extends ControlObject {
 
     async core() {
 
-        let b = this.blockLength.length;
+        const blocks = this.blocks.filter(b => b.blockType === "core");
 
-        for(let i = this.practiceBlocks; i < b; i++) {
+        for(let b = 0; b < blocks.length; b++) {
 
-            let intro = i === 0? false : !this.getBlockAdvisors(i).every(x => this.getBlockAdvisors(i - 1).includes(x));
+            const block = blocks[b];
 
-            await this.preBlock(intro);
+            let intro = b === 0? true : !block.advisors.every(x => blocks[b - 1].advisors.includes(x));
+
+            await this.preBlock(block, intro);
 
             // Run the trial
-            await this._runNextBlock();
+            await this._runBlock(block);
 
-            if(i < b-1)
+            if(b < blocks.length-1)
                 await this.postBlock();
         }
 
@@ -761,11 +778,9 @@ class Study extends ControlObject {
      */
     toTable() {
         const out = {};
-        for(let i = 0; i < this.blockLength.length; i++)
-            out["block" + i.toString() + "length"] = this.blockLength[i];
 
+        out.blocks = this.blocks.length;
         out.countdownTime = this.countdownTime;
-        out.practiceBlocks = this.practiceBlocks;
 
         return out;
     }
@@ -981,6 +996,13 @@ class Study extends ControlObject {
         this.info("Acquired save ID '" + this.id + "'", true);
         return this.id;
     }
+
+    barSafari() {
+        Study._updateInstructions("no-safari",
+            () => element.requestFullscreen(),
+            "fullscreen-warning");
+        document.body.classList.add("fullscreen-error");
+    }
 }
 
 /**
@@ -999,57 +1021,81 @@ class DatesStudy extends Study {
         this.parseQuestionsXML()
             .then(() => {
                 this.trials = [];
+                let t = 0;
 
-                let practiceTrials = 0;
-                for(let i = 0; i < this.practiceBlocks; i++)
-                    practiceTrials += this.blockLength[i];
+                for(let b = 0; b < this.blocks.length; b++) {
+                    const block = this.blocks[b];
+                    for(let i = 0; i < block.trialCount; i++) {
+                        if(this.attentionCheckTrials.indexOf(t) !== -1) {
+                            this.trials.push(new Trial(
+                                {
+                                    block: b,
+                                    ...block,
+                                    ...this.attentionCheckBlueprint,
+                                    number: t++
+                                }));
+                        } else {
+                            switch(block.blockType) {
+                                case "practice":
+                                    this.trials.push(new Trial(
+                                        {
+                                            block: b,
+                                            ...block,
+                                            ...this.trialBlueprint,
+                                            number: t++,
+                                            saveTableName: "practiceTrial",
+                                            displayFeedback: block.feedback?
+                                                this.displayFeedback : null
+                                        }));
+                                    break;
 
-                for(let i = 0; i < utils.sumList(this.blockLength); i++) {
-                    if(i < practiceTrials) {
-                        this.trials.push(new AdvisedTrial({
-                            ...this.trialBlueprint,
-                            advisors: [this.advisors[0]],
-                            number: i,
-                            saveTableName: "practiceTrial",
-                            displayFeedback: this.displayFeedback,
-                        }))
-                    } else {
-                        if(this.attentionCheckTrials.indexOf(i) !== -1)
-                            this.trials.push(new Trial({...this.attentionCheckBlueprint, number: i}));
-                        else
-                            if(this.feedback)
-                                this.trials.push(new AdvisedTrial({
-                                    ...this.trialBlueprint,
-                                    number: i,
-                                    displayFeedback: this.displayFeedback
-                                }));
-                            else
-                                this.trials.push(new AdvisedTrial({
-                                    ...this.trialBlueprint,
-                                    number: i
-                                }));
+                                case "practiceAdvisor":
+                                    this.trials.push(new AdvisedTrial(
+                                        {
+                                            block: b,
+                                            ...block,
+                                            ...this.trialBlueprint,
+                                            advisors: block.advisors,
+                                            number: t++,
+                                            saveTableName:
+                                                "practiceAdvisedTrial",
+                                            displayFeedback: block.feedback?
+                                                this.displayFeedback : null
+                                        }));
+                                    break;
+
+                                case "core":
+                                    this.trials.push(new AdvisedTrial({
+                                        block: b,
+                                        ...block,
+                                        ...this.trialBlueprint,
+                                        number: t++,
+                                        displayFeedback: block.feedback?
+                                            this.displayFeedback : null
+                                    }));
+                                    break;
+                            }
+                        }
                     }
                 }
+
             })
             .then(() => {
                 // One advisor per trial
-                let attnChecks = 0;
-                for(let t = this.blockLength[0];
-                    t < utils.sumList(this.blockLength);
-                    t++)
-                    attnChecks += this.trials[t].attentionCheck;
+
+                // Count valid trials (core, non attn check)
+                const validTrials = this.trials.filter(
+                    t => t.blockType === "core" && !t.isAttentionCheck
+                );
 
                 const indexes = [0, 1];
-                const advisors = utils.shuffleShoe(indexes,
-                    (utils.sumList(this.blockLength) - this.blockLength[0] - 1) / indexes.length);
+                const mix = utils.shuffleShoe(indexes,
+                    Math.ceil(validTrials.length / indexes.length));
 
-                for(let t = this.blockLength[0];
-                    t < utils.sumList(this.blockLength);
-                    t++)
-                    if(!this.trials[t].attentionCheck)
-                        this.trials[t].advisors = [
-                            this.trials[t].advisors[advisors.pop()]
-                        ];
+                mix.map((a, i) =>
+                    validTrials[i].advisors =
+                        [validTrials[i].advisors[a]]
+                );
             });
     }
 
@@ -1067,6 +1113,8 @@ class DatesStudy extends Study {
             "training",
             "practiceInstructions",
             "practice",
+            "advisorPracticeInstructions",
+            "advisorPractice",
             "coreInstructions",
             "core",
             "debriefAdvisors",
@@ -1132,7 +1180,8 @@ class DatesStudy extends Study {
                 parseInt(q.getElementsByTagName("target")[0].innerHTML),
             prompt: "",
             advisors: [this.advisors[1], this.advisors[2]],
-            attentionCheck: false
+            attentionCheck: false,
+            displayFeedback: this.displayFeedback
         };
         bp.stim.innerHTML = q.getElementsByTagName("prompt")[0].innerHTML;
 
@@ -1578,4 +1627,16 @@ class DatesStudy extends Study {
     }
 }
 
-export {Study, DatesStudy}
+/**
+ * @class Block
+ * @classdesc A block is a class which is never saved in the data; its properties are saved in each trial in the block. It thus presents an easy way of applying specific properties to groups of trials.
+ * @property trialCount {int} number of trials in the block
+ * @property blockType {string} description of the block type
+ * @property feedback {boolean} whether the block trials provide feedback
+ * @property advisors {Advisor[]} advisors available to trials in the block
+ */
+class Block extends BaseObject{
+
+}
+
+export {Study, DatesStudy, Block}

@@ -45,17 +45,17 @@ Trial-cleanup
 
 /* Hide the stimulus when it's not needed. */
 .Trial-begin #content #stimulus,
-body:not(.Trial-any):not(.Study-practice):not(.Study-core) #content #stimulus {
+body:not(.Trial-any):not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #content #stimulus {
     opacity: 0;
 }
 
 /* Hide the help button when we're not in practice */
-body:not(.Study-practice) #help-button {
+body:not(.Study-practice):not(.Study-advisorPractice) #help-button {
     display: none;
 }
 
 /* Hide the issue raising button during training */
-body:not(.Study-practice):not(.Study-core) #report-button {
+body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-button {
     display: none;
 }
 
@@ -76,6 +76,13 @@ body:not(.Study-practice):not(.Study-core) #report-button {
 /* Background dimming for response options during advice */
 .Trial-showAdvice #response-panel .response-marker-pool {
     background-color: #e3e3e3;
+}
+
+/* Fade non-advising advisors during advice */
+.Trial-showAdvice .advisor-key-row:not(.gives-advice),
+.Trial-getFinalResponse .advisor-key-row:not(.gives-advice),
+.Trial-showFeedback .advisor-key-row:not(.gives-advice) {
+    animation-name: hideTabLeft;
 }
 
 /* interactable markers should look interactable */
@@ -102,6 +109,7 @@ body:not(.Study-practice):not(.Study-core) #report-button {
 }
 
 .Study-practice:not(.Trial-any) #stimulus,
+.Study-advisorPractice:not(.Trial-any) #stimulus,
 .Study-core:not(.Trial-any) #stimulus {
     justify-content: center;
     transform: scale(4);
@@ -121,6 +129,7 @@ body.report-issue #report-issue {
 
 @media screen and (max-height: 500px) {
     .Study-practice:not(.Trial-any) #stimulus,
+    .Study-advisorPractice:not(.Trial-any) #stimulus,
     .Study-core:not(.Trial-any) #stimulus {
         transform: unset;
     }

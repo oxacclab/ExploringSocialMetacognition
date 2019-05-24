@@ -9,6 +9,7 @@
 
 import {BaseObject} from "./Prototypes.js";
 import * as utils from "../utils.js";
+import * as icon from "../identicon.js";
 
 /**
  * @class Advisor
@@ -43,12 +44,55 @@ class Advisor extends BaseObject {
         this.marker =
             this.getInfoTab().querySelector(".response-marker").cloneNode(true);
 
-        this.marker.classList.remove("static", "medium");
+        this.marker.classList.remove(
+            "static",
+            "medium",
+            "thin",
+            "thick"
+        );
 
         if(appendTo !== null)
             appendTo.appendChild(this.marker);
 
         return this.marker;
+    }
+
+    get svg() {
+        if(typeof this._image === "undefined") {
+
+            this.info("Generating identicon");
+
+            // sha1 included in main body
+            const data = new Identicon(sha1.sha1(this.name),
+                {
+                    size: 300,
+                    format: 'svg',
+                    // background: [255, 255, 255, 0]
+                }).toString();
+            this._image = "data:image/svg+xml;base64," + data;
+        }
+        return this._image;
+    }
+
+    /**
+     * Return an Identicon image based on this advisor's name
+     * @param options {{}} properties to set on the resulting img element.
+     * @return {HTMLElement}
+     */
+    image(options = {}) {
+        if(!options.class)
+            options.class = "identicon";
+        else
+            options.class += ", identicon";
+
+        // write to a data URI
+        const elm = document.createElement('img');
+        for(let key in options) {
+            elm[key] = options[key];
+        }
+        elm.src = this.svg;
+
+        return elm;
     }
 
     drawAdvice() {
@@ -105,6 +149,7 @@ class Advisor extends BaseObject {
             this.getAdvice(false).adviceWidth / 2) + "px";
 
         this.marker.style.width = TL.valueToPixels(this.getAdvice(false).adviceWidth, true) + "px";
+        this.marker.style.height = this.marker.style.width;
 
         this.debug(this.getAdvice(false));
     }
@@ -152,11 +197,14 @@ class Advisor extends BaseObject {
             "group-bg-" + this.group,
             "group-border-" + this.group
         );
+        elm.querySelector(".advisor-key-row").dataset.advisorId = this.id;
         elm.querySelector(".response-marker").classList.add(
             "advisor-bg-" + this.id,
             "advisor-border-" + this.id
         );
+        elm.querySelector(".response-marker").appendChild(this.image());
         elm.querySelector(".advisor-key-row span").innerHTML = this.name;
+
 
         return elm.querySelector(".advisor-key-row");
     }

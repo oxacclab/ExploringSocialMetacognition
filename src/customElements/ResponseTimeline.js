@@ -399,7 +399,10 @@ customElements.define('esm-response-timeline',
             style.innerHTML = ".response-marker.thin {width: " +
                 thin + "} " +
             ".response-marker.medium {width: " + med + "} " +
-            ".response-marker.thick {width: " + thick + "}";
+            ".response-marker.thick {width: " + thick + "}" +
+            ".response-marker.thin.advisor {height: " + thin + "}" +
+            ".response-marker.medium.advisor {height: " + med + "} " +
+            ".response-marker.thick.advisor {height: " + thick + "}";
 
             this.querySelector(".confirm").classList.remove("enabled");
         }

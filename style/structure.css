@@ -10,6 +10,10 @@ Static structure of the elements in the experiment.
     from { left: -110%; }
     to { left: 0; }
 }
+@keyframes hideTabLeft {
+    from {left: 0; }
+    to { left: calc(-100% + 0.5em); }
+}
 
 :root {
     --content-height: 500;
@@ -185,7 +189,7 @@ div {
 
 .advisor-key-row {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     line-height: 1em;
     padding: .25em 0;
     margin: 0.25em 0 0 0;
@@ -193,11 +197,18 @@ div {
     border-radius: var(--tag-border-radius);
     box-shadow: 0px 1px 1px 0 black;
 }
+.advisor-key-row span {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: auto;
+    font-size: var(--font-size-medium);
+}
 .left .advisor-key-row {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     box-shadow: 1px 1px 1px 0 black;
-
+    padding-right: 1em;
     width: 100%;
     animation: addTabLeft 1s forwards;
 }
@@ -208,6 +219,10 @@ div {
 
     width: 100%;
     animation: addTabRight 1s forwards;
+}
+.avatar img {
+    height: 100px;
+    border-radius: 5px;
 }
 
 /* Markers */
@@ -247,15 +262,37 @@ div {
 
 .response-marker.advisor {
     position: absolute;
-    height: 1.2em;
-    top: -1.2em;
+    transform: translateY(-240%);
     animation: adviceAnimation 1000ms forwards ease-out;
     z-index: 1;
+}
+.response-marker img {
+    height: inherit;
+}
+.response-timeline .response-marker.advisor:before {
+    content: " ";
+    width: 2px;
+    height: 137%;
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 2px);
+    background-color: #b1b1b1;
+    z-index: -1;
+}
+.response-timeline .response-marker.advisor:after {
+    content: " ";
+    position: absolute;
+    height: 6px;
+    width: 100%;
+    background-color: white;
+    top: 240%;
+    opacity: .7;
+    left: 0;
 }
 .response-marker.advisor.static {
     animation: none;
     position: unset;
-    top: 0;
+    transform: none;
 }
 
 .response-marker.advisor:not(.static),
@@ -431,16 +468,37 @@ form.questionnaire > div {
     justify-content: space-evenly;
     height: min-content;
 }
+form.questionnaire > .question {
+    display: flex;
+    justify-content: space-evenly;
+    height: min-content;
+}
+form.questionnaire > .items {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    height: min-content;
+}
+form.questionnaire.demographics > .items {
+    flex-direction: row;
+}
 form.questionnaire div.items > div {
-    width: 25%;
+    width: 100%;
     height: 100%;
     margin: auto;
+    text-align: center;
+}
+form.questionnaire.demographics div.items > div {
+    width: 25%;
     text-align: left;
 }
 form div.items > div {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: space-evenly;
+}
+form.demographics div.items > div {
+    flex-direction: column;
 }
 form label .fab,
 form label .fas {
@@ -453,7 +511,7 @@ form label input {
     padding-left: .5em;
 }
 form .subject {
-    width: 25%;
+    width: 45%;
 }
 form:not(.questionnaire) .item {
     display: flex;
@@ -692,6 +750,9 @@ span.redo-link {
         height: 40px;
         width: 40px;
         font-size: 1em;
+    }
+    form .subject {
+        width: 25%;
     }
     #report-button {
         bottom: .25em;
