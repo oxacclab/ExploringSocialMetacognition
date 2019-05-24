@@ -105,17 +105,15 @@ div {
     opacity: 1;
     font-size: var(--font-size-medium);
 }
-#stimulus * {
-    max-height: 100%;
-}
 #stimulus > *:first-child {
     margin: auto;
 }
 
 #prompt {
-    margin: .25em 0;
-    font-size: var(--font-size-small);
-    height: 2em;
+    position: absolute;
+    font-size: 4em;
+    z-index: 1000;
+    top: .5em;
 }
 
 #response-panel {
@@ -310,17 +308,17 @@ div {
     background-color: transparent;
     border: none;
     box-shadow: none;
-    bottom: 6em;
+    bottom: 4em;
 }
 .response-marker.feedback::before {
     left: 50%;
     transform: translateX(-50%);
     background-color: black;
-    height: 120%;
+    height: 100%;
     content: "";
     width: 1px;
     border-radius: 100%;
-    top: 80%;
+    top: calc(50% - 1px);
     position: absolute;
     z-index: -1;
 }
@@ -415,15 +413,22 @@ esm-response-timeline .response-timeline {
         stroke-dashoffset: 0;
     }
     to {
-        stroke-dashoffset: -63;
+        stroke-dashoffset: -236;
     }
 }
 .counter svg {
     fill: transparent;
     stroke: black;
-    stroke-width: 1px;
-    stroke-dasharray: 63px;
+    stroke-width: 4px;
+    stroke-dasharray: 236px;
     animation: tickAway forwards linear;
+    animation-duration: 3s;
+    height: 5em;
+    width: 5em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 .counter circle {
     transform: rotateZ(270deg);
@@ -431,11 +436,12 @@ esm-response-timeline .response-timeline {
 }
 .counter span {
     position: absolute;
-    top: calc(50% - 12px);
-    left: calc(50% - 10px);
+    top: 50%;
+    left: 50%;
     width: 20px;
     line-height: 20px;
-    font-size: 14px;
+    font-size: 2em;
+    transform: translate(-50%, -50%);
 }
 
 /* Questionnaires */
@@ -742,9 +748,6 @@ span.redo-link {
     }
     p.prompt {
         min-height: 4em;
-    }
-    .counter {
-        transform: scale(3);
     }
     form.general input[type="submit"] {
         height: 40px;

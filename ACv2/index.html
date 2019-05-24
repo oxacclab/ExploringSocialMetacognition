@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.19">
+<head data-version="0.0.20">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -27,7 +27,7 @@
         <!-- Inspired by https://codepen.io/carsy/pen/VvqJwm -->
         <div class="counter">
             <svg>
-                <circle r="10px" cx="50%" cy="50%"></circle>
+                <circle r="2em" cx="50%" cy="50%"></circle>
             </svg>
             <span>?</span>
         </div>
@@ -40,12 +40,16 @@
         </div>
     </template>
 
-    <template id="instr-intro">
+    <template id="instr-fullscreen">
         <esm-instruction>
             <esm-instruction-page>
                 <h1>Welcome</h1>
                 <p>We first need to switch to fullscreen mode to begin the study.</p>
             </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="instr-intro">
+        <esm-instruction>
             <esm-instruction-page>
                 <h1>About the study</h1>
                 <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. Your task is to identify the year in which that event occurred. You will do this by dragging a marker onto a timeline.</p>
@@ -344,15 +348,21 @@
                 <div class="response-marker-pool">
                     <div>
                         <div class="label">&plusmn;0 year (27pts)</div>
-                        <div class="response-marker thin"></div>
+                        <div class="response-marker thin">
+                            <div class="clickhandler"></div>
+                        </div>
                     </div>
                     <div>
                         <div class="label">&plusmn;1 years (9pts)</div>
-                        <div class="response-marker medium"></div>
+                        <div class="response-marker medium">
+                            <div class="clickhandler"></div>
+                        </div>
                     </div>
                     <div>
                         <div class="label">&plusmn;4 years (3pts)</div>
-                        <div class="response-marker thick"></div>
+                        <div class="response-marker thick">
+                            <div class="clickhandler"></div>
+                        </div>
                     </div>
                     <esm-help data-group="interface" class="top wide">
                         Here you see the <em>markers</em> you have available.<br/>The wider a marker is, the more years it covers, but the fewer points it's worth.
@@ -556,10 +566,11 @@
 
         window.study = new DatesStudy(studyBlueprint);
 
-        if (utils.getQueryStringValue("fb"))
+        if (utils.getQueryStringValue("fb")) {
             study.awaitTrialLoading()
                 .then(() => study.run("results")
                     .then(console.log));
+        }
         else
             study.run()
                 .then(console.log);

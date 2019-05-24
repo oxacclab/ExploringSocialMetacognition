@@ -108,6 +108,12 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
     display: block;
 }
 
+/* Show appropriately-sized prompt text during final decision */
+.Trial-showAdvice #prompt,
+.Trial-getFinalResponse #prompt {
+    font-size: 1em;
+}
+
 .Study-practice:not(.Trial-any) #stimulus,
 .Study-advisorPractice:not(.Trial-any) #stimulus,
 .Study-core:not(.Trial-any) #stimulus {

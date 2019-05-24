@@ -141,11 +141,36 @@ class Study extends ControlObject {
         ];
     }
 
+    /**
+     * Return the index in trials of the first trial in each block
+     */
+    get firstTrialIndices() {
+
+        let indices = [];
+        let t = 0;
+        for(let b = 0; b < this.blocks.length; b++) {
+            indices.push(t);
+            t += this.blocks[b].trialCount;
+        }
+
+        return indices;
+    }
+
     async consent() {
+        return new Promise(function(resolve) {
+            let data = [];
+            Study._updateInstructions("instr-fullscreen",
+                (name) => {
+                    if(!document.fullscreenElement)
+                        Study.lockFullscreen(document.querySelector("#content"));
+
+                    this.saveCSVRow("consent",false,{
+                        consentTime: "not yet implemented"//new Date().getTime()
+                    }).then(reply => resolve(reply));
+                });
+        });
+
         return new Promise(resolve => {
-            this.saveCSVRow("consent",false,{
-                consentTime: "not yet implemented"//new Date().getTime()
-            }).then(reply => resolve(reply));
         });
     }
 
@@ -190,7 +215,7 @@ class Study extends ControlObject {
         };
 
         return new Promise(function(resolve) {
-            // Show the debrief questions
+            // Show the browser questions
             const questionnaire = document.querySelector("#questionnaire");
             questionnaire.innerHTML = "";
             questionnaire.appendChild(
@@ -216,7 +241,7 @@ class Study extends ControlObject {
                     !data["userAgent"].toLowerCase().includes("chrome")))
                     me.barSafari();
                 else
-                    resolve("debrief");
+                    resolve("demographics");
             });
         });
     }
@@ -403,9 +428,6 @@ class Study extends ControlObject {
             let data = [];
             Study._updateInstructions("instr-intro",
                 (name) => {
-                    if(!document.fullscreenElement &&
-                        document.querySelector("esm-instruction-page:not(.cloak)").id === "Instruction0Page0")
-                        Study.lockFullscreen(document.querySelector("#content"));
                     let now = new Date().getTime();
                     data.push({name, now});
                     if(name === "exit")
@@ -450,6 +472,8 @@ class Study extends ControlObject {
             block = this.blocks[block];
 
         let n = block.trialCount;
+
+        this.currentTrial = this.firstTrialIndices[this.blocks.indexOf(block)];
 
         for(let i = 0; i < n; i++) {
 
@@ -616,7 +640,7 @@ class Study extends ControlObject {
         }
 
         // Pre-block delay
-        document.getElementById("prompt").innerHTML = "Get ready";
+        document.getElementById("prompt").innerHTML = "";
         await this.countdown(this.countdownTime);
     }
 
@@ -672,6 +696,11 @@ class Study extends ControlObject {
     }
 
     async debrief() {
+
+        // leave fullscreen
+        if(document.fullscreenElement)
+            Study.unlockFullscreen(document.fullscreenElement);
+
         Study._updateInstructions("instr-debrief");
         await this.save(console.log);
 
@@ -722,9 +751,6 @@ class Study extends ControlObject {
             if(b < blocks.length-1)
                 await this.postBlock();
         }
-
-        if(document.fullscreenElement)
-            Study.unlockFullscreen(document.fullscreenElement);
 
         return this;
     }
@@ -1301,6 +1327,10 @@ class DatesStudy extends Study {
 
     async results() {
 
+        // leave fullscreen
+        if(document.fullscreenElement)
+            Study.unlockFullscreen(document.fullscreenElement);
+
         const detail = utils.getQueryStringValue("detail") === "true";
 
         // Save the study in the background
@@ -1308,6 +1338,15 @@ class DatesStudy extends Study {
             this.save(console.log)
                 .then(() => window.onbeforeunload = null);
         }
+
+        // Protect against weird-looking-ness when resizing
+        const me = this;
+        window.addEventListener("resize", () => {
+            if(window.resizeTimeout)
+                clearTimeout(window.resizeTimeout);
+
+            window.resizeTimeout = setTimeout(() => me.results(), 50);
+        });
 
         let trialList = [];
 

@@ -38,7 +38,7 @@ customElements.define('esm-response-timeline',
 
             this.classList.remove("cloak");
 
-            this.querySelectorAll(".response-marker-pool .response-marker")
+            this.querySelectorAll(".response-marker-pool .response-marker .clickhandler")
                 .forEach((rm) => {
                     rm.addEventListener("mousedown", this.pickUpMarker);
                     rm.addEventListener("touchstart", this.pickUpMarker);
@@ -62,12 +62,12 @@ customElements.define('esm-response-timeline',
             // Duplicate the marker under the cursor
             // (this = clicked marker)
             const timeline = this.closest("esm-response-timeline");
-            const dragged = this.cloneNode(true);
+            const dragged = this.parentElement.cloneNode(true);
             dragged.classList.add("dragged");
             timeline.appendChild(dragged);
 
             // Support for clicking ghost
-            if(this.classList.contains("ghost")) {
+            if(this.parentElement.classList.contains("ghost")) {
                 timeline.draggedMarker.classList.remove("ghost");
                 timeline.draggedMarker.childNodes.forEach(elm => {
                     elm.innerHTML = "";
@@ -75,7 +75,8 @@ customElements.define('esm-response-timeline',
                 });
             }
 
-            const r = this.getBoundingClientRect();
+            const r = this.parentElement.getBoundingClientRect();
+            const rCh = this.getBoundingClientRect();
 
             timeline.draggedMarker.style.left = r.x + "px";
             timeline.draggedMarker.style.top = r.y + "px";
@@ -84,8 +85,10 @@ customElements.define('esm-response-timeline',
                 timeline.draggedMarker.dragOffsetX = e.targetTouches[0].clientX - r.x;
                 timeline.draggedMarker.dragOffsetY = e.targetTouches[0].clientY - r.y;
             } else {
-                timeline.draggedMarker.dragOffsetX = e.offsetX;
-                timeline.draggedMarker.dragOffsetY = e.offsetY;
+                timeline.draggedMarker.dragOffsetX =
+                    e.offsetX + rCh.x - r.x;
+                timeline.draggedMarker.dragOffsetY =
+                    e.offsetY + rCh.y - r.y;
             }
 
             // Register events for dragging markers
@@ -96,7 +99,7 @@ customElements.define('esm-response-timeline',
 
             if(timeline.ghost) {
                 // allow simply clicking ghost to confirm
-                if(e.currentTarget === timeline.ghost)
+                if(e.currentTarget.parentElement === timeline.ghost)
                     timeline.querySelector(".confirm").classList.add("enabled");
                 else {
                     // remove ghost
@@ -197,6 +200,7 @@ customElements.define('esm-response-timeline',
             // Create ghost if inside timeline
             if(!this.ghost) {
                 const ghost = document.createElement("div");
+                ghost.innerHTML = this.draggedMarker.innerHTML;
                 this.draggedMarker.classList.forEach(c =>
                     ghost.classList.add(c));
                 ghost.classList.add("ghost");
@@ -259,8 +263,10 @@ customElements.define('esm-response-timeline',
                 timeline.ghost.classList.add("set");
 
                 // Add click event to ghost for adjustments
-                timeline.ghost.addEventListener("mousedown", timeline.pickUpMarker);
-                timeline.ghost.addEventListener("touchstart", timeline.pickUpMarker);
+                const ghostHandler =
+                    timeline.ghost.querySelector(".clickhandler");
+                ghostHandler.addEventListener("mousedown", timeline.pickUpMarker);
+                ghostHandler.addEventListener("touchstart", timeline.pickUpMarker);
             } else
                 timeline.querySelector(".confirm").classList.remove("enabled");
 
@@ -399,7 +405,7 @@ customElements.define('esm-response-timeline',
             style.innerHTML = ".response-marker.thin {width: " +
                 thin + "} " +
             ".response-marker.medium {width: " + med + "} " +
-            ".response-marker.thick {width: " + thick + "}" +
+            ".response-marker.thick, .clickhandler {width: " + thick + "}" +
             ".response-marker.thin.advisor {height: " + thin + "}" +
             ".response-marker.medium.advisor {height: " + med + "} " +
             ".response-marker.thick.advisor {height: " + thick + "}";
