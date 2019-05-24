@@ -211,6 +211,7 @@ class Study extends ControlObject {
                 me.saveCSVRow("demographics-form", true, data);
 
                 if(data["browser"] === "safari" ||
+                    data["os"] === "apple" ||
                     (data["userAgent"].toLowerCase().includes("safari") &&
                     !data["userAgent"].toLowerCase().includes("chrome")))
                     me.barSafari();
