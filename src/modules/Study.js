@@ -1080,7 +1080,6 @@ class DatesStudy extends Study {
                                             block: b,
                                             ...block,
                                             ...this.trialBlueprint,
-                                            advisors: block.advisors,
                                             number: t++,
                                             saveTableName:
                                                 "practiceAdvisedTrial",
@@ -1106,21 +1105,49 @@ class DatesStudy extends Study {
 
             })
             .then(() => {
-                // One advisor per trial
 
-                // Count valid trials (core, non attn check)
-                const validTrials = this.trials.filter(
-                    t => t.blockType === "core" && !t.isAttentionCheck
-                );
+                for(let b = 0; b < this.blocks.length; b++) {
+                    // Ids of advisors in the block
+                    const block = this.blocks[b];
+                    const ids = block.advisors.map(a => a.id);
 
-                const indexes = [0, 1];
-                const mix = utils.shuffleShoe(indexes,
-                    Math.ceil(validTrials.length / indexes.length));
+                    // Skip if no shuffling needed
+                    if(ids.length <= 1 ||
+                        ids.length === block.advisorsPerTrial)
+                        return;
 
-                mix.map((a, i) =>
-                    validTrials[i].advisors =
-                        [validTrials[i].advisors[a]]
-                );
+                    if(!block.advisorsPerTrial)
+                        return;
+
+                    // Count valid trials (core, non attn check)
+                    const validTrials = this.trials.filter(
+                        t => t.block === b && !t.attentionCheck
+                    );
+
+                    // Make drop lists for advisors to be removed from the trial advisors.
+                    // First one is balanced, thereafter done randomly.
+                    // I.e. this is only balanced for nAdvisors = nOptions - 1
+                    const mix = utils.shuffleShoe(ids,
+                        Math.ceil(validTrials.length / ids.length));
+
+                    // remove advisors by id
+                    mix.map((id, i) =>
+                        validTrials[i].advisors =
+                            [validTrials[i].advisors.filter(
+                                a => a.id !== id
+                            )]);
+
+                    for(let i = 1;
+                        i < ids.length - b.advisorsPerTrial;
+                        i++) {
+                        // Remove advisors at random
+                        validTrials.forEach(t => {
+                            t.advisors = utils.shuffle(t.advisors);
+                            t.advisors.pop();
+                        });
+                    }
+
+                }
             });
     }
 
@@ -1204,7 +1231,6 @@ class DatesStudy extends Study {
             correctAnswer:
                 parseInt(q.getElementsByTagName("target")[0].innerHTML),
             prompt: "",
-            advisors: [this.advisors[1], this.advisors[2]],
             attentionCheck: false,
             displayFeedback: this.displayFeedback
         };
@@ -1224,7 +1250,8 @@ class DatesStudy extends Study {
             stim: document.createElement("p"),
             correctAnswer: ans,
             prompt: "",
-            attentionCheck: true
+            attentionCheck: true,
+            advisors: null
         };
         bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
 

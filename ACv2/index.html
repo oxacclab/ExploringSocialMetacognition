@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.20">
+<head data-version="0.0.21">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -532,24 +532,28 @@
                     trialCount: 10,
                     blockType: "practice",
                     advisors: [],
+                    advisorsPerTrial: 0,
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 5,
+                    trialCount: 2,
                     blockType: "practiceAdvisor",
                     advisors: [advisors[0]],
+                    advisorsPerTrial: 1,
                     feedback: true
                 }),
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisors: [advisors[1], advisors[2]],
+                    advisors: [advisors[1]],
+                    advisorsPerTrial: 1,
                     feedback
                 }),
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisors: [advisors[1], advisors[2]],
+                    advisors: [advisors[2]],
+                    advisorsPerTrial: 1,
                     feedback
                 })
             ],

@@ -157,7 +157,7 @@ listServerFiles <- function(version) {
 ## Load data
 
 ```{r loadData}
-version <- "0-0-17"
+version <- "0-0-20"
 prefix <- paste0("datesStudy_v", version)
 
 # files <- list.files("../../data/public/", full.names = T)
@@ -174,7 +174,7 @@ if (!length(grep("metadata", files))) {
   f <- files[grep("metadata", files)]
   okayIds <- read.csv(f)
   
-  okayIds$okay <- T
+  okayIds$okay <- grepl("prolific", okayIds$tags)
   
   files <- files[grep("metadata", files, invert = T)]
 }
@@ -301,6 +301,9 @@ AdvisedTrial$responseErrorFinal <- abs(AdvisedTrial$correctAnswer -
                                          AdvisedTrial$responseEstimateLeftFinal 
                                        + (AdvisedTrial$responseMarkerWidthFinal 
                                           / 2))
+
+AdvisedTrial$errorReduction <- AdvisedTrial$responseError - 
+  AdvisedTrial$responseErrorFinal
 
 AdvisedTrial$responseScore <- 
   ifelse(AdvisedTrial$responseCorrect, 
@@ -446,6 +449,20 @@ for (i in 1:nrow(decisions))
 decisions <- tmp
 ```
 
+Next, participants who failed to complete the entire experiment are removed. This is largely because the experiment failed to complete in Safari (form submission refreshed the page), and Safari also had a bug whereby the advice always displayed on the far left of the timeline, meaning that the manipulation was non-functional. 
+
+```{r safari}
+
+for (p in unique(exclusions$pid)) {
+  if (!(p %in% debrief.advisors$pid)) {
+    exclusions$excluded[exclusions$pid == p] <-
+      if (exclusions$excluded[exclusions$pid == p] == F) "safari" else
+        paste(exclusions$excluded[exclusions$pid == p], ", ", "safari")
+  }
+}
+
+```
+
 Next, outlying trials are removed.
 
 ```{r outliers}
@@ -545,7 +562,7 @@ for (v in checkList) {
     
     exclusions$excluded[exclusions$pid == p$pid[i]] <- 
       if (exclusions$excluded[exclusions$pid == p$pid[i]] == F) v else
-        paste(exclusions$excluded[PP$pid == p$pid[i]], ", ", v)
+        paste(exclusions$excluded[exclusions$pid == p$pid[i]], ", ", v)
   }
   
   if (any(abs(p[, v]) > zThresh))
@@ -568,10 +585,10 @@ Lastly, we can check the debrief information for participants who appeared to gu
 
 ```{r manualExclusions}
 
-debrief.form$guessedManipulation <- 
-  c(F, F, F, F, F, F, F, F, F, F,
-    F, F, F, F, F, T, F, F, F, F,
-    F, F, F, F, F, F, F, F, F, F)
+debrief.form$guessedManipulation <- F
+  # c(F, F, F, F, F, F, F, F, F, F,
+  #   F, F, F, F, F, T, F, F, F, F,
+  #   F, F, F, F, F, F, F, F, F, F)
 debrief.form[, c("pid", "comment", "guessedManipulation")]
 
 for (p in exclusions$pid) {
@@ -740,11 +757,29 @@ singleAdvisorTrials <- function(df) {
   # Only keep trials with a single advisor
   out <- df[df$advisorCount == 1, ]
   
+  # fill in missing column names using the advisor's description + varname
+  advCols <- unique(reFirstMatch(paste0("(?:",
+                                        paste(advisorNames, collapse = "|"),
+                                        ")\\.(\\S+)$"), names(df)))
+  advCols <- advCols[!(advCols %in% unique(reFirstMatch("advisor0(\\S+)$", 
+                                                        names(df))))]
+  for (i in 1:nrow(out)) {
+    for (v in advCols) {
+      out[i, paste0("advisor0", v)] <- 
+        out[i, paste0(out$advisor0idDescription[i], ".", v)]
+    }
+  }
+  
   out
 }
 
 block2 <- singleAdvisorTrials(AdvisedTrial)
 block2Decisions <- singleAdvisorTrials(decisions)
+
+# Also have a subset of trials where off-brand advice is given
+offBrand <- block2[block2$advisor0actualType == "disagreeReflected", ]
+offBrand <- 
+  block2Decisions[block2Decisions$advisor0actualType == "disagreeReflected", ]
 ```
 
 First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
@@ -1147,6 +1182,48 @@ ggplot(tmp, aes(x = advisor, y = value, colour = pid)) +
 
 ```
 
+#### Off-brand advice
+
+Off-brand advice occurs when the advisor offers its minority advice type (i.e. disagreeReflected). This allows comparison of perception of advisors (based on their advice on previous trials) while controlling for differences in their actual advice (on the current trial).
+
+Because both advisors use the same off-brand advice, there should be no noticable differences here.
+
+```{r adviceAccuracyOffbrand}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0("cbind(", a, ".accurate, ", 
+                          a, ".error) ~ pid + hasFeedback"))
+  r <- aggregate(eq, offBrand, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "feedback", "accuracy", "error")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(cbind(accuracy, error) ~ advisor + feedback, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAccuracyOffbrandGraph}
+
+tmp <- gather(tmp, "var", "value", accuracy:error)
+
+ggplot(tmp, aes(x = advisor, y = value, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_grid(var ~ feedback, scales = "free_y", labeller = label_both)
+
+```
+
 ### Agreement
 
 Advisor are also supposed to differ in their agreement rates.
@@ -1179,6 +1256,43 @@ ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_wrap(~feedback, labeller = label_both)
+
+```
+
+#### Off-brand advice
+
+There should be no noticeable differences here.
+
+```{r adviceAgreementOffbrand}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".agree ~ pid + hasFeedback"))
+  r <- aggregate(eq, offBrand, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "feedback", "agreement")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(agreement ~ advisor + feedback, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAgreementOffbrandGraph}
+
+ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_wrap(~ feedback, scales = "free_y", labeller = label_both)
 
 ```
 
@@ -1216,6 +1330,43 @@ ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   facet_wrap(~ feedback, labeller = label_both)
+
+```
+
+#### Off-brand advice
+
+There should be no noticeable differences here.
+
+```{r adviceDistanceOffbrand}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".distance ~ pid + hasFeedback"))
+  r <- aggregate(eq, offBrand, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "feedback", "distance")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(distance ~ advisor + feedback, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceDistanceOffbrandGraph}
+
+ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_wrap(~ feedback, scales = "free_y", labeller = label_both)
 
 ```
 
@@ -1295,6 +1446,45 @@ ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
 
 ```
 
+
+##### Offbrand trials
+
+###### Table
+
+```{r woaOffbrand}
+  
+tmp <- NULL
+for (a in advisorNames) {
+  x <- offBrand[offBrand$advisor0idDescription == a, ]
+  
+  eq <- as.formula(paste0(a, ".woa ~ pid + hasFeedback"))
+  r <- aggregate(eq, x, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "feedback", "WoA")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(WoA ~ advisor + feedback, tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+###### Graph
+
+```{r woaGraphOffbrand}
+
+ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_wrap(~feedback, labeller = label_both)
+
+```
+
 ##### WoA distribution
 
 It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
@@ -1319,11 +1509,118 @@ for (x in rev(seq(low, high, length.out = n))) {
 }
 block2$woa <- factor(block2$woa)
 
-block2 <- block2[!is.nan(block2$advisor0woaRaw), ]
+# update offbrand
+offBrand <- block2[block2$advisor0actualType == "disagreeReflected", ]
 
-ggplot(block2, aes(woa)) + 
+tmp <- block2[!is.nan(block2$advisor0woaRaw), ]
+
+ggplot(tmp, aes(woa)) + 
   geom_histogram(stat = "count") +
   facet_grid(hasFeedback ~ advisor0idDescription, labeller = label_both)
+
+```
+
+```{r woaExtremes}
+
+tmp <- 
+  block2[block2$woa %in% c("<0", ">=1", ""), c("pid", "advisor0idDescription", 
+                                               "stimHTML", "number", 
+                                               "responseEstimateLeft",
+                                               "responseMarkerWidth",
+                                               "responseEstimateLeftFinal",
+                                               "responseMarkerWidthFinal",
+                                               "advisor0advice",
+                                               "advisor0woa", 
+                                               "advisor0woaRaw")]
+
+```
+
+#### Error
+
+Participants should reduce their error as a function of advice, and this is expected to be most pronounced for the Accurate advisors. Here we plot **error reduction**, which (unlike most of the following variables) is obtained with initial - final, as opposed to final - initial. This is because error is expected to be lower on most final decisions than initial decisions, and helpfully makes larger positive values indicative of better performance.
+
+```{r errorReduction}
+
+tmp <- aggregate(errorReduction ~ pid + hasFeedback, 
+                 AdvisedTrial, mean, na.rm = T)
+
+num2str(as.tibble(aggregate(errorReduction ~ hasFeedback, 
+                            tmp, mean, na.rm = T)))
+
+```
+
+```{r errorReductionGraph}
+
+ggplot(tmp, aes(x = hasFeedback, y = errorReduction, colour = pid)) + 
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
+  geom_boxplot(fill = NA, outlier.color = NA, aes(group = hasFeedback)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid))
+
+```
+
+##### Single-advisor trials
+
+###### Table
+
+```{r errorReductionBlock2}
+
+tmp <- aggregate(errorReduction ~ pid + hasFeedback + advisor0idDescription, 
+                 block2, mean, na.rm = T)
+
+num2str(as.tibble(aggregate(errorReduction ~ 
+                              hasFeedback + advisor0idDescription, 
+                            tmp, mean, na.rm = T)))
+
+```
+
+##### Graph
+
+```{r errorReductionGraphBlock2}
+
+ggplot(tmp, 
+       aes(x = advisor0idDescription, y = errorReduction, colour = pid)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
+  geom_boxplot(fill = NA, outlier.color = NA, 
+               aes(group = advisor0idDescription)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid)) +
+  facet_wrap(~hasFeedback, labeller = label_both)
+
+```
+
+##### Offbrand trials
+
+###### Table
+
+```{r errorReductionOffbrand}
+
+tmp <- aggregate(errorReduction ~ pid + hasFeedback + advisor0idDescription, 
+                 offBrand, mean, na.rm = T)
+
+num2str(as.tibble(aggregate(errorReduction ~ 
+                              hasFeedback + advisor0idDescription, 
+                            tmp, mean, na.rm = T)))
+
+```
+
+##### Graph
+
+```{r errorReductionGraphOffbrand}
+
+ggplot(tmp, 
+       aes(x = advisor0idDescription, y = errorReduction, colour = pid)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
+  geom_boxplot(fill = NA, outlier.color = NA, 
+               aes(group = advisor0idDescription)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid)) +
+  facet_wrap(~hasFeedback, labeller = label_both)
 
 ```
 
@@ -1480,6 +1777,38 @@ num2str(as.tibble(aggregate(estimateLeftChange ~
 ###### Graph
 
 ```{r meanShiftGraphBlock2}
+
+ggplot(tmp, 
+       aes(x = advisor0idDescription, y = estimateLeftChange, colour = pid)) + 
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
+  geom_boxplot(fill = NA, outlier.color = NA, 
+               aes(group = advisor0idDescription)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  facet_wrap(~hasFeedback, labeller = label_both)
+
+```
+
+#### Offbrand trials
+
+##### Table
+
+```{r meanShiftOffbrand}
+
+tmp <- aggregate(estimateLeftChange ~ 
+                   pid + hasFeedback + advisor0idDescription, 
+                 offBrand, mean, na.rm = T)
+
+num2str(as.tibble(aggregate(estimateLeftChange ~ 
+                              hasFeedback + advisor0idDescription, 
+                            tmp, mean, na.rm = T)))
+
+```
+
+###### Graph
+
+```{r meanShiftGraphOffbrand}
 
 ggplot(tmp, 
        aes(x = advisor0idDescription, y = estimateLeftChange, colour = pid)) + 
@@ -1761,7 +2090,7 @@ tmp <- aggregate(advisor0woa ~
                    pid + hasFeedback + advisor0idDescription, 
                  block2, mean)
 
-cat("No feedback: ")
+cat("Feedback: ")
 cat(md.ttest(tmp$advisor0woa[tmp$hasFeedback & 
                                    tmp$advisor0idDescription == "Agreeing"],
              tmp$advisor0woa[tmp$hasFeedback & 
@@ -1769,7 +2098,7 @@ cat(md.ttest(tmp$advisor0woa[tmp$hasFeedback &
              labels = c("*M*|agr", "*M*|acc"),
              paired = T))
 
-cat("\n<br/>\nFeedback: ")
+cat("\n<br/>\nNo feedback: ")
 cat(md.ttest(tmp$advisor0woa[!tmp$hasFeedback & 
                                    tmp$advisor0idDescription == "Agreeing"],
              tmp$advisor0woa[!tmp$hasFeedback & 
@@ -1798,6 +2127,184 @@ r <- BANOVA.Normal(l1_formula = advisor0woa ~ advisor0idDescription,
                    id = tmp$pid)
 
 r
+
+```
+
+#### EZANOVA
+
+Because I don't quite trust my usage of the BANOVA package above, we're also looking at this using EZ ANOVA:
+
+```{r ezAnova}
+
+library(ez)
+r <- ezANOVA(tmp, advisor0woa, pid, 
+             within = advisor0idDescription,
+             between = hasFeedback,
+             detailed = T,
+             return_aov = T,
+             type = 2)
+
+r
+
+```
+
+##### Offbrand trials
+
+We suspect clearer results will be obtained using offbrand trials only, but due to there being substantially fewer offbrand than onbrand trials the data are likely to be noisier. 
+
+```{r ezAnoveOffbrand}
+
+tmp <- aggregate(advisor0woa ~ 
+                   pid + hasFeedback + advisor0idDescription,
+                 offBrand, mean, na.rm = T)
+tmp$hasFeedback <- factor(tmp$hasFeedback)
+
+# remove incomplete cases
+for (p in unique(tmp$pid)) {
+  if (nrow(tmp[tmp$pid == p, ]) != 2) {
+    print(paste("Dropping incomplete case pid =", p))
+    tmp <- tmp[tmp$pid != p, ]
+  }
+}
+
+# refactor pid
+tmp$pid <- factor(tmp$pid)
+
+r <- ezANOVA(tmp, advisor0woa, pid, 
+             within = advisor0idDescription,
+             between = hasFeedback,
+             detailed = T,
+             return_aov = T,
+             type = 2)
+
+r
+
+```
+
+### Regressions
+
+We suspect participants responses may be driven by properties of the advice only, while the properties of the advisor are ignored (i.e. participants behave as if all trials are discrete). If this is the case, there will be no differences between regression lines for advisors when regressing predictors vs WoA. 
+
+#### Distance x WoA
+
+Previous research indicates a u-shaped curve for distance x woa - first we check if this is appropriate.
+
+```{r distanceWoAShape}
+
+anova(lm(advisor0woa ~ advisor0distance, block2, na.action = na.exclude),
+      lm(advisor0woa ~ poly(advisor0distance, 2), block2, na.action = na.exclude))
+
+```
+
+```{r distanceWoA}
+
+theme_update(legend.position = 'bottom')
+
+ggplot(block2, aes(x = advisor0distance, y = advisor0woa)) +
+  geom_point(aes(shape = advisor0idDescription), alpha = 0.25, size = 3) +
+  geom_smooth(aes(group = pid, linetype = advisor0idDescription),
+              colour = "grey", se = F, method = 'lm', formula = y ~ poly(x, 2), 
+              alpha = 0.05) +
+  geom_smooth(aes(linetype = advisor0idDescription, 
+                  fill = advisor0idDescription), 
+              method = 'lm', formula = y ~ poly(x, 2)) +
+  facet_wrap(~ hasFeedback, labeller = label_both)
+
+```
+
+#### Advice error x WoA
+
+```{r adviceErrorWoA}
+
+ggplot(block2, aes(x = advisor0error, y = advisor0woa)) +
+  geom_point(aes(shape = advisor0idDescription), alpha = 0.25, size = 3) +
+  geom_smooth(aes(group = pid, linetype = advisor0idDescription),
+              colour = "grey", se = F, method = 'lm', alpha = 0.05) +
+  geom_smooth(aes(linetype = advisor0idDescription, 
+                  fill = advisor0idDescription), 
+              method = 'lm') +
+  facet_wrap(~ hasFeedback, labeller = label_both)
+
+```
+
+#### Initial decision error x WoA
+
+```{r responseErrorWoA}
+
+ggplot(block2, aes(x = responseError, y = advisor0woa)) +
+  geom_point(aes(shape = advisor0idDescription), alpha = 0.25, size = 3) +
+  geom_smooth(aes(group = pid, linetype = advisor0idDescription),
+              colour = "grey", se = F, method = 'lm', alpha = 0.05) +
+  geom_smooth(aes(linetype = advisor0idDescription, 
+                  fill = advisor0idDescription), 
+              method = 'lm') +
+  facet_wrap(~ hasFeedback, labeller = label_both)
+
+```
+
+#### Marker width x WoA
+
+```{r confidenceWoA}
+
+ggplot(block2, aes(x = responseMarkerWidth, y = advisor0woa)) +
+  geom_point(aes(shape = advisor0idDescription), alpha = 0.25, size = 3) +
+  geom_smooth(aes(group = pid, linetype = advisor0idDescription),
+              colour = "grey", se = F, method = 'lm', alpha = 0.05) +
+  geom_smooth(aes(linetype = advisor0idDescription, 
+                  fill = advisor0idDescription), 
+              method = 'lm') +
+  scale_x_continuous(breaks = c(1, 3, 9)) +
+  facet_wrap(~ hasFeedback, labeller = label_both) 
+
+```
+
+## Questionnaires
+
+### Advisors
+
+First we want to take a look at how the advisor questionnaire data break down.
+
+```{r advisorsQ}
+
+debrief.advisors$uid <- paste0(debrief.advisors$pid, "_", 
+                               debrief.advisors$advisorId)
+advisors$uid <- paste0(advisors$pid, "_", advisors$id)
+
+tmp <- left_join(debrief.advisors, advisors[, 6:ncol(advisors)], by = "uid")
+tmp <- gather(tmp, "Q", "A", knowledge:likability)
+
+tmp <- tmp[tmp$pid %in% AdvisedTrial$pid, ]
+
+ggplot(tmp, aes(x = Q, y = A, colour = hasFeedback)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
+  geom_boxplot(fill = NA, outlier.color = NA, colour = "black",
+               aes(group = Q)) +
+  stat_summary(geom = "line", aes(group = pid, colour = pid), alpha = .25) + 
+  stat_summary(geom = "line", fun.y = mean, colour = "black",
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_point(alpha = .5, aes(colour = pid)) +
+  facet_grid(hasFeedback ~ idDescription, labeller = label_both)
+
+```
+
+Next we want to see whether participants who rate an advisor highly are also more influenced by that advisor's advice.
+
+```{r advisorQcor}
+
+tmp$woa <- sapply(seq(nrow(tmp)), function(i) 
+  mean(pull(block2[block2$pid %in% tmp$pid[i], ],
+            paste0(tmp$idDescription[i], ".woa")), na.rm = T))
+
+ggplot(tmp, aes(x = A, y = woa, linetype = hasFeedback, 
+                fill = hasFeedback, colour = hasFeedback)) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = .5) +
+  geom_hline(yintercept = 1, linetype = "dashed", size = .5) +
+  geom_vline(xintercept = 100, linetype = "dashed", size = .5) +
+  geom_vline(xintercept = 0, linetype = "dashed", size = .5) +
+  geom_smooth(method = 'lm', alpha = .5) +
+  geom_point(alpha = .5, size = 3) + 
+  facet_grid(idDescription ~ Q) +
+  theme(legend.position = 'bottom')
 
 ```
 
@@ -1849,6 +2356,6 @@ Matt Jaquiery is funded by a studentship from the [Medical Research Council](htt
 cat(paste('Time stamp:', Sys.time(), '\n\n'))
 cat('Runtime \n')
 proc.time()
-cat('\n\n')
+cat('\n')
 sessionInfo()
 ```
