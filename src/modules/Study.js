@@ -157,20 +157,18 @@ class Study extends ControlObject {
     }
 
     async consent() {
+        const me = this;
         return new Promise(function(resolve) {
             let data = [];
             Study._updateInstructions("instr-fullscreen",
-                (name) => {
+                () => {
                     if(!document.fullscreenElement)
                         Study.lockFullscreen(document.querySelector("#content"));
 
-                    this.saveCSVRow("consent",false,{
+                    me.saveCSVRow("consent",false,{
                         consentTime: "not yet implemented"//new Date().getTime()
                     }).then(reply => resolve(reply));
                 });
-        });
-
-        return new Promise(resolve => {
         });
     }
 

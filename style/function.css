@@ -11,6 +11,8 @@ Study-introduction
 Study-training
 Study-practiceInstructions
 Study-practice
+Study-advisorPracticeInstructions
+Study-advisorPractice
 Study-coreInstructions
 Study-core
 Study-debrief
@@ -25,12 +27,6 @@ Trial-showFeedback
 Trial-end
 Trial-cleanup
  */
-
-/* Hide the task before the Study task begins */
-.Study-splashScreen #content,
-.Study-consent #content {
-    display: none;
-}
 
 .Study-demographics #questionnaire {
     display: block;

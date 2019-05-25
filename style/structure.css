@@ -468,6 +468,7 @@ form.questionnaire {
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
+    font-size: var(--font-size-small);
 }
 form.questionnaire > div {
     display: flex;
@@ -515,6 +516,7 @@ form label .fas {
 form label input {
     height: 2em;
     padding-left: .5em;
+    width: 60%;
 }
 form .subject {
     width: 45%;
@@ -761,5 +763,44 @@ span.redo-link {
         bottom: .25em;
         right: .25em;
         z-index: 5;
+    }
+}
+
+/* Tiny displays (android onscreen keyboard active) */
+@media screen and (max-height: 250px) {
+    input[type="text"]:focus,
+    form .bottom textarea:focus,
+    form textarea:focus {
+        height: 100vh;
+        width: 70vw;
+        z-index: 1000;
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        background: var(--background);
+    }
+
+    form textarea:focus {
+        font-size: var(--font-size-medium);
+    }
+
+    form:after {
+        content: "\2192";
+        position: fixed;
+        color: var(--group-0-primary);
+        font-weight: bold;
+        height: 100vh;
+        width: 30vw;
+        right: 0vw;
+        top: 30vh;
+        text-align: center;
+        font-size: 70vh;
+    }
+
+    *:not(:focus) {
+        width: 25vw;
+        position: fixed;
+        left: -100%;
+        z-index: 1;
     }
 }
