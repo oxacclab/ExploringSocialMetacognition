@@ -149,7 +149,7 @@ if(array_key_exists("prolificId", $data)) {
         $tags = array();
 
         // Prolific
-        if(preg_match("^[0-9a-f]{24}$", $data["prolificId"])) {
+        if(preg_match("/^[0-9a-f]{24}$/", $data["prolificId"])) {
             array_push($tags, "prolific");
             array_push($tags, "paid");
         }
