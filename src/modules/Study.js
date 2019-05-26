@@ -1345,6 +1345,12 @@ class DatesStudy extends Study {
                 me.saveCSVRow("debrief-form", false, priv);
                 me.saveCSVRow("debrief-form", true, pub);
 
+                // Save the study in the background and take off the nav lock
+                if(!utils.getQueryStringValue("fb")) {
+                    this.save(console.log)
+                        .then(() => window.onbeforeunload = null);
+                }
+
                 resolve("debrief");
             });
         });
@@ -1357,12 +1363,6 @@ class DatesStudy extends Study {
             Study.unlockFullscreen(document.fullscreenElement);
 
         const detail = utils.getQueryStringValue("detail") === "true";
-
-        // Save the study in the background
-        if(!utils.getQueryStringValue("fb")) {
-            this.save(console.log)
-                .then(() => window.onbeforeunload = null);
-        }
 
         // Protect against weird-looking-ness when resizing
         const me = this;
