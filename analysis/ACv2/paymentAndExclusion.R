@@ -18,6 +18,10 @@ print(paste("Exclusions: ", sum(key$excluded != F)))
 key[key$excluded != F, c("prolificId", "pid", "excluded")]
 
 for (i in grep("attnCheck", key$excluded)) {
+  # skip excluding participants who also return a good version
+  if (key$prolificId[i] %in% key$prolificId[key$excluded == F])
+    next()
+  
   x <- Trial[Trial$pid %in% key$pid[i], c("pid", "stimHTML", 
                                           "responseMarkerWidth", 
                                           "responseEstimateLeft")]

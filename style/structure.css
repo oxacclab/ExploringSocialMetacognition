@@ -558,6 +558,7 @@ form button[name="submit"] {
     font-size: 3em;
     font-family: monospace;
     opacity: .6;
+    line-height: unset;
 }
 form input[type="submit"]:not([disabled]),
 form button[name="submit"]:not([disabled]) {
