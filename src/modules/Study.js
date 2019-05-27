@@ -1015,7 +1015,11 @@ class Study extends ControlObject {
         })
             .then(async (r)=> await r.text())
             .then((txt) => JSON.parse(txt))
-            .then(id => this.id = id.id)
+            .then(r => {
+                this.id = r.id;
+                this.tags = r.tags;
+                this.prolific = /prolific/i.test(r.tags);
+            })
             .catch((r) => me.saveErrorNotification(r));
 
         this.info("Acquired save ID '" + this.id + "'", true);
@@ -1024,9 +1028,9 @@ class Study extends ControlObject {
 
     barSafari() {
         Study._updateInstructions("no-safari",
-            () => element.requestFullscreen(),
+            ()=>{},
             "fullscreen-warning");
-        document.body.classList.add("fullscreen-error");
+        document.body.classList.add("fatal-error");
     }
 }
 
@@ -1243,15 +1247,46 @@ class DatesStudy extends Study {
         this._trialBlueprint = bp;
     }
 
+    /**
+     * End experiment on incorrect attention check (paid participants only)
+     * @param trial {Trial}
+     * @return {Promise<never>}
+     */
+    static async attentionCheckFeedback(trial) {
+
+        if( // correctness
+            !(trial.data.responseEstimateLeft <= trial.correctAnswer &&
+            trial.data.responseEstimateLeft +
+            trial.data.responseMarkerWidth - 1 >= trial.correctAnswer) ||
+            // marker width
+            (trial.attentionCheckMarkerWidth &&
+                trial.data.responseMarkerWidth !==
+                trial.attentionCheckMarkerWidth)) {
+            Study._updateInstructions("attn-check-fail",
+                ()=>{},
+                "fullscreen-warning");
+            document.body.classList.add("fatal-error");
+
+            // leave fullscreen
+            if(document.fullscreenElement)
+                Study.unlockFullscreen(document.fullscreenElement);
+
+            return new Promise(r => {});
+        }
+    }
+
     get attentionCheckBlueprint() {
         let ans = 1900 + Math.floor(Math.random() * 100);
-
+        this.prolific = true;
         let bp = {
             stim: document.createElement("p"),
             correctAnswer: ans,
             prompt: "",
             attentionCheck: true,
-            advisors: null
+            attentionCheckMarkerWidth: 1,
+            advisors: null,
+            displayFeedback: this.prolific?
+                DatesStudy.attentionCheckFeedback : null
         };
         bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
 

@@ -284,8 +284,11 @@ class Trial extends ControlObject {
      * @return {object} key-value pairs where all values are single items
      */
     toTable(headers=null) {
+        // put some important variables into the data field
         this.data.isAttentionCheck = this.attentionCheck + 0; // cast to int
         this.data.number = this.number;
+        this.data.block = this.block;
+        this.data.feedback = this.feedback;
 
         const out = {};
 
@@ -305,7 +308,6 @@ class Trial extends ControlObject {
     get tableHeaders() {
         return Object.keys(this.data);
     }
-
 }
 
 /**

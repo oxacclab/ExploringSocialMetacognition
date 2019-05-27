@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.21">
+<head data-version="0.0.22">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -27,7 +27,7 @@
         <!-- Inspired by https://codepen.io/carsy/pen/VvqJwm -->
         <div class="counter">
             <svg>
-                <circle r="2em" cx="50%" cy="50%"></circle>
+                <circle r="32px" cx="50%" cy="50%"></circle>
             </svg>
             <span>?</span>
         </div>
@@ -302,6 +302,15 @@
                 <h1>Apple/Safari</h1>
                 <p>As mentioned in the Prolific details, this study currently does not support Apple products or Safari browsers. We are trying to rectify this, but for the moment you are unable to complete the study.</p>
                 <p>Sorry for the inconvenience.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="attn-check-fail">
+        <esm-instruction data-no-buttons="true">
+            <esm-instruction-page>
+                <h1>Attention checks</h1>
+                <p>The previous question was an attention check, and the answer you provided was incorrect. This happens either because you used the wrong marker, or because you marked an incorrect date, or both. </p>
+                <p>When we receive incorrect answers on attention checks it makes us unable to trust the responses to the rest of the questions. Because we can't be sure of your responses, we have to end your participation in the study here.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>

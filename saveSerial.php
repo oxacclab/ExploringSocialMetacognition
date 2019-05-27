@@ -169,7 +169,10 @@ if(array_key_exists("prolificId", $data)) {
     }
 
 
-    die(json_encode(array("id" => $pid)));
+    die(json_encode(
+        array("id" => $pid,
+            "tags" => $tags
+        )));
 }
 
 // Create file if necessary

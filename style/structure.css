@@ -413,14 +413,14 @@ esm-response-timeline .response-timeline {
         stroke-dashoffset: 0;
     }
     to {
-        stroke-dashoffset: -236;
+        stroke-dashoffset: -201;
     }
 }
 .counter svg {
     fill: transparent;
     stroke: black;
     stroke-width: 4px;
-    stroke-dasharray: 236px;
+    stroke-dasharray: 201px;
     animation: tickAway forwards linear;
     animation-duration: 3s;
     height: 5em;
@@ -440,7 +440,7 @@ esm-response-timeline .response-timeline {
     left: 50%;
     width: 20px;
     line-height: 20px;
-    font-size: 2em;
+    font-size: 32px;
     transform: translate(-50%, -50%);
 }
 
