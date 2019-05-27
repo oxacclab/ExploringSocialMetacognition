@@ -1252,7 +1252,7 @@ class DatesStudy extends Study {
      * @param trial {Trial}
      * @return {Promise<never>}
      */
-    static async attentionCheckFeedback(trial) {
+    async attentionCheckFeedback(trial) {
 
         if( // correctness
             !(trial.data.responseEstimateLeft <= trial.correctAnswer &&
@@ -1271,6 +1271,11 @@ class DatesStudy extends Study {
             if(document.fullscreenElement)
                 Study.unlockFullscreen(document.fullscreenElement);
 
+            // save the trial so there's a record of the failure
+            let table = trial.saveTableName? 
+                trial.saveTableName : trial.constructor.name;
+            this.saveCSVRow(table, true, trial.toTable());
+
             return new Promise(r => {});
         }
     }
@@ -1286,7 +1291,7 @@ class DatesStudy extends Study {
             attentionCheckMarkerWidth: 1,
             advisors: null,
             displayFeedback: this.prolific?
-                DatesStudy.attentionCheckFeedback : null
+                this.attentionCheckFeedback : null
         };
         bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
 
