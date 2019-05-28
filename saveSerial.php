@@ -50,6 +50,41 @@ function sulk($err, $code) {
     die(json_encode($out));
 }
 
+/**
+ * Return the experimental condition
+ * @param $n {int} subject number (nth)
+ * @param $conditions {int} number of conditions
+ * @param $subjects {int} total subjects required
+ *
+ * @return {int} condition for assigning subject to
+ */
+function getCondition($n, $conditions, $subjects) {
+    // Generate the sequence of conditions
+
+    // ensure we have can balance conditions and subjects by increasing total subjects if necessary
+    if($subjects % $conditions)
+        $subjects = $conditions * (ceil($subjects / $conditions));
+
+    $nPerCondition = $subjects / $conditions;
+
+
+    $map = array();
+
+    // 0 refers to no condition, so start a 1
+    for($i = 1; $i <= $conditions; $i++)
+        for($j = 0; $j < $nPerCondition; $j++)
+            array_push($map, $i);
+
+    // very important we use the same seed each time!
+    srand(20190528);
+    shuffle($map);
+
+    // recycle values if n > subjects
+    $n = $n % $subjects;
+
+    return (int) $map[$n];
+}
+
 // Unpack POST data
 $json = json_decode(file_get_contents("php://input"), true);
 
@@ -141,9 +176,15 @@ if(array_key_exists("prolificId", $data)) {
     if(!file_exists($metaFile)) {
         if(($handle = fopen($metaFile, "a+b")) !== false) {
             // Write headers
-            fputcsv($handle, array("pid", "tags"));
+            fputcsv($handle, array("pid", "tags", "uidHash"));
         }
     }
+
+    // Count previous entries for randomisation
+    $file = new SplFileObject($metaFile, 'rb');
+    $file->seek(PHP_INT_MAX);
+    $nLines = $file->key() + 1;
+
     if(($handle = fopen($metaFile, "a+b")) !== false) {
         // Collate tags
         $tags = array();
@@ -164,14 +205,24 @@ if(array_key_exists("prolificId", $data)) {
 
         $tags = join(", ", $tags);
 
+        $hash = md5($prefix . "_" . $pid);
+
+        if(isset($data["condition"]) && $data["condition"])
+            $condition = $data["condition"];
+        else
+            $condition = getCondition($nLines,
+                $meta["conditions"], $meta["N"]);
+
         // Write data
-        fputcsv($handle, array($pid, $tags));
+        fputcsv($handle, array($pid, $tags, $hash, $condition));
     }
 
 
     die(json_encode(
         array("id" => $pid,
-            "tags" => $tags
+            "tags" => $tags,
+            "uidHash" => $hash,
+            "condition" => $condition
         )));
 }
 

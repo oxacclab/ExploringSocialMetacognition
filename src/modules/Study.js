@@ -970,6 +970,46 @@ class Study extends ControlObject {
         });
     }
 
+    /**
+     * Assign this study to a condition
+     * @param [condition] {int} condition to assign (uses this.condition by default)
+     */
+    setCondition(condition) {
+        if(condition)
+            this.condition = condition;
+
+        this.info("Assigning condition variables for condition " + this.condition);
+        // Study condition
+        let feedback;
+        let advisorOrder = [];
+
+        feedback = this.condition < 3;
+
+        advisorOrder[0] = (this.condition % 2) + 1;
+        advisorOrder[1] = 3 - advisorOrder[0];
+
+        const advisors = this.advisors;
+
+        this.blocks.filter(b => b.blockType === "core")
+            .forEach(b => {
+                b.feedback = feedback;
+                let i = this.blocks.indexOf(b);
+                b.advisors = [advisors[advisorOrder[i % 2]]]
+            });
+
+        // Update trials with new info
+        const blocks = this.blocks;
+        this.trials.forEach(t => {
+            if(t.blockType === "core") {
+                for(let k in blocks[t.block]) {
+                    if(blocks[t.block].hasOwnProperty(k)) {
+                        t[k] = blocks[t.block][k];
+                    }
+                }
+            }
+        })
+    }
+
     async getSaveId() {
 
         if(this.id)
@@ -1004,12 +1044,15 @@ class Study extends ControlObject {
                     isPublic: false,
                     fileName: "participant-metadata",
                     studyId: this.studyName,
-                    studyVersion: this.studyVersion
+                    studyVersion: this.studyVersion,
+                    N: this.participantCount,
+                    conditions: this.conditionCount
                 },
                 data: JSON.stringify({
                     studyId: this.studyName,
                     studyVersion: this.studyVersion,
-                    prolificId: utils.getQueryStringValue("PROLIFIC_PID")
+                    prolificId: utils.getQueryStringValue("PROLIFIC_PID"),
+                    condition: utils.getQueryStringValue("cdn")
                 })
             })
         })
@@ -1018,11 +1061,15 @@ class Study extends ControlObject {
             .then(r => {
                 this.id = r.id;
                 this.tags = r.tags;
+                this.condition = r.condition;
                 this.prolific = /prolific/i.test(r.tags);
             })
             .catch((r) => me.saveErrorNotification(r));
 
         this.info("Acquired save ID '" + this.id + "'", true);
+
+        this.setCondition();
+
         return this.id;
     }
 
@@ -1272,7 +1319,7 @@ class DatesStudy extends Study {
                 Study.unlockFullscreen(document.fullscreenElement);
 
             // save the trial so there's a record of the failure
-            let table = trial.saveTableName? 
+            let table = trial.saveTableName?
                 trial.saveTableName : trial.constructor.name;
             this.saveCSVRow(table, true, trial.toTable());
 

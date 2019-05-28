@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.22">
+<head data-version="0.1.22">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -524,15 +524,6 @@
         while (advisors[1].name === advisors[2].name)
             advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
 
-        // Shuffle advisor ids
-        if (Math.random() < .5) {
-            advisors[1].id = 2;
-            advisors[2].id = 1;
-        }
-
-        advisors = [advisors[0], ...utils.shuffle([advisors[1], advisors[2]])];
-
-        const feedback = !isNaN(DEBUG.feedback) ? DEBUG.feedback > 0 : Math.random() > .5;
         let studyBlueprint = {
             studyVersion: document.querySelector("head").dataset.version,
             attentionCheckTrials: [13, 25],
@@ -554,21 +545,18 @@
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisors: [advisors[1]],
-                    advisorsPerTrial: 1,
-                    feedback
+                    advisorsPerTrial: 1
                 }),
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisors: [advisors[2]],
-                    advisorsPerTrial: 1,
-                    feedback
+                    advisorsPerTrial: 1
                 })
             ],
             questionsXML: "assets/etc/questions.xml",
-            feedback,
-            advisors
+            advisors,
+            participantCount: 20,
+            conditionCount: 4
         };
 
         // shorter study in debug mode

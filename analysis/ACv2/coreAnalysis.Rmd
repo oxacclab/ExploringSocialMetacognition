@@ -157,28 +157,19 @@ listServerFiles <- function(version) {
 ## Load data
 
 ```{r loadData}
-version <- "0-0-21"
-prefix <- paste0("datesStudy_v", version)
+version <- "0-0-22"
 
-# files <- list.files("../../data/public/", full.names = T)
 files <- listServerFiles(version)
 
 # Screen for acceptable IDs
-if (!length(grep("metadata", files))) {
-  idsCSV <- paste0("../../data/public/", prefix, "_okayIds.csv")
-  if (!file.exists(idsCSV)) {
-    source("privateDataScript.R")
-  }
-  okayIds <- read.csv(idsCSV)
-} else {
-  f <- files[grep("metadata", files)]
-  okayIds <- read.csv(f)
-  
-  okayIds$okay <- grepl("prolific", okayIds$tags)
-  
-  files <- files[grep("metadata", files, invert = T)]
-}
+f <- files[grep("metadata", files)]
+okayIds <- read.csv(f)
 
+okayIds$okay <- grepl("prolific", okayIds$tags)
+
+files <- files[grep("metadata", files, invert = T)]
+
+# convert CSV files to tibbles
 for (f in files) {
   tmp <- as.tibble(read.csv(f))
   
@@ -186,6 +177,7 @@ for (f in files) {
   if ("pid" %in% names(tmp))
     tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
   
+  # clean up stimulus text
   if ("stimHTML" %in% names(tmp)) {
     tmp$stimHTML <- stripTags(tmp$stimHTML)
   }
@@ -629,6 +621,46 @@ for (p in unique(AdvisedTrial$pid)) {
 }
 
 table(exclusions$excluded)
+```
+
+We also want to remove participants who had multiple attempts at the study. We'll remove them if they have performed any core trials (trials with the experimental manipulation active), or if any questions they answer on the core trials have been answered on previous attempts at the task.
+
+```{r multipleAttempts}
+
+# by hash of prolific id
+for (uid in unique(okayIds$uidHash)) {
+  
+  ids <- okayIds$pid[okayIds$uidHash == uid]
+  
+  # participants who have multiple attempts at core trials
+  if (length(ids[ids %in% AdvisedTrial[["pid"]]]) > 1) {
+    tmp <- exclusions[exclusions$pid %in% ids, ]
+    
+    tmp$excluded <- ifelse(tmp$excluded == F, 
+                           "multipleAttempts", 
+                           paste(tmp$excluded, ", multipleAttempts"))
+    
+    exclusions$excluded[exclusions$pid %in% ids, ] <- tmp$excluded
+  }
+  
+  # participants who have answered the same question twice
+  tmp <- c(AdvisedTrial$stimHTML[AdvisedTrial$pid %in% ids],
+           practiceTrial$stimHTML[practiceTrial$pid %in% ids],
+           practiceAdvisedTrial$stimHTML[practiceAdvisedTrial$pid %in% ids])
+  
+  if (length(tmp) > length(unique(tmp))) {
+    tmp <- exclusions[exclusions$pid %in% ids, ]
+    
+    tmp$excluded <- ifelse(tmp$excluded == F, 
+                           "repeatedQuestion", 
+                           paste(tmp$excluded, ", repeatedQuestion"))
+    
+    exclusions$excluded[exclusions$pid %in% ids, ] <- tmp$excluded
+  }
+}
+
+table(exclusions$excluded)
+
 ```
 
 ```{r doExclusions}

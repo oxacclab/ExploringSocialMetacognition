@@ -1,0 +1,171 @@
+---
+title: "Date estimation power analysis"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    includes:
+      after_body: ../src/toc_menu.html
+    toc: yes
+    toc_depth: 3
+editor_options:
+  chunk_output_type: inline
+---
+
+May 2019
+
+[Script run `r Sys.time()`]
+
+## Power Analysis
+
+Pilots of the experimental design in versions 0.0.21-2 inidicated that the experiment was functioning sufficiently well to test the core claim that advisors' advice is processed differently according to the presence or absence of feedback (**feedback**) and the past advice profile of the advisor (**advisor**).
+
+We have two estimates of the effect size, which we can use to ensure our pre-registered version is sufficiently powered. Power analysis will be conducted in [G*Power](http://www.gpower.hhu.de/). 
+
+## G*Power
+
+### Effect size f
+
+Effect sizes observed in the previous versions:
+
+
+version | effect size ($\eta^2$)  
+:-------|:----------------------
+0.0.21  | .173  
+0.0.22  | .242  
+mean    | .2075  
+
+
+Our effect size estimates are in $\eta^2$, and they need to be in $f$. The [G*Power manual](http://www.gpower.hhu.de/fileadmin/redaktion/Fakultaeten/Mathematisch-Naturwissenschaftliche_Fakultaet/Psychologie/AAP/gpower/GPowerManual.pdf) helpfully informs us that $f = \sqrt{\eta^2 (1 - \eta^2)}$, so we'll put our mean $\eta^2$ through that process to get $f = .512$.
+
+### Corr among rep measures
+
+We need the correlation for the within-subject factor, so let's estimate that from the data in the versions in question:
+
+```{r repObsCor}
+
+library(tibble)
+library(knitr)
+
+# load data
+version <- c("0-0-21", "0-0-22")
+
+correlations <- tibble(version, cor = 0)
+
+for (v in version) {
+  
+  s <- paste0("https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/", 
+              "datesStudy_v", v, "_")
+  
+  okayIds <- as.tibble(read.csv(paste0(s, "metadata.csv")))
+  
+  okayIds$okay <- grepl("prolific", okayIds$tags)
+  
+  tmp <- as.tibble(read.csv(paste0(s, "AdvisedTrial.csv")))
+  tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
+  
+  tmp$pid <- factor(tmp$pid)
+  tmp$advisor0idDescription <- factor(tmp$advisor0idDescription)
+  
+  # calculate weight on advice
+  i <- tmp[, "responseEstimateLeft"] + 
+    (tmp[, "responseMarkerWidth"] - 1) / 2
+  f <- tmp[, "responseEstimateLeftFinal"] + 
+    (tmp[, "responseMarkerWidthFinal"] - 1) / 2
+  adv <- tmp[, "advisor0advice"]
+  
+  x <- ((f - i) / (adv - i))
+  
+  x[x < 0] <- 0
+  x[x > 1] <- 1
+  
+  tmp[, "woa"] <- x
+  
+  # aggregate by pid and advisor
+  tmp <- aggregate(woa ~ advisor0idDescription + pid, tmp, mean)
+  tmp <- tmp[order(tmp$pid), ]
+
+  # correlate by pid
+  correlations$cor[correlations$version == v] <- 
+    cor(tmp$woa[tmp$advisor0idDescription == "Accurate"],
+        tmp$woa[tmp$advisor0idDescription == "Agreeing"])
+
+}
+
+correlations
+
+mean(correlations$cor)
+
+```
+
+### G*Power
+
+[!G*power image](../img/dateEstimation_Power-analysis.png)
+
+```
+[1] -- Tuesday, May 28, 2019 -- 13:54:19
+F tests - ANOVA: Repeated measures, within-between interaction
+Analysis:	A priori: Compute required sample size 
+Input:	Effect size f	=	.512
+	α err prob	=	0.05
+	Power (1-β err prob)	=	0.95
+	Number of groups	=	4
+	Number of measurements	=	2
+	Corr among rep measures	=	0.558
+	Nonsphericity correction ε	=	1
+Output:	Noncentrality parameter λ	=	23.7234389
+	Critical F	=	3.2388715
+	Numerator df	=	3.0000000
+	Denominator df	=	16.0000000
+	Total sample size	=	20
+	Actual power	=	0.9630315
+```
+
+## Conclusion
+
+We require 20 participants (5 per cell) for 95% power. This is surprisingly reasonable!
+
+## Credits 
+
+### Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+### R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+### Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+### Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```

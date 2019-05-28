@@ -157,7 +157,7 @@ listServerFiles <- function(version) {
 ## Load data
 
 ```{r loadData}
-version <- "0-0-21"
+version <- "0-0-22"
 prefix <- paste0("datesStudy_v", version)
 
 # files <- list.files("../../data/public/", full.names = T)
@@ -2365,6 +2365,6 @@ Matt Jaquiery is funded by a studentship from the [Medical Research Council](htt
 cat(paste('Time stamp:', Sys.time(), '\n\n'))
 cat('Runtime \n')
 proc.time()
-cat('\n\n')
+cat('\n')
 sessionInfo()
 ```
