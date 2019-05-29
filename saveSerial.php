@@ -180,30 +180,45 @@ if(array_key_exists("prolificId", $data)) {
         }
     }
 
+    // Collate tags
+    $tags = array();
+
+    // Prolific
+    if(preg_match("/^[0-9a-f]{24}$/i", $data["prolificId"])) {
+        array_push($tags, "prolific");
+        array_push($tags, "paid");
+    }
+
+    if(preg_match("/test/i", $data["prolificId"])) {
+        array_push($tags, "test");
+    }
+
+    if(preg_match("/(\+1|%2B1)$/i", $data["prolificId"])) {
+        array_push($tags, "plus1");
+    }
+
+    $tags = join(", ", $tags);
+
     // Count previous entries for randomisation
-    $file = new SplFileObject($metaFile, 'rb');
-    $file->seek(PHP_INT_MAX);
-    $nLines = $file->key() + 1;
+    // Separate counts for un/paid participants
+    if(!isset($data["condition"]) || !$data["condition"]) {
+        $nLines = 0;
+        $handle = fopen($metaFile, "rb");
+        $paid = in_array("paid", explode(", ", $tags));
+        $tagsIndex = -1;
+        while($data = fgetcsv($handle)) {
+            if($tagsIndex === -1) {
+                $tagsIndex = array_search("tags", $data);
+                if($tagsIndex === false)
+                    break;
+            }
+            elseif (in_array("paid",
+                explode(", ", $data[$tagsIndex])) === $paid)
+                $nLines++;
+        }
+    }
 
     if(($handle = fopen($metaFile, "a+b")) !== false) {
-        // Collate tags
-        $tags = array();
-
-        // Prolific
-        if(preg_match("/^[0-9a-f]{24}$/i", $data["prolificId"])) {
-            array_push($tags, "prolific");
-            array_push($tags, "paid");
-        }
-
-        if(preg_match("/test/i", $data["prolificId"])) {
-            array_push($tags, "test");
-        }
-
-        if(preg_match("/(\+1|%2B1)$/i", $data["prolificId"])) {
-            array_push($tags, "plus1");
-        }
-
-        $tags = join(", ", $tags);
 
         $hash = md5($prefix . "_" . $pid);
 
