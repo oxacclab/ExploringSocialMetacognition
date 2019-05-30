@@ -401,23 +401,6 @@ for (a in advisorNames) {
   AdvisedTrial[, paste0(a, ".agree")]
 }
 
-
-# Produce a data frame of the trials where each decision gets a unique row
-decisions <- AdvisedTrial[, !grepl("^response(?=\\S+Final$)", 
-                                   names(AdvisedTrial), 
-                                   perl = T)]
-
-decisions <- rbind(decisions, decisions)
-decisions$decision <- sapply(1:nrow(decisions), 
-                             function(x) 
-                               if (x <= nrow(AdvisedTrial)) "first" else "last")
-
-for (i in (nrow(AdvisedTrial) + 1):nrow(decisions)) {
-  for (n in names(decisions)[grepl("^response", names(decisions), perl = T)]) {
-    decisions[i, n] <- AdvisedTrial[i - nrow(AdvisedTrial), paste0(n, "Final")]
-  }
-}
-
 ```
 
 ### Exclusions
@@ -428,7 +411,7 @@ First, participants are excluded if they fail attention checks.
 
 ```{r exclusions}
 
-exclusions <- tibble(pid = unique(decisions$pid))
+exclusions <- tibble(pid = unique(AdvisedTrial$pid))
 exclusions$excluded <- F
 
 for (p in unique(exclusions$pid)) {
@@ -449,11 +432,11 @@ table(exclusions$excluded)
 
 # Drop excluded participants' trials
 tmp <- NULL
-for (i in 1:nrow(decisions))
-  if (exclusions$excluded[exclusions$pid == decisions$pid[i]] == F)
-    tmp <- rbind(tmp, decisions[i, ])
+for (i in 1:nrow(AdvisedTrial))
+  if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
+    tmp <- rbind(tmp, AdvisedTrial[i, ])
 
-decisions <- tmp
+AdvisedTrial <- tmp
 ```
 
 Next, participants who failed to complete the entire experiment are removed. This is largely because the experiment failed to complete in Safari (form submission refreshed the page), and Safari also had a bug whereby the advice always displayed on the far left of the timeline, meaning that the manipulation was non-functional. 
@@ -504,11 +487,11 @@ for (p in unique(exclusions$pid)) {
   excluded <- exclusions$excluded[exclusions$pid == p]
   if (excluded == F) 
     excluded <- NULL
-  if (length(decisions$pid[decisions$pid == p & decisions$outlier != F]) > 
+  if (length(AdvisedTrial$pid[AdvisedTrial$pid == p & AdvisedTrial$outlier != F]) > 
       nMaxOutliers)
     excluded <- c(excluded, "outlyingTrials")
   
-  if (any(decisions$outlier[decisions$advisor0offBrand & decisions$pid == p])) {
+  if (any(AdvisedTrial$outlier[AdvisedTrial$advisor0offBrand & AdvisedTrial$pid == p])) {
     excluded <- c(excluded, "offBrandOutlier")
   }
   
@@ -520,15 +503,37 @@ table(exclusions$excluded)
 
 # Drop excluded participants' trials
 tmp <- NULL
-for (i in 1:nrow(decisions))
-  if (exclusions$excluded[exclusions$pid == decisions$pid[i]] == F)
-    tmp <- rbind(tmp, decisions[i, ])
+for (i in 1:nrow(AdvisedTrial))
+  if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
+    tmp <- rbind(tmp, AdvisedTrial[i, ])
 
-decisions <- tmp
+AdvisedTrial <- tmp
 
 ```
 
 We are now ready to construct a data frame of participant averages.
+
+```{r decisionsDataFrame}
+
+# We're done with excluding trials individually.
+
+# Produce a data frame of the trials where each decision gets a unique row
+decisions <- AdvisedTrial[, !grepl("^response(?=\\S+Final$)", 
+                                   names(AdvisedTrial), 
+                                   perl = T)]
+
+decisions <- rbind(decisions, decisions)
+decisions$decision <- sapply(1:nrow(decisions), 
+                             function(x) 
+                               if (x <= nrow(AdvisedTrial)) "first" else "last")
+
+for (i in (nrow(AdvisedTrial) + 1):nrow(decisions)) {
+  for (n in names(decisions)[grepl("^response", names(decisions), perl = T)]) {
+    decisions[i, n] <- AdvisedTrial[i - nrow(AdvisedTrial), paste0(n, "Final")]
+  }
+}
+
+```
 
 ```{r participantDataFrame}
 
@@ -550,7 +555,38 @@ PP$number <- aggregate(as.formula(paste("number ~",
 
 ```
 
-We can now check for participants who are outliers as a whole, and remove them. 
+Now we ensure all participants changed their responses on at least `r minChangePercent * 100`% of trials. In most advice-taking paradigms a minority of participants ignore advice entirely. This is interesting and worthy of study in its own right, but when dealing with comparisions of manipulations on advice-taking using relatively small cell numbers, the inclusion of one or two participants who entirely disregard advice would skew the results. 
+
+```{r minChangePercent}
+
+changes <- tibble(pid = exclusions$pid, pChange = 0)
+
+for (p in exclusions$pid) {
+  tmp <- AdvisedTrial[AdvisedTrial$pid %in% p, ]
+  
+  if (nrow(tmp) == 0)
+    next()
+  
+  x <- mean(tmp$responseEstimateLeft != tmp$responseEstimateLeftFinal |
+    tmp$responseMarkerWidth != tmp$responseMarkerWidthFinal)
+  
+  changes$pChange[changes$pid %in% p] <- x
+  
+  if (x < minChangePercent) {
+    exclusions$excluded[exclusions$pid %in% p] <- 
+      if (exclusions$excluded[exclusions$pid %in% p] == F) "pChange" else
+        paste(exclusions$excluded[exclusions$pid %in% p], ", ", "pChange")
+  }
+}
+
+ggplot(changes, aes(x = "", y = pChange, colour = pid)) +
+  geom_hline(yintercept = minChangePercent, linetype = "dashed") +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1))
+
+```
+
+Next, we can check for participants who are outliers as a whole, and remove them. 
 
 ```{r participantExclusions}
 
