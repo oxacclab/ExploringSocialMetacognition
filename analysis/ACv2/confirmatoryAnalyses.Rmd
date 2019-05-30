@@ -168,7 +168,7 @@ listServerFiles <- function(version) {
 ## Load data
 
 ```{r loadData}
-version <- "1-0-0"
+version <- "1-0-1"
 
 files <- listServerFiles(version)
 
@@ -287,6 +287,9 @@ for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
 # Trials
 
 # Check trials which are supposed to have feedback actually have it
+AdvisedTrial$feedback[is.na(AdvisedTrial$feedback)] <- 0
+AdvisedTrial$feedback <- as.logical(AdvisedTrial$feedback)
+
 expect_equal(!is.na(AdvisedTrial$timeFeedbackOn), AdvisedTrial$feedback)
 
 AdvisedTrial$responseCorrect <- 
@@ -339,14 +342,14 @@ AdvisedTrial$confidenceChange <-
   (4 - as.numeric(AdvisedTrial$responseMarkerFinal)) -
   (4 - as.numeric(AdvisedTrial$responseMarker))
 
-i <- min(AdvisedTrial$number)
+
+tmp <- AdvisedTrial[order(AdvisedTrial$number), ]
 
 AdvisedTrial$firstAdvisor <- unlist(sapply(AdvisedTrial$pid, 
                                            function(x) 
-                                             unique(AdvisedTrial[
-                                               AdvisedTrial$pid == x &
-                                                 AdvisedTrial$number == i,
-                                               "advisor0idDescription"])))
+                                             tmp[
+                                               tmp$pid == x,
+                                               "advisor0idDescription"][1, ]))
 
 # Trials - advisor-specific variables
 for (a in advisorNames) {
