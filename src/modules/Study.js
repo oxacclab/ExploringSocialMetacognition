@@ -989,11 +989,14 @@ class Study extends ControlObject {
         advisorOrder[1] = 3 - advisorOrder[0];
 
         const advisors = this.advisors;
+        const me = this;
 
         this.blocks.filter(b => b.blockType === "core")
             .forEach(b => {
                 b.feedback = feedback;
-                let i = this.blocks.indexOf(b);
+                b.displayFeedback = feedback?
+                    me.displayFeedback : null;
+                let i = me.blocks.indexOf(b);
                 b.advisors = [advisors[advisorOrder[i % 2]]]
             });
 
