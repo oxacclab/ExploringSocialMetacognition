@@ -176,7 +176,7 @@ if(array_key_exists("prolificId", $data)) {
     if(!file_exists($metaFile)) {
         if(($handle = fopen($metaFile, "a+b")) !== false) {
             // Write headers
-            fputcsv($handle, array("pid", "tags", "uidHash"));
+            fputcsv($handle, array("pid", "tags", "uidHash", "condition"));
         }
     }
 
