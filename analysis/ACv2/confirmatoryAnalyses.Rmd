@@ -285,7 +285,9 @@ for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
 }
 
 # Trials
-AdvisedTrial$hasFeedback <- !is.na(AdvisedTrial$timeFeedbackOn)
+
+# Check trials which are supposed to have feedback actually have it
+expect_equal(!is.na(AdvisedTrial$timeFeedbackOn), AdvisedTrial$feedback)
 
 AdvisedTrial$responseCorrect <- 
   AdvisedTrial$correctAnswer >= AdvisedTrial$responseEstimateLeft &
@@ -539,7 +541,7 @@ for (i in (nrow(AdvisedTrial) + 1):nrow(decisions)) {
 
 # Participants data frame
 ns <- c("timeEnd", "responseCorrect", "responseError", "number")
-ss <- c("pid", "responseMarker", "hasFeedback", "decision")
+ss <- c("pid", "responseMarker", "feedback", "decision")
 
 eq <- paste0("cbind(", paste(ns, collapse = ", "), ") ~ ", 
              paste(ss, collapse = " + "))
@@ -593,7 +595,7 @@ Next, we can check for participants who are outliers as a whole, and remove them
 checkList <- c("timeEnd", "responseError", "responseCorrect")
 
 for (v in checkList) {
-  p <- aggregate(as.formula(paste(v, "~ pid + hasFeedback")), 
+  p <- aggregate(as.formula(paste(v, "~ pid + feedback")), 
                  AdvisedTrial, 
                  mean)
   p[, v] <- scale(p[, v])
@@ -607,7 +609,7 @@ for (v in checkList) {
         paste(exclusions$excluded[exclusions$pid == p$pid[i]], ", ", v)
   }
   
-  print(ggplot(p, aes(x = "", y = !!ensym(v), colour = hasFeedback)) +
+  print(ggplot(p, aes(x = "", y = !!ensym(v), colour = feedback)) +
           geom_rect(xmin = 0, xmax = 2, ymin = -zThresh, ymax = zThresh, 
                     fill = "white", colour = NA) +
           geom_hline(yintercept = 0, linetype = "dashed", colour = "black") + 
@@ -755,7 +757,7 @@ aggregate(pid ~ pid + firstAdvisor + feedback, AdvisedTrial,
 
 # bind feedback property from participants
 advisors <- advisors[advisors$pid %in% PP$pid, ]
-advisors <- left_join(advisors, unique(PP[c("pid", "hasFeedback")]), "pid")
+advisors <- left_join(advisors, unique(PP[c("pid", "feedback")]), "pid")
 
 # drop practice advisors
 advisors <- advisors[advisors$idDescription != "Practice", ]
@@ -780,7 +782,7 @@ for (p in unique(PP$pid)) {
         PP <- safeBind(list(PP, 
                             tibble(pid = p,
                                    responseMarker = m,
-                                   hasFeedback = PP$hasFeedback[PP$pid == p][1],
+                                   feedback = PP$feedback[PP$pid == p][1],
                                    decision = d,
                                    number = 0,
                                    excluded = PP$excluded[PP$pid == p][1],
@@ -809,7 +811,7 @@ markerBreakdown <- function(v, df, hideMarkerTotal = F, missingValue = NA, ...) 
     if (length(d) != 1)
       next()
 
-    for (f in uniqueTotal(df$hasFeedback)) {
+    for (f in uniqueTotal(df$feedback)) {
       tmp <- tibble(decision = n(d), feedback = n(f))
         
       for (m in uniqueTotal(markerList)) {
@@ -817,7 +819,7 @@ markerBreakdown <- function(v, df, hideMarkerTotal = F, missingValue = NA, ...) 
           next()
         
         x <- fun(df[df$decision %in% d & 
-                      df$hasFeedback %in% f &
+                      df$feedback %in% f &
                       df$responseMarker %in% m, ])
         
         if (is.na(n(m)))
@@ -930,7 +932,7 @@ ggplot(PP[!is.na(PP$responseMarker), ],
   geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
-  facet_grid(hasFeedback ~ decision, labeller = label_both) +
+  facet_grid(feedback ~ decision, labeller = label_both) +
   scale_linetype_manual(values = c("dashed")) + 
   labs(x = "response marker width (years)", 
        y = "p(marker used)")
@@ -955,7 +957,7 @@ num2str.tibble(tmp$last, isProportion = T, precision = 3)
 ```{r accuracyGraph}
 
 ggplot(aggregate(responseCorrect ~ 
-                   responseMarker + decision + hasFeedback + pid,
+                   responseMarker + decision + feedback + pid,
                  decisions, mean), 
        aes(x = responseMarker, y = responseCorrect)) +
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
@@ -964,7 +966,7 @@ ggplot(aggregate(responseCorrect ~
   geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
-  facet_grid(hasFeedback ~ decision, labeller = label_both) +
+  facet_grid(feedback ~ decision, labeller = label_both) +
   scale_linetype_manual(values = c("dashed")) + 
   labs(x = "response marker width (years)", 
        y = "p(response correct)")
@@ -990,7 +992,7 @@ num2str.tibble(tmp$last)
 ```{r errGraphBlock2}
 
 ggplot(aggregate(responseError ~ 
-                   responseMarker + decision + hasFeedback + pid,
+                   responseMarker + decision + feedback + pid,
                  block2Decisions, mean), 
        aes(x = responseMarker, y = responseError)) +
   geom_violin(alpha = .25, colour = NA, fill = "grey75") +
@@ -999,7 +1001,7 @@ ggplot(aggregate(responseError ~
   geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
-  facet_grid(hasFeedback ~ decision, labeller = label_both) +
+  facet_grid(feedback ~ decision, labeller = label_both) +
   scale_linetype_manual(values = c("dashed")) + 
   labs(x = "response marker width (years)", 
        y = "|target - response marker centre| (years)")
@@ -1043,8 +1045,8 @@ The **nominal type** of the advice is the advice selected for the advisor to giv
 ```{r adviceRequested}
 
 out <- list()
-for (f in unique(AdvisedTrial$hasFeedback)) {
-  m <- AdvisedTrial$hasFeedback == f
+for (f in unique(AdvisedTrial$feedback)) {
+  m <- AdvisedTrial$feedback == f
     
   tmp <- NULL
   for (a in advisorNames) {
@@ -1071,8 +1073,8 @@ The **actual type** of advice is the advice the advisor actually gave, i.e. allo
 ```{r adviceGiven}
 
 out <- list()
-for (f in unique(AdvisedTrial$hasFeedback)) {
-  m <- AdvisedTrial$hasFeedback == f
+for (f in unique(AdvisedTrial$feedback)) {
+  m <- AdvisedTrial$feedback == f
  
   tmp <- NULL
   for (a in advisorNames) {
@@ -1102,7 +1104,7 @@ Advisors are supposed to differ in their accuracy. These values should be stable
 
 tmp <- NULL
 for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".error ~ pid + hasFeedback + firstAdvisor"))
+  eq <- as.formula(paste0(a, ".error ~ pid + feedback + firstAdvisor"))
   r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
   
   colnames(r) <- c("pid", "feedback", "firstAdvisor", "error")
@@ -1139,7 +1141,7 @@ Because both advisors use the same off-brand advice, there should be no noticabl
 
 tmp <- NULL
 for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".error ~ pid + hasFeedback + firstAdvisor"))
+  eq <- as.formula(paste0(a, ".error ~ pid + feedback + firstAdvisor"))
   r <- aggregate(eq, offBrand, mean, na.rm = T)
   
   colnames(r) <- c("pid", "feedback", "firstAdvisor", "error")
@@ -1174,7 +1176,7 @@ ggplot(tmp, aes(x = advisor, y = error, colour = pid)) +
 
 tmp <- NULL
 for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".distance ~ pid + hasFeedback + firstAdvisor"))
+  eq <- as.formula(paste0(a, ".distance ~ pid + feedback + firstAdvisor"))
   r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
   
   colnames(r) <- c("pid", "feedback", "firstAdvisor", "distance")
@@ -1211,7 +1213,7 @@ There should be no noticeable differences here.
 
 tmp <- NULL
 for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".distance ~ pid + hasFeedback + firstAdvisor"))
+  eq <- as.formula(paste0(a, ".distance ~ pid + feedback + firstAdvisor"))
   r <- aggregate(eq, offBrand, mean, na.rm = T)
   
   colnames(r) <- c("pid", "feedback", "firstAdvisor", "distance")
@@ -1252,7 +1254,7 @@ Influence is the primary outcome measure, and is thus expected to differ between
 
 tmp <- NULL
 for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".woa ~ pid + hasFeedback + firstAdvisor"))
+  eq <- as.formula(paste0(a, ".woa ~ pid + feedback + firstAdvisor"))
   r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
   
   colnames(r) <- c("pid", "feedback", "firstAdvisor", "WoA")
@@ -1290,7 +1292,7 @@ tmp <- NULL
 for (a in advisorNames) {
   x <- offBrand[offBrand$advisor0idDescription == a, ]
   
-  eq <- as.formula(paste0(a, ".woa ~ pid + hasFeedback + firstAdvisor"))
+  eq <- as.formula(paste0(a, ".woa ~ pid + feedback + firstAdvisor"))
   r <- aggregate(eq, x, mean, na.rm = T)
   
   colnames(r) <- c("pid", "feedback", "firstAdvisor", "WoA")
@@ -1351,7 +1353,7 @@ tmp <- block2[!is.nan(block2$advisor0woaRaw), ]
 
 ggplot(tmp, aes(woa)) + 
   geom_histogram(stat = "count") +
-  facet_grid(hasFeedback ~ advisor0idDescription, labeller = label_both)
+  facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
 
 ```
 
@@ -1378,19 +1380,19 @@ Participants should reduce their error as a function of advice, and this is expe
 
 ```{r errorReduction}
 
-tmp <- aggregate(errorReduction ~ pid + hasFeedback + firstAdvisor, 
+tmp <- aggregate(errorReduction ~ pid + feedback + firstAdvisor, 
                  AdvisedTrial, mean, na.rm = T)
 
-num2str(as.tibble(aggregate(errorReduction ~ hasFeedback + firstAdvisor, 
+num2str(as.tibble(aggregate(errorReduction ~ feedback + firstAdvisor, 
                             tmp, mean, na.rm = T)))
 
 ```
 
 ```{r errorReductionGraph}
 
-ggplot(tmp, aes(x = hasFeedback, y = errorReduction, colour = pid)) + 
+ggplot(tmp, aes(x = feedback, y = errorReduction, colour = pid)) + 
   geom_violin(alpha = .25, colour = NA, fill = "grey75") + 
-  geom_boxplot(fill = NA, outlier.color = NA, aes(group = hasFeedback)) +
+  geom_boxplot(fill = NA, outlier.color = NA, aes(group = feedback)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   geom_point(alpha = .5, aes(colour = pid)) +
@@ -1405,11 +1407,11 @@ ggplot(tmp, aes(x = hasFeedback, y = errorReduction, colour = pid)) +
 ```{r errorReductionOffbrand}
 
 tmp <- aggregate(errorReduction ~ 
-                   pid + hasFeedback + firstAdvisor + advisor0idDescription, 
+                   pid + feedback + firstAdvisor + advisor0idDescription, 
                  offBrand, mean, na.rm = T)
 
 num2str(as.tibble(aggregate(errorReduction ~ 
-                              hasFeedback + firstAdvisor + 
+                              feedback + firstAdvisor + 
                               advisor0idDescription, 
                             tmp, mean, na.rm = T)))
 
@@ -1428,13 +1430,13 @@ ggplot(tmp,
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   geom_point(alpha = .5, aes(colour = pid)) +
-  facet_grid(firstAdvisor ~ hasFeedback, labeller = label_both)
+  facet_grid(firstAdvisor ~ feedback, labeller = label_both)
 
 ```
 
 ## Hypothesis testing
 
-The key property to look for in the hypothesis test is an interaction between advisor (*advisor0idDescription*) and feedback (*hasFeedback*). This may appear instead as a three-way advisor x feedback x order (*firstAdvisor*) interaction, but pilot studies indicate the interaction should be two- rather than three-way. 
+The key property to look for in the hypothesis test is an interaction between advisor (*advisor0idDescription*) and feedback (*feedback*). This may appear instead as a three-way advisor x feedback x order (*firstAdvisor*) interaction, but pilot studies indicate the interaction should be two- rather than three-way. 
 
 For now we use the ezANOVA function in the ez package. We'll use a Bayesian version later, but right now it's proving difficult to get working.
 
@@ -1445,9 +1447,9 @@ Post-hoc tests will break down the results, and they can be visualised from the 
 ```{r ezAnoveOffbrand}
 
 df <- aggregate(advisor0woa ~ 
-                   pid + hasFeedback + advisor0idDescription + firstAdvisor,
+                   pid + feedback + advisor0idDescription + firstAdvisor,
                  offBrand, mean, na.rm = T)
-df$hasFeedback <- factor(df$hasFeedback)
+df$feedback <- factor(df$feedback)
 
 # remove incomplete cases
 for (p in unique(df$pid)) {
@@ -1462,7 +1464,7 @@ df$pid <- factor(df$pid)
 
 r <- ezANOVA(df, advisor0woa, pid, 
              within = advisor0idDescription,
-             between = list(hasFeedback, firstAdvisor),
+             between = list(feedback, firstAdvisor),
              detailed = T,
              return_aov = T,
              type = 2)
@@ -1480,7 +1482,7 @@ Advisor preference is quantified as WoA(Accurate) - WoA(Agreeing).
 df <- df[order(df$pid), ]
 
 tmp <- df[df$advisor0idDescription == "Accurate", 
-          c("pid", "hasFeedback", "firstAdvisor")]
+          c("pid", "feedback", "firstAdvisor")]
 tmp$AccPref <- df$advisor0woa[df$advisor0idDescription == "Accurate"] - 
   df$advisor0woa[df$advisor0idDescription == "Agreeing"]
 
@@ -1494,8 +1496,8 @@ We want to know preference for accurate over agreeing:
 
 ```{r postHocFB, results = 'asis'}
 
-r <- md.ttest(tmp$AccPref[tmp$hasFeedback == T],
-              tmp$AccPref[tmp$hasFeedback != T],
+r <- md.ttest(tmp$AccPref[tmp$feedback == T],
+              tmp$AccPref[tmp$feedback != T],
               labels = c("*M*|fb", "*M*|¬fb"))
 
 cat(r)
@@ -1520,9 +1522,9 @@ cat(r)
 
 # examine by feedback type
 
-r <- md.ttest(tmp$AccPref[tmp$hasFeedback == T & 
+r <- md.ttest(tmp$AccPref[tmp$feedback == T & 
                             tmp$firstAdvisor == "Accurate"],
-              tmp$AccPref[tmp$hasFeedback == T & 
+              tmp$AccPref[tmp$feedback == T & 
                             tmp$firstAdvisor != "Accurate"],
               labels = c("*M*|fb,Acc", "*M*|fb,Agr"))
 
@@ -1530,9 +1532,9 @@ cat(r)
 
 cat("\n\n")
 
-r <- md.ttest(tmp$AccPref[tmp$hasFeedback != T & 
+r <- md.ttest(tmp$AccPref[tmp$feedback != T & 
                             tmp$firstAdvisor == "Accurate"],
-              tmp$AccPref[tmp$hasFeedback != T & 
+              tmp$AccPref[tmp$feedback != T & 
                             tmp$firstAdvisor != "Accurate"],
               labels = c("*M*|¬fb,Acc", "*M*|¬fb,Agr"))
 
