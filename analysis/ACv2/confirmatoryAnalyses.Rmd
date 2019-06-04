@@ -673,13 +673,14 @@ table(exclusions$excluded)
 
 ```
 
-Lastly, we can check the debrief information for participants who appeared to guess the manipulation (one advisor agrees with them) and remove those participants.
+We check the debrief information for participants who appeared to guess the manipulation (one advisor agrees with them) and remove those participants.
 
 ```{r manualExclusions}
 
-debrief.form$guessedManipulation <- F
-  # c(F, F, F, F, F, F, F, F, F, F,
-  #   F, F, F, F, F, T, F, F, F, F)
+debrief.form$guessedManipulation <- 
+  c(F, F, F, F, F, F, F, F, F, T,
+    F, F, F, F, F, F, F, T, F, T,
+    F, F, F, F, F, F, F)
 debrief.form[, c("pid", "comment", "guessedManipulation")]
 
 for (p in exclusions$pid) {
@@ -713,6 +714,28 @@ for (p in unique(AdvisedTrial$pid)) {
 table(exclusions$excluded)
 ```
 
+Finally, it's possible for some conditions to have more participants than we aimed to recruit. These participants should be dropped.
+
+```{r excessParticipants}
+
+n <- 5 # set by power analysis
+
+for (x in unique(okayIds$condition)) {
+  i <- 0
+  
+  for (p in exclusions$pid[exclusions$excluded == F]) {
+    if (okayIds$condition[okayIds$pid %in% p] == x) {
+      if (i >= n) {
+        exclusions$excluded[exclusions$pid == p] <- "excess"
+      } else {
+        i <- i + 1
+      }
+    }
+  }
+}
+
+table(exclusions$excluded)
+```
 
 ```{r doExclusions}
 
