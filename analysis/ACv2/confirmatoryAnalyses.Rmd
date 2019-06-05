@@ -680,7 +680,8 @@ We check the debrief information for participants who appeared to guess the mani
 debrief.form$guessedManipulation <- 
   c(F, F, F, F, F, F, F, F, F, T,
     F, F, F, F, F, F, F, T, F, T,
-    F, F, F, F, F, F, F)
+    F, F, F, F, F, F, F, F, T, F,
+    F, T, F, F)
 debrief.form[, c("pid", "comment", "guessedManipulation")]
 
 for (p in exclusions$pid) {
