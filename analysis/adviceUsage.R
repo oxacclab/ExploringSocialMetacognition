@@ -13,7 +13,8 @@ folders <- folders[grepl("processed$", folders)]
 tmp <- NULL
 
 for (folderName in folders) {
-  print(paste('Extracting', length(list.files(folderName)), 'files from', folderName))
+  print(paste('Extracting', length(list.files(folderName)), 
+              'files from', folderName))
   
   if (!length(list.files(folderName)))
     next()
@@ -115,15 +116,18 @@ ggplot(tmp, aes(WoA_f, fill = advisorAgrees)) +
 
 # Individual participants animation ---------------------------------------
 
-library(gganimate)
-a <- ggplot(tmp[tmp$pid < 50, ], aes(advisorInfluenceRaw, fill = advisorAgrees)) + 
-  geom_histogram(bins = 100, aes(y = ..ncount..)) +
-  facet_wrap(~advisorAgrees, labeller = label_both) +
-  style.long +
-  labs(title = 'Participant {closest_state}',
-       subtitle = paste('Participants =', length(unique(tmp$pid)),
-                        'Trials =', nrow(tmp))) +
-  # enter_appear() +
-  transition_states(pid, transition_length = .5, state_length = 3)
+if (F) {
+  library(gganimate)
+  a <- ggplot(tmp[tmp$pid < 50, ], aes(advisorInfluenceRaw, fill = advisorAgrees)) + 
+    geom_histogram(bins = 100, aes(y = ..ncount..)) +
+    facet_wrap(~advisorAgrees, labeller = label_both) +
+    style.long +
+    labs(title = 'Participant {closest_state}',
+         subtitle = paste('Participants =', length(unique(tmp$pid)),
+                          'Trials =', nrow(tmp))) +
+    # enter_appear() +
+    transition_states(pid, transition_length = .5, state_length = 3)
+  
+  animate(a)
+}
 
-animate(a)
