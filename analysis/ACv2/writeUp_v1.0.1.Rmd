@@ -1,0 +1,1262 @@
+---
+title: "Date estimation report"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_notebook:
+    includes:
+      after_body: ../src/toc_menu.html
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  chunk_output_type: inline
+---
+
+June 2019
+
+[Script run `r Sys.time()`]
+
+# Introduction 
+
+People are capable of rationally altering their use of advice in light of information about the quality of advice ([Sniezek & Van Swol, 2001](https://doi.org/10.1006/obhd.2000.2926)) or trial-by-trial feedback which allows them to derive an assessment of advice quality ([Yaniv & Kleinberger, 2000](https://doi.org/10.1006/obhd.2000.2909)). We examine whether they remain capable of this in the absence of any objective cues to advice quality. 
+
+The theoretical background states that people make assessments of advice in the absence of feedback using their own metacognitive abilities. For example, when receiving disagreeing advice, a person who is confident in their initial decision will a) adjust their final decision less, and b) downgrade their assessment of the advisor. This theory is due in large part to Niccolo's work.
+
+Here we present participants with advice from one of two advisors, one who indicates the correct answer and the other who inidicates support for the participant's initial decision. We expect that participants provided with trial-by-trial feedback will recognise the value of the accurate advisor, while those who do not receive feedback will be primarily influenced by the agreeing advisor because that advisor is providing the most plausible answers from the participant's perspective. 
+
+# Method
+
+## Overview
+
+We present participants with a date estimation task within a judge-advisor system where the participant plays the role of the judge, and the advisors are played by virtual agents. Participants make an initial decision by selecting a span of time on a timeline which they believe covers the event in question (e.g. assassination of Archduke Franz Ferdinand). Participants then see a span of time indicated by an advisor, before submitting a final decision. 
+
+## Interface
+
+Decisions are indicated by selecting one of three markers, each of which covers a different number of years. The thinnest marker covers a single year, a medium marker covers 3 years, while the widest marker covers 9 years. They are worth 27, 9, and 3 points respectively. The timeline covers the years 1890-2010, and correct answers fall in the range 1900-1999.
+
+## Structure
+
+Participants were introduced to the experimental interface, and given 10 trials with feedback and without advice to familiarise themselves with the task (we found participants in earlier prototypes altered their behaviour based on feedback about *their own* decisions). They were the briefly introduced to advice for two trials before completing two core blocks of 15 trials.
+
+Core blocks contained 15 trials: 14 genuine trials and 1 attention check trial. Attention checks provided participants with an instruction to 'use the smallest marker to indicate the year [e.g.] one nine three three'. On genuine trials participants received advice and either did or did not receive feedback according to their experimental condition. Advice was provided by a single advisor on each block, introduced at the beginning of the block and represented visually throughout. On one block participants recieved advice from an advisor who agreed with their initial decisions, and on another from an advisor who inidcated the correct answer. 
+
+## Advice
+
+The advice is drawn from a small variation around either the correct answer (1914 in the example above) or the centre of the participant's answer. Advice always covered a period of 6 years. The off-centre adjustment of the advice was calculated by subtracting the expected value of 3 integers drawn from the range [0,5] (with replacement), and adding the sum of those integers. This resulted in a triangular distribution centred around 0.
+
+## Analysed trials
+
+Crucially, on 20% of genuine trials, the advisor offered 'off-brand' advice. This advice was the same for both advisors, and was calculated by reflecting the participant's answer around the correct answer. These off-brand trials were the ones analysed in the core statistical analysis, and they are important because the on-brand trials confound advisor identity with advice-initial-decision-distance, which has been shown to alter advice-taking. 
+
+## Analysis
+
+The core analysis is a 2x2x2 mixed ANOVA exploring the influence of different advisors (within subjects) depending upon which advisor is seen first, and whether feedback is provided or not (both between subjects). The dependent variable, Weight on Advice (WOA) is a commonly-used measure of advice-taking and gives the extent to which the final decision moves away from the initial decision as a proportion of the advice. It is given by $woa = (f - i) / (a - i)$ and is well-defined for values in the range [0,1].
+
+All other analyses are secondary/exploratory.
+
+## Resources
+
+This project's resources can all be accessed via its [OSF page](https://osf.io/h254u/).
+
+This study was pre-registered. The registration can be viewed at [https://osf.io/fgmdw](https://osf.io/fgmdw). 
+
+The experiment itself can be viewed at [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/?PROLIFIC_PID=WriteUp](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/?PROLIFIC_PID=WriteUp), and the code for both the experiment and the analysis are availiable in the project GitHub repository [https://github.com/oxacclab/ExploringSocialMetacognition](https://github.com/oxacclab/ExploringSocialMetacognition).
+
+# Results
+
+## Exclusions and sample
+
+Data were collected iteratively until 5 participants passed exclusion checks for each experimental condition. [Power analysis](powerAnalysis.html) for the key interaction in the 2x2x2 mixed ANOVA was used to determine this sample size. The exclusion process can be viewed in detail in the [confirmatory analysis script](confirmatoryAnalyses.html), but a summary is presented here:
+
+```{r prematter, include = F}
+
+library(testthat)
+
+library(tidyverse)
+
+library(curl)
+
+library(lsr)
+library(BayesFactor)
+library(BANOVA)
+library(ez)
+
+library(knitr)
+library(prettyMD)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20190425)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+```
+
+```{r constants}
+
+# outlier detection and removal
+zThresh <- 3 # threshold for outliers
+maxTime <- 60000 # maximum trial time in ms (should pass almost all participants)
+minChangePercent <- 0.1 # minimum percent of core trials with different initial and final answers
+
+markerList <- list(thin = 1, medium = 3, wide = 9)
+
+```
+
+```{r specificFunctions}
+
+markerPoints <- function(width) 27 / width
+
+```
+
+```{r miscFunctions}
+
+#' strip newlines and html tags from string
+stripTags <- function(s) {
+  s <- gsub("[\r\n]", "", s)
+  
+  while (any(grepl("  ", s, fixed = T)))
+    s <- gsub("  ", " ", s, fixed = T)
+  
+  s <- gsub("^ ", "", s, perl = T)
+  s <- gsub(" $", "", s, perl = T)
+  
+  while (any(grepl("<([^\\s>]+)[^>]*>([\\s\\S]*?)<\\/\\1>", s, perl = T)))
+    s <- gsub("<([^\\s>]+)[^>]*>([\\s\\S]*?)<\\/\\1>", "\\2", s, perl = T)
+  
+  s <- gsub("<[^>]+\\/>", "", s)
+  s
+}
+
+#' Return the first match for a regexpr
+reFirstMatch <- function(pattern, str, ...) {
+  re <- regexpr(pattern, str, ..., perl = T)
+  name <- substr(str, attr(re, "capture.start"), 
+                 attr(re, "capture.start") + attr(re, "capture.length") - 1)
+  name
+}
+
+expect_equal(reFirstMatch("\\w+\\W+(\\w+)", "First, Second, Third"), "Second")
+
+#' rbind with NA padding for missing columns
+#' @params x list of data frames to join
+#' @params padWith value for missing entries
+safeBind <- function(x, padWith = NA) {
+  
+  out <- NULL
+  first <- T
+  
+  for (y in x) {
+  
+    if (!is.data.frame(y))
+      y <- as.data.frame(y)
+    
+    if (first) {
+      out <- y
+      first <- F
+    } else {
+      y[, names(out)[names(out) %in% names(y) == F]] <- padWith
+      out[, names(y)[names(y) %in% names(out) == F]] <- padWith
+      out <- rbind(out, y)
+    }
+  }
+  
+  out
+}
+
+expect_equal(dim(safeBind(list(data.frame(x = 1:5, y = runif(5), rnorm(5)),
+                                data.frame(x = 6:10, z = 1:5)))),
+             c(10, 4))
+
+#' List the unique values of a vector and a "total" item with all unique values
+#' Designed for outputting aggregate counts and totals
+uniqueTotal <- function(x) {
+  out <- as.list(unique(x))
+  out[[length(out) + 1]] <- unique(x)
+  out
+}
+
+expect_equal(uniqueTotal(c("a", "b", "c")), 
+             list("a", "b", "c", c("a", "b", "c")))
+
+#' List the files on the server matching the specified version
+listServerFiles <- function(version) {
+  rDir <- "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/"
+  
+  out <- NULL
+  
+  con <- curl(rDir)
+  open(con, "rb")
+  while (isIncomplete(con)) {
+    buffer <- readLines(con, n = 1)
+    if (length(buffer)) {
+      f <- reFirstMatch(paste0(">(datesStudy_v", version, "_[^<]+)"),
+                        buffer)
+      if (nchar(f)) {
+        out <- c(out, paste0(rDir, f))
+      }
+    }
+  }
+  close(con)
+  
+  out
+}
+
+```
+
+```{r loadData}
+version <- "1-0-1"
+
+files <- listServerFiles(version)
+
+# Screen for acceptable IDs
+f <- files[grep("metadata", files)]
+okayIds <- read.csv(f)
+
+okayIds$okay <- grepl("prolific", okayIds$tags)
+
+files <- files[grep("metadata", files, invert = T)]
+
+# convert CSV files to tibbles
+for (f in files) {
+  tmp <- as.tibble(read.csv(f))
+  
+  # screen out non-okay ids
+  if ("pid" %in% names(tmp))
+    tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
+  
+  # clean up stimulus text
+  if ("stimHTML" %in% names(tmp)) {
+    tmp$stimHTML <- stripTags(tmp$stimHTML)
+  }
+  
+  # type coersion
+  if ("comment" %in% names(tmp))
+    tmp$comment <- as.character(tmp$comment)
+  
+  n <- grep("advisor[0-9]+(name|validTypes|nominalType|actualType)$", 
+            names(tmp), value = T)
+  for (x in n)
+    tmp[, x] <- lapply(tmp[, x], as.character)
+  
+  n <- grep("responseEstimateLabel", names(tmp), value = T)
+  for (x in n)
+    tmp[, x] <- lapply(tmp[, x], function(y) 
+      as.numeric(stripTags((as.character(y)))))
+  
+  if ("responseMarkerWidth" %in% names(tmp))
+    tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
+  if ("responseMarkerWidthFinal" %in% names(tmp))
+    tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
+  
+  # assign to workspace
+  name <- reFirstMatch("([^_]+)\\.csv", f)
+  name <- sub("-", ".", name)
+  assign(name, tmp)
+}
+
+```
+
+```{r utilityVariables}
+
+# Reference variables 
+# Gather a list of advisor names and advice types
+
+# This is more complex than it needs to be because it handles a wider range of
+# inputs than we give it here
+
+names <- NULL
+types <- NULL
+i <- 0
+while (T) {
+  if (!length(grep(paste0("advisor", i), names(AdvisedTrial)))) {
+    break()
+  }
+  names <- unique(c(names, 
+                    unique(AdvisedTrial[, paste0("advisor", i, 
+                                                 "idDescription")])))
+  types <- unique(c(types,
+                    unique(AdvisedTrial[, paste0("advisor", i, 
+                                                 "actualType")]),
+                    unique(AdvisedTrial[, paste0("advisor", i,
+                                                 "nominalType")])))
+  i <- i + 1
+}
+advisorNames <- unlist(names)
+adviceTypes <- unlist(types)
+
+
+AdvisedTrial$advisor0offBrand <- AdvisedTrial$advisor0actualType == 
+  "disagreeReflected"
+
+# Produce equivalents of the advisor1|2... variables which are named for the 
+# advisor giving the advice
+
+for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
+  suffix <- reFirstMatch("advisor0(\\S+)", v)
+  for (a in advisorNames) {
+    
+    s <- paste0(a, ".", suffix)
+    AdvisedTrial[, s] <- NA
+    
+    for (i in 1:nrow(AdvisedTrial)) {
+      x <- 0
+      while (T) {
+        if (!length(grep(paste0("advisor", x), 
+                                names(AdvisedTrial)))) {
+          break()
+        }
+        
+        if (AdvisedTrial[i, paste0("advisor", x, "idDescription")] == a) {
+          AdvisedTrial[i, s] <- AdvisedTrial[i, paste0("advisor", x, suffix)]
+          break()
+        }
+        
+        x <- x + 1
+      }
+      
+    }
+  }
+}
+
+# Trials
+
+# Check trials which are supposed to have feedback actually have it
+AdvisedTrial$feedback[is.na(AdvisedTrial$feedback)] <- 0
+AdvisedTrial$feedback <- as.logical(AdvisedTrial$feedback)
+
+expect_equal(!is.na(AdvisedTrial$timeFeedbackOn), AdvisedTrial$feedback)
+
+AdvisedTrial$responseCorrect <- 
+  AdvisedTrial$correctAnswer >= AdvisedTrial$responseEstimateLeft &
+  AdvisedTrial$correctAnswer <= AdvisedTrial$responseEstimateLeft + 
+  AdvisedTrial$responseMarkerWidth
+
+AdvisedTrial$responseCorrectFinal <- 
+  AdvisedTrial$correctAnswer >= AdvisedTrial$responseEstimateLeftFinal &
+  AdvisedTrial$correctAnswer <= AdvisedTrial$responseEstimateLeftFinal + 
+  AdvisedTrial$responseMarkerWidthFinal
+
+Trial$responseCorrect <- 
+  Trial$correctAnswer >= Trial$responseEstimateLeft &
+  Trial$correctAnswer <= Trial$responseEstimateLeft + 
+  Trial$responseMarkerWidth
+
+AdvisedTrial$responseError <- abs(AdvisedTrial$correctAnswer - 
+                            AdvisedTrial$responseEstimateLeft + 
+                            (AdvisedTrial$responseMarkerWidth / 2))
+
+AdvisedTrial$responseErrorFinal <- abs(AdvisedTrial$correctAnswer - 
+                                         AdvisedTrial$responseEstimateLeftFinal 
+                                       + (AdvisedTrial$responseMarkerWidthFinal 
+                                          / 2))
+
+AdvisedTrial$errorReduction <- AdvisedTrial$responseError - 
+  AdvisedTrial$responseErrorFinal
+
+AdvisedTrial$responseScore <- 
+  ifelse(AdvisedTrial$responseCorrect, 
+         27 / AdvisedTrial$responseMarkerWidth, 0)
+
+AdvisedTrial$responseScoreFinal <- 
+  ifelse(AdvisedTrial$responseCorrectFinal, 
+         27 / AdvisedTrial$responseMarkerWidthFinal, 0)
+
+AdvisedTrial$accuracyChange <- AdvisedTrial$responseCorrectFinal -
+  AdvisedTrial$responseCorrect
+
+AdvisedTrial$scoreChange <- AdvisedTrial$responseScoreFinal -
+  AdvisedTrial$responseScore
+
+AdvisedTrial$estimateLeftChange <- abs(AdvisedTrial$responseEstimateLeftFinal -
+  AdvisedTrial$responseEstimateLeft)
+
+AdvisedTrial$changed <- AdvisedTrial$estimateLeftChange > 0
+
+AdvisedTrial$confidenceChange <- 
+  (4 - as.numeric(AdvisedTrial$responseMarkerFinal)) -
+  (4 - as.numeric(AdvisedTrial$responseMarker))
+
+
+tmp <- AdvisedTrial[order(AdvisedTrial$number), ]
+
+AdvisedTrial$firstAdvisor <- unlist(sapply(AdvisedTrial$pid, 
+                                           function(x) 
+                                             tmp[
+                                               tmp$pid == x,
+                                               "advisor0idDescription"][1, ]))
+
+# Trials - advisor-specific variables
+for (a in advisorNames) {
+  # Accuracy
+  AdvisedTrial[, paste0(a, ".accurate")] <- 
+    (AdvisedTrial[, paste0(a, ".advice")] - 
+       (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)) <= 
+    AdvisedTrial[, "correctAnswer"] &
+    (AdvisedTrial[, paste0(a, ".advice")] + 
+       (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)) >= 
+    AdvisedTrial[, "correctAnswer"]
+  
+  # Error
+  AdvisedTrial[, paste0(a, ".error")] <- 
+    abs(AdvisedTrial[, paste0(a, ".advice")] - AdvisedTrial[, "correctAnswer"])
+  
+  # Weight on Advice
+  i <- AdvisedTrial[, "responseEstimateLeft"] + 
+    (AdvisedTrial[, "responseMarkerWidth"] - 1) / 2
+  f <- AdvisedTrial[, "responseEstimateLeftFinal"] + 
+    (AdvisedTrial[, "responseMarkerWidthFinal"] - 1) / 2
+  adv <- AdvisedTrial[, paste0(a, ".advice")]
+  
+  x <- ((f - i) / (adv - i))
+  AdvisedTrial[, paste0(a, ".woaRaw")] <- x
+  
+  x[x < 0] <- 0
+  x[x > 1] <- 1
+  
+  AdvisedTrial[, paste0(a, ".woa")] <- x
+  
+  # Agreement
+  for (d in c("", "Final")) {
+    minA <- AdvisedTrial[, paste0(a, ".advice")] - 
+         (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)
+    maxA <- AdvisedTrial[, paste0(a, ".advice")] + 
+         (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)
+    
+    minP <- AdvisedTrial[, paste0("responseEstimateLeft", d)]
+    maxP <- minP + AdvisedTrial[, paste0("responseMarkerWidth", d)]
+    
+    AdvisedTrial[, paste0(a, ".agree", d)] <- 
+      ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP))  
+    
+    # Distance
+    reMid <- minP + (maxP - minP) / 2
+    advice <- AdvisedTrial[, paste0(a, ".advice")]
+    AdvisedTrial[, paste0(a, ".distance", d)] <- abs(reMid - advice)
+  }
+  
+  # Agreement change
+  AdvisedTrial[, paste0(a, ".agreementChange")] <- 
+  AdvisedTrial[, paste0(a, ".agreeFinal")] - 
+  AdvisedTrial[, paste0(a, ".agree")]
+}
+
+```
+
+```{r exclusions}
+
+exclusions <- tibble(pid = unique(AdvisedTrial$pid))
+exclusions$excluded <- F
+
+for (p in unique(exclusions$pid)) {
+  excluded <- NULL
+  tmp <- Trial[Trial$pid == p, ]
+  if (any(tmp$responseCorrect == F))
+    excluded <- c(excluded, "attnCheckYear")
+  if (any(tmp$responseMarkerWidth != 1))
+    excluded <- c(excluded, "attnCheckMarker")
+  
+  exclusions$excluded[exclusions$pid == p] <- ifelse(is.null(excluded), 
+                                                     F, 
+                                                     paste(excluded, 
+                                                           collapse = ", "))
+}
+
+# Drop excluded participants' trials
+tmp <- NULL
+for (i in 1:nrow(AdvisedTrial))
+  if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
+    tmp <- rbind(tmp, AdvisedTrial[i, ])
+
+AdvisedTrial <- tmp
+```
+
+```{r safari}
+
+for (p in unique(exclusions$pid)) {
+  if (!(p %in% debrief.advisors$pid)) {
+    exclusions$excluded[exclusions$pid == p] <-
+      if (exclusions$excluded[exclusions$pid == p] == F) "safari" else
+        paste(exclusions$excluded[exclusions$pid == p], ", ", "safari")
+  }
+}
+
+```
+
+```{r outliers}
+
+# Remove outlying trials
+
+AdvisedTrial$outlier <- AdvisedTrial$timeEnd > maxTime
+AdvisedTrial <- AdvisedTrial[!AdvisedTrial$outlier, ]
+
+```
+
+```{r outlyingTrialCount}
+
+nMaxOutliers <- 3
+
+for (p in unique(exclusions$pid)) {
+  excluded <- exclusions$excluded[exclusions$pid == p]
+  if (excluded == F) 
+    excluded <- NULL
+  if (length(AdvisedTrial$pid[AdvisedTrial$pid == p & AdvisedTrial$outlier != F]) > 
+      nMaxOutliers)
+    excluded <- c(excluded, "outlyingTrials")
+  
+  if (any(AdvisedTrial$outlier[AdvisedTrial$advisor0offBrand & AdvisedTrial$pid == p])) {
+    excluded <- c(excluded, "offBrandOutlier")
+  }
+  
+  exclusions$excluded[exclusions$pid == p] <- 
+    if (is.null(excluded)) F else paste(excluded, collapse = ", ")
+}
+
+# Drop excluded participants' trials
+tmp <- NULL
+for (i in 1:nrow(AdvisedTrial))
+  if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
+    tmp <- rbind(tmp, AdvisedTrial[i, ])
+
+AdvisedTrial <- tmp
+
+```
+
+```{r decisionsDataFrame}
+
+# We're done with excluding trials individually.
+
+# Produce a data frame of the trials where each decision gets a unique row
+decisions <- AdvisedTrial[, !grepl("^response(?=\\S+Final$)", 
+                                   names(AdvisedTrial), 
+                                   perl = T)]
+
+decisions <- rbind(decisions, decisions)
+decisions$decision <- sapply(1:nrow(decisions), 
+                             function(x) 
+                               if (x <= nrow(AdvisedTrial)) "first" else "last")
+
+for (i in (nrow(AdvisedTrial) + 1):nrow(decisions)) {
+  for (n in names(decisions)[grepl("^response", names(decisions), perl = T)]) {
+    decisions[i, n] <- AdvisedTrial[i - nrow(AdvisedTrial), paste0(n, "Final")]
+  }
+}
+
+```
+
+```{r participantDataFrame}
+
+# Participants data frame
+ns <- c("timeEnd", "responseCorrect", "responseError", "number")
+ss <- c("pid", "responseMarker", "feedback", "decision", "firstAdvisor")
+
+eq <- paste0("cbind(", paste(ns, collapse = ", "), ") ~ ", 
+             paste(ss, collapse = " + "))
+
+PP <- as.tibble(aggregate(as.formula(eq), decisions, mean))
+PP$excluded <- sapply(PP$pid, function(p) 
+  exclusions$excluded[exclusions$pid == p])
+
+# record the n of each row so weighted averaging can be used later
+PP$number <- aggregate(as.formula(paste("number ~", 
+                                        paste(ss, collapse = " +"))), 
+                       decisions, length)$number
+
+```
+
+```{r minChangePercent}
+
+changes <- tibble(pid = exclusions$pid, pChange = 0)
+
+for (p in exclusions$pid) {
+  tmp <- AdvisedTrial[AdvisedTrial$pid %in% p, ]
+  
+  if (nrow(tmp) == 0)
+    next()
+  
+  x <- mean(tmp$responseEstimateLeft != tmp$responseEstimateLeftFinal |
+    tmp$responseMarkerWidth != tmp$responseMarkerWidthFinal)
+  
+  changes$pChange[changes$pid %in% p] <- x
+  
+  if (x < minChangePercent) {
+    exclusions$excluded[exclusions$pid %in% p] <- 
+      if (exclusions$excluded[exclusions$pid %in% p] == F) "pChange" else
+        paste(exclusions$excluded[exclusions$pid %in% p], ", ", "pChange")
+  }
+}
+
+```
+
+```{r participantExclusions}
+
+checkList <- c("timeEnd", "responseError", "responseCorrect")
+
+for (v in checkList) {
+  p <- aggregate(as.formula(paste(v, "~ pid + feedback")), 
+                 AdvisedTrial, 
+                 mean)
+  p[, v] <- scale(p[, v])
+  
+  for (i in 1:nrow(p)) {
+    if (abs(p[i, v] <= zThresh))
+        next()
+    
+    exclusions$excluded[exclusions$pid == p$pid[i]] <- 
+      if (exclusions$excluded[exclusions$pid == p$pid[i]] == F) v else
+        paste(exclusions$excluded[exclusions$pid == p$pid[i]], ", ", v)
+  }
+}
+
+
+PP$excluded <- sapply(PP$pid, 
+                      function(x) exclusions$excluded[exclusions$pid == x])
+
+```
+
+```{r multipleAttempts}
+
+# by hash of prolific id
+for (uid in unique(okayIds$uidHash)) {
+  
+  ids <- okayIds$pid[okayIds$uidHash == uid]
+  
+  # participants who have multiple attempts at core trials
+  if (length(ids[ids %in% AdvisedTrial[["pid"]]]) > 1) {
+    tmp <- exclusions[exclusions$pid %in% ids, ]
+    
+    tmp$excluded <- ifelse(tmp$excluded == F, 
+                           "multipleAttempts", 
+                           paste(tmp$excluded, ", multipleAttempts"))
+    
+    exclusions$excluded[exclusions$pid %in% ids, ] <- tmp$excluded
+  }
+  
+  # participants who have answered the same question twice
+  tmp <- c(AdvisedTrial$stimHTML[AdvisedTrial$pid %in% ids],
+           practiceTrial$stimHTML[practiceTrial$pid %in% ids],
+           practiceAdvisedTrial$stimHTML[practiceAdvisedTrial$pid %in% ids])
+  
+  if (length(tmp) > length(unique(tmp))) {
+    tmp <- exclusions[exclusions$pid %in% ids, ]
+    
+    tmp$excluded <- ifelse(tmp$excluded == F, 
+                           "repeatedQuestion", 
+                           paste(tmp$excluded, ", repeatedQuestion"))
+    
+    exclusions$excluded[exclusions$pid %in% ids, ] <- tmp$excluded
+  }
+}
+
+```
+
+```{r manualExclusions}
+
+debrief.form$guessedManipulation <- 
+  c(F, F, F, F, F, F, F, F, F, T,
+    F, F, F, F, F, F, F, T, F, T,
+    F, F, F, F, F, F, F, F, T, F,
+    F, T, F, F)
+
+for (p in exclusions$pid) {
+  if (p %in% debrief.form$pid) {
+    if (debrief.form$guessedManipulation[debrief.form$pid == p]) {
+      exclusions$excluded[exclusions$pid == p] <-
+        if (exclusions$excluded[exclusions$pid == p] == F)
+          "guessedManipulation" else
+            paste(c(exclusions$excluded[exclusions$pid == p], 
+                    "guessedManipulation"), collapse = ", ")
+    }
+  }
+}
+
+# Check for erroneous marker values
+okayMarkers <- c(1, 3, 9, 27)
+for (p in unique(AdvisedTrial$pid)) {
+  tmp <- AdvisedTrial[AdvisedTrial$pid == p, ]
+  if (!all(tmp$responseMarkerWidth %in% okayMarkers) |
+      !all(tmp$responseMarkerWidthFinal %in% okayMarkers)) {
+    if (p %in% exclusions$pid) {
+      exclusions$excluded[exclusions$pid == p] <- 
+        if (exclusions$excluded[exclusions$pid == p] == F)
+          "badMarker" else 
+            paste(c(exclusions$excluded[exclusions$pid == p], 
+                    "badMarker"), collapse = ", ")
+    }
+  }
+}
+
+```
+
+```{r excessParticipants, results = 'asis'}
+
+n <- 5 # set by power analysis
+
+for (x in unique(okayIds$condition)) {
+  i <- 0
+  
+  for (p in exclusions$pid[exclusions$excluded == F]) {
+    if (okayIds$condition[okayIds$pid %in% p] == x) {
+      if (i >= n) {
+        exclusions$excluded[exclusions$pid == p] <- "excess"
+      } else {
+        i <- i + 1
+      }
+    }
+  }
+}
+
+okayIds$condition <- factor(okayIds$condition, labels = c("fb_AgrFirst",
+                                                          "fb_AccFirst",
+                                                          "¬fb_AgrFirst",
+                                                          "¬fb_AccFirst"))
+tmp <- left_join(exclusions, okayIds, by = "pid")
+
+kable(t(table(tmp$condition, tmp$excluded)))
+```
+
+```{r doExclusions}
+
+AdvisedTrial <- AdvisedTrial[AdvisedTrial$pid %in% 
+                               exclusions$pid[exclusions$excluded == F], ]
+decisions <- decisions[decisions$pid %in% 
+                         exclusions$pid[exclusions$excluded == F], ]
+PP <- PP[PP$pid %in% exclusions$pid[exclusions$excluded == F], ]
+
+# Drop extraneous factor levels
+for (n in ls()) {
+  dirty <- F
+  x <- get(n)
+  if ("data.frame" %in% class(x)) {
+    for (i in 1:ncol(x)) {
+      if (is.factor(x[[i]])) {
+        x[[i]] <- factor(x[[i]]) # renew level assignment
+        dirty <- T
+      }
+    }
+  }
+  if (dirty) {
+    assign(n, x)
+  }
+}
+
+```
+
+We do not collect demographic data on our participants.
+
+## Task performance
+
+We first want to check whether the participants performed the task in a sensible way. To this end we present a characterisation of task performance for each participant. 
+
+```{r bindAdvisors}
+
+# bind feedback property from participants
+advisors <- advisors[advisors$pid %in% PP$pid, ]
+advisors <- left_join(advisors, unique(PP[c("pid", "feedback")]), "pid")
+advisors$pid <- factor(advisors$pid)
+
+# drop practice advisors
+advisors <- advisors[advisors$idDescription != "Practice", ]
+
+```
+
+```{r analysisPrep}
+
+# Calculate the proportion of trials each breakdown in PP accounts for
+PP$proportion <- sapply(1:nrow(PP), 
+                        function(i) 
+                          2 * PP$number[i] / 
+                          sum(PP$number[PP$pid == PP$pid[i]]))
+
+# Pad out the proportions with 0s
+for (p in unique(PP$pid)) {
+  for (d in unique(PP$decision))
+    for (m in markerList)
+      for (a in advisorNames)
+        if (nrow(PP[PP$pid == p & 
+                    PP$decision == d &
+                    PP$responseMarker == m, ]) == 0)
+          PP <- safeBind(list(PP, 
+                              tibble(pid = p,
+                                     responseMarker = m,
+                                     feedback = PP$feedback[PP$pid == p][1],
+                                     decision = d,
+                                     firstAdvisor = a,
+                                     number = 0,
+                                     excluded = PP$excluded[PP$pid == p][1],
+                                     proportion = 0)))
+}
+
+#' Means of v for each marker after converting df entries to participant means
+#' @params v column
+#' @params df dataframe containing v
+markerBreakdown <- function(v, df, hideMarkerTotal = F, missingValue = NA, ...) {
+  v <- substitute(v)
+  
+  fun <- function(x) {
+    if (!nrow(x))
+      return(missingValue)
+    eq <- as.formula(paste(ensym(v), "~ + pid"))
+    tmp <- aggregate(eq, x, mean, ...)
+    mean(tmp[, ncol(tmp)])
+  }
+  
+  # rename total fields
+  n <- function(x, alt = NA) if (length(x) == 1) x else alt
+  
+  out <- list()
+  for (d in uniqueTotal(df$decision)) {
+    if (length(d) != 1)
+      next()
+
+    for (f in uniqueTotal(df$feedback)) {
+      tmp <- tibble(decision = n(d), feedback = n(f))
+        
+      for (m in uniqueTotal(markerList)) {
+        if (length(m) != 1 && hideMarkerTotal)
+          next()
+        
+        x <- fun(df[df$decision %in% d & 
+                      df$feedback %in% f &
+                      df$responseMarker %in% m, ])
+        
+        if (is.na(n(m)))
+          tmp$mean <- x
+        else
+          tmp[paste0("mean|m=", m)] <- x
+      }
+    
+      out[[d]] <- rbind(out[[d]], tmp)
+    }
+  }
+    
+  out
+}
+
+#' Return a version of df with only the trials with a single advisor, 
+#' and with all advice columns accessible as advisor0x where x is the 
+#' name of the advisor column.
+#' @param df data frame to process
+singleAdvisorTrials <- function(df) {
+  # Find the number of advisors by counting advisorXadvice columns
+  df$advisorCount <- 0
+  for (r in 1:nrow(df)) {
+    i <- 0
+    while (T) {
+      if (!length(grep(paste0("advisor", i), names(df)))) {
+        break()
+      }
+      
+      i <- i + 1
+    }
+    df$advisorCount[r] <- i
+  }
+  
+  # Only keep trials with a single advisor
+  out <- df[df$advisorCount == 1, ]
+  
+  # fill in missing column names using the advisor's description + varname
+  advCols <- unique(reFirstMatch(paste0("(?:",
+                                        paste(advisorNames, collapse = "|"),
+                                        ")\\.(\\S+)$"), names(df)))
+  advCols <- advCols[!(advCols %in% unique(reFirstMatch("advisor0(\\S+)$", 
+                                                        names(df))))]
+  for (i in 1:nrow(out)) {
+    for (v in advCols) {
+      out[i, paste0("advisor0", v)] <- 
+        out[i, paste0(out$advisor0idDescription[i], ".", v)]
+    }
+  }
+  
+  out
+}
+
+block2 <- singleAdvisorTrials(AdvisedTrial) # in this design block2 is the same as the main AdvisedTrial dataframe
+block2Decisions <- singleAdvisorTrials(decisions) # likewise for block2Decisions and decisions
+
+offBrand <- AdvisedTrial[AdvisedTrial$advisor0offBrand, ]
+```
+
+### Response times
+
+```{r rtStats}
+
+tmp <- decisions
+tmp$RT <- ifelse(tmp$decision == "first", 
+                 tmp$responseTimeEstimate - tmp$timeResponseOpen,
+                 tmp$responseTimeEstimate - tmp$timeResponseOpenFinal)
+
+x <- aggregate(RT ~ decision + pid, tmp, mean)
+y <- x[x$decision == "last", ]
+x <- x[x$decision == "first", ]
+
+```
+
+Participants took an average of `r num2str(mean(x$RT) / 1000)` +/-`r num2str((mean(x$RT) - mean_cl_normal(x$RT)$ymin)/1000)`s to make their initial decisions, and `r num2str(mean(y$RT) / 1000)` +/-`r num2str((mean(y$RT) - mean_cl_normal(y$RT)$ymin)/1000)`s to make their final decisions. 
+
+```{r rt}
+
+w <- 1.5
+ggplot(tmp, aes(x = "", y = RT / 1000, colour = pid)) +
+  geom_point(position = position_jitterdodge(jitter.width = w/4, dodge.width = w),
+             alpha = 0.25) +
+  stat_summary(geom = "point", size = 3, shape = 3,
+               position = position_dodge(width = w),
+               aes(group = pid), fun.y = mean, colour = "black", alpha = 1) +
+  stat_summary(geom = "errorbar", width = 0, aes(group = pid), colour = "black",
+               fun.data = mean_cl_normal, alpha = 1, 
+               position = position_dodge(width = w)) +
+  stat_summary(geom = "point", size = 3, aes(group = 1), fun.y = mean) +
+  stat_summary(geom = "errorbar", aes(group = 1), fun.data = mean_cl_normal,
+               width = w) +
+  scale_y_continuous(limits = c(0, 60)) +
+  facet_grid(~decision) +
+  theme(legend.position = 'none') +
+  labs(x = "", y = "RT (s)", 
+       subtitle = "Dots show individual trials, crosses show means and 95%CIs for individuals.")
+
+```
+
+Response times look reasonable. Trials with RT>60s are excluded (n = `r length(unique(AdvisedTrial$pid)) * max(aggregate(number ~ pid, AdvisedTrial, length)$number) - nrow(AdvisedTrial)`). Final decisions are more rapid than initial decisions, as we might expect given that initial decisions involve an exhaustive search of memory and/or a reasoning process, while final decisions require only a plausibility assessment of the advice.
+
+### Marker usage
+
+Three different markers were available: 
+
+marker | years | points  
+-------|------:|-------:
+thin   | 1 | 27 | 
+medium | 3 | 9 |
+wide   | 9 | 3 |
+
+How the participants used these markers is shown below.
+
+```{r markerGraph}
+
+ggplot(PP, aes(x = decision, y = proportion)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  facet_grid(feedback + firstAdvisor ~ responseMarker) +
+  scale_linetype_manual(values = c("dashed")) + 
+  labs(x = "decision", 
+       y = "p(marker used)")
+
+```
+
+In most conditions, participants tended to use the wider markers more frequently. For initial decisions, few participants used the exact marker (1 year), although use of this marker was substantially higher in the no-feedback condition, suggesting that even after practicing 10 trials without advice participants believed themselves to be better at the task than warranted. This effect is potentially produced by the Agreeing advisor - perhaps the Agreeing advisor acts in place of feedback to encourage participants as to their accuracy (marker usage is highest where the Agreeing advisor is faced first). 
+
+Final decisions show a small tendency to increase the usage of thinner markers, suggesting that participants feel more confident on average following advice, although this is largley driven by participants in the no-feedback condition facing the Agreeing advisor first, suggesting that these participants felt the advice enabled them to make more robust decisions.
+
+### Error
+
+The **error** is calcualted as the distance from the centre of the answer marker to the correct year. It is thus possible for correct answers to have non-zero error, and it is likely that the error for correct answers scales with the marker size.
+
+```{r errGraphBlock2}
+w <- 1
+ggplot(block2Decisions, aes(x = decision, y = responseError)) +
+  geom_boxplot(fill = NA, outlier.color = NA, size = 1.5, colour = "grey85",
+               alpha = 0.25) +
+  geom_point(alpha = .25, aes(colour = pid), 
+             position = position_jitterdodge(jitter.width = .9, dodge.width = w)) +
+  stat_summary(geom = "line", aes(colour = pid, group = pid), fun.y = mean) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1) +
+  stat_summary(geom = "point", colour = "black", aes(group = pid), shape = 3,
+               position = position_dodge(width = w), fun.y = mean) +
+  stat_summary(geom = "errorbar", width = 0, aes(group = pid), colour = "black",
+               position = position_dodge(width = w), fun.data = mean_cl_normal) +
+  facet_grid(feedback ~ firstAdvisor, labeller = label_both) +
+  scale_linetype_manual(values = c("dotted")) + 
+  labs(x = "decision", 
+       y = "|target - response marker centre| (years)")
+
+```
+
+Overall mean error (`r num2str(mean(aggregate(responseError ~ pid, AdvisedTrial, mean)$responseError))`yrs for initial decisions, and `r num2str(mean(aggregate(responseErrorFinal ~ pid, AdvisedTrial, mean)$responseErrorFinal))`yrs for final decisions) was reasonably consistent across groups, and all groups showed a slight improvement from initial to final decisions. Individual participants all showed a range of error, for most participants spanning about 0-60 years, or about half the width of the response scale. 
+
+There were no obvious differences in either actual scores or improvement from initial to final decisions across conditions, which is reasonable given that these conditions are supposed to affect advice utilisation rather than response error specifically. We might, however, have expected to see greater improvements in the feedback groups, who should be able to identify the Accurate advisor and use their advice to reduce the error of their final responsese. This pattern did not seem to occur, at least not strongly enough to be obvious in the graph. 
+
+### Error by advisor
+
+We expect participants to benefit from the advice of Accurate advisors, but not Agreeing advisors. 
+
+```{r errorReduction}
+
+ggplot(block2, aes(x = "", y = responseError - responseErrorFinal)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_violin(fill = "grey90", colour = NA) +
+  geom_point(aes(colour = pid), alpha = .5, 
+             position = position_jitterdodge(jitter.width = .25, 
+                                             dodge.width = w)) +
+  stat_summary(geom = "point", fun.y = mean, aes(group = pid), shape = 3,
+               position = position_dodge(width = w)) +
+  stat_summary(geom = "errorbar", fun.data = mean_cl_normal, aes(group = pid),
+               position = position_dodge(width = w), width = 0) +
+  stat_summary(geom = "point", fun.y = mean, aes(group = 1)) +
+  stat_summary(geom = "errorbar", fun.data = mean_cl_normal, aes(group = 1),
+               width = w) +
+  facet_grid(advisor0idDescription ~ feedback) +
+  labs(x = "", y = "error reduction")
+
+```
+
+Indeed, errors only appear to be reduced by advice from the accurate advisor, and they appear to be more reduced in the feedback condition. 
+
+## Manipulation checks
+
+```{r manipulationChecks}
+
+err <- md.ttest(AdvisedTrial$Accurate.error[!is.na(AdvisedTrial$Accurate.error)], 
+                AdvisedTrial$Agreeing.error[!is.na(AdvisedTrial$Agreeing.error)], 
+                labels = c("*M*|acc", "*M*|agr"))
+dis <- md.ttest(AdvisedTrial$Accurate.distance[!is.na(AdvisedTrial$Accurate.distance)], 
+                AdvisedTrial$Agreeing.distance[!is.na(AdvisedTrial$Agreeing.distance)], 
+                labels = c("*M*|acc", "*M*|agr"))
+
+err.ob <- md.ttestBF(offBrand$Accurate.error[!is.na(offBrand$Accurate.error)],
+                     offBrand$Agreeing.error[!is.na(offBrand$Agreeing.error)], 
+                     labels = c("*M*|acc", "*M*|agr"))
+
+dis.ob <- md.ttestBF(offBrand$Accurate.distance[!is.na(offBrand$Accurate.distance)], 
+                     offBrand$Agreeing.distance[!is.na(offBrand$Agreeing.distance)], 
+                     labels = c("*M*|acc", "*M*|agr"))
+
+```
+
+For our experiment to be a fair test of the theory, key constraints have to be met. Firstly, the advisors have to offer characteristically different advice on average. Accurate advisors should have lower error on their advice than Agreeing advisors, and Agreeing advisors should offer advice which is closer to participants' initial responses. This was indeed the case. Accurate advisors had lower error (`r err`), while Agreeing advisors had a lower distance from participants' initial decisions (`r dis`).
+
+Secondly, there should not be large differences in the advisors' off-brand advice. This constraint was also met, with both advisors exhibiting similar error (`r err.ob`) and distance (`r dis.ob`) on off-brand trials.
+
+## Dependent variable
+
+```{r woa}
+
+AdvisedTrial$woa <- ifelse(is.na(AdvisedTrial$Agreeing.woa),
+                           AdvisedTrial$Accurate.woa,
+                           AdvisedTrial$Agreeing.woa)
+
+AdvisedTrial$woaRaw <- ifelse(is.na(AdvisedTrial$Agreeing.woaRaw),
+                           AdvisedTrial$Accurate.woaRaw,
+                           AdvisedTrial$Agreeing.woaRaw)
+
+offBrand$woa <- ifelse(is.na(offBrand$Agreeing.woa), 
+                       offBrand$Accurate.woa, 
+                       offBrand$Agreeing.woa)
+
+offBrand$woaRaw <- ifelse(is.na(offBrand$Agreeing.woaRaw), 
+                       offBrand$Accurate.woaRaw, 
+                       offBrand$Agreeing.woaRaw)
+
+```
+
+The dependent variable used in the key analysis is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
+$$\text{WoA} = (\text{final} - \text{inital}) / (\text{advice} - \text{initial})$$
+, or the degree to which the final decision moves towards the advised answer. Ill-defined values (`r round(mean(AdvisedTrial$woa != AdvisedTrial$woaRaw), 2) * 100`% of responses, `r round(mean(offBrand$woa != offBrand$woaRaw), 2) * 100`% of offbrand trials.) are truncated to 0 or 1 for analysis.
+
+Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions. 
+
+```{r woaGraph}
+ggplot(offBrand, aes(x = advisor0idDescription, y = woa)) +
+  geom_boxplot(fill = NA, outlier.color = NA, size = 1.5, colour = "grey85",
+               alpha = 0.25) +
+  stat_summary(geom = "line", aes(colour = pid, group = pid), fun.y = mean) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1) +
+  stat_summary(geom = "point", aes(group = pid, colour = pid), fun.y = mean) +
+  facet_grid(firstAdvisor ~ feedback, labeller = label_both) +
+  scale_linetype_manual(values = c("dotted")) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(x = "advisor", 
+       y = "WoA")
+```
+
+The results show the expected pattern: where feedback is provided, almost all participants make greater use of the Accurate advisor's advice when the specific properties of the advice are controlled for. Likewise, where feedback in not provided, participants make greater use of the Agreeing advisor's advice. Some participants in the no-feedback, Accurate-first condition exhibit ceiling effects, presumably satisfying themselves of the utility of the Accurate advisor's advice and becomming accustomed to following advice from there. 
+
+## Hypothesis testing
+
+A 2 (Accurate vs Agreeing advisor; within subjects) x2 (Accurate vs Agreeing advisor first, between subjects) x2 (feedback vs no feedback, between subjects) mixed ANOVA provides a formal test of the patterns observed above:
+
+```{r ezAnoveOffbrand}
+
+tmp <- offBrand[, c("advisor0idDescription", "pid", "woa", "feedback", 
+                    "firstAdvisor")]
+names(tmp)[1] <- "advisor"
+
+df <- aggregate(woa ~ pid + feedback + advisor + firstAdvisor,
+                 tmp, mean, na.rm = T)
+df$feedback <- factor(df$feedback)
+
+# remove incomplete cases
+for (p in unique(df$pid)) {
+  if (nrow(df[df$pid == p, ]) != 2) {
+    print(paste("Dropping incomplete case pid =", p))
+    df <- df[df$pid != p, ]
+  }
+}
+
+# refactor pid
+df$pid <- factor(df$pid)
+
+r <- ezANOVA(df, woa, pid, 
+             within = advisor,
+             between = list(feedback, firstAdvisor),
+             detailed = T,
+             return_aov = T,
+             type = 2)
+
+r
+
+```
+
+As expected, the key interaction is observed - feedback:advisor (*F*(1, 16) = 11.16, *p* = .004, $\eta^2$ = .172). The effect size is quite reasonable. This interaction effect is broken down in post-hoc tests by providing measures of greater reliance on the Accurate vs the Agreeing advisor, quantified as WoA(Accurate) - WoA(Agreeing).
+
+### Post-hoc tests
+
+```{r preference}
+
+df <- df[order(df$pid), ]
+
+tmp <- df[df$advisor == "Accurate", 
+          c("pid", "feedback", "firstAdvisor")]
+tmp$AccPref <- df$woa[df$advisor == "Accurate"] - 
+  df$woa[df$advisor == "Agreeing"]
+
+```
+
+We want to know preference for accurate over agreeing:
+
+#### By feedback
+
+This is the key interaction of interest:
+
+```{r postHocFB, results = 'asis'}
+
+r <- md.ttest(tmp$AccPref[tmp$feedback == T],
+              tmp$AccPref[tmp$feedback != T],
+              labels = c("*M*|fb", "*M*|¬fb"))
+
+cat(r)
+
+```
+
+    
+As expected, this shows that Accuracy preference is stronger in the feedback group.
+    
+#### By first advisor:
+
+```{r postHocFA, results = 'asis'}
+
+r <- md.ttest(tmp$AccPref[tmp$firstAdvisor == "Accurate"],
+              tmp$AccPref[tmp$firstAdvisor != "Accurate"],
+              labels = c("*M*|Acc", "*M*|Agr"))
+
+cat(r)
+
+```
+
+
+This result indicates that there is not enough information to make a clear pronoucement, although insofar as there is information there does not appear to be an overall difference consequent on which advisor participants saw first.
+
+#### By feedback and first advisor:
+
+```{r postHocFBFA, results = 'asis'}
+
+# examine by feedback type
+
+r <- md.ttest(tmp$AccPref[tmp$feedback == T & 
+                            tmp$firstAdvisor == "Accurate"],
+              tmp$AccPref[tmp$feedback == T & 
+                            tmp$firstAdvisor != "Accurate"],
+              labels = c("*M*|fb,Acc", "*M*|fb,Agr"))
+
+cat(r)
+
+cat("\n\n")
+
+r <- md.ttest(tmp$AccPref[tmp$feedback != T & 
+                            tmp$firstAdvisor == "Accurate"],
+              tmp$AccPref[tmp$feedback != T & 
+                            tmp$firstAdvisor != "Accurate"],
+              labels = c("*M*|¬fb,Acc", "*M*|¬fb,Agr"))
+
+cat(r)
+
+```
+
+Neither of these tests indicate a large enough sample size to determine the presence or absence of an effect, but both are directionally indicative of the absence of effects, suggesting that the difference made by feedback is not affected by which advisor participants saw first.
+
+# Discussion
+
+Participants playing the role of judge in a judge-advisor system received advice on a general-knowledge task from advisors who predominantly agreed with their initial decisions (Agreeing) or indicated the correct answer (Accurate). Participants who received feedback on a trial-by-trial basis showed greater reliance on the Accurate advisor's advice, while those who did not receive this feedback showed a greater reliance on the Agreeing advisor's advice. 
+
+Where feedback is provided, the task is somewhat similar to ([Yaniv & Kleinberger, 2000](https://doi.org/10.1006/obhd.2000.2909)), and similar results are observed: participants rationally adjust their reliance on advice as a consequence of information obtained about the utility of the advisor's advice. The presumed mechanism for this is a sequential updating of the perception of an advisor's usefulness following each presentation of feedback. This updating could be a simple point-estimate or a probability distribution, and could be updated in a Bayesian manner or heuristically. This perception of the advisor's usefulness is likely only one input determining the weight on advice for any given trial: the participant's own sense of confidence plays a role, as do properties of the advice itself (e.g. distance from the initial estimate, which is probably at least in part a proxy for plausability). 
+
+Where feedback is not provided, participants cannot use the rational updating strategy above. We propose, following (Pescetelli, 2017, On the Use of Metacognitive Signals to Navigate the Social World (DPhil)) that the participant's own sense of certainty in their initial decision is used as a proxy for feedback. This has potential utility in the real world, where people demonstrate a negative correlation between subjective confidence and error magnitude for estimation tasks (**cite**), but is useless in this task, where the Agreeing advice offers no new information concerning the correct answer. In the present task, we argue that participants' initial decisions offer their estimate of the most likely answer, meaning that advice which is closer to this estimate will be regarded as more likely to be correct, and which will therefore lead to greater increases in the perceived usefulness of the Agreeing advisor's advice. 
+
+These data constitute evidence against an alternate mechanism whereby advice prompts participants to generate reasons in support of the advised estimate, and the number and quality of these reasons is used to update the perceived usefulness of the advisor. It is possible, perhaps likely, that on any given trial the advice may induce participants to generate reasons in support of the advice, which will presumably favour the Accurate advisor because the Agreeing advisor's advice has already exhausted its rational basis in the initial decision phase. If this were the predominant mechanism, however, the Accurate advisor would not emerge as the preferred advisor for participants in the no-feedback condition.
+
+Modelling of trial-by-trial responses could help provide evidence for these mechanisms specifically.
+
+The evidence presented here in favour of a metacognitive account of the utility of information sources (in the absence of feedback) suggests consequences for people's information-gathering in the real world. Feedback in the real world is typically absent or extremely sparse, only partially-attributable, and almost never epistemically privileged in the way that objective feedback in experimental setups is. In these environments, people may be using their own sense of certainty to filter information. Their sense of certainty is partially driven by their own biases, and these will prompt them, on average, to make greater use of sources which reflect these biases. Such selective information processing has been shown to produce echo-chamber-like effects among rational agents ([Madsen, Bailey, & Pilditch, 2018](https://doi.org/10.1038/s41598-018-25558-7)). 
+
+The selective weighting of information is one part of the confirmation bias whereby pre-existing views can become entrenched; selective seeking of information is another. Madsen et al.'s models include selective seeking, as do others ([Dandekar, Goel & Lee, 2013](https://doi.org/10.1073/pnas.1217220110)), although the extent to which it is a feature of actual human behaviour has been disputed for decades (Sears & Freedman, 1967, Selective exposure to information: A critical review. Public Opinion Quarterly, 31(2), 194–213; [Garrett, 2009](https://doi.org/10.1111/j.1460-2466.2009.01452.x); [Colleoni, Rozza & Arvidsson, 2014](https://doi.org/10.1111/jcom.12084); Bakshy, Messing, & Adamic, 2015, Exposure to ideologically diverse news and opinion on Facebook. Science, 348(6239), 1130–1132; Barberá, Jost, Nagler, Tucker & Bonneau, 2015, Tweeting from left to right: Is online political communication more than an echo chamber? Psychological Science, 26(10), 1531–1542; [Jasny, Waggle & Fisher, 2015](https://doi.org/10.1038/nclimate2666); [Nelson & Webster, 2017](https://doi.org/10.1177/2056305117729314)). Experiments in the paradigm used here, offering participants a choice between different advisors, could contribute useful insights to this debate, especially where the utility of advice is placed in conflict with its agreement (in many cases of real-life advice, agreement and accuracy of advice are correlated to some extent).
+
+Advisors whose advice changes as a function of the participant's initial confidence (Pescetelli, 2017; [Jaquiery & Yeung, 2018](https://osf.io/3y7f8/)) will be useful for elucidating whether confidence is indeed important in scaling the updating of perceived advisor usefulness. In order for the paradigm to be suitable for these kind of advisors, marker widths and values need to be selected such that participants tend to use them at similar rates. 
+
+Some participants exhibit extreme patterns of advice-taking, e.g. taking no advice. In this study these participants were largely excluded, but a full examination of advice-taking should include a characterisation of these participants. Such an examination should be able to differentiate participants who do not engage with the task from those who engage with the task but not the advice.
+
+# Etc
+
+## Credits 
+
+### Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+### R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+### Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+### Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n\n')
+sessionInfo()
+```

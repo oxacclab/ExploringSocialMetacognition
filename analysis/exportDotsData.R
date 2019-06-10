@@ -30,7 +30,7 @@ for (df in ex) {
   out$Confidence <- df$initialConfidence
   out$RT_decConf <- (df$timeInitialResponse - df$timeInitialStimOn) / 1000
   out$Difficulty <- df$dotDifference
-  out$Accuracy <- df$initialCorrect
+  out$Accuracy <- as.numeric(df$initialCorrect)
   out$Training <- df$practice
   out$Trial_in_block <- sapply(seq(nrow(df)), function(i) {
     tmp <- df[1:i, ]
@@ -40,6 +40,8 @@ for (df in ex) {
   
   data <- rbind(data, out)
 }
+
+data <- data[complete.cases(data), ]
 
 # save csv file
 write.csv(data, "../data/data_Jaquiery_unpub.csv", row.names = F)
