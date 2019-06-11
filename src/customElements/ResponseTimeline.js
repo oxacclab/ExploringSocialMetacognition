@@ -13,9 +13,7 @@ customElements.define('esm-response-timeline',
      * @property suffix {string} Suffix to response values
      * @property decimals {int} Number of decimal points in response values
      * @property labelStep {double} Label separation
-     * @property markerWidthThin {double} width in response-values of thin marker
-     * @property markerWidthMedium {double} width in response-values of medium marker
-     * @property markerWidthThick {double} width in response-values of thick marker
+     * @property markerWidths {number[]} marker widths in years
      * @property timeout {int} Maximum response time in ms
      * @property noConfidence {string} "true" = do not ask for confidence
      */
@@ -398,17 +396,30 @@ customElements.define('esm-response-timeline',
                 document.head.appendChild(style);
             }
 
-            const thin = (this.valueToPixels(parseFloat(this.dataset.markerWidthThin), true) - 1) + "px";
-            const med = (this.valueToPixels(parseFloat(this.dataset.markerWidthMedium), true) - 1) + "px";
-            const thick = (this.valueToPixels(parseFloat(this.dataset.markerWidthThick), true) - 1) + "px";
+            const widths = [];
+            const r = new RegExp(/([0-9]+)/g);
+            while(true) {
+                const match = r.exec(this.dataset.markerWidths);
+                if(!match)
+                    break;
+                widths.push(match[0]);
+            }
 
-            style.innerHTML = ".response-marker.thin {width: " +
-                thin + "} " +
-            ".response-marker.medium {width: " + med + "} " +
-            ".response-marker.thick, .clickhandler {width: " + thick + "}" +
-            ".response-marker.thin.advisor {height: " + thin + "}" +
-            ".response-marker.medium.advisor {height: " + med + "} " +
-            ".response-marker.thick.advisor {height: " + thick + "}";
+            const sizes = widths.map(
+                x => Math.floor(this.valueToPixels(
+                    parseFloat(x),
+                    true)));
+
+            let css = "";
+
+            sizes.forEach((s, i) => {
+                css += ".response-marker.size" + i + " {width: " + s + "px} ";
+                css += ".response-marker.size" + i + ".advisor {height: " + s + "px} ";
+            });
+
+            css += ".clickhandler {width: " + sizes[sizes.length - 1] + "px}";
+
+            style.innerHTML = css;
 
             this.querySelector(".confirm").classList.remove("enabled");
         }

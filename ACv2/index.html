@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="1.0.1">
+<head data-version="1.1.0">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -36,7 +36,7 @@
         <div class="advisor-key-row">
             <div class="avatar"></div>
             <span>Advisor Name</span>
-            <div class="response-marker advisor thick static"></div>
+            <div class="response-marker advisor size2 static"></div>
         </div>
     </template>
 
@@ -57,7 +57,7 @@
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Scoring</h1>
-                <p>You will have three markers to choose from, a thick marker, a medium marker, and a thin marker. The markers are worth different numbers of points. When your score is calculated, you will get the number of points the marker is worth for all the questions where a marker touches the correct year.</p>
+                <p>You will have several markers to choose from. The markers are worth different numbers of points. When your score is calculated, you will get the number of points the marker is worth for all the questions where a marker touches the correct year.</p>
                 <p>The thinner the marker is, the fewer years it covers, but the more points you get if you get the answer right. This means you will do better if you use different markers depending upon how confident you are that you know the answer.</p>
             </esm-instruction-page>
             <esm-instruction-page>
@@ -347,7 +347,7 @@
             <esm-response-timeline id="response-panel" data-min="1890"
                                  data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="10" data-marker-width-thin="1" data-marker-width-medium="3" data-marker-width-thick="9">
+                                 data-no-confidence="true" data-label-step="10" data-marker-widths="[1, 3, 11, 21]">
                 <div class="response-timeline">
                     <div class="response-line"></div>
                 </div>
@@ -357,19 +357,25 @@
                 <div class="response-marker-pool">
                     <div>
                         <div class="label">&plusmn;0 year (27pts)</div>
-                        <div class="response-marker thin">
+                        <div class="response-marker size0">
+                            <div class="clickhandler"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="label">&plusmn;4 year (27pts)</div>
+                        <div class="response-marker size1">
                             <div class="clickhandler"></div>
                         </div>
                     </div>
                     <div>
                         <div class="label">&plusmn;1 years (9pts)</div>
-                        <div class="response-marker medium">
+                        <div class="response-marker size2">
                             <div class="clickhandler"></div>
                         </div>
                     </div>
                     <div>
                         <div class="label">&plusmn;4 years (3pts)</div>
-                        <div class="response-marker thick">
+                        <div class="response-marker size3">
                             <div class="clickhandler"></div>
                         </div>
                     </div>
@@ -495,8 +501,8 @@
                     confidenceVariation: 5,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(4),
-                            ADVICE_INCORRECT_REFLECTED.copy(1),
+                            ADVICE_CORRECTISH.copy(10),
+                            ADVICE_INCORRECT_REFLECTED.copy(3),
                             // fallbacks
                             ADVICE_INCORRECT_REVERSED.copy(0)
                         ]
@@ -513,8 +519,8 @@
                     confidenceVariation: 5,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_AGREEISH.copy(4),
-                            ADVICE_INCORRECT_REFLECTED.copy(1),
+                            ADVICE_AGREEISH.copy(10),
+                            ADVICE_INCORRECT_REFLECTED.copy(3),
                             // fallbacks
                             ADVICE_INCORRECT_REVERSED.copy(0)
                         ]
@@ -545,12 +551,24 @@
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisorsPerTrial: 1
+                    advisorsPerTrial: 1,
+                    perTrial: {
+                        adviceTypeOverride: [
+                            (aP)=>aP.mainAdviceType,
+                            (aP)=>aP.mainAdviceType
+                        ]
+                    }
                 }),
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisorsPerTrial: 1
+                    advisorsPerTrial: 1,
+                    perTrial: {
+                        adviceTypeOverride: [
+                            (aP)=>aP.mainAdviceType,
+                            (aP)=>aP.mainAdviceType
+                        ]
+                    }
                 })
             ],
             questionsXML: "assets/etc/questions.xml",

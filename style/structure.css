@@ -309,16 +309,18 @@ div {
     border: none;
     box-shadow: none;
     bottom: 4em;
+    line-height: 1em;
+    height: 1em;
 }
 .response-marker.feedback::before {
     left: 50%;
     transform: translateX(-50%);
     background-color: black;
-    height: 100%;
+    height: calc(1em + 4px);
     content: "";
     width: 1px;
     border-radius: 100%;
-    top: calc(50% - 1px);
+    top: calc(1em - 4px);
     position: absolute;
     z-index: -1;
 }

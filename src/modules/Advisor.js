@@ -44,12 +44,11 @@ class Advisor extends BaseObject {
         this.marker =
             this.getInfoTab().querySelector(".response-marker").cloneNode(true);
 
-        this.marker.classList.remove(
-            "static",
-            "medium",
-            "thin",
-            "thick"
-        );
+        this.marker.classList.remove("static");
+        this.marker.classList.forEach(s => {
+            if(/^size[0-9]+$/.test(s))
+                this.marker.classList.remove(s);
+        });
 
         if(appendTo !== null)
             appendTo.appendChild(this.marker);
@@ -284,71 +283,93 @@ class AdviceProfile extends BaseObject {
      * @return {number} centre for the advice
      */
     getAdvice(trial, advisor) {
-        const out = {};
-
-        // Find qualified matches
-        let validQuantities = {};
-        let validFlags = 0;
-        let allQuantities = {};
-        this.adviceTypes.forEach(aT => {
-            allQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
-
-            if(!aT.match(trial, advisor))
-                return;
-
-            validQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
-            validFlags += aT.flag;
-        });
-
-        let fallback = false;
-        if(utils.sumList(validQuantities) <= 0)
-            fallback = true;
-
-        // Allow fallbacks if nothing qualifies
-        let types = fallback?
-            Object.keys(allQuantities) : Object.keys(validQuantities);
-        let sum = utils.sumList(fallback? allQuantities : validQuantities);
-
-        // Select a type by weighted random selection accounting for past
-        // selections
-        let type = null;
-        let x = Math.random();
-        for(type of types) {
-            x -= allQuantities[type] / sum;
-            if(x < 0)
-                break;
-        }
-
-        // Selected type
+        const out = {
+            validTypes: null,
+            validTypeFlags: null,
+            nominalType: null,
+            nominalTypeFlag: null
+        };
         let aT = null;
-        this.adviceTypes.forEach(t => {
-            if(t.name === type)
-                aT = t;
-        });
-        out.validTypes = Object.keys(validQuantities).join(", ");
-        out.validTypeFlags = validFlags;
-        out.nominalType = aT.name;
-        out.nominalTypeFlag = aT.flag;
-        this.usedTypes[out.nominalTypeFlag]++;
 
-        if(fallback) {
-            let t = aT;
-            while(t.match(trial, advisor) === null) {
-                for(let x of this.adviceTypes)
-                    if(x.name === t.fallback || x.flag === t.fallback) {
-                        t = x;
-                        break;
-                    }
-
-                if(t === aT || t === null)
-                    this.error("No valid adviceType and no fallback.");
+        // Detect advice type override
+        if(typeof trial.adviceTypeOverride !== "undefined") {
+            if(typeof trial.adviceTypeOverride === "function") {
+                aT = trial.adviceTypeOverride(this);
+            } else {
+                aT = trial.adviceTypeOverride;
             }
-            aT = t;
+        } else {
+            // Find qualified matches
+            let validQuantities = {};
+            let validFlags = 0;
+            let allQuantities = {};
+            this.adviceTypes.forEach(aT => {
+                allQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
+
+                if(!aT.match(trial, advisor))
+                    return;
+
+                validQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
+                validFlags += aT.flag;
+            });
+
+            let fallback = false;
+            if(utils.sumList(validQuantities) <= 0)
+                fallback = true;
+
+            // Allow fallbacks if nothing qualifies
+            let types = fallback?
+                Object.keys(allQuantities) : Object.keys(validQuantities);
+            let sum = utils.sumList(fallback? allQuantities : validQuantities);
+
+            // Select a type by weighted random selection accounting for past
+            // selections
+            let type = null;
+            let x = Math.random();
+            for(type of types) {
+                x -= allQuantities[type] / sum;
+                if(x < 0)
+                    break;
+            }
+
+            // Selected type
+            this.adviceTypes.forEach(t => {
+                if(t.name === type)
+                    aT = t;
+            });
+            out.validTypes = Object.keys(validQuantities).join(", ");
+            out.validTypeFlags = validFlags;
+            out.nominalType = aT.name;
+            out.nominalTypeFlag = aT.flag;
+            this.usedTypes[out.nominalTypeFlag]++;
+
+            if(fallback) {
+                let t = aT;
+                while(t.match(trial, advisor) === null) {
+                    for(let x of this.adviceTypes)
+                        if(x.name === t.fallback || x.flag === t.fallback) {
+                            t = x;
+                            break;
+                        }
+
+                    if(t === aT || t === null)
+                        this.error("No valid adviceType and no fallback.");
+                }
+                aT = t;
+            }
+
+            // Reset the used types
+            if(utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
+                Object.keys(this.usedTypes).forEach(
+                    k => this.usedTypes[k] = 0);
+                this.info("Used all advice instances; resetting.");
+            }
         }
 
         // Actual type
         out.actualType = aT.name;
         out.actualTypeFlag = aT.flag;
+
         // Advice is selected as the middle of the available values
         let range = aT.match(trial, advisor);
         out.adviceCentre = Math.round((range[1] - range[0]) / 2) + range[0];
@@ -362,13 +383,23 @@ class AdviceProfile extends BaseObject {
         ], true);
         out.advice = utils.randomNumber(out.adviceCentre - room, out.adviceCentre + room);
 
-        // Reset the used types
-        if(utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
-            Object.keys(this.usedTypes).forEach(k => this.usedTypes[k] = 0);
-            this.info("Used all advice instances; resetting.");
+        return out;
+    }
+
+    get mainAdviceType() {
+        const x = {q: -Infinity, i: null};
+
+        for(let i = 0; i < this.adviceTypes.length; i++) {
+            if(this.adviceTypes[i].quantity > x.q) {
+                x.q = this.adviceTypes[i].quantity;
+                x.i = i;
+            }
         }
 
-        return out;
+        if(x.i === null)
+            return null;
+
+        return this.adviceTypes[x.i];
     }
 }
 
@@ -479,17 +510,23 @@ const ADVICE_INCORRECT_REFLECTED = Object.freeze(new AdviceType({
      */
     match: (t, a) => {
         const w = Math.ceil(a.confidence / 2);
+        const minError = w < 4? 4 : w;
+
         // Agreement values
         const minA = t.data.responseEstimateLeft - w;
         const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
 
         // Target is the correct answer reflected in the middle of the
         // participant's answer
-        let target = t.correctAnswer +
-            (t.correctAnswer -
-            Math.round(
-                t.data.responseEstimateLeft +
-                t.data.responseMarkerWidth / 2));
+        let ans = Math.round(
+            t.data.responseEstimateLeft +
+            t.data.responseMarkerWidth / 2);
+        let target = t.correctAnswer + (t.correctAnswer - ans);
+
+        // If target is too near the correct answer, adjust it away
+        if(Math.abs(ans - t.correctAnswer) < minError)
+            target = (ans > t.correctAnswer)?
+                t.correctAnswer - minError : t.correctAnswer + minError;
 
         // Keep target within the boundaries of the scale
         let minS = parseFloat(t.responseWidget.dataset.min);
@@ -606,6 +643,8 @@ const ADVICE_INCORRECT_REVERSED = Object.freeze(new AdviceType({
      */
     match: (t, a) => {
         const w = Math.ceil(a.confidence / 2);
+        const minError = w < 4? 4 : w;
+
         // Agreement values
         const minA = t.data.responseEstimateLeft - w;
         const maxA = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
@@ -615,6 +654,11 @@ const ADVICE_INCORRECT_REVERSED = Object.freeze(new AdviceType({
         let ans = Math.round(t.data.responseEstimateLeft +
             t.data.responseMarkerWidth / 2);
         let target = ans + (ans - t.correctAnswer);
+
+        // If target is too near the correct answer, adjust it away
+        if(Math.abs(ans - t.correctAnswer) < minError)
+            target = (ans > t.correctAnswer)?
+                t.correctAnswer - minError : t.correctAnswer + minError;
 
         // Keep target within the boundaries of the scale
         let minS = parseFloat(t.responseWidget.dataset.min);

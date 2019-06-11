@@ -1088,13 +1088,14 @@ class Study extends ControlObject {
  * @class DatesStudy
  * @extends Study
  * @classdesc A study using a set of history questions with answers being
- * years between 1850 and 1950.
+ * years between 1900 and 1999.
  *
  * @property questionsXML {string} URL of a question.xml file for parsing
  */
 class DatesStudy extends Study {
     constructor(blueprint) {
         super(blueprint);
+        this.trials = [null]; // prevent trials calculation
 
         // Fetch questions then assign trials
         this.parseQuestionsXML()

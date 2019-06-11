@@ -10,11 +10,17 @@
 /*
 The $_POST[] array will contain a JSON string which decomposes into:
 {
-    fileName: name of the CSV file to save to (e.g. "participant-metadata")
-    isPublic: (boolean) whether to put the file in the private/ or public/ folder
-    studyId: study identifier (becomes eid below)
-    prolificId: participant's prolific ID
-    ...: key-value pairs for writing to the file
+    metadata: {
+        fileName: name of the CSV file to save to (e.g. "participant-metadata")
+        isPublic: (boolean) whether to put the file in the private/ or public/ folder
+        studyId: study identifier (becomes eid below)
+        studyVersion: study version string
+    },
+    data {
+        ...: key-value pairs for writing to the file
+    }
+
+
 }
 
 Data are tagged with an experiment ID code (eid) and a sequential ID code

@@ -68,6 +68,7 @@ class Trial extends ControlObject {
 
         // Expand the prompt shorthand blueprint
         this._unpackPrompt(blueprint.prompt);
+        this._unpackBlockProperties();
 
         Trial.reset();
     }
@@ -122,6 +123,23 @@ class Trial extends ControlObject {
             this.prompt = {};
             this.phases.forEach((k) => this.prompt[k] = prompt);
         }
+    }
+
+    /**
+     * Extract perTrial block properties for this trial
+     * @protected
+     */
+    _unpackBlockProperties() {
+        if(!this.perTrial)
+            return;
+
+        for(let k in this.perTrial) {
+            if(this.perTrial.hasOwnProperty(k)) {
+                this[k] = this.perTrial[k].shift();
+            }
+        }
+
+        delete this.perTrial;
     }
 
     /**
