@@ -760,6 +760,16 @@ span.redo-link {
     p.prompt {
         min-height: 4em;
     }
+    form input[type="submit"],
+    form button[name="submit"] {
+        height: 40px;
+        width: 40px;
+        font-weight: bold;
+        font-size: 3em;
+        font-family: monospace;
+        opacity: .6;
+        line-height: unset;
+    }
     form.general input[type="submit"] {
         height: 40px;
         width: 40px;
@@ -769,9 +779,10 @@ span.redo-link {
         width: 25%;
     }
     #report-button {
-        bottom: .25em;
+        top: .25em;
         right: .25em;
         z-index: 5;
+        bottom: unset;
     }
 }
 

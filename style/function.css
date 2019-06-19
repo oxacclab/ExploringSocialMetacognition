@@ -70,7 +70,7 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 }
 
 /* Background dimming for response options during advice */
-.Trial-showAdvice #response-panel .response-marker-pool {
+.Trial-showAdvice #response-panel .response-panel {
     background-color: #e3e3e3;
 }
 

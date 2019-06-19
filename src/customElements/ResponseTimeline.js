@@ -287,9 +287,13 @@ customElements.define('esm-response-timeline',
 
             timeline.querySelector(".confirm").classList.remove("enabled");
 
+            const markerWidth = Math.round(timeline.pixelsToValue(timeline.ghost.clientWidth) - timeline.dataset.min);
+            const markerValue = timeline.dataset.markerValue / markerWidth;
+
             timeline.responseData = {
                 estimateLeft: Math.round(timeline.pixelsToValue(timeline.ghost.offsetLeft)),
-                markerWidth: Math.round(timeline.pixelsToValue(timeline.ghost.clientWidth) - timeline.dataset.min),
+                markerWidth,
+                markerValue,
                 estimateLabelLeft: timeline.ghost.querySelector(".left").innerHTML,
                 estimateLabelRight: timeline.ghost.querySelector(".right").innerHTML,
                 timeEstimate: new Date().getTime(),
@@ -374,28 +378,32 @@ customElements.define('esm-response-timeline',
         }
 
         /**
-         * Reset the marker pool marker widths
-         * @param [shuffle=false] {boolean} whether to shuffle the order of the markers
+         * Create a marker display for the marker pool
+         * @param nth {int} which of the timeline's marker-widths to use
+         * @return {HTMLElement}
+         * @protected
          */
-        resetMarkerPool(shuffle = false) {
-            const contents = this.querySelectorAll(".response-marker-pool > div");
-            if(shuffle)
-                utils.shuffle(contents).forEach((elm) =>
-                    elm.parentElement.appendChild(elm));
+        _createMarkerDisplay(nth) {
+            const value = this.dataset.markerValue;
+            const width = this.markerWidths[nth];
+            const pts = value / width;
 
-            contents.forEach((rm) => {
-                rm.removeEventListener("mousedown", this.pickUpMarker);
-                rm.removeEventListener("touchstart", this.pickUpMarker);
-            });
+            const display = document.createElement('div');
 
-            let style = document.querySelector("#response-timeline-css");
-            if(style === null) {
-                style = document.createElement('style');
-                style.id = "response-timeline-css";
-                style.type = "text/css";
-                document.head.appendChild(style);
-            }
+            const label = display.appendChild(document.createElement('div'));
+            label.classList.add('label');
+            label.innerHTML = '&plusmn;<span class="year">' + ((width - 1) / 2) + '</span> year (<span class="points">' + pts +'</span>pts)';
 
+            const marker = display.appendChild(document.createElement('div'));
+            marker.classList.add('response-marker', 'size' + nth.toString());
+
+            // add click handler to marker
+            marker.appendChild(document.createElement('div')).classList.add('clickhandler');
+
+            return display;
+        }
+
+        get markerWidths() {
             const widths = [];
             const r = new RegExp(/([0-9]+)/g);
             while(true) {
@@ -404,8 +412,49 @@ customElements.define('esm-response-timeline',
                     break;
                 widths.push(match[0]);
             }
+            return widths;
+        }
 
-            const sizes = widths.map(
+        /**
+         * Create marker pool
+         * @param [shuffle=false] {boolean} whether to shuffle the order of the markers
+         */
+        resetMarkerPool(shuffle = false) {
+            const pool = this.querySelector(".response-marker-pool");
+
+            if(!pool) {
+                // create a response marker pool if there isn't one
+                this.appendChild(document.createElement('div')).classList.add('response-marker-pool');
+                return this.resetMarkerPool(shuffle);
+            } else {
+                pool.innerHTML = "";
+            }
+
+            // Create markers
+            let markers = utils.getSequence(0, this.markerWidths.length - 1);
+            if(shuffle)
+                markers = utils.shuffle(markers);
+
+            for(let i = 0; i < markers.length; i++)
+                pool.appendChild(this._createMarkerDisplay(markers[i]));
+
+            const contents = this.querySelectorAll(".response-marker-pool > div");
+
+            contents.forEach((rm) => {
+                rm.removeEventListener("mousedown", this.pickUpMarker);
+                rm.removeEventListener("touchstart", this.pickUpMarker);
+            });
+
+            // Create stylesheet
+            let style = document.querySelector("#response-timeline-css");
+            if(style === null) {
+                style = document.createElement('style');
+                style.id = "response-timeline-css";
+                style.type = "text/css";
+                document.head.appendChild(style);
+            }
+
+            const sizes = this.markerWidths.map(
                 x => Math.floor(this.valueToPixels(
                     parseFloat(x),
                     true)));

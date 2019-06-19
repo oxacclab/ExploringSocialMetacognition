@@ -347,36 +347,38 @@
             <esm-response-timeline id="response-panel" data-min="1890"
                                  data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="10" data-marker-widths="[1, 3, 11, 21]">
+                                 data-no-confidence="true" data-label-step="10" data-marker-widths="[1, 3, 11, 21]" data-marker-value="231">
                 <div class="response-timeline">
                     <div class="response-line"></div>
                 </div>
                 <esm-help data-group="interface" class="top wide">
                     You indicate your answer by dragging one of the <em>markers</em> onto this <em>timeline</em>.
                 </esm-help>
-                <div class="response-marker-pool">
-                    <div>
-                        <div class="label">&plusmn;0 year (27pts)</div>
-                        <div class="response-marker size0">
-                            <div class="clickhandler"></div>
+                <div class="response-panel">
+                    <div class="response-marker-pool">
+                        <div>
+                            <div class="label">&plusmn;<span class="year"></span> year (<span class="points"></span>pts)</div>
+                            <div class="response-marker size0">
+                                <div class="clickhandler"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <div class="label">&plusmn;4 year (27pts)</div>
-                        <div class="response-marker size1">
-                            <div class="clickhandler"></div>
+                        <div>
+                            <div class="label">&plusmn;<span class="year"></span> year (<span class="points"></span>pts)</div>
+                            <div class="response-marker size1">
+                                <div class="clickhandler"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <div class="label">&plusmn;1 years (9pts)</div>
-                        <div class="response-marker size2">
-                            <div class="clickhandler"></div>
+                        <div>
+                            <div class="label">&plusmn;<span class="year"></span> years (<span class="points"></span>pts)</div>
+                            <div class="response-marker size2">
+                                <div class="clickhandler"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <div class="label">&plusmn;4 years (3pts)</div>
-                        <div class="response-marker size3">
-                            <div class="clickhandler"></div>
+                        <div>
+                            <div class="label">&plusmn;<span class="year"></span> years (<span class="points"></span>pts)</div>
+                            <div class="response-marker size3">
+                                <div class="clickhandler"></div>
+                            </div>
                         </div>
                     </div>
                     <esm-help data-group="interface" class="top wide">
@@ -394,6 +396,7 @@
                         </esm-help>
                     </div>
                 </div>
+
             </esm-response-timeline>
             <!--<esm-help data-group="interface" data-parent-click-closes="false" class="top wide">
                 This <em>response panel</em> allows you to indicate your

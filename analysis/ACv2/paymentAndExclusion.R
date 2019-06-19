@@ -3,7 +3,7 @@
 
 # Load data ---------------------------------------------------------------
 
-key <- read.csv(paste0("../data/private/datesStudy_v", version,
+key <- read.csv(paste0("../data/private/datesStudy_v", studyVersion,
                        "_participant-metadata.csv"))
 
 
