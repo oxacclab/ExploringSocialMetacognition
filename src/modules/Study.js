@@ -535,34 +535,17 @@ class Study extends ControlObject {
 
             Study._hideHelp(help);
 
-            // help = Study._showHelp(
-            //     document.querySelector(".frame.top > .left > esm-help")
-            // );
-            //
-            // await gotoNextStep(help);
-            // Study._hideHelp(help);
-
             let data = T.nextPhase("hideStim");
             T.nextPhase("getResponse");
 
             help = Study._showHelp(document.querySelector(".response-timeline ~ esm-help"));
-            await gotoNextStep(help);
-            Study._hideHelp(help);
 
-            help = Study._showHelp(document.querySelector(".response-marker-pool > div ~ esm-help"));
-            await gotoNextStep(help);
-            Study._hideHelp(help);
-
-            help = Study._showHelp(document.querySelector("#response-panel .buttons ~ esm-help"));
-            await gotoNextStep(help);
-            Study._hideHelp(help);
-
-            instr.innerHTML =
-                "Enter a response to continue";
+            instr.innerHTML = "Enter a response to continue";
 
             await T.nextPhase("getResponse");
 
             Study._hideHelp(help);
+            instr.innerHTML = "";
 
             // finish the trial
             await T.run("showFeedback");

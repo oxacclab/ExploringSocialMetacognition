@@ -274,8 +274,7 @@ customElements.define('esm-response-timeline',
         }
 
         /**
-         * Save estimate input. Remove the estimate events. Add confidence
-         * events.
+         * Save estimate input. Remove the estimate events.
          */
         saveResponse() {
             const timeline = this.closest("esm-response-timeline");
@@ -288,7 +287,9 @@ customElements.define('esm-response-timeline',
             timeline.querySelector(".confirm").classList.remove("enabled");
 
             const markerWidth = Math.round(timeline.pixelsToValue(timeline.ghost.clientWidth) - timeline.dataset.min);
-            const markerValue = timeline.dataset.markerValue / markerWidth;
+            const size = /size[0-9]+/.exec(timeline.ghost.classList.toString())[0];
+            const nth = /[0-9+]/.exec(size)[0];
+            const markerValue = timeline.markerPoints[nth];
 
             timeline.responseData = {
                 estimateLeft: Math.round(timeline.pixelsToValue(timeline.ghost.offsetLeft)),
@@ -384,9 +385,11 @@ customElements.define('esm-response-timeline',
          * @protected
          */
         _createMarkerDisplay(nth) {
-            const value = this.dataset.markerValue;
             const width = this.markerWidths[nth];
-            const pts = value / width;
+            const pts = this.markerPoints[nth];
+
+            if(!width || !pts)
+                throw new Error("ResponseTimeline could not find width and/or point values for marker " + nth.toString() + ". Check the <esm-response-timeline> properties 'data-marker-widths' and 'data-marker-values'.");
 
             const display = document.createElement('div');
 
@@ -403,16 +406,35 @@ customElements.define('esm-response-timeline',
             return display;
         }
 
-        get markerWidths() {
-            const widths = [];
-            const r = new RegExp(/([0-9]+)/g);
+        /**
+         * Split a comma-separated list into its component items
+         * @param list {string} comma-separated list
+         * @return {string[]} array of items in list
+         */
+        static explodeCommaList(list) {
+            const items = [];
+            const r = new RegExp(/([^,]+)/g);
             while(true) {
-                const match = r.exec(this.dataset.markerWidths);
+                const match = r.exec(list);
                 if(!match)
                     break;
-                widths.push(match[0]);
+
+                // Clean up initial spaces for item
+                let item = match[0];
+                item = item.replace(/\s*/, "");
+
+                items.push(item);
             }
-            return widths;
+            return items;
+        }
+
+        get markerWidths() {
+            return ResponseTimeline.explodeCommaList(this.dataset.markerWidths);
+        }
+
+        get markerPoints() {
+
+            return ResponseTimeline.explodeCommaList(this.dataset.markerValues);
         }
 
         /**
