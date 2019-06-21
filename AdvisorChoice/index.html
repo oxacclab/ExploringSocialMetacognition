@@ -50,7 +50,7 @@
     import {DoubleDotGrid, Advisor, Cue, utils} from '../src/exploringSocialMetacognition.js';
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
 
-    let advisorClass = Math.random() < .5? "Advisor" : "Cue";
+    let advisorClass = "Advisor";
 
     /* Advice types:
         0   = balanced
@@ -153,28 +153,12 @@
         blockCount: 2,
         blockStructure: [
             {
-                [trialTypes.dual]: 6
-            },
-            {
-                [trialTypes.change]: 6
+                [trialTypes.choice]: 6
             }
         ],
         practiceBlockStructure: [
             {
                 [trialTypes.catch]: 3,//63, // intro trials need to be accommodated in the first practice block
-            },
-            {
-                [trialTypes.catch]: 3,//60,
-            },
-            {
-                [trialTypes.dual]: 1
-            },
-            {
-                [trialTypes.change]: 1
-            },
-            {
-                [trialTypes.dual]: 3,
-                [trialTypes.change]: 3
             }
         ],
         preTrialInterval: 200,

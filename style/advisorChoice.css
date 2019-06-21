@@ -180,12 +180,12 @@ div.jspsych-jas-present-advice-arrow {
 }
 
 div.jspsych-jas-present-advice-arrow-left {
-    left: calc(-40% + 10em);
+    left: 0;
     text-align: left;
 }
 
 div.jspsych-jas-present-advice-arrow-right {
-    left: calc(40% + 5em);
+    right: 0;
     text-align: right;
 }
 
