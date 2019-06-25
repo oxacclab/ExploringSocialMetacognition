@@ -1,0 +1,25 @@
+/*
+Styling for the Minimal Groups experiment.
+
+Matt Jaquiery, June 2019
+*/
+
+/* override gold ghost colouring */
+.response-marker.ghost.ghost {
+    background-color: var(--group-primary);
+}
+
+.response-marker.dragged.dragged {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+.response-marker.dragged:after {
+    content: "";
+    top: -2px;
+    left: -4px;
+    border: 2px dashed black;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    position: absolute;
+}

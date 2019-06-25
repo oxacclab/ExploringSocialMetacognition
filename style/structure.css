@@ -163,6 +163,11 @@ div {
     top: 0;
 }
 
+.big-text {
+    font-size: 2em;
+    vertical-align: sub;
+}
+
 @keyframes progress-demo {
     from { width: 0; }
     to { width: 100% }
@@ -251,7 +256,7 @@ div {
 }
 
 .response-marker:not(.advisor) {
-    background-color: var(--group-0-primary);
+    background-color: var(--group-primary);
 }
 
 .confirm, input[type="submit"] {
@@ -263,6 +268,7 @@ div {
     transform: translateY(-240%);
     animation: adviceAnimation 1000ms forwards ease-out;
     z-index: 1;
+    box-shadow: 0 1px 4px 0 var(--group-primary);
 }
 .response-marker img {
     height: inherit;
@@ -274,7 +280,7 @@ div {
     position: absolute;
     left: 50%;
     top: calc(100% + 2px);
-    background-color: #b1b1b1;
+    background-color: var(--group-primary);
     z-index: -1;
 }
 .response-timeline .response-marker.advisor:after {
@@ -282,9 +288,9 @@ div {
     position: absolute;
     height: 6px;
     width: 100%;
-    background-color: white;
+    background-color: var(--group-primary);
     top: 240%;
-    opacity: .7;
+    opacity: 1;
     left: 0;
 }
 .response-marker.advisor.static {
@@ -783,6 +789,10 @@ span.redo-link {
         right: .25em;
         z-index: 5;
         bottom: unset;
+    }
+    #help-button {
+        top: 2.25em;
+        right: .25em;
     }
 }
 

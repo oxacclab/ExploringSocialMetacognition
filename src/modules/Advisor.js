@@ -193,13 +193,16 @@ class Advisor extends BaseObject {
         const template = document.getElementById(templateId);
         const elm = document.importNode(template.content, true);
         elm.querySelector(".advisor-key-row").classList.add(
-            "group-bg-" + this.group,
-            "group-border-" + this.group
+            "group-" + this.group,
+            "group-bg",
+            "group-border"
         );
         elm.querySelector(".advisor-key-row").dataset.advisorId = this.id;
         elm.querySelector(".response-marker").classList.add(
-            "advisor-bg-" + this.id,
-            "advisor-border-" + this.id
+            "group-" + this.group,
+            "advisor-" + this.id,
+            "advisor-bg",
+            "advisor-border"
         );
         elm.querySelector(".response-marker").appendChild(this.image());
         elm.querySelector(".advisor-key-row span").innerHTML = this.name;

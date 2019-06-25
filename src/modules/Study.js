@@ -966,7 +966,7 @@ class Study extends ControlObject {
         let feedback;
         let advisorOrder = [];
 
-        feedback = this.condition < 3;
+        feedback = this.condition <= this.conditionCount;
 
         advisorOrder[0] = (this.condition % 2) + 1;
         advisorOrder[1] = 3 - advisorOrder[0];
@@ -1315,6 +1315,8 @@ class DatesStudy extends Study {
     }
 
     get attentionCheckBlueprint() {
+        const me = this;
+
         let ans = 1900 + Math.floor(Math.random() * 100);
         this.prolific = true;
         let bp = {
@@ -1322,10 +1324,10 @@ class DatesStudy extends Study {
             correctAnswer: ans,
             prompt: "",
             attentionCheck: true,
-            attentionCheckMarkerWidth: 1,
+            attentionCheckMarkerWidth: parseInt(document.querySelector('esm-response-timeline').markerWidths[0]),
             advisors: null,
             displayFeedback: this.prolific?
-                this.attentionCheckFeedback : null
+                (t)=>me.attentionCheckFeedback(t) : null
         };
         bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
 
@@ -1434,7 +1436,7 @@ class DatesStudy extends Study {
         if(document.fullscreenElement)
             Study.unlockFullscreen(document.fullscreenElement);
 
-        const detail = utils.getQueryStringValue("detail") === "true";
+        const detail = /true/i.test(utils.getQueryStringValue("detail"));
 
         // Protect against weird-looking-ness when resizing
         const me = this;
@@ -1533,9 +1535,11 @@ class DatesStudy extends Study {
             ));
 
         // Update the permalink
-        let link = window.location.host === "localhost"?
-            window.location.origin + window.location.pathname :
-            "http://tinyurl.com/acclab-ac2/";
+        let link = window.location.origin + window.location.pathname;
+        link = /localhost/.test(link)? link :
+            link.replace(
+                "https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/",
+                "http://tinyurl.com/acclab-ac2/");
         let code = this.id + "-" + this.studyVersion;
         document.querySelector(".feedback-wrapper .display span.permalink")
             .innerHTML = link + "?fb=" + code;
@@ -1562,7 +1566,16 @@ class DatesStudy extends Study {
             parseInt(t.responseEstimateLeftFinal) +
                 parseInt(t.responseMarkerWidthFinal) >=
                 parseInt(t.correctAnswer)) {
-                score += scoreFactor / parseInt(t.responseMarkerWidthFinal);
+                // Check whether the score is saved in the data
+                if(t.responseMarkerValueFinal)
+                    score += parseInt(t.responseMarkerValueFinal);
+                else
+                    if(t.responseMarkerValue)
+                        score += parseInt(t.responseMarkerValue);
+                    else
+                        score +=
+                            scoreFactor /
+                            parseInt(t.responseMarkerWidthFinal);
                 nCorrect++;
             }
         });
@@ -1765,6 +1778,83 @@ class DatesStudy extends Study {
 }
 
 /**
+ * @class MinGroupsStudy
+ * @extends DatesStudy
+ * @classdesc Minimal groups manipulation.
+ *
+ * @property questionsXML {string} URL of a question.xml file for parsing
+ */
+class MinGroupsStudy extends DatesStudy {
+
+
+    _setDefaults() {
+        super._setDefaults();
+
+        this.studyName = "minGroups";
+    }
+
+    /**
+     * Set the condition variables according to condition.
+     * There are 4 conditions
+     *  Odd conditions present the same-group advisor first
+     *  Conditions 1-2 vs 3-4 use different participant group assignment
+     * @param condition
+     */
+    setCondition(condition) {
+        if(condition)
+            this.condition = condition;
+
+        this.info("Assigning condition variables for condition " + this.condition);
+
+        // Group
+        this.pGroup = (this.condition <= this.conditionCount / 2) + 1;
+
+        const pGroup = this.pGroup;
+        this.advisors.forEach(a => {
+            a.sameGroup = a.group === pGroup;
+        });
+
+        // Track the participant's group in CSS using a body class
+        document.body.classList.add("group-" + this.pGroup);
+
+        // Advisor order
+        const advisorOrder = [];
+
+        advisorOrder[0] = (this.condition % 2) + 1;
+        advisorOrder[1] = 3 - advisorOrder[0];
+
+        const advisors = this.advisors;
+        const me = this;
+
+        this.blocks.filter(b => b.blockType === "core")
+            .forEach(b => {
+                let i = me.blocks.indexOf(b);
+                b.advisors = [advisors[advisorOrder[i % 2]]]
+            });
+
+        // Update trials with new info
+        const blocks = this.blocks;
+        this.trials.forEach(t => {
+            if(t.blockType === "core") {
+                for(let k in blocks[t.block]) {
+                    if(blocks[t.block].hasOwnProperty(k)) {
+                        t[k] = blocks[t.block][k];
+                    }
+                }
+            }
+        })
+    }
+
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @return {object} key-value pairs
+     */
+    toTable() {
+        return {...super.toTable(), pGroup: this.pGroup};
+    }
+}
+
+/**
  * @class Block
  * @classdesc A block is a class which is never saved in the data; its properties are saved in each trial in the block. It thus presents an easy way of applying specific properties to groups of trials.
  * @property trialCount {int} number of trials in the block
@@ -1776,4 +1866,4 @@ class Block extends BaseObject{
 
 }
 
-export {Study, DatesStudy, Block}
+export {Study, DatesStudy, MinGroupsStudy, Block}

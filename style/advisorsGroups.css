@@ -26,53 +26,71 @@
     --group-2-secondary: rgb(var(--group-2-s));
 }
 
-.advisor-bg-0 {
-    background-color: var(--advisor-0-primary);
-    fill: var(--advisor-0-primary);
-}
-.advisor-bg-1 {
-    background-color: var(--advisor-1-primary);
-    fill: var(--advisor-1-primary);
-}
-.advisor-bg-2 {
-    background-color: var(--advisor-2-primary);
-    fill: var(--advisor-2-primary);
-}
-.advisor-border-0 {
-    border-color: var(--advisor-0-secondary);
-    stroke: var(--advisor-0-secondary);
-}
-.advisor-border-1 {
-    border-color: var(--advisor-1-secondary);
-    stroke: var(--advisor-1-secondary);
-}
-.advisor-border-2 {
-    border-color: var(--advisor-2-secondary);
-    stroke: var(--advisor-2-secondary);
+/* Variables which get declared according to user's group */
+/* (The doubled class selector is to increase specificity) */
+.group-0.group-0, .group-0 *,
+:root /* (default) */
+{
+    --group-p: var(--group-0-p);
+    --group-primary: rgb(var(--group-p));
+    --group-s: var(--group-0-s);
+    --group-secondary: rgb(var(--group-s));
 }
 
-.group-bg-0 {
-    background-color: var(--group-0-primary);
-    fill: var(--group-0-primary);
-}
-.group-bg-1 {
-    background-color: var(--group-1-primary);
-    fill: var(--group-1-primary);
-}
-.group-bg-2 {
-    background-color: var(--group-2-primary);
-    fill: var(--group-2-primary);
+.group-1.group-1, .group-1 * {
+    --group-p: var(--group-1-p);
+    --group-primary: rgb(var(--group-p));
+    --group-s: var(--group-1-s);
+    --group-secondary: rgb(var(--group-s));
 }
 
-.group-border-0 {
-    border-color: var(--group-0-secondary);
-    stroke: var(--group-0-secondary);
+.group-2.group-2, .group-2 * {
+    --group-p: var(--group-2-p);
+    --group-primary: rgb(var(--group-p));
+    --group-s: var(--group-2-s);
+    --group-secondary: rgb(var(--group-s));
 }
-.group-border-1 {
-    border-color: var(--group-1-secondary);
-    stroke: var(--group-1-secondary);
+
+.advisor-0.advisor-0, .advisor-0 * {
+    --advisor-p: var(--advisor-0-p);
+    --advisor-primary: rgb(var(--advisor-p));
+    --advisor-s: var(--advisor-0-s);
+    --advisor-secondary: rgb(var(--advisor-s));
 }
-.group-border-2 {
-    border-color: var(--group-2-secondary);
-    stroke: var(--group-2-secondary);
+
+.advisor-1.advisor-1, .advisor-1 * {
+    --advisor-p: var(--advisor-1-p);
+    --advisor-primary: rgb(var(--advisor-p));
+    --advisor-s: var(--advisor-1-s);
+    --advisor-secondary: rgb(var(--advisor-s));
+}
+
+.advisor-2.advisor-2, .advisor-2 * {
+    --advisor-p: var(--advisor-2-p);
+    --advisor-primary: rgb(var(--advisor-p));
+    --advisor-s: var(--advisor-2-s);
+    --advisor-secondary: rgb(var(--advisor-s));
+}
+
+/* Implementation of the variables */
+.advisor-bg {
+    background-color: var(--advisor-primary);
+    fill: var(--advisor-primary);
+}
+.advisor-border {
+    border-color: var(--advisor-secondary);
+    stroke: var(--advisor-secondary);
+}
+
+.group-bg {
+    background-color: var(--group-primary);
+    fill: var(--group-primary);
+}
+.group-border {
+    border-color: var(--group-secondary);
+    stroke: var(--group-secondary);
+}
+
+.group-color {
+    color: var(--group-primary);
 }
