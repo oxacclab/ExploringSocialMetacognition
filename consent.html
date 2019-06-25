@@ -149,11 +149,10 @@
         // Proceed with the study
         // Navigate to the appropriate place
         if(study !== "") {
-            let qs = window.location.search.substring(0,
-                window.location.search.search("[&?]study=\\w+"));
-            redirectURL = study + "/" + page + qs +
-                (/\?/.test(qs)? "&" : "?") + "consent=true";
-            window.location.href =  redirectURL; // forward as if user clicked a link
+            // forward as if user clicked a link
+            const qs = window.location.search;
+            window.location.href =
+                document.referrer + (/\?/.test(qs)? "&" : "?") + "consent=true";
         }
     }
 </script>
