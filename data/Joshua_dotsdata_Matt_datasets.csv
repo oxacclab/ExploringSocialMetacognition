@@ -1,0 +1,2 @@
+"Dataset.key","Dataset.name","Researcher","Notes","Frames.per.second","Confidence.scale.lower.limit","Num.confidence.options"
+0,"Matt","Matt Jaquiery","Data come from initial decisions on the dots task, as used in the Exploring Social Metacognition study (https://osf.io/qtngm/). Confidence and decision are made simultaneously, by indicating the extent to which the participant is sure there were more dots on the right/left.",,1,50

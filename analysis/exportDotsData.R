@@ -47,6 +47,3 @@ data <- data[complete.cases(data), ]
 write.csv(data, "../data/data_Jaquiery_unpub.csv", row.names = F)
 
 
-# Joshua's format ---------------------------------------------------------
-
-
