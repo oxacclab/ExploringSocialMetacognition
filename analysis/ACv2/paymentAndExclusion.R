@@ -3,6 +3,9 @@
 
 # Load data ---------------------------------------------------------------
 
+if (is.null(studyVersion))
+  studyVersion <- version
+
 key <- read.csv(paste0("../data/private/datesStudy_v", studyVersion,
                        "_participant-metadata.csv"))
 

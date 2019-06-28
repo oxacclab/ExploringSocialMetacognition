@@ -1080,6 +1080,21 @@ ggplot(offBrand, aes(x = advisor0idDescription, y = woa)) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(x = "advisor", 
        y = "WoA")
+
+if (F) {
+  # Graph for presentation, collapsed across firstAdvisor
+  ggplot(offBrand, aes(x = advisor0idDescription, y = woa)) +
+    geom_violin(colour = NA, fill = "grey90") +
+    stat_summary(geom = "line", aes(group = pid), fun.y = mean, alpha = .25) + 
+    stat_summary(geom = "line", fun.y = mean, colour = "black",
+                 aes(group = 1, linetype = "mean"), size = 1) +
+    stat_summary(geom = "point", aes(group = pid), fun.y = mean, alpha = .25) +
+    facet_grid(~feedback, labeller = label_both) + 
+    scale_y_continuous(limits = c(0, 1)) +
+    labs(x = "Advisor", 
+         y = "Weight on Advice") +
+    theme(text = element_text(size = 16))
+}
 ```
 
 The results show the expected pattern: where feedback is provided, almost all participants make greater use of the Accurate advisor's advice when the specific properties of the advice are controlled for. Likewise, where feedback in not provided, participants make greater use of the Agreeing advisor's advice. Some participants in the no-feedback, Accurate-first condition exhibit ceiling effects, presumably satisfying themselves of the utility of the Accurate advisor's advice and becomming accustomed to following advice from there. 

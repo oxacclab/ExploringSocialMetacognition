@@ -63,23 +63,21 @@ theme_set(theme_light() +
 
 studyVersion <- "1-0-1"
 
-exclude <- data.frame(skipAttnCheck = F, incomplete = T, 
-                      outlyingTrials = T, outlyingTrialCount = T,
-                      offBrandOutliers = T, minChange = T, 
-                      participantOutliers = T, multipleAttempts = T,
-                      manual = T, badMarker = T, excess = T)
-
-maxTime <- 60000 # maximum trial time in ms (should pass almost all participants)
-maxOutliers <- 3 # maximum outlying trials per participant
-minChangePercent <- 0.1 # minimum percent of core trials with different initial and final answers
-zThresh <- 3 # threshold for outliers
-checkList <- c("timeEnd", "responseError", "responseCorrect") # vars to check for participant outliers
-manualExclusion <- #F
-  c(F, F, F, F, F, F, F, F, F, T,
-    F, F, F, F, F, F, F, T, F, T,
-    F, F, F, F, F, F, F, F, T, F,
-    F, T, F, F)
-nPerCell <- 5
+exclude <- list(maxAttnCheckFails = 0, # pass all attn checks
+                requireComplete = T,   # complete experiment
+                maxTrialRT = 60000,    # trials take < 1 minute
+                minTrials = 25,        # at least 25 trials completed
+                minOffBrandTrials = 6, # no offBrand trials excluded
+                minChangeRate = .1,    # some advice taken on 10%+ of trials
+                participantOutliers = data.frame(
+                  varName = c("timeEnd", "responseError", "responseCorrect"),
+                  zThresh = 3),        # |z-score| for these variables < 3
+                multipleAttempts = T,  # exclude multiple attempts
+                manual = c(F, F, F, F, F, F, F, F, F, T,
+                           F, F, F, F, F, F, F, T, F, T,
+                           F, F, F, F, F, F, F, F, T, F,
+                           F, T, F, F),# exclusions for guessing manipulation
+                maxPerCondition = 5)   # exclusion of over-collected data
 
 skipLoadData <- F
 
@@ -717,105 +715,200 @@ We want to ensure the result above is robust to differences in choices made duri
 
 ```{r multiverse}
 
-skipLoadData <- F
-
-# Load the raw data and save a copy to speed up the process
-source("src/01 Load data.R")
-
-fList <- listServerFiles(studyVersion)
-fList <- sub("-", ".", reFirstMatch("([^_]+)\\.csv", fList))
-
-cleanDataFile <- tempfile()
-
-save(fList, file = cleanDataFile)
-
-skipLoadData <- T
-
-fixedExclusions <- exclude[, c("skipAttnCheck", "incomplete", "badMarker",
-                               "outlyingTrials")]
-exclude <- exclude[, !(names(exclude) %in% names(fixedExclusions))]
-
-multiverse <- NULL
-
-# construct an exhaustive search using binary logic
-for (i in seq(2 ^ ncol(exclude))) {
-  # binary representation of column number
-  tmp <- as.binary(i - 1)
-  # pad to length
-  if (ncol(exclude) > length(tmp))
-    tmp <- c(rep(0, ncol(exclude) - length(tmp)), tmp)
+if (F) { # don't run by default!
   
-  # convert to dataframe
-  tmp <- t(tibble(tmp))
+  # this is embarassingly parallel. Make it so.
+  library(parallel)
   
-  multiverse <- rbind(multiverse, tmp)
-}
-
-rownames(multiverse) <- NULL
-colnames(multiverse) <- names(exclude)
-
-multiverse <- as.tibble(multiverse)
-
-multiverse$incompleteCases <- 0
-multiverse$pValue <- 0
-multiverse$n <- 0
-
-# progress bar: this will take a while
-pb <- txtProgressBar(min = 1, max = nrow(multiverse), style = 3)
-
-for (mva in seq(nrow(multiverse))) {
-  setTxtProgressBar(pb, mva)
+  #' Run the ANOVA
+  #' @param exclusions dataframe of exclusion options
+  #' @param datafile file containing the workspace to use
+  #' @param scriptfile file contianing the exclusions script
+  #' @param studyVersion version of the study being examined
+  #'
+  #' @return list 
+  #' incompleteCases - cases dropped due to incompleteness
+  #' n - number of cases included
+  #' ANOVA - ANOVA results dataframe
+  analyse <- function(exclude, datafile, scriptfile, studyVersion) {
+    
+    load(datafile)
+    
+    results <- list(exclude = exclude, studyVersion = studyVersion)
+    
+    # hoist variables
+    assign("skipLoadData", T, .GlobalEnv)
+    for (v in ls()) {
+      assign(v, get(v), .GlobalEnv)
+    }
+    
+    # run exclusions
+    source(scriptfile)
+    
+    offBrand <- AdvisedTrial[AdvisedTrial$advisor0offBrand == T, ]
+    
+    df <- aggregate(advisor0woa ~ 
+                       pid + feedback + advisor0idDescription + firstAdvisor,
+                     offBrand, mean, na.rm = T)
+    df$feedback <- factor(df$feedback)
+    
+    x <- 0
+    
+    # remove incomplete cases
+    for (p in unique(df$pid)) {
+      if (nrow(df[df$pid == p, ]) != 2) {
+        x <- x + 1
+        df <- df[df$pid != p, ]
+      }
+    }
+    
+    results$incompleteCases <- x
+    
+    results$n <- length(unique(df$pid))
+    
+    # refactor pid
+    df$pid <- factor(df$pid)
+    
+    r <- suppressWarnings(
+      ez::ezANOVA(df, advisor0woa, pid,
+                  within = advisor0idDescription,
+                  between = list(feedback, firstAdvisor),
+                  detailed = F,
+                  type = 2)
+      )
+    
+    results$ANOVA <- r$ANOVA
+    
+    results  
+  }
   
-  exclude <- cbind(multiverse[mva, 1:(ncol(multiverse) - 2)], fixedExclusions)
+  # Initial preparation
+  srcFile <- paste0(getwd(), "/src/01 Load data.R")
+  scriptFile <- paste0(getwd(), "/src/02 Exclusions.R")
   
-  load(cleanDataFile)
+  # Load the raw data and save a copy to speed up the process
+  source(srcFile)
   
-  source("src/02 Exclusions.R")
+  fList <- listServerFiles(studyVersion)
+  fList <- sub("-", ".", reFirstMatch("([^_]+)\\.csv", fList))
+  fList <- fList[fList %in% ls()]
   
-  offBrand <- AdvisedTrial[AdvisedTrial$advisor0offBrand == T, ]
+  cleanDataFile <- tempfile()
   
-  df <- aggregate(advisor0woa ~ 
-                     pid + feedback + advisor0idDescription + firstAdvisor,
-                   offBrand, mean, na.rm = T)
-  df$feedback <- factor(df$feedback)
+  save(list = c(fList, "studyVersion", "okayIds"), file = cleanDataFile)
   
-  x <- 0
+  # Build exclusions map
+  # We start with a binary map for whether the exclusion is used or not,
+  # then we expand it to cover the multiple levels for each exclusion.
   
-  # remove incomplete cases
-  for (p in unique(df$pid)) {
-    if (nrow(df[df$pid == p, ]) != 2) {
-      x <- x + 1
-      df <- df[df$pid != p, ]
+  exclusionCandidates <- list( # plausible values for each exlusion
+    requireComplete = list(T, F),   
+    maxTrialRT = list(10000, 30000, 60000),   
+    minTrials = list(20, 25, 28),       
+    minOffBrandTrials = list(4, 6), 
+    minChangeRate = list(.05, .1, .25),   
+    participantOutliers = list(
+      data.frame(varName = c("timeEnd", "responseError", "responseCorrect"),
+                 zThresh = 2),
+      data.frame(varName = c("timeEnd", "responseError", "responseCorrect"),
+                 zThresh = 3)
+      ),        
+    multipleAttempts = list(T, F),  # exclude multiple attempts
+    manual = list(
+      c(F, F, F, F, F, F, F, F, F, T,
+        F, F, F, F, F, F, F, T, F, T,
+        F, F, F, F, F, F, F, F, T, F,
+        F, T, F, F)
+      ),
+    maxPerCondition = list(5)   
+  )
+  
+  # always need to pass attn checks
+  fixedExclusions <- list(maxAttnCheckFails = 0) 
+  
+  multiverse <- NULL
+  
+  # construct an exhaustive search using binary logic
+  for (i in seq(2 ^ length(exclusionCandidates))) {
+    # binary representation of column number
+    tmp <- as.binary(i - 1)
+    # pad to length
+    if (length(exclusionCandidates) > length(tmp))
+      tmp <- c(rep(0, length(exclusionCandidates) - length(tmp)), tmp)
+    
+    # convert to dataframe
+    tmp <- t(tibble(tmp))
+    
+    multiverse <- rbind(multiverse, tmp)
+  }
+  
+  # expand the matrix to include values > 1 where necessary
+  for (i in seq(length(exclusionCandidates))) {
+    if (length(exclusionCandidates[[i]]) <= 1)
+      next()
+    
+    for (r in seq(nrow(multiverse))) {
+      if (multiverse[r, i] == 1) {
+        for (n in 2:length(exclusionCandidates[[i]])) {
+          tmp <- multiverse[r, ]
+          tmp[i] <- n
+          multiverse <- rbind(multiverse, tmp)
+        }
+      }
     }
   }
   
-  multiverse$incompleteCases[mva] <- x
+  rownames(multiverse) <- NULL
+  colnames(multiverse) <- names(exclusionCandidates)
   
-  multiverse$n <- length(unique(df$pid))
+  multiverse <- apply(multiverse, 1, as.list)
   
-  # refactor pid
-  df$pid <- factor(df$pid)
+  # convert numbers to values
+  for (i in 1:length(multiverse)) {
+    m <- multiverse[[i]]
+    
+    for (x in names(m)) {
+      if (m[[x]] == 0)
+        m[[x]] <- NA # drop null values
+      else
+        m[[x]] <- exclusionCandidates[[x]][[m[[x]]]]
+    }
+    
+    # bind on the fixed values
+    multiverse[[i]] <- c(m, fixedExclusions)
+  }
   
-  r <- ezANOVA(df, advisor0woa, pid, 
-               within = advisor0idDescription,
-               between = list(feedback, firstAdvisor),
-               detailed = F,
-               type = 2)
+  # analyse(multiverse[[length(multiverse)]], datafile = cleanDataFile, scriptfile = scriptFile)
   
-  multiverse$pValue[mva] <- r$ANOVA$p[r$ANOVA$Effect == 
-                                        "feedback:advisor0idDescription"]
+  # Run in parallel
+  nCores <- detectCores() - 2
+  cl <- makeCluster(nCores)
+  
+  # clusterApply(cl, multiverse[length(multiverse)], fun = analyse, datafile = cleanDataFile, scriptfile = scriptFile)
+  
+  startTime <- Sys.time()
+  results <- clusterApply(cl, multiverse, 
+                          fun = analyse, 
+                          datafile = cleanDataFile,
+                          scriptfile = scriptFile)
+  print(paste0("Time elapsed: ", Sys.time() - startTime))
+  
+  results
 }
+
 
 ```
 
 ```{r multiversePlot}
-
-multiverse <- multiverse[order(multiverse$pValue), ]
-multiverse$x <- 1:nrow(multiverse)
-
-ggplot(multiverse, aes(x, pValue)) +
-  geom_hline(yintercept = .05, linetype = "dashed") + 
-  geom_point() 
+if (!is.null(multiverse)) {
+    
+  multiverse <- multiverse[order(multiverse$pValue), ]
+  multiverse$x <- 1:nrow(multiverse)
+  
+  ggplot(multiverse, aes(x, pValue)) +
+    geom_hline(yintercept = .05, linetype = "dashed") + 
+    geom_point()
+} 
 
 ```
 
