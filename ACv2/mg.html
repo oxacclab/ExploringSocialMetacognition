@@ -217,14 +217,19 @@
                     <label class="label" for="know">knowledgeable</label>
                 </div>
                 <div class="item">
-                    <label class="label" for="help">not trying to help</label>
-                    <input type="range" name="helpfulness" id="help"/>
-                    <label class="label" for="help">trying to help</label>
+                    <label class="label" for="consistent">inconsistent</label>
+                    <input type="range" name="knowledge" id="consistent"/>
+                    <label class="label" for="consistent">consistent</label>
                 </div>
                 <div class="item">
-                    <label class="label" for="like">unlikeable</label>
-                    <input type="range" name="likability" id="like"/>
-                    <label class="label" for="like">likable</label>
+                    <label class="label" for="help">not trying to help me</label>
+                    <input type="range" name="helpfulness" id="help"/>
+                    <label class="label" for="help">trying to help me</label>
+                </div>
+                <div class="item">
+                    <label class="label" for="trust">untrustworthy</label>
+                    <input type="range" name="likability" id="trust"/>
+                    <label class="label" for="trust">trustworthy</label>
                 </div>
             </div>
             <div class="bottom">
@@ -241,6 +246,15 @@
             </div>
             <textarea name="advisorDifference" class="mandatory" placeholder="There was a difference between the advisors. What do you think it was? (mandatory, public)" title="Your answers will be included in the public dataset, so please do not include personal information."></textarea>
             <textarea name="generalComments" placeholder="Are there any other questions or comments you'd like to leave about the experiment? (optional, private)" title="Your answer to this question will only be visible to the experimenter and colleagues."></textarea>
+            <div class="radioQ">
+                <label>Which group were you in?</label>
+                <div class="radioQ-item group-1 group-bg">
+                    <input type="radio" class="mandatory" name="group" value="1">
+                </div>
+                <div class="radioQ-item group-2 group-bg">
+                    <input type="radio" class="mandatory" name="group" value="2">
+                </div>
+            </div>
             <div class="bottom">
                 <button name="submit" class="confirm">&check;</button>
             </div>

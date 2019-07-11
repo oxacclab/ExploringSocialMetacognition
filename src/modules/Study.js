@@ -1386,6 +1386,8 @@ class DatesStudy extends Study {
         const me = this;
 
         const checkInput = function() {
+            document.querySelectorAll("form *").forEach(e => e.classList.remove("invalid"));
+
             // Has anything been written in the mandatory fields?
             let okay = true;
             document.querySelectorAll("form textarea.mandatory").forEach(elm => {
@@ -1394,6 +1396,30 @@ class DatesStudy extends Study {
                     okay = false;
                 }
             });
+
+            // Check radio groups
+            const radios = document.querySelectorAll("form input[type='radio'].mandatory");
+            const names = [];
+            radios.forEach(r => {
+                if(names.indexOf(r.name) === -1)
+                    names.push(r.name);
+            });
+
+            names.forEach(n => {
+                const opts = document.querySelectorAll("form input[type='radio'][name='" + n + "']");
+
+                let k = false;
+                opts.forEach(o => {
+                    if(o.checked)
+                        k = true;
+                });
+
+                if(!k) {
+                    okay = false;
+                    opts[0].closest(".radioQ").classList.add("invalid");
+                }
+            });
+
             return okay;
         };
 

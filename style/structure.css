@@ -545,6 +545,9 @@ form input[type="range"] {
     width: 50%;
     cursor: pointer;
 }
+form .radioQ-item input[type="radio"] {
+    vertical-align: text-bottom;
+}
 form .bottom, form .question {
     display: flex;
     flex-direction: row;

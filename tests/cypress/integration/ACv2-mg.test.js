@@ -158,10 +158,13 @@ describe('The Study', function() {
             .click();
     });
 
-    it('Runs the practice', function() {
+    let q = -1;
 
-        // 10 practice questions
-        for(let i = 0; i < 7; i++) {
+    // 10 practice questions
+    for(let i = 0; i < 7; i++) {
+        q++;
+        it('Runs practice Q' + i + ' [Q' + q + ']', function() {
+
             // Should show a question
             cy.get('#stimulus p')
                 .should('be.visible');
@@ -183,8 +186,10 @@ describe('The Study', function() {
             // Confirm response
             cy.get('button.confirm.enabled')
                 .click();
-        }
-    });
+        });
+    }
+
+
 
     it('Introduces advice', function() {
 
@@ -204,10 +209,11 @@ describe('The Study', function() {
             .click();
     });
 
-    it('Gives advisor practice', function() {
+    for(let i = 0; i < 2; i++) {
+        q++;
 
-        // Practice questions with advice
-        for(let i = 0; i < 2; i++) {
+        it('Runs advisor practice q'+ i + ' [Q' + q + ']', function() {
+
             // Should show a question
             cy.get('#stimulus p')
                 .should('be.visible');
@@ -246,8 +252,9 @@ describe('The Study', function() {
             // Confirm response
             cy.get('button.confirm.enabled')
                 .click();
-        }
-    });
+        });
+    }
+
 
     it('Provides final instructions', function() {
 
@@ -277,10 +284,11 @@ describe('The Study', function() {
             .click();
     });
 
-    it('Runs the first block', function() {
+    for(let i = 0; i < 7; i++) {
+        q++;
 
-        // 10 practice questions
-        for(let i = 0; i < 7; i++) {
+        it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
+
             // Should show a question
             cy.get('#stimulus p')
                 .should('be.visible');
@@ -296,7 +304,11 @@ describe('The Study', function() {
             // Fill in a response
             cy.get('.response-marker-pool .response-marker.size0 .clickhandler')
                 .trigger('mousedown', {force: true})
-                .trigger('mousemove', { force: true, pageX: 600, pageY: 600 })
+                .trigger('mousemove', {
+                    force: true,
+                    pageX: 600,
+                    pageY: 600
+                })
                 .trigger('mouseup', {force: true});
 
             // Branch based on whether Q is attention check
@@ -308,7 +320,11 @@ describe('The Study', function() {
                     const marker = $body.find('esm-response-timeline .response-marker.ghost.set')[0];
 
                     let study = cy.state('window').study;
-                    console.log({study, TL, marker})
+                    console.log({
+                        study,
+                        TL,
+                        marker
+                    })
 
                     const ans = study.trials[study.currentTrial].correctAnswer;
                     console.log(ans)
@@ -338,8 +354,8 @@ describe('The Study', function() {
             // Confirm response
             cy.get('button.confirm.enabled')
                 .click();
-        }
-    });
+        });
+    }
 
     it('Pauses between blocks', function() {
 
@@ -354,10 +370,11 @@ describe('The Study', function() {
             .click();
     });
 
-    it('Runs the second block', function() {
+    for(let i = 0; i < 7; i++) {
+        q++;
 
-        // 10 practice questions
-        for(let i = 0; i < 15; i++) {
+        it('Runs block 2 Q' + i + ' [Q' + q + ']', function() {
+
             // Should show a question
             cy.get('#stimulus p')
                 .should('be.visible');
@@ -415,14 +432,14 @@ describe('The Study', function() {
             // Confirm response
             cy.get('button.confirm.enabled')
                 .click();
-        }
-    });
+        });
+    }
 
-    it('Provides advisor questionnaires', function() {
-        // Questionnaires for both advisors
-        for(let i = 0; i < 2; i++) {
+    for(let i = 0; i < 2; i++) {
+        it('Provides questionnaire for advisor ' + i, function () {
+            // Questionnaires for both advisors
             cy.get('input[type="range"]').as('range')
-                .invoke('val', ()=> Math.floor(Math.random() * 100))
+                .invoke('val', () => Math.floor(Math.random() * 100))
                 .each(e => e.trigger('change'))
                 .click({multiple: true});
 
@@ -433,8 +450,8 @@ describe('The Study', function() {
             cy.get('button[name="submit"]')
                 .should('be.visible')
                 .click()
-        }
-    });
+        });
+    }
 
     it('Provides a debrief screen', function() {
         cy.get('textarea.mandatory')
