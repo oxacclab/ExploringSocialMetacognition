@@ -56,7 +56,8 @@ esm-instruction > div:last-child {
     width: 100%;
 }
 
-esm-instruction div:last-child button {
+esm-instruction div:last-child button,
+.esm-instruction-button {
     width: fit-content;
     margin: .3em;
     border-radius: .2em;
@@ -64,10 +65,14 @@ esm-instruction div:last-child button {
     background-color: transparent;
     border: 2px solid #2196F3;
     color: #2196F3;
+    cursor: pointer;
 }
 
-esm-instruction div:last-child button:first-child {
+esm-instruction div:last-child button:first-child,
+esm-instruction div:last-child button:disabled,
+.esm-instruction-button:disabled {
     opacity: 0.5;
+    cursor: unset;
 }
 
 esm-instruction div:last-child button:hover,

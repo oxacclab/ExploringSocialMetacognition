@@ -120,10 +120,32 @@
             <esm-instruction-page>
                 <h1>Groups</h1>
                 <p>The last thing to tell you is that the advisors have been assigned to groups. You can tell which group an advisor is in by the background on the left of the screen, and by the colour of the marker on the timeline.</p>
-                <p>There are two groups. <strong>You have been assigned to <span class="group-color big-text">Group One</span></strong>.</p>
+                <p>There are two groups. On the next screen you'll find out which group you've been assigned to.</p>
                 <p>If you're happy with how it works, let's go!</p>
             </esm-instruction-page>
         </esm-instruction>
+    </template>
+    <template id="assign-group">
+        <!-- Inspiration from Le Liu (https://codepen.io/le0864/pen/pbmoVQ) -->
+        <link rel="stylesheet" href="../style/coin.css"/>
+        <div class="coin-page">
+            <h1>Group assignment</h1>
+            <div class="coinflip">
+                <div class="coin-wrapper">
+                    <div class="coin spin-slow">
+                        <div class="side-a group-1 group-bg"></div>
+                        <div class="side-b group-2 group-bg"></div>
+                    </div>
+                </div>
+                <div class="coin-instructions pre">
+                    <p class="pre">Click/touch to spin the coin and find out which group you're in.</p>
+                    <p class="post">You are in <strong class="group-color">GROUP ONE</strong>!</p>
+                </div>
+                <div class="controls">
+                    <button disabled="disabled" class="okay esm-instruction-button">Got it!</button>
+                </div>
+            </div>
+        </div>
     </template>
     <template id="block-break">
         <esm-instruction>

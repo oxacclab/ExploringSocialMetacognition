@@ -284,6 +284,23 @@ describe('The Study', function() {
             .click();
     });
 
+    it('Flips a coin for group assignment', function() {
+
+        cy.get('#instructions')
+            .should('be.visible');
+
+        cy.get('.coin.spin-slow')
+            .should('be.visible')
+            .click();
+
+        cy.get('.coin-instructions.post')
+            .should('be.visible');
+
+        cy.get('.controls button.okay')
+            .should('be.enabled')
+            .click();
+    });
+
     for(let i = 0; i < 7; i++) {
         q++;
 
@@ -457,6 +474,9 @@ describe('The Study', function() {
         cy.get('textarea.mandatory')
             .focus()
             .type('You might very well think that; I couldn\'t possibly comment.');
+
+        cy.get('input[type="radio"].mandatory')
+            .click({multiple: true});
 
         cy.get('button[name="submit"]')
             .should('be.visible')

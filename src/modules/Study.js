@@ -1812,11 +1812,83 @@ class DatesStudy extends Study {
  */
 class MinGroupsStudy extends DatesStudy {
 
-
+    static get listPhases() {
+        return [
+            "splashScreen",
+            "consent",
+            "demographics",
+            "introduction",
+            "training",
+            "practiceInstructions",
+            "practice",
+            "advisorPracticeInstructions",
+            "advisorPractice",
+            "coreInstructions",
+            "assignGroup",
+            "core",
+            "debriefAdvisors",
+            "debrief",
+            "results"
+        ];
+    }
     _setDefaults() {
         super._setDefaults();
 
         this.studyName = "minGroups";
+    }
+
+    async assignGroup() {
+
+        const me = this;
+
+        return new Promise(function(resolve) {
+            function flipCoin() {
+                const coin = document.querySelector("#instructions .coin");
+                coin.classList.add("spin-stop");
+
+                setTimeout(() => {
+                    coin.classList.add("spin-fast", "side-" + me.pGroup);
+                    setTimeout(showResult, 3500);
+                }, 500);
+            }
+
+            function showResult() {
+                document.querySelector(".coin-instructions")
+                    .classList.remove("pre");
+                document.querySelector(".coin-instructions")
+                    .classList.add("post");
+
+                setTimeout(allowProgress, 1000);
+            }
+
+            function allowProgress() {
+                document.querySelector("#instructions button.okay")
+                    .disabled = false;
+            }
+
+            function finish() {
+                instr.innerHTML = "";
+                resolve();
+            }
+
+            let instr = document.getElementById("instructions");
+            instr.innerHTML = "";
+            // Add new
+            instr.appendChild(
+                document.importNode(
+                    document.getElementById("assign-group").content,
+                    true));
+            instr.classList.remove("hidden");
+
+            // Start the coin-flippery
+            document.querySelector("#instructions .coin")
+                .addEventListener('click', e => {
+                    flipCoin();
+                });
+
+            document.querySelector("#instructions button.okay")
+                .addEventListener('click', e => {finish()});
+        });
     }
 
     /**
