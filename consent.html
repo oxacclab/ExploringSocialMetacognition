@@ -152,7 +152,7 @@
             // forward as if user clicked a link
             const qs = window.location.search;
             window.location.href =
-                document.referrer + (/\?/.test(qs)? "&" : "?") + "consent=true";
+                document.referrer + (/&/.test(qs)? "&" : "?") + "consent=true";
         }
     }
 </script>
