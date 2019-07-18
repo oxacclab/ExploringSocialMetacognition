@@ -20,3 +20,6 @@ tests/node_modules
 tests/cypress/screenshots
 tests/cypress/videos
 tests/cypress/support
+analysis/.RDataTmp
+analysis/.RData
+analysis/.Rhistory
