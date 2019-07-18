@@ -25,7 +25,7 @@ if (!isSet("studyVersion")) {
 
 # load data ---------------------------------------------------------------
 
-files <- listServerFiles(studyVersion)
+files <- listServerFiles(version = studyVersion)
 
 # Screen for acceptable IDs
 f <- files[grep("metadata", files)]

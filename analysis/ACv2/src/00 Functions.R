@@ -18,8 +18,14 @@ markerList <- c(1, 3, 9, 11, 21, 27)
 # loading functions -------------------------------------------------------
 
 #' List the files on the server matching the specified version
-listServerFiles <- function(version) {
+#' @param study to fetch data for. Default for back-compatability
+#' @param version version of the experiment to use, or all for all
+listServerFiles <- function(study = "datesStudy", version = "all") {
   rDir <- "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/"
+  
+  if (version == "all") {
+    version <- "[0-9\\-]+"
+  }
   
   out <- NULL
   
@@ -28,7 +34,7 @@ listServerFiles <- function(version) {
   while (isIncomplete(con)) {
     buffer <- readLines(con, n = 1)
     if (length(buffer)) {
-      f <- reFirstMatch(paste0(">(datesStudy_v", version, "_[^<]+)"),
+      f <- reFirstMatch(paste0(">(", study, "_v", version, "_[^<]+)"),
                         buffer)
       if (nchar(f)) {
         out <- c(out, paste0(rDir, f))

@@ -15,6 +15,7 @@
 library(BayesMed)
 library(tibble)
 library(ggplot2)
+library(scales)
 library(parallel)
 
 
@@ -22,11 +23,16 @@ library(parallel)
 
 effectSizes <- list()
 es <- c(.1, .3, .7)
-ns <- c(20, 50, 100, 500)
+ns <- c(20, 50, 100, 200)
+reps <- 20
 for (a in es) {
   for (b in es) {
-    for (n in ns) {
-      effectSizes[[length(effectSizes) + 1]] <- tibble(a, b, n)
+    for (cPrime in es[1:2]) { # we don't expect a strong effect here
+      for (n in ns) {
+        for (i in seq(reps)) {
+          effectSizes[[length(effectSizes) + 1]] <- tibble(a, b, cPrime, n, i)
+        }
+      }
     }
   }
 }
@@ -35,20 +41,54 @@ for (a in es) {
 # cluster function --------------------------------------------------------
 
 runSim <- function(props) {
+  
+  print(props)
+  
+  # Assumptions about data structure
+  qMean <- 45
+  qSD <- 20
+  woaMean <- .48
+  woaSD <- .40
+  
   d <- tibble::tibble(p = rep(seq(props$n), each = 2), # participant numbers
-                      sigma = rep(abs(rnorm(props$n)), each = 2), # each participant gets idiosynratic noise
                       Group = rep(seq(2), times = props$n) - 1,
-                      Q = rep(rnorm(props$n), each = 2) + # intercept
-                        props$a * Group + # group effect
-                        rnorm(props$n * 2, sd = sigma), # error
-                      WoA = rep(rnorm(props$n), each = 2) + 
-                        props$b * Q +
-                        rnorm(props$n * 2, sd = sigma))
+                      Q = qMean + # intercept 
+                        props$a * Group * qSD + # group effect
+                        rnorm(props$n * 2, sd = qSD), # random error
+                      WoA = woaMean + 
+                        props$cPrime * Group * woaSD + 
+                        props$b * scale(Q)[, 1] * woaSD +
+                        rnorm(props$n * 2, sd = woaSD))
+  
+  # cap WoA scores
+  d$WoA[d$WoA < 0] <- 0
+  d$WoA[d$WoA > 1] <- 1
+  
+  d$Q[d$Q < 0] <- 0
+  d$Q[d$Q > 100] <- 100
   
   # mediation analysis
-  result <- BayesMed::jzs_med(independent = d$Group, 
-                              dependent = d$WoA, 
-                              mediator = d$Q)
+  result <- NULL
+  maxTries <- 10
+  
+  for (i in seq(maxTries)) {
+    tryCatch(
+      result <- BayesMed::jzs_med(independent = d$Group, 
+                                  dependent = d$WoA, 
+                                  mediator = d$Q,
+                                  standardize = T),
+      error = function(e) print(paste("Error:", e)),
+      silent = T
+    )
+    
+    if (!is.null(result))
+      break()
+  }
+
+  if (is.null(result)) 
+    stop(paste("Maximum tries exceeded for simulation with data:\n",
+               "a =", props$a, "\nb =", props$b, "\ncPrime =", props$cPrime,
+               "\nn =", props$n))
   
   list(props = props, data = d, result = result)
 }
@@ -68,19 +108,21 @@ print(paste0("Time elapsed: ", Sys.time() - startTime))
 grid <- NULL
 
 for (x in output) {
-  grid <- rbind(grid, tibble(a = x$props$a, b = x$props$b, n = x$props$n,
+  grid <- rbind(grid, tibble(a = x$props$a, 
+                             b = x$props$b, 
+                             cPrime = x$props$cPrime,
+                             n = x$props$n,
                              bf = x$result$main_result$BF[4]))
 }
 
+grid <- aggregate(bf ~ ., grid, mean)
+
 # heatmap 
-for (n in unique(grid$n)) {
-  print(
-    ggplot(grid[grid$n == n, ], aes(a, b, fill = log(bf))) +
-      geom_tile(colour = "white") +
-      scale_fill_gradient2() +
-      labs(x = "Group -> Q", y = "Q -> WoA",
-           title = "BF for mediation of Group -> WoA relationship",
-           subtitle = paste("n =", n))
-  )
-}
+ggplot(grid, aes(a, b, fill = log(bf))) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient2(limits = c(-3, 3), oob = squish) +
+  facet_grid(cPrime ~ n, labeller = label_both) +
+  labs(x = "Group -> Q", y = "Q -> WoA",
+       title = "BF for mediation of Group -> WoA relationship",
+       subtitle = "[log(1/3) = -1.1; log(3) = 1.1]")
 
