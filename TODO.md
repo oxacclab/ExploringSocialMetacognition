@@ -41,3 +41,20 @@
 * Compare RL networks to ABM networks
 
 ## Write thesis
+* ~~Learn Oxforddown~~
+* Introduction
+    * Literature review
+    * Core concepts
+* Psychology of advice
+    * Introduction
+    * Advice-taking
+    * Source selection
+* Contextual factors
+    * Introduction
+    * Models
+    * Study
+* Interacting agents
+    * Agent-based models
+    * Real-world networks in comparison
+* Conclusion
+* References
