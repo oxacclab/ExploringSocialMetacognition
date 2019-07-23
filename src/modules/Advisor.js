@@ -5,6 +5,7 @@
  * Javascript library for running social metacognition studies.
  */
 
+
 "use strict";
 
 import {BaseObject} from "./Prototypes.js";
@@ -205,8 +206,13 @@ class Advisor extends BaseObject {
             "advisor-border"
         );
         elm.querySelector(".response-marker").appendChild(this.image());
-        elm.querySelector(".advisor-key-row span").innerHTML = this.name;
+        elm.querySelector(".advisor-key-row .advisor-name").innerHTML = this.name;
 
+        if(this.group !== 0) {
+            elm.querySelector(".advisor-key-row .advisor-group").innerHTML = "Group " + (this.sameGroup? "One" : "Two");
+        } else {
+            elm.querySelector(".advisor-key-row .advisor-group").remove();
+        }
 
         return elm.querySelector(".advisor-key-row");
     }

@@ -76,7 +76,8 @@ esm-instruction div:last-child button:disabled,
 }
 
 esm-instruction div:last-child button:hover,
-esm-instruction div:last-child button:focus {
+esm-instruction div:last-child button:focus,
+.esm-instruction-button:hover {
     background-color: #2196F3;
     color: whitesmoke;
     cursor: pointer;

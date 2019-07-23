@@ -117,6 +117,11 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
     transform: scale(4);
 }
 
+/* Hide the advisor portrait during the coin flip */
+.Study-assignGroup .advisor-key-row {
+    display: none;
+}
+
 /* Issue reporting */
 body.report-issue #report-issue {
     display: flex;

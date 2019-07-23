@@ -200,6 +200,17 @@ div {
     border-radius: var(--tag-border-radius);
     box-shadow: 0px 1px 1px 0 black;
 }
+.advisor-key-row .advisor-details {
+    width: 50%;
+    padding-left: .5em;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+.advisor-details .advisor-group {
+    text-transform: uppercase;
+    font-size: .8em;
+}
 .advisor-key-row span {
     display: flex;
     flex-direction: column;
@@ -545,8 +556,9 @@ form input[type="range"] {
     width: 50%;
     cursor: pointer;
 }
-form .radioQ-item input[type="radio"] {
-    vertical-align: text-bottom;
+form .radioQ-item {
+    padding: .2em;
+    border-radius: .3em;
 }
 form .bottom, form .question {
     display: flex;
@@ -578,7 +590,7 @@ form button[name="submit"]:not([disabled]) {
 }
 form textarea {
     width: 75%;
-    margin: auto;
+    margin: 0 auto;
     height: 4em;
     font-size: var(--font-size-small);
 }

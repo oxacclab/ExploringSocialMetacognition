@@ -37,14 +37,18 @@
     --group-secondary: rgb(var(--group-s));
 }
 
-.group-1.group-1, .group-1 * {
+.group-1.group-1, .group-1 *,
+.group-1 .group-in.group-in,
+.group-2 .group-out.group-out {
     --group-p: var(--group-1-p);
     --group-primary: rgb(var(--group-p));
     --group-s: var(--group-1-s);
     --group-secondary: rgb(var(--group-s));
 }
 
-.group-2.group-2, .group-2 * {
+.group-2.group-2, .group-2 *,
+.group-2 .group-in.group-in,
+.group-1 .group-out.group-out {
     --group-p: var(--group-2-p);
     --group-primary: rgb(var(--group-p));
     --group-s: var(--group-2-s);

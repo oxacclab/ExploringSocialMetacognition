@@ -370,7 +370,7 @@ class Study extends ControlObject {
         );
 
         // Change prompt text to state what is happening
-        document.getElementById("prompt").innerHTML = "New advisors!";
+        document.getElementById("prompt").innerHTML = "New advisor" + (advisors.length > 1? "s" : "") + "!";
         await this.wait(500);
 
         let i = 0;
@@ -1316,6 +1316,7 @@ class DatesStudy extends Study {
 
     get attentionCheckBlueprint() {
         const me = this;
+        const markerWidths = document.querySelector('esm-response-timeline').markerWidths;
 
         let ans = 1900 + Math.floor(Math.random() * 100);
         this.prolific = true;
@@ -1324,12 +1325,14 @@ class DatesStudy extends Study {
             correctAnswer: ans,
             prompt: "",
             attentionCheck: true,
-            attentionCheckMarkerWidth: parseInt(document.querySelector('esm-response-timeline').markerWidths[0]),
+            attentionCheckMarkerWidth: parseInt(markerWidths[0]),
             advisors: null,
             displayFeedback: this.prolific?
                 (t)=>me.attentionCheckFeedback(t) : null
         };
-        bp.stim.innerHTML = "for this question use the smallest marker to cover the year " + utils.numberToLetters(ans);
+
+        const size = markerWidths.length > 1? "smallest " : "";
+        bp.stim.innerHTML = "for this question use the " + size + "marker to cover the year " + utils.numberToLetters(ans);
 
         return bp;
     }
@@ -1359,7 +1362,11 @@ class DatesStudy extends Study {
             const submit = form.querySelector("button[name='submit'");
             submit.disabled = "disabled";
             form.querySelectorAll("input[type='range'], form textarea")
-                .forEach(i => i.addEventListener("click", ()=> submit.disabled = ""));
+                .forEach(i => {
+                    i.addEventListener("click", ()=> submit.disabled = "");
+                    i.addEventListener("change", ()=> submit.disabled = "");
+                    i.addEventListener("focus", ()=> submit.disabled = "");
+                });
 
             // Register submit function
             submit.addEventListener("click", e=>{
