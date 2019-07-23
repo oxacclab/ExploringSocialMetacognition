@@ -6,7 +6,10 @@
 if (is.null(studyVersion))
   studyVersion <- version
 
-key <- read.csv(paste0("../data/private/datesStudy_v", studyVersion,
+if (is.null(studyName))
+  studyName <- "datesStudy"
+
+key <- read.csv(paste0("../data/private/", studyName, "_v", studyVersion,
                        "_participant-metadata.csv"))
 
 
@@ -29,6 +32,8 @@ for (i in grep("attnCheck", key$excluded)) {
                                           "responseMarkerWidth", 
                                           "responseEstimateLeft")]
   x$stimHTML <- sub("for this question use the smallest marker to cover the year ", 
+                    "...", x$stimHTML)
+  x$stimHTML <- sub("for this question use the marker to cover the year ", 
                     "...", x$stimHTML)
   print(x)
 }

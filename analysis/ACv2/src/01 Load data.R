@@ -21,11 +21,14 @@ library(tibble)
 if (!isSet("studyVersion")) {
   stop("Analysis requires the [studyVersion] variable to be set.")
 }
+if (!isSet("studyName")) {
+  studyName <- "datesStudy"
+}
 
 
 # load data ---------------------------------------------------------------
 
-files <- listServerFiles(version = studyVersion)
+files <- listServerFiles(study = studyName, version = studyVersion)
 
 # Screen for acceptable IDs
 f <- files[grep("metadata", files)]
@@ -72,6 +75,52 @@ for (f in files) {
   name <- sub("-", ".", name)
   assign(name, tmp)
 }
+
+
+# repair JS mistakes ------------------------------------------------------
+
+# v1.0.0 of minGroups failed to identify advisors, so fix that here
+if (studyName == "minGroups" && "1-0-0" %in% studyVersion) {
+  advisorDescription <- function(id, condition) {
+    if (id == 1) {
+      if (condition %% 2 == 1)
+        "inGroup"
+      else 
+        "outGroup"
+    } else {
+      if (condition %% 2 == 1)
+        "outGroup"
+      else
+        "inGroup"
+    }
+  }
+  
+  # Prepare factor levels
+  if (!("inGroup" %in% levels(advisors$idDescription))) {
+    levels(advisors$idDescription) <- c(levels(advisors$idDescription), 
+                                        "inGroup", "outGroup")
+  }
+  if (!("inGroup" %in% levels(AdvisedTrial$advisor0idDescription))) {
+    levels(AdvisedTrial$advisor0idDescription) <- 
+      c(levels(AdvisedTrial$advisor0idDescription), 
+        "inGroup", "outGroup")
+  }
+  
+  # Fix advisors table
+  for (i in which(advisors$idDescription == "Unset")) {
+    advisors$idDescription[i] <- 
+      advisorDescription(advisors$id[i], 
+                         okayIds$condition[okayIds$pid == advisors$pid[i]])
+  }
+  
+  # Fix AdvisedTrial table
+  for (i in which(AdvisedTrial$advisor0idDescription == "Unset")) {
+    AdvisedTrial$advisor0idDescription[i] <-
+      advisorDescription(AdvisedTrial$advisor0id[i],
+                         okayIds$condition[okayIds$pid == AdvisedTrial$pid[i]])
+  }
+}
+
 
 # reference varaibles -----------------------------------------------------
 

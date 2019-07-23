@@ -2,8 +2,8 @@
 
 ## Benevolence study
 ### Initial
-* Finalize design
-* Preregistration
+* ~~Finalize design~~
+* ~~Preregistration~~
 * Run
 * Data analysis
 ### Registered Report

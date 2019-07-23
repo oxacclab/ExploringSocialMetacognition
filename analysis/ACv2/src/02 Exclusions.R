@@ -73,7 +73,9 @@ if (!is.null(exclude$maxAttnCheckFails) && !is.na(exclude$maxAttnCheckFails)) {
 
 # incomplete --------------------------------------------------------------
 
-if (!is.na(exclude$requireComplete) && exclude$requireComplete) {
+if (!is.null(exclude$requireComplete) &&
+    !is.na(exclude$requireComplete) && 
+    exclude$requireComplete) {
   for (p in unique(exclusions$pid)) {
     if (!(p %in% debrief.advisors$pid)) {
       exclusions$excluded[exclusions$pid == p] <-
@@ -111,7 +113,9 @@ if (!is.na(exclude$minTrials) && exclude$minTrials > 0) {
 
 # offbrand outliers -------------------------------------------------------
 
-if (!is.na(exclude$minOffBrandTrials) && exclude$minOffBrandTrials > 0) {
+if (!is.null(exclude$minOffBrandTrials) &&
+    !is.na(exclude$minOffBrandTrials) && 
+    exclude$minOffBrandTrials > 0) {
   
   for (p in unique(exclusions$pid)) {
     if (sum(AdvisedTrial$advisor0offBrand[AdvisedTrial$pid == p]) < 
@@ -131,7 +135,9 @@ if (!is.na(exclude$minOffBrandTrials) && exclude$minOffBrandTrials > 0) {
 
 # min change percent ------------------------------------------------------
 
-if (!is.na(exclude$minChangeRate) && exclude$minChangeRate) {
+if (!is.null(exclude$minChangeRate) && 
+    !is.na(exclude$minChangeRate) && 
+    exclude$minChangeRate) {
   changes <- tibble(pid = exclusions$pid, pChange = 0)
   
   for (p in exclusions$pid) {
@@ -157,7 +163,8 @@ if (!is.na(exclude$minChangeRate) && exclude$minChangeRate) {
 
 # outlying participants ---------------------------------------------------
 
-if (!is.na(exclude$participantOutliers) && 
+if (!is.na(exclude$participantOutliers) &&
+    !is.na(exclude$participantOutliers) && 
     nrow(exclude$participantOutliers) > 0) {
   if (!("varName" %in% names(exclude$participantOutliers)))
     stop("exclude$participantOutliers must contain column varName")
@@ -187,7 +194,9 @@ if (!is.na(exclude$participantOutliers) &&
 
 # multiple attempts -------------------------------------------------------
 
-if (!is.na(exclude$multipleAttempts) && exclude$multipleAttempts) {
+if (!is.null(exclude$multipleAttempts) &&
+    !is.na(exclude$multipleAttempts) && 
+    exclude$multipleAttempts) {
   
   # by hash of prolific id
   for (uid in unique(okayIds$uidHash)) {
@@ -221,7 +230,9 @@ if (!is.na(exclude$multipleAttempts) && exclude$multipleAttempts) {
 
 # manual exclusions -------------------------------------------------------
 
-if (!is.na(exclude$manual) && length(exclude$manual) > 0) {
+if (!is.null(exclude$manual) &&
+    !is.na(exclude$manual) && 
+    length(exclude$manual) > 0) {
   
   if (length(exclude$manual) != 1 && 
        length(exclude$manual) != nrow(debrief.form)) {
@@ -261,7 +272,9 @@ if (!is.null(exclude$badMarker) && !is.na(exclude$badMarker)) {
 
 # excess ------------------------------------------------------------------
 
-if (!is.na(exclude$maxPerCondition) && exclude$maxPerCondition > 0) {
+if (!is.null(exclude$maxPerCondition) &&
+    !is.na(exclude$maxPerCondition) && 
+    exclude$maxPerCondition > 0) {
   
   for (x in unique(okayIds$condition)) {
     i <- 0

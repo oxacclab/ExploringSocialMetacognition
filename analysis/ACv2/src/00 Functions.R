@@ -13,7 +13,12 @@ library(curl) # fetching files from server
 
 # constants ---------------------------------------------------------------
 
-markerList <- c(1, 3, 9, 11, 21, 27)
+markerList <- {
+  if (studyName == "datesStudy") 
+    c(1, 3, 9, 11, 21, 27)
+  else
+    c(11)
+}
 
 # loading functions -------------------------------------------------------
 
