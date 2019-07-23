@@ -211,7 +211,9 @@ class Advisor extends BaseObject {
         if(this.group !== 0) {
             elm.querySelector(".advisor-key-row .advisor-group").innerHTML = "Group " + (this.sameGroup? "One" : "Two");
         } else {
-            elm.querySelector(".advisor-key-row .advisor-group").remove();
+            const group = elm.querySelector(".advisor-key-row .advisor-group");
+            if(group)
+                group.remove();
         }
 
         return elm.querySelector(".advisor-key-row");
