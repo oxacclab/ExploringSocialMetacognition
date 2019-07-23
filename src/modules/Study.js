@@ -1448,9 +1448,9 @@ class DatesStudy extends Study {
                 const priv = {
                     comment: document.querySelector("form textarea[name='generalComments']").value
                 };
-                const pub = {
-                    comment: document.querySelector("form textarea[name='advisorDifference']").value
-                };
+
+                const pub = me._getPublicDebriefFormData();
+
                 me.saveCSVRow("debrief-form", false, priv);
                 me.saveCSVRow("debrief-form", true, pub);
 
@@ -1461,6 +1461,12 @@ class DatesStudy extends Study {
                 resolve("debrief");
             });
         });
+    }
+
+    _getPublicDebriefFormData() {
+        return {
+            comment: document.querySelector("form textarea[name='advisorDifference']").value
+        };
     }
 
     async results() {
@@ -1917,6 +1923,10 @@ class MinGroupsStudy extends DatesStudy {
         const pGroup = this.pGroup;
         this.advisors.forEach(a => {
             a.sameGroup = a.group === pGroup;
+            if(a.sameGroup)
+                a.idDescription = "inGroup";
+            else
+                a.idDescription = "outGroup";
         });
 
         // Track the participant's group in CSS using a body class
@@ -1948,6 +1958,13 @@ class MinGroupsStudy extends DatesStudy {
                 }
             }
         })
+    }
+
+    _getPublicDebriefFormData() {
+        return {
+            comment: document.querySelector("form textarea[name='advisorDifference']").value,
+            group: document.querySelector("form input[name='group']:checked").value,
+        };
     }
 
     /**

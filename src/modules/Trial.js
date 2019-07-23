@@ -307,6 +307,9 @@ class Trial extends ControlObject {
         this.data.number = this.number;
         this.data.block = this.block;
         this.data.feedback = this.feedback;
+        const match  = /group-([0-9]+)/i.exec(document.body.classList.toString());
+        if(match)
+            this.data.pGroup = match[1];
 
         const out = {};
 

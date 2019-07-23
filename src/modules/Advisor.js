@@ -249,7 +249,8 @@ class Advisor extends BaseObject {
             "group",
             "name",
             "confidence",
-            "confidenceVariation"
+            "confidenceVariation",
+            "sameGroup"
         ];
     }
 }
