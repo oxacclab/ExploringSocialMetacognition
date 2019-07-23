@@ -90,11 +90,6 @@ describe('The Study', function() {
             .click();
 
         cy.get('esm-instruction button')
-            .contains('Next')
-            .should('be.visible')
-            .click();
-
-        cy.get('esm-instruction button')
             .contains('Okay')
             .should('be.visible')
             .click();
@@ -330,7 +325,7 @@ describe('The Study', function() {
 
             // Branch based on whether Q is attention check
             cy.get('body').then(($body) => {
-                if ($body.find('#stimulus p').text().includes('smallest marker to cover')) {
+                if ($body.find('#stimulus p').text().includes('marker to cover')) {
                     // Cheat attention checks
                     const TL = $body.find('esm-response-timeline')[0];
 
@@ -412,7 +407,7 @@ describe('The Study', function() {
 
             // Branch based on whether Q is attention check
             cy.get('body').then(($body) => {
-                if ($body.find('#stimulus p').text().includes('smallest marker to cover')) {
+                if ($body.find('#stimulus p').text().includes('marker to cover')) {
                     // Cheat attention checks
                     const TL = $body.find('esm-response-timeline')[0];
 
@@ -459,10 +454,6 @@ describe('The Study', function() {
                 .invoke('val', () => Math.floor(Math.random() * 100))
                 .each(e => e.trigger('change'))
                 .click({multiple: true});
-
-            cy.get('textarea')
-                .focus()
-                .type("no comment");
 
             cy.get('button[name="submit"]')
                 .should('be.visible')

@@ -364,7 +364,7 @@
 
     <question topic="arts">
         <prompt>
-            actress Marilyn Munroe commits suicide
+            actress Marilyn Monroe commits suicide
         </prompt>
         <target>1962</target>
         <okay>1</okay>
@@ -470,7 +470,7 @@
 
     <question topic="technology">
         <prompt>
-            Britain replaces pounds, shillings, and pence replaced with decimalised currency
+            Britain replaces pounds, shillings, and pence with decimalised currency
         </prompt>
         <target>1971</target>
         <okay>1</okay>
@@ -542,7 +542,7 @@
 
     <question topic="arts">
         <prompt>
-            Live Aid concert held in London and Philadelphia to raise money to combat famine in Ethiopia
+            Live Aid concerts held in London and Philadelphia to raise money to combat famine in Ethiopia
         </prompt>
         <target>1985</target>
         <okay>1</okay>
