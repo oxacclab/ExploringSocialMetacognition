@@ -1,7 +1,10 @@
 /* Stylesheet for prettifying write-ups */
 
 .summary {
-    padding: 1em;
     background-color: lavender;
+}
+
+div.summary {
+    padding: 1em;
     border: 2px solid black;
 }

@@ -7,9 +7,9 @@ output:
     toc: yes
     toc_depth: '3'
     css: ../src/writeUp.css
-  html_notebook:
     includes:
       after_body: ../src/toc_menu.html
+  html_notebook:
     toc: yes
     toc_depth: 3
 editor_options:
@@ -74,7 +74,7 @@ We hypothesised that participants would place greater weight on the advice of th
 
 ## Preregistration
 
-This study was preregistered on the Open Science Framework, [https://osf.io/28ktf](https://osf.io/28ktf).
+This study was preregistered on the Open Science Framework: [https://osf.io/28ktf](https://osf.io/28ktf).
 
 # Method
 
@@ -401,6 +401,8 @@ Weight on Advice scores are essentially identical between the advisors, as are t
 ```{r questionnaires}
 
 tmp <- debrief.advisors[debrief.advisors$pid %in% AdvisedTrial$pid, ]
+tmp$sameGroup <- NA
+
 for (i in seq(nrow(tmp))) {
   tmp$sameGroup[i] <- as.character(
     advisors$idDescription[advisors$pid == tmp$pid[i] &
