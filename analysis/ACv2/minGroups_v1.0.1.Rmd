@@ -496,17 +496,17 @@ These results may have occurred because the participants are not sensitive to th
 
 It is also possible that participants are sensitive to manipulations of this kind, but that the effects were masked by the experimental protocol. The most obvious candidate for this is a ceiling effect on advice-taking: weights on advice were generally high, with average advice taking (.66) well above averaging (.5). This level of advice-taking was a rational response to the task given the far greater accuracy of advice relative to participants' initial decisions. Setting the advice to be of roughly equivalent quality to the average participants' initial answers may help to reduce these effects, especially if a longer practice period with advisors is allowed.
 
-## Recommendation
+## Recommendation {.summary}
 
 Run a version of this study with advice more reflective of naive participants' estimates. Use a longer practice-with-advice period to familiarize participants with the benefits of even noisy advice. 
 
-## Credits 
+# Credits 
 
-### Acknowledgements
+## Acknowledgements
 
 Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
 
-### R Packages
+## R Packages
 
 ```{r results = 'asis'}
 # list packages
@@ -528,11 +528,11 @@ for (p in packageNames) {
 kable(out)
 ```
 
-### Funding
+## Funding
 
 Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
 
-### Technical details  
+## Technical details  
 
 ```{r results = 'hold'}
 cat(paste('Time stamp:', Sys.time(), '\n\n'))
