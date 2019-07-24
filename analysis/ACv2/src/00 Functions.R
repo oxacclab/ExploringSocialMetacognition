@@ -247,9 +247,18 @@ participantSummary <- function(df, extract = NULL, by = NULL) {
 # analysis functions ------------------------------------------------------
 
 #' Means of v for each marker after converting df entries to participant means
-#' @params v column
-#' @params df dataframe containing v
-markerBreakdown <- function(v, df, hideMarkerTotal = F, missingValue = NA, ...) {
+#' @param v column
+#' @param df dataframe containing v
+#' @param hideTotals whether to hide total rows
+#' @param hideMarkerTotal whether to hide total column for markers
+#' @param missingValue which value to use where values are missing
+#' @param ... passed on to mean
+markerBreakdown <- function(v, 
+                            df, 
+                            hideTotals = F,
+                            hideMarkerTotal = F, 
+                            missingValue = NA,
+                            ...) {
   v <- substitute(v)
   
   markerList <- markerList[markerList %in% df$responseMarker]
@@ -262,18 +271,20 @@ markerBreakdown <- function(v, df, hideMarkerTotal = F, missingValue = NA, ...) 
     mean(tmp[, ncol(tmp)])
   }
   
+  u <- if (hideTotals) unique else uniqueTotal # function for unique values
+  
   # rename total fields
   n <- function(x, alt = NA) if (length(x) == 1) x else alt
   
   out <- list()
-  for (d in uniqueTotal(df$decision)) {
+  for (d in u(df$decision)) {
     if (length(d) != 1)
       next()
     
-    for (f in uniqueTotal(df$feedback)) {
+    for (f in u(df$feedback)) {
       tmp <- tibble(decision = n(d), feedback = n(f))
       
-      for (m in uniqueTotal(markerList)) {
+      for (m in u(markerList)) {
         if (length(m) != 1 && hideMarkerTotal)
           next()
         

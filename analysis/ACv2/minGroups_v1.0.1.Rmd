@@ -6,6 +6,7 @@ output:
     df_print: paged
     toc: yes
     toc_depth: '3'
+    css: ../src/writeUp.css
   html_notebook:
     includes:
       after_body: ../src/toc_menu.html
@@ -31,7 +32,9 @@ library(BayesMed)
 
 library(prettyMD)
 
-# opts_chunk$set('echo' = F)
+library(knitr)
+
+opts_chunk$set('echo' = F)
 
 set.seed(20190723)
 
@@ -41,14 +44,13 @@ theme_set(theme_light() +
 
 ```
 
-## Load data
-
-```{r loadData}
+```{r loadData, include = F}
 
 studyVersion <- "1-0-1"
 studyName <- "minGroups"
 
 exclude <- list(maxAttnCheckFails = 0, # pass all attn checks
+                requireGroupAttnCheck = T, # get the which group Q right
                 requireComplete = T,   # complete experiment
                 maxTrialRT = 60000,    # trials take < 1 minute
                 minTrials = 11,        # at least 11 trials completed
@@ -64,6 +66,22 @@ source("src/02 Exclusions.R")
 
 ```
 
+# Introduction
+
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors sometimes provide deliberately poor advice. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of potentially misleading advice, we used a minimal groups paradigm to pair participant judges in a judge-advisor system with two advisors, one who shared their group and another who did not.
+
+We hypothesised that participants would place greater weight on the advice of the in-group vs out-group advisor, and that this relationship would be mediated by responses to questionnaires asking about the perceived benevolence of the advisor.
+
+## Preregistration
+
+This study was preregistered on the Open Science Framework, [https://osf.io/28ktf](https://osf.io/28ktf).
+
+# Method
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/mg.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/mg.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
 ## Exclusions
 
 ```{r exclusions}
@@ -75,7 +93,7 @@ tmp$condition <- factor(tmp$condition, labels = c("colourB_InFirst",
                                                   "colourA_InFirst",
                                                   "colourA_OutFirst"))
 
-table(tmp$excluded, tmp$condition)
+kable(table(tmp$excluded, tmp$condition))
 
 ```
 
@@ -86,8 +104,15 @@ Our final participant list consists of `r length(unique(PP$pid))` participants w
 ```{r bindAdvisors}
 
 # bind feedback property from participants
-advisors <- advisors[advisors$pid %in% PP$pid, ]
-advisors <- left_join(advisors, unique(PP[c("pid", "feedback")]), "pid")
+
+# convert pid columns to character to allow joining
+tmp <- PP
+tmp$pid <- as.character(tmp$pid)
+
+advisors$pid <- as.character(advisors$pid)
+
+advisors <- advisors[advisors$pid %in% tmp$pid, ]
+advisors <- left_join(advisors, unique(tmp[c("pid", "feedback")]), "pid")
 
 # drop practice advisors
 advisors <- advisors[advisors$idDescription != "Practice", ]
@@ -106,9 +131,10 @@ Responses are regarded as **correct** if the target year is included within the 
 
 ```{r accuracy}
 
-tmp <- markerBreakdown(responseCorrect, decisions)
-num2str.tibble(tmp$first, isProportion = T, precision = 3)
-num2str.tibble(tmp$last, isProportion = T, precision = 3)
+tmp <- markerBreakdown(responseCorrect, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
 
 ```
 
@@ -136,9 +162,10 @@ The **error** is calcualted as the distance from the centre of the answer marker
 
 ```{r err}
 
-tmp <- markerBreakdown(responseError, decisions)
-num2str.tibble(tmp$first)
-num2str.tibble(tmp$last)
+tmp <- markerBreakdown(responseError, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
 
 ```
 
@@ -168,9 +195,10 @@ We can look at the response time - the difference between the time the response 
 
 decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
 
-tmp <- markerBreakdown(rt, decisions)
-num2str.tibble(tmp$first)
-num2str.tibble(tmp$last)
+tmp <- markerBreakdown(rt, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
 
 ```
 
@@ -192,6 +220,10 @@ ggplot(aggregate(rt ~
        y = "response time (s)")
 
 ```
+
+### Summary {.summary}
+
+Participants took longer on their final decisions, and greatly improved their accuracy. This suggests that they took the time to weigh up the advice, and that they took it into account when making their (final) decisions.
 
 ## Advisor performance
 
@@ -306,6 +338,10 @@ ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
 
 ```
 
+### Summary {.summary}
+
+The ingroup advisor was slightly better, through random chance, than the outgroup advisor. Neither advisor was obviously better to the participants, however, because no feedback was given on a trial-by-trial basis, and the advisors performed equivalently in terms of the distance between the advice and the participants' initial responses.
+
 ### Influence
 
 The measure of influence is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
@@ -339,7 +375,8 @@ ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
   geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
   geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5)
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1))
 
 ```
 
@@ -354,6 +391,10 @@ ggplot(AdvisedTrial, aes(woa)) +
   facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
 
 ```
+
+### Summary {.summary}
+
+Weight on Advice scores are essentially identical between the advisors, as are the distributions. This suggests that participants are not differentiating between the advisors with regard to the weight placed on those advisors' advice. Formal testing of the hypothesis is below.
 
 ## Questionnaire data
 
@@ -376,9 +417,14 @@ ggplot(tmp, aes(x = sameGroup, y = rating)) +
   geom_point(alpha = .5, aes(colour = pid)) +
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 100)) +
   facet_wrap(. ~ Q, labeller = label_both)
 
 ```
+
+### Summary {.summary} 
+
+Across all questions there is a preference for the ingroup vs outgroup advisor, although this is not highly pronounced. There is not an obviously greater difference in benevolence ('helpfulness') compared to the other questions.
 
 ## Hypothesis testing
 
@@ -403,6 +449,10 @@ r <- md.ttestBF(tmp$inGroup.woa, tmp$outGroup.woa,
 cat(r)
 
 ```
+
+### Summary {.summary}
+
+The Bayes factor indicates there is good evidence to support the claim that the participants do not place greater weight on the advice of one advisor versus the other.
 
 ### Mediation by benevolence
 
@@ -431,6 +481,22 @@ r$main_result
 plot(r$main_result)
 
 ```
+
+### Summary {.summary}
+
+There is evidence in favour of the pathway $\beta$, suggesting that higher benevolence ratings are associated with higher weight on advice scores. There is evidence against the other pathways, and against the mediation of a relationship between group and weight on advice by benevolence rating.
+
+# Conclusions
+
+The experiment provided evidence against the hypotheses tested. Weight on advice was not higher for ingroup vs outgroup advisors, and the differences in the weighting of advice were not mediated by perceived benevolence. 
+
+These results may have occurred because the participants are not sensitive to the manipulation, providing evidence against the suggestion that humans exhibit context-sensitivity in their advice-taking analogous to evolutionary adaptation in modelling scenarios (note that this would not necessarily invalidate the suggestion that humans possess hyperpriors on advice baked in over evolutionary time). 
+
+It is also possible that participants are sensitive to manipulations of this kind, but that the effects were masked by the experimental protocol. The most obvious candidate for this is a ceiling effect on advice-taking: weights on advice were generally high, with average advice taking (.66) well above averaging (.5). This level of advice-taking was a rational response to the task given the far greater accuracy of advice relative to participants' initial decisions. Setting the advice to be of roughly equivalent quality to the average participants' initial answers may help to reduce these effects, especially if a longer practice period with advisors is allowed.
+
+## Recommendation
+
+Run a version of this study with advice more reflective of naive participants' estimates. Use a longer practice-with-advice period to familiarize participants with the benefits of even noisy advice. 
 
 ## Credits 
 

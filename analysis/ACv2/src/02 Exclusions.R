@@ -26,6 +26,7 @@ library(tibble)
 if (!isSet("exclude")) {
   print(tribble(~variable, ~type, ~description,
                 "maxAttnCheckFails", "int", "Maximum attention check failures allowed",
+                "requireGroupAttnCheck", "bool", "Remove participants failing the 'which group were you in' debrief question",
                 "requireComplete", "bool", "Remove participants who did not complete experiment",
                 "maxTrialRT", "int", "Remove trials with long response times",
                 "minTrials", "int", "Remove participants with too few trials",
@@ -70,6 +71,23 @@ if (!is.null(exclude$maxAttnCheckFails) && !is.na(exclude$maxAttnCheckFails)) {
   AdvisedTrial <- tmp
 }
 
+if (!is.null(exclude$requireGroupAttnCheck) && !is.na(exclude$requireGroupAttnCheck)) {
+  for (p in unique(exclusions$pid)) {
+    tmp <- debrief.form
+    
+    if (length(tmp$group[tmp$pid == p]) && tmp$group[tmp$pid == p] == 0)
+      exclusions$excluded[exclusions$pid == p] <- 
+        addExclusion(exclusions$excluded[exclusions$pid == p], "groupAttnCheck")
+  }
+  
+  # Drop excluded participants' trials
+  tmp <- NULL
+  for (i in 1:nrow(AdvisedTrial))
+    if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
+      tmp <- rbind(tmp, AdvisedTrial[i, ])
+  
+  AdvisedTrial <- tmp
+}
 
 # incomplete --------------------------------------------------------------
 
