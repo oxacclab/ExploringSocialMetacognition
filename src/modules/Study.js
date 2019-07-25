@@ -42,23 +42,20 @@ class Study extends ControlObject {
 
     constructor(blueprint) {
         super(blueprint);
+    }
 
-        // Don't recalculate trial list if it will be overridden
-        let me = this;
-        setTimeout(() => {
-            if(!me.trials.length) {
-                for(let b = 0; b < me.blocks.length; b++) {
-                    for(let i = 0; i < me.blocks[b].trialCount; i++) {
-                        me.trials.push(new AdvisedTrial(
-                            {
-                                block: b,
-                                ...me.blocks[b],
-                                ...me.trialBlueprint
-                            }));
-                    }
-                }
+    async setupTrials() {
+        for(let b = 0; b < this.blocks.length; b++) {
+            for(let i = 0; i < this.blocks[b].trialCount; i++) {
+                this.trials.push(new AdvisedTrial(
+                    {
+                        block: b,
+                        ...this.blocks[b],
+                        ...this.trialBlueprint
+                    }));
             }
-        }, 0);
+        }
+        return this;
     }
 
     _setDefaults() {
@@ -167,7 +164,7 @@ class Study extends ControlObject {
 
                     me.saveCSVRow("consent",false,{
                         consentTime: "not yet implemented"//new Date().getTime()
-                    }).then(reply => resolve(reply));
+                    }).then(me.setupTrials()).then(reply => resolve(reply));
                 });
         });
     }
@@ -980,7 +977,10 @@ class Study extends ControlObject {
                 b.displayFeedback = feedback?
                     me.displayFeedback : null;
                 let i = me.blocks.indexOf(b);
-                b.advisors = [advisors[advisorOrder[i % 2]]]
+                if(b.advisorChoice)
+                    b.advisors = me.advisors.filter(a => a.id > 0);
+                else
+                    b.advisors = [advisors[advisorOrder[i % 2]]]
             });
 
         // Update trials with new info
@@ -1078,10 +1078,12 @@ class Study extends ControlObject {
 class DatesStudy extends Study {
     constructor(blueprint) {
         super(blueprint);
-        this.trials = [null]; // prevent trials calculation
+    }
+
+    async setupTrials() {
 
         // Fetch questions then assign trials
-        this.parseQuestionsXML()
+        await this.parseQuestionsXML()
             .then(() => {
                 this.trials = [];
                 let t = 0;
@@ -1147,6 +1149,10 @@ class DatesStudy extends Study {
                 for(let b = 0; b < this.blocks.length; b++) {
                     // Ids of advisors in the block
                     const block = this.blocks[b];
+
+                    if(!block.advisors)
+                        return this.info("No block advisors to process.");
+
                     const ids = block.advisors.map(a => a.id);
 
                     // Skip if no shuffling needed
@@ -1187,6 +1193,8 @@ class DatesStudy extends Study {
 
                 }
             });
+
+        return this;
     }
 
     // Override the prefix so styling can use Trial rather than duplicating

@@ -350,6 +350,7 @@ class Trial extends ControlObject {
  * by a ResponseWidget as in the initial response inherited from Trial.
  *
  * @property advisors {Advisor[]} advisors giving advice on the trial
+ * @property [advisorChoice] {boolean} whether the participant can choose which advisor gives advice
  * @property [durationShowAdvice=null] {int|null} duration of the advice display
  * in ms, or null to allow the Advisor to handle it
  * @property [durationFinalResponse=null] {int|null} duration of the final
@@ -392,9 +393,11 @@ class AdvisedTrial extends Trial {
         if(typeof prompt === "string") {
             // Default prompt varies by phase
             const s = "Consider the advice below and provide a final response.";
+            const a = "Choose an advisor from the side to continue.";
             this.prompt = {
                 showAdvice: s,
                 getFinalResponse: s,
+                chooseAdvisor: a,
                 showFeedback: s,
                 end: "",
                 cleanup: ""
@@ -412,12 +415,47 @@ class AdvisedTrial extends Trial {
             "showStim",
             "hideStim",
             "getResponse",
+            "chooseAdvisor",
             "showAdvice",
             "getFinalResponse",
             "showFeedback",
             "end",
             "cleanup"
         ]
+    }
+
+    /**
+     * Choose the advisor for the trial
+     * @return {Promise<AdvisedTrial>}
+     */
+    async chooseAdvisor() {
+        if(!this.advisorChoice)
+            return this;
+
+        const me = this;
+
+        // Copy advisors to options
+        this.advisorOptions = [...this.advisors];
+        this.advisors = [];
+
+        return new Promise(resolve => {
+            // Set click events to select the advisor
+            document.querySelectorAll(".advisor-key-row").forEach(elm => {
+                elm.onclick = null;
+                elm.addEventListener("click", e => {
+                    const id = e.currentTarget.dataset.advisorId;
+                    me.advisorOptions.forEach(a => {
+                        if(a.id.toString() === id) {
+                            me.advisors = [a];
+                            resolve(me);
+
+                            document.querySelectorAll(".advisor-key-row").forEach(e => e.onclick = null);
+                        }
+                    })
+                })
+                }
+            );
+        });
     }
 
     /**

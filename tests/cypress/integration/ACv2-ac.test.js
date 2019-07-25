@@ -1,6 +1,6 @@
 describe('Initial connection', function() {
     it('Redirects to collect confidence', function() {
-        cy.visit('localhost/ExploringSocialMetacognition/ACv2/?PROLIFIC_PID=CypressTest');
+        cy.visit('localhost/ExploringSocialMetacognition/ACv2/ac.html?PROLIFIC_PID=CypressTest');
 
         // Should be redirected to the consent page
         cy.url().should('include', '/consent.html?PROLIFIC_PID=CypressTest');
@@ -21,7 +21,7 @@ describe('Initial connection', function() {
 describe('The Study', function() {
 
     it('Welcomes the user', function() {
-        cy.visit('localhost/ExploringSocialMetacognition/ACv2/?PROLIFIC_PID=CypressTest&consent=true');
+        cy.visit('localhost/ExploringSocialMetacognition/ACv2/ac.html?PROLIFIC_PID=CypressTest&consent=true');
 
         // Should connect
         cy.contains('Welcome')
@@ -101,7 +101,7 @@ describe('The Study', function() {
     });
 
     it('Runs the training', function() {
-       // Should have a visible continue instruction
+        // Should have a visible continue instruction
         cy.get('#training-instructions')
             .contains('Click or Touch')
             .should('be.visible');
@@ -161,7 +161,7 @@ describe('The Study', function() {
     let q = -1;
 
     // 10 practice questions
-    for(let i = 0; i < 10; i++) {
+    for(let i = 0; i < 1; i++) {
         q++;
         it('Runs practice Q' + i + ' [Q' + q + ']', function() {
 
@@ -276,7 +276,7 @@ describe('The Study', function() {
             .click();
     });
 
-    for(let i = 0; i < 15; i++) {
+    for(let i = 0; i < 3; i++) {
         q++;
 
         it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
@@ -362,7 +362,7 @@ describe('The Study', function() {
             .click();
     });
 
-    for(let i = 0; i < 15; i++) {
+    for(let i = 0; i < 3; i++) {
         q++;
 
         it('Runs block 2 Q' + i + ' [Q' + q + ']', function() {
@@ -404,6 +404,89 @@ describe('The Study', function() {
                 } else {
                     // Continue as normal with normal responses
                     cy.get('button.confirm.enabled')
+                        .click();
+
+                    // Receive advice
+                    cy.get('esm-response-timeline .response-marker.advisor')
+                        .should('be.visible');
+
+                    cy.get('body')
+                        .should('have.class', 'Trial-getFinalResponse');
+
+                    cy.wait(120);
+
+                    // Tap marker
+                    cy.get('esm-response-timeline .response-marker.ghost.set .clickhandler')
+                        .click({force: true});
+                }
+            });
+
+            // Confirm response
+            cy.get('button.confirm.enabled')
+                .click();
+        });
+    }
+
+    it('Pauses between blocks', function() {
+
+        cy.get('#instructions h1')
+            .should('have.text', 'Break')
+            .should('be.visible');
+
+        // Click through instructions
+        cy.get('esm-instruction button')
+            .contains('Okay')
+            .should('be.visible')
+            .click();
+    });
+
+    for(let i = 0; i < 2; i++) {
+        q++;
+
+        it('Runs choice block Q' + i + ' [Q' + q + ']', function() {
+
+            // Should show a question
+            cy.get('#stimulus p')
+                .should('be.visible');
+
+            cy.get('.response-marker-pool')
+                .should('be.visible');
+
+            cy.get('body')
+                .should('have.class', 'Trial-getResponse');
+
+            cy.wait(120);
+
+            // Fill in a response
+            cy.get('.response-marker-pool .response-marker.size0 .clickhandler')
+                .trigger('mousedown', {force: true})
+                .trigger('mousemove', { force: true, pageX: 600, pageY: 600 })
+                .trigger('mouseup', {force: true});
+
+            // Branch based on whether Q is attention check
+            cy.get('body').then(($body) => {
+                if ($body.find('#stimulus p').text().includes('marker to cover')) {
+                    // Cheat attention checks
+                    const TL = $body.find('esm-response-timeline')[0];
+
+                    const marker = $body.find('esm-response-timeline .response-marker.ghost.set')[0];
+
+                    let study = cy.state('window').study;
+
+                    const ans = study.trials[study.currentTrial].correctAnswer;
+
+                    marker.style.left =
+                        TL.valueToPixels(ans) +
+                        "px";
+                    marker.style.width = TL.valueToPixels(TL.markerWidths[0], true) + "px";
+                } else {
+                    // Continue as normal with normal responses
+                    cy.get('button.confirm.enabled')
+                        .click();
+
+                    // Choose random advisor
+                    cy.get('.advisor-key-row').eq(Math.random() > .5)
+                        .should('be.visible')
                         .click();
 
                     // Receive advice

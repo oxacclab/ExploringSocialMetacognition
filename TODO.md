@@ -4,6 +4,10 @@
 ### Initial
 * ~~Finalize design~~
 * ~~Preregistration~~
+* ~~Run~~
+* ~~Data analysis~~
+* Refine paradigm
+* Preregistration
 * Run
 * Data analysis
 ### Registered Report
@@ -18,9 +22,9 @@
 * Implement Agree-in-confidence/uncertainty advisors
 * Run AiC/AiU study
 ### Advisor choice
-* Implement advisor choice
+* ~~Implement advisor choice~~
 * Run advisor choice for Agree/Accurate
-    * Choice trials should give offbrand advice, so influence can be compared on choice trials
+    * Choice trials should give offbrand advice, so influence can be compared on choice trials (how to compare for participants who only pick one advisor?)
 * Run advisor choice for AiC/AiU
 
 ## Non-advice-takers
