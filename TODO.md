@@ -6,16 +6,16 @@
 * ~~Preregistration~~
 * ~~Run~~
 * ~~Data analysis~~
-* Refine paradigm
-* Preregistration
+* ~~Refine paradigm~~
+* ~~Preregistration~~
 * Run
 * Data analysis
 ### Registered Report
 * Identify journal(s)
-* RR phase 1
+* RR stage 1
 * Revise RR
 * Run RR
-* RR phase 2
+* RR stage 2
 
 ## Core studies
 * Clarify marker usage (confidence)

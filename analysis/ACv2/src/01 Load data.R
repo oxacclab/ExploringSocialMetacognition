@@ -24,56 +24,80 @@ if (!isSet("studyVersion")) {
 if (!isSet("studyName")) {
   studyName <- "datesStudy"
 }
+if (!isSet("rDir")) {
+  rDir = "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/"
+}
 
 
 # load data ---------------------------------------------------------------
 
-files <- listServerFiles(study = studyName, version = studyVersion)
+allFiles <- listServerFiles(study = studyName, version = studyVersion, rDir = rDir)
 
-# Screen for acceptable IDs
-f <- files[grep("metadata", files)]
-okayIds <- read.csv(f)
+versions <- unique(reFirstMatch("(v[0-9\\-]+)", allFiles))
 
-okayIds$okay <- grepl("prolific", okayIds$tags)
-
-files <- files[grep("metadata", files, invert = T)]
-
-# convert CSV files to tibbles
-for (f in files) {
-  tmp <- as.tibble(read.csv(f))
+for (v in versions) {
+  files <- allFiles[grepl(v, allFiles, fixed = T)]
+    
+  # Screen for acceptable IDs
+  f <- files[grep("metadata", files)]
   
-  # screen out non-okay ids
-  if ("pid" %in% names(tmp))
-    tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
+  if (length(f) < 1)
+    next()
   
-  # clean up stimulus text
-  if ("stimHTML" %in% names(tmp)) {
-    tmp$stimHTML <- stripTags(tmp$stimHTML)
+  okayIds <- read.csv(f)
+  
+  if (!isSet("testData")) {
+    okayIds$okay <- grepl("prolific", okayIds$tags)
+  } else {
+    okayIds$okay <- T
   }
   
-  # type coersion
-  if ("comment" %in% names(tmp))
-    tmp$comment <- as.character(tmp$comment)
+  files <- files[grep("metadata", files, invert = T)]
   
-  n <- grep("advisor[0-9]+(name|validTypes|nominalType|actualType)$", 
-            names(tmp), value = T)
-  for (x in n)
-    tmp[, x] <- lapply(tmp[, x], as.character)
-  
-  n <- grep("responseEstimateLabel", names(tmp), value = T)
-  for (x in n)
-    tmp[, x] <- lapply(tmp[, x], function(y) 
-      as.numeric(stripTags((as.character(y)))))
-  
-  if ("responseMarkerWidth" %in% names(tmp))
-    tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
-  if ("responseMarkerWidthFinal" %in% names(tmp))
-    tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
-  
-  # assign to workspace
-  name <- reFirstMatch("([^_]+)\\.csv", f)
-  name <- sub("-", ".", name)
-  assign(name, tmp)
+  # convert CSV files to tibbles
+  for (f in files) {
+    
+    tmp <- as.tibble(read.csv(f))
+    
+    # screen out non-okay ids
+    if ("pid" %in% names(tmp))
+      tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
+    
+    # clean up stimulus text
+    if ("stimHTML" %in% names(tmp)) {
+      tmp$stimHTML <- stripTags(tmp$stimHTML)
+    }
+    
+    # type coersion
+    if ("comment" %in% names(tmp))
+      tmp$comment <- as.character(tmp$comment)
+    
+    n <- grep("advisor[0-9]+(name|validTypes|nominalType|actualType)$", 
+              names(tmp), value = T)
+    for (x in n)
+      tmp[, x] <- lapply(tmp[, x], as.character)
+    
+    n <- grep("responseEstimateLabel", names(tmp), value = T)
+    for (x in n)
+      tmp[, x] <- lapply(tmp[, x], function(y) 
+        as.numeric(stripTags((as.character(y)))))
+    
+    if ("responseMarkerWidth" %in% names(tmp))
+      tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
+    if ("responseMarkerWidthFinal" %in% names(tmp))
+      tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
+    
+    # assign to workspace
+    name <- reFirstMatch("([^_]+)\\.csv", f)
+    name <- sub("-", ".", name)
+    
+    if (length(versions) > 1 & 
+        any(grepl(paste0('^', name, '$'), ls()) == T)) {
+      assign(name, safeBind(list(get(name), tmp)))
+    } else {
+      assign(name, tmp)
+    }
+  }
 }
 
 
@@ -299,8 +323,8 @@ for (a in advisorNames) {
     
     # Distance
     reMid <- minP + (maxP - minP) / 2
-    advice <- AdvisedTrial[, paste0(a, ".advice")]
-    AdvisedTrial[, paste0(a, ".distance", d)] <- abs(reMid - advice)
+    adv <- AdvisedTrial[, paste0(a, ".advice")]
+    AdvisedTrial[, paste0(a, ".distance", d)] <- abs(reMid - adv)
   }
   
   # Agreement change
@@ -344,5 +368,5 @@ PP <- participantSummary(decisions)
 # cleanup -----------------------------------------------------------------
 
 suppressWarnings(rm("a", "d", "n", "s", "v", "suffix", "files", "name",
-                    "adv", "advice", "f", "i", "maxA", "maxP", "minA", "minP", 
+                    "adv", "f", "i", "maxA", "maxP", "minA", "minP", 
                     "names", "reMid", "tmp", "types", "x", "low", "high"))

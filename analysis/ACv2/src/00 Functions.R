@@ -5,11 +5,22 @@
 
 ## Functions
 
+isSet <- function(v) {
+  length(grep(paste0("^", v, "$"), ls(parent.frame())))
+}
 
 # libraries ---------------------------------------------------------------
 
 library(testthat) # unit tests
 library(curl) # fetching files from server
+library(beepr) # beeps for error/complete
+
+
+# error beeps -------------------------------------------------------------
+
+if (!isSet("silent")) {
+  options(error = function() {beep("wilhelm")})
+}
 
 # constants ---------------------------------------------------------------
 
@@ -25,8 +36,9 @@ markerList <- {
 #' List the files on the server matching the specified version
 #' @param study to fetch data for. Default for back-compatability
 #' @param version version of the experiment to use, or all for all
-listServerFiles <- function(study = "datesStudy", version = "all") {
-  rDir <- "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/"
+#' @param rDir remote directory to crawl
+listServerFiles <- function(study = "datesStudy", version = "all",
+                            rDir = "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/" ) {
   
   if (version == "all") {
     version <- "[0-9\\-]+"
@@ -39,7 +51,7 @@ listServerFiles <- function(study = "datesStudy", version = "all") {
   while (isIncomplete(con)) {
     buffer <- readLines(con, n = 1)
     if (length(buffer)) {
-      f <- reFirstMatch(paste0(">(", study, "_v", version, "_[^<]+)"),
+      f <- reFirstMatch(paste0("(", study, "_v", version, '_[^"]+.csv)'),
                         buffer)
       if (nchar(f)) {
         out <- c(out, paste0(rDir, f))
@@ -103,6 +115,20 @@ safeBind <- function(x, padWith = NA) {
   out <- NULL
   first <- T
   
+  pad <- function(a, b) {
+    missing <- names(b)[names(b) %in% names(a) == F]
+    
+    for (v in missing) {
+      if (nrow(a)) {
+        a[, v] <- padWith
+      } else {
+        a[, v] <- do.call(typeof(b[, v]), args = list())
+      }
+    }
+    
+    a
+  }
+  
   for (y in x) {
     
     if (!is.data.frame(y))
@@ -112,8 +138,8 @@ safeBind <- function(x, padWith = NA) {
       out <- y
       first <- F
     } else {
-      y[, names(out)[names(out) %in% names(y) == F]] <- padWith
-      out[, names(y)[names(y) %in% names(out) == F]] <- padWith
+      y <- pad(y, out)
+      out <- pad(out, y)
       out <- rbind(out, y)
     }
   }

@@ -95,7 +95,7 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 }
 
 /* Show the advice and ghost during advice and final decision phases */
-.Trial-chooseAdvisor .response-marker.ghost, 
+.Trial-chooseAdvisor .response-marker.ghost,
 .Trial-showAdvice .response-marker.advisor,
 .Trial-getFinalResponse .response-marker.advisor,
 .Trial-showFeedback .response-marker.advisor,

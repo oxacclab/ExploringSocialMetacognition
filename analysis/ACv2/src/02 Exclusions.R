@@ -105,14 +105,16 @@ if (!is.null(exclude$requireComplete) &&
 
 # outlying trials ---------------------------------------------------------
 
-if (!is.na(exclude$maxTrialRT) && exclude$maxTrialRT > 0) {
+if (!is.null(exclude$maxTrialRT) &&
+    !is.na(exclude$maxTrialRT) && exclude$maxTrialRT > 0) {
   AdvisedTrial <- AdvisedTrial[AdvisedTrial$timeEnd <= exclude$maxTrialRT, ]
 }
 
 
 # outlying trial count ----------------------------------------------------
 
-if (!is.na(exclude$minTrials) && exclude$minTrials > 0) {
+if (!is.null(exclude$minTrials) &&
+    !is.na(exclude$minTrials) && exclude$minTrials > 0) {
   
   for (p in unique(exclusions$pid)) {
     if (sum(AdvisedTrial$pid == p) < exclude$minTrials)
@@ -181,7 +183,8 @@ if (!is.null(exclude$minChangeRate) &&
 
 # outlying participants ---------------------------------------------------
 
-if (!is.na(exclude$participantOutliers) &&
+if (!is.null(exclude$participantOutliers) &&
+    !is.na(exclude$participantOutliers) &&
     !is.na(exclude$participantOutliers) && 
     nrow(exclude$participantOutliers) > 0) {
   if (!("varName" %in% names(exclude$participantOutliers)))
@@ -336,5 +339,5 @@ for (n in ls()) {
 
 # cleanup -----------------------------------------------------------------
 
-suppressWarnings(rm("tmp", "p", "i", "x", "n", "uid", "outliers", "v", "dirty", 
-                    "ids"))
+suppressWarnings(rm("tmp", "p", "i", "x", "n", "uid", 
+                    "outliers", "v", "dirty", "ids"))

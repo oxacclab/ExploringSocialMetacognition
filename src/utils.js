@@ -336,7 +336,43 @@ function randomNumber(min = 0, max = 1, int = true) {
     return int? Math.floor(x) : x;
 }
 
+/**
+ * Box-Muller Transform sampling from the normal distribution.
+ * @param [n = 1] {number}  samples to take
+ * @param [mean = 0] {number} mean of the normal distribution
+ * @param [sd = 1] {number} standard deviation of the distribution
+ * @return {number|number[]} random sample(s) from the normal distribution
+ */
+function sampleNormal(n = 1, mean = 0, sd = 1) {
+    if(n > 1)
+        return getSequence(1, n).map(() => sampleNormal(1, mean, sd));
+
+    const a = Math.random();
+    const b = Math.random();
+
+    const x = Math.sqrt(-2 * Math.log(a));
+    const y = Math.cos(2 * Math.PI * b);
+
+    return ((x * y) * sd) + mean;
+}
+
+/**
+ * Returns the probability density of the normal distribution (mean, sd) for a given z-score
+ * @param z {number | number[]} z-score
+ * @param mean {number}
+ * @param sd {number}
+ * @return {number | number[]}
+ */
+function zToNormal(z, mean = 0, sd = 1) {
+    // Support for vectored inputs
+    if(typeof z === "object")
+        return z.map(x => zToNormal(x, mean, sd));
+
+    const scale = 1 / Math.sqrt(2 * Math.PI * Math.pow(sd, 2));
+    const exp = Math.pow(z - mean, 2) / (2 * Math.pow(sd, 2));
+
+    return scale * Math.exp(-exp);
+}
 
 
-
-export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, randomNumber}
+export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, randomNumber, sampleNormal, zToNormal}

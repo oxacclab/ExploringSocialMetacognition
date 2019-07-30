@@ -726,20 +726,17 @@ const ADVICE_CORRECTISH = Object.freeze(new AdviceType({
         const pCentre = t.data.responseEstimateLeft +
             Math.floor(t.data.responseMarkerWidth / 2);
 
-        // Effectively rolling 3d4-3 and subtracting the expected value
-        const nDraws = 3;
-        const nMin = 0;
-        const nMax = a.confidenceVariation;
-
+        // Normally distributed around the correct answer
         let c;
         let min;
         let max;
+        let z;
 
         do {
             c = t.correctAnswer;
-            c -= (nMax - nMin) / 2 * nDraws;
-            for(let i = 0; i < nDraws; i++)
-                c += utils.randomNumber(nMin, nMax);
+            z = utils.sampleNormal(1, 0, a.confidenceVariation);
+
+            c += z;
 
             c = Math.round(c);
             min = c - w;
@@ -776,20 +773,17 @@ const ADVICE_AGREEISH = Object.freeze(new AdviceType({
         const pCentre = t.data.responseEstimateLeft +
             Math.floor(t.data.responseMarkerWidth / 2);
 
-        // Effectively rolling 3d4-3 and subtracting the expected value
-        const nDraws = 3;
-        const nMin = 0;
-        const nMax = a.confidenceVariation;
-
+        // Normally distributed around the correct answer
         let c;
         let min;
         let max;
+        let z;
 
         do {
             c = pCentre;
-            c -= (nMax - nMin) / 2 * nDraws;
-            for(let i = 0; i < nDraws; i++)
-                c += utils.randomNumber(nMin, nMax);
+            z = utils.sampleNormal(1, 0, a.confidenceVariation);
+
+            c += z;
 
             c = Math.round(c);
             min = c - w;
