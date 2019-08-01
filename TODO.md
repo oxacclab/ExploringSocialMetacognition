@@ -8,8 +8,12 @@
 * ~~Data analysis~~
 * ~~Refine paradigm~~
 * ~~Preregistration~~
-* Run
-* Data analysis
+* ~~Run~~
+* ~~Data analysis~~
+* Redesign for explicit benevolence manipulation
+* Preregistration
+* Run 
+* Data analysis 
 ### Registered Report
 * Identify journal(s)
 * RR stage 1
