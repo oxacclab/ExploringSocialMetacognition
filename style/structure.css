@@ -120,7 +120,9 @@ esm-instruction > div:last-child {
     justify-self: stretch;
     align-self: stretch;
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: max-content 1fr;
+    grid-gap: 1em;
+    gap: 1em;
     grid-template-areas:
         "sidebar stimulus";
     align-items: center;
@@ -130,9 +132,9 @@ esm-instruction > div:last-child {
     justify-self: start;
 }
 .stimulus {
+    grid-area: stimulus;
+    justify-self: stretch;
     padding: 0 1em;
-    grid-column-start: 1;
-    grid-column-end: 3;
 }
 .response {
     grid-area: response;

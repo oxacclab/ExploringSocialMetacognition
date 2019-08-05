@@ -79,12 +79,6 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
     opacity: 0;
 }
 
-/* Stimulus should make room for the advisors where they are present */
-.Study-advisorPractice .sidebar ~ .stimulus,
-.Study-core .sidebar ~ .stimulus {
-    grid-area: stimulus;
-}
-
 /* Show fully-opaque response panel when it should be the focus of attention. */
 .Trial-getResponse #response-panel,
 .Trial-showAdvice #response-panel,
