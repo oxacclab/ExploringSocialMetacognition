@@ -12,6 +12,25 @@
 // the project's config changing)
 
 module.exports = (on, config) => {
-  // `on` is used to hook into various events Cypress emits
-  // `config` is the resolved Cypress config
-}
+    // `on` is used to hook into various events Cypress emits
+    // `config` is the resolved Cypress config
+    on('before:browser:launch', (browser = {}, args) => {
+        // browser will look something like this
+        // {
+        //   name: 'chrome',
+        //   displayName: 'Chrome',
+        //   version: '63.0.3239.108',
+        //   path: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        //   majorVersion: '63'
+        // }
+
+        if (browser.name === 'chrome') {
+            // `args` is an araay of all the arguments
+            // that will be passed to Chrome when it launchers
+            args.push('--no-user-gesture-required');
+
+            // whatever you return here becomes the new args
+            return args;
+        }
+    })
+};

@@ -132,7 +132,7 @@
     </template>
 
     <template id="feedback">
-        <div class="feedback-wrapper">
+        <div class="feedback-wrapper overlay">
             <div class="debrief">
                 <p class="payment-link">
                     Payment code: <a href="https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4" target="_blank">MX5PC2Z4</a>
@@ -187,22 +187,27 @@
             <div class="outer">
                 <div class="inner"></div>
             </div>
-            <esm-help data-group="interface" class="bottom">
+            <esm-help data-group="interface" class="bottom wide">
                 The <em>progress bar</em> shows how far through the study you are.
             </esm-help>
         </div>
-        <div class="frame top">
-            <!--<div class="left"></div>-->
-            <div class="middle">
-                <div id="stimulus"></div>
-                <div id="prompt"></div>
-                <esm-help data-group="interface">
-                    This is the <em>stimulus</em> you have to respond to. Below is the <em>prompt</em> area which tells you how to respond and provides further information.
+        <div id="prompt" class="prompt">Prompt text</div>
+        <div class="middle">
+            <div class="sidebar">
+                <div class="advisor-key"></div>
+                <esm-help data-group="interface" class="right">
+                    This area of the screen will display the advisors who might give you advice on a question.<br/>
+                    At the moment you don't have any advisors so the area is empty.
                 </esm-help>
             </div>
-            <!--<div class="right"></div>-->
+            <div class="stimulus">
+                <div id="stimulus"></div>
+                <esm-help data-group="interface" class="bottom wide">
+                    This is the <em>question</em> you have to answer.
+                </esm-help>
+            </div>
         </div>
-        <div class="frame bottom">
+        <div class="response">
             <div id="response">
             </div>
         </div>

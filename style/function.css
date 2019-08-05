@@ -13,6 +13,7 @@ Study-practiceInstructions
 Study-practice
 Study-advisorPracticeInstructions
 Study-advisorPractice
+Study-assignGroup
 Study-coreInstructions
 Study-core
 Study-debrief
@@ -21,6 +22,7 @@ Trial-begin
 Trial-showStim
 Trial-hideStim
 Trial-getResponse
+Trial-chooseAdvisor
 Trial-showAdvice
 Trial-getFinalResponse
 Trial-showFeedback
@@ -28,11 +30,28 @@ Trial-end
 Trial-cleanup
  */
 
-.Study-demographics #questionnaire {
-    display: block;
+/* Tidy up initial view of response timeline */
+body:not(.Trial-any) #response-panel {
+    opacity: 0;
 }
 
-.Study-training #training-instructions {
+/* Ensure panels show at correct times */
+.Study-consent #instructions,
+.Study-demographics #questionnaire,
+.Study-introduction #instructions,
+.Study-practiceInstructions #instructions,
+.Study-advisorPracticeInstructions #instructions,
+.Study-coreInstructions #instructions,
+.Study-assignGroup #instructions,
+.Study-blockBreak #instructions,
+.report-issue #report-issue,
+.fullscreen-error #fullscreen-warning,
+.fatal-error #fullscreen-warning {
+    height: 100%;
+}
+
+/* Training adjustments */
+.Study-training:not(.Trial-showFeedback) #training-instructions {
     display: unset;
 }
 .Study-training .progress-bar .outer {
@@ -58,6 +77,12 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 /* Hide response panel until it's first needed */
 .Study-training:not(.Trial-getResponse) #response-panel {
     opacity: 0;
+}
+
+/* Stimulus should make room for the advisors where they are present */
+.Study-advisorPractice .sidebar ~ .stimulus,
+.Study-core .sidebar ~ .stimulus {
+    grid-area: stimulus;
 }
 
 /* Show fully-opaque response panel when it should be the focus of attention. */
@@ -125,23 +150,6 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 
 /* Hide the advisor portrait during the coin flip */
 .Study-assignGroup .advisor-key-row {
-    display: none;
-}
-
-/* Issue reporting */
-body.report-issue #report-issue {
-    display: flex;
-    z-index: 10;
-}
-
-.fullscreen-error #fullscreen-warning,
-.fatal-error #fullscreen-warning {
-    width: 100vw;
-    height: 100vh;
-    display: block;
-}
-.fullscreen-error #content,
-.fatal-error #content {
     display: none;
 }
 

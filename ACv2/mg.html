@@ -225,7 +225,7 @@
         </form>
     </template>
     <template id="debrief-advisors">
-        <form class="questionnaire advisors">
+        <form class="questionnaire advisors overlay">
             <div class="question">
                 <p>Please indicate how you felt about this advisor:</p>
                 <div class="subject"></div>
@@ -258,7 +258,7 @@
         </form>
     </template>
     <template id="debrief">
-        <form class="questionnaire general">
+        <form class="questionnaire general overlay">
             <h1>Finally...</h1>
             <div class="question">
                 <p>On the next screen you will see your results. Before you do, please answer these final questions:</p>
@@ -295,7 +295,7 @@
         </form>
     </template>
     <template id="feedback">
-        <div class="feedback-wrapper">
+        <div class="feedback-wrapper overlay">
             <div class="debrief">
                 <p class="payment-link">
                     Payment code: <a href="https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4" target="_blank">MX5PC2Z4</a>
@@ -368,28 +368,27 @@
             <div class="outer">
                 <div class="inner"></div>
             </div>
-            <esm-help data-group="interface" class="bottom">
+            <esm-help data-group="interface" class="bottom wide">
                 The <em>progress bar</em> shows how far through the study you are.
             </esm-help>
         </div>
-        <div class="frame top">
-            <div class="left">
+        <div id="prompt" class="prompt">Prompt text</div>
+        <div class="middle">
+            <div class="sidebar">
                 <div class="advisor-key"></div>
                 <esm-help data-group="interface" class="right">
                     This area of the screen will display the advisors who might give you advice on a question.<br/>
                     At the moment you don't have any advisors so the area is empty.
                 </esm-help>
             </div>
-            <div class="middle">
+            <div class="stimulus">
                 <div id="stimulus"></div>
-                <div id="prompt">Prompt text</div>
-                <esm-help data-group="interface" class="bottom">
+                <esm-help data-group="interface" class="bottom wide">
                     This is the <em>question</em> you have to answer.
                 </esm-help>
             </div>
-            <!--<div class="right"></div>-->
         </div>
-        <div class="frame bottom">
+        <div class="response">
             <esm-response-timeline id="response-panel" data-min="1890"
                                  data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
@@ -437,19 +436,19 @@
             <path d="M 291.873,343.36 C 293.076,354.848 295.082,363.404 297.891,369.024 C 300.699,374.647 305.714,377.454 312.934,377.454 C 313.275,377.454 314.601,377.454 314.94,377.454 C 322.161,377.454 327.176,374.647 329.985,369.024 C 332.794,363.404 334.799,354.848 336.003,343.36 L 342.423,254.607 C 343.626,237.314 344.228,224.9 344.228,217.364 C 344.228,207.113 341.32,199.113 335.503,193.369 C 329.974,187.911 322.115,184.78 313.937,184.78 C 305.759,184.78 297.901,187.911 292.374,193.369 C 286.558,199.113 283.648,207.113 283.648,217.364 C 283.648,224.9 284.25,237.314 285.453,254.607 L 291.873,343.36 z" id="bangTop" class="bang"></path>
             <circle cx="313.93799" cy="430.79401" r="30.747" id="bangBottom" class="bang"></circle>
 </svg></button>
-        <div id="instructions">
+        <div id="instructions" class="overlay">
             Instructions
         </div>
-        <div id="report-issue"></div>
+        <div id="report-issue" class="overlay"></div>
         <div id="training-instructions" class="hidden">
             Click or Touch the tooltip above to move on...
         </div>
-        <div id="questionnaire">
+        <div id="questionnaire" class="overlay">
             questionnaire
         </div>
     </div>
 </div>
-<div id="fullscreen-warning">
+<div id="fullscreen-warning" class="overlay">
     Fullscreen warning
 </div>
 <!--<div id="save-warning"></div>-->

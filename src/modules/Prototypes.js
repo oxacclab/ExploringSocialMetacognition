@@ -231,10 +231,13 @@ class ControlObject extends BaseObject {
         const body = document.body;
         body.classList.remove(...this.phaseClasses);
         body.classList.add(this._phaseClassPrefix + "-any");
+        body.classList.add(this.constructor.name);
         if(p !== "cleanup")
             body.classList.add(this.phaseClasses[i]);
-        else
+        else {
             body.classList.remove(this._phaseClassPrefix + "-any");
+            body.classList.remove(this.constructor.name);
+        }
 
         this.info("Begin phase " + p);
 

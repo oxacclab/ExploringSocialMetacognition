@@ -47,6 +47,32 @@ div {
     outline: none;
 }
 
+esm-instruction {
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    background-color: var(--background);
+}
+esm-instruction::before {
+    display: none;
+}
+esm-instruction-page {
+    text-align: center;
+    border: none;
+    border-radius: 0;
+    height: unset;
+}
+esm-instruction > div:last-child {
+    position: relative;
+    bottom: unset;
+}
+
+#instructions {
+    display: flex;
+    justify-items: center;
+    flex-direction: column;
+}
+
 .content-wrapper {
     height: 100vh;
     display: flex;
@@ -61,59 +87,82 @@ div {
     min-height: calc(var(--content-height) * 1px);
     min-width: calc(var(--content-width) * 1px);
     max-width: 100%;
-    display: flex;
     flex-direction: column;
     justify-content: space-evenly;
     border: 4px solid black;
     border-radius: 5px;
     margin: auto;
+    padding: 0;
     overflow: hidden;
     background-color: var(--background);
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1em 2em 2fr 1fr;
+    grid-template-areas:
+        "progress"
+        "prompt"
+        "middle"
+        "response";
+    grid-gap: 1em;
+    gap: 1em;
+    align-items: center;
+    justify-items: center;
 }
-
-#content > .frame {
-    display: inline-flex;
-    flex-wrap: nowrap;
-    flex-direction: row;
-    justify-content: space-between;
+.progress-bar {
+    grid-area: progress;
+    justify-self: stretch;
 }
-
-#content > .frame.top {
-    margin-top: .2em;
-    min-height: 33%;
+.prompt {
+    grid-area: prompt;
 }
-
-#content > .frame.top > .left {
-    width: 30%;
-    height: 50vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+.middle {
+    grid-area: middle;
+    justify-self: stretch;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-areas:
+        "sidebar stimulus";
+    align-items: center;
 }
-#content > .frame.top > .middle {
-    width: 70%;
-    padding: 5%;
+.sidebar {
+    grid-area: sidebar;
+    justify-self: start;
+}
+.stimulus {
+    padding: 0 1em;
+    grid-column-start: 1;
+    grid-column-end: 3;
+}
+.response {
+    grid-area: response;
+    align-self: stretch;
+    justify-self: stretch;
+}
+.overlay {
+    grid-column-start: 1;
+    grid-column-end: 2;
+    grid-row-start: 1;
+    grid-row-end: 5;
+    background-color: var(--background);
+    z-index: 10;
+    transition: height 200ms;
+    height: 0;
+    overflow: hidden;
+}
+.overlay.open {
+    height: 100%;
 }
 
 #stimulus {
-    height: calc(100% - 2em);
-    width: 100%;
-    margin-top: 1.25em;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
     opacity: 1;
     font-size: var(--font-size-medium);
-}
-#stimulus > *:first-child {
-    margin: auto;
+    height: 100%;
+    width: 100%;
 }
 
 #prompt {
-    position: absolute;
-    font-size: 4em;
-    z-index: 1000;
-    top: .5em;
+    font-size: var(--font-size-medium);
 }
 
 #response-panel {
@@ -125,20 +174,6 @@ div {
     opacity: 0.2;
 }
 
-#instructions, #fullscreen-warning, #save-warning {
-    position: absolute;
-    width: 100%;
-}
-
-#fullscreen-warning, #save-warning {
-    top: 0;
-}
-
-#save-warning {
-    height: 100vh;
-    overflow-y: scroll;
-}
-
 #fullscreen-warning {
     display: none;
 }
@@ -148,14 +183,17 @@ div {
 }
 
 #training-instructions {
-    position: absolute;
-    bottom: 0;
+    grid-area: prompt;
     width: 100%;
     display: none;
     font-style: italic;
     font-size: var(--font-size-small);
     background-color: var(--esm-help-backgroundColor);
     border: 1px solid var(--esm-help-borderColor);
+}
+#training-instructions.bump {
+    grid-row-start: 3;
+    align-self: start;
 }
 
 #training-instructions.top {
@@ -198,7 +236,8 @@ div {
     margin: 0.25em 0 0 0;
     font-size: var(--font-size-small);
     border-radius: var(--tag-border-radius);
-    box-shadow: 0px 1px 1px 0 black;
+    box-shadow: 0 1px 1px 0 black;
+    overflow: hidden;
 }
 .advisor-key-row .advisor-details {
     width: 50%;
@@ -218,7 +257,7 @@ div {
     margin: auto;
     font-size: var(--font-size-medium);
 }
-.left .advisor-key-row {
+.sidebar .advisor-key-row {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     box-shadow: 1px 1px 1px 0 black;
@@ -365,8 +404,8 @@ esm-response-timeline .response-timeline {
     height: 2em;
     border: 1px solid black;
     background-color: transparent;
-    top: 0;
-    right: 0;
+    top: 2.25em;
+    right: .25em;
 }
 #help-button.show-help {
     background-color: yellow;
@@ -374,8 +413,9 @@ esm-response-timeline .response-timeline {
 
 #report-button {
     position: absolute;
-    bottom: .5em;
-    right: .5em;
+    top: .25em;
+    right: .25em;
+    z-index: 5;
     font-size: 1em;
     background: transparent;
     border: none;
@@ -398,19 +438,7 @@ esm-response-timeline .response-timeline {
 }
 
 #report-issue {
-    position: absolute;
-    height: 100vh;
-    width: 100vw;
-    display: none;
-    flex-direction: column;
-    justify-content: center;
     background-color: rgba(99,99,99,.66);
-}
-@keyframes scrollUp {
-    0% {transform: translateY(-125%)}
-}
-@keyframes scrollUpOut {
-    100% {transform: translateY(-125%)}
 }
 #report-issue form {
     height: 90%;
@@ -420,9 +448,6 @@ esm-response-timeline .response-timeline {
     border-radius: 2em;
     border: 2px solid black;
     animation: scrollUp 1s ease-in-out;
-}
-#report-issue form.exit {
-    animation-name: scrollUpOut;
 }
 
 
@@ -473,11 +498,8 @@ esm-response-timeline .response-timeline {
     100% { transform: translateX(-120%) }
 }
 #questionnaire {
-    height: 100%;
-    width: 100%;
     position: absolute;
     background-color: var(--background);
-    display: none;
 }
 form.questionnaire {
     animation: formIn 0.2s linear;
@@ -643,14 +665,17 @@ form .invalid {
     z-index: 10000;
 }
 .legend.permalink:hover,
-.legend.redo-link:hover {
+.legend.redo-link:hover,
+.legend.permalink:focus,
+.legend.redo-link:focus {
     width: fit-content;
     width: -moz-fit-content;
 }
 .legend > div {
     display: none;
 }
-.legend:hover > div {
+.legend:hover > div,
+.legend:focus > div {
     display: flex;
 }
 span.permalink,
@@ -752,24 +777,6 @@ span.redo-link {
         height: 100vh;
         border-radius: 0;
     }
-    esm-instruction {
-        width: 100vw;
-        height: 100vh;
-        top: 0;
-        background-color: var(--background);
-    }
-    esm-instruction::before {
-        display: none;
-    }
-    esm-instruction-page {
-        border: none;
-        border-radius: 0;
-        height: unset;
-    }
-    esm-instruction > div:last-child {
-        position: relative;
-        bottom: unset;
-    }
     .debrief {
         height: 20vh;
     }
@@ -798,16 +805,6 @@ span.redo-link {
     }
     form .subject {
         width: 25%;
-    }
-    #report-button {
-        top: .25em;
-        right: .25em;
-        z-index: 5;
-        bottom: unset;
-    }
-    #help-button {
-        top: 2.25em;
-        right: .25em;
     }
 }
 

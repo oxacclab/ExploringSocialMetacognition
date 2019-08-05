@@ -514,10 +514,16 @@ class Study extends ControlObject {
             let help = Study._showHelp(
                 document.querySelector(".progress-bar esm-help"));
 
+            // Adjust prompt position
+            document.querySelector('#training-instructions').classList.add('bump');
+
             await gotoNextStep(help);
 
             // Pause the progress bar animation
             document.querySelector(".progress-bar .outer").style.animationPlayState = "paused";
+
+            // Unset the adjusted prompt position
+            document.querySelector('#training-instructions').classList.remove('bump');
 
             instr.classList.add("top");
 
@@ -625,12 +631,15 @@ class Study extends ControlObject {
     async postBlock() {
         return new Promise(function(resolve) {
             let data = [];
+            document.body.classList.add('Study-blockBreak');
             Study._updateInstructions("block-break",
                 (name) => {
                     let now = new Date().getTime();
                     data.push({name, now});
-                    if(name === "exit")
+                    if(name === "exit") {
+                        document.body.classList.remove('Study-blockBreak');
                         resolve(data);
+                    }
                 });
         });
     }
@@ -1222,16 +1231,7 @@ class DatesStudy extends Study {
     }
 
     async awaitTrialLoading() {
-        const me = this;
-        return new Promise(resolve => {
-           const check = function() {
-               if(me.trials.length)
-                   resolve(true);
-               else
-                   setTimeout(check, 25);
-           };
-           check();
-        });
+        await this.setupTrials();
     }
 
     /**

@@ -460,4 +460,14 @@ describe('The Study', function() {
             .contains('Payment code')
     });
 
+    it('Provides a functional permalink', function() {
+        cy.get('.legend.permalink .permalink')
+            .invoke('text').then((txt) => {
+            cy.visit(txt);
+
+            cy.get('.timeline')
+                .should('be.visible');
+        });
+    });
+
 });

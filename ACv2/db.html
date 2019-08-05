@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.1">
+<head data-version="1.2.0">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -15,7 +15,11 @@
 
     <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
     <link rel="stylesheet" type="text/css" href="../style/function.css"/>
+    <!--colour scheme definitions-->
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
+    <!--minimal groups experiment-->
+    <link rel="stylesheet" type="text/css" href="../style/minimalGroups.css"/>
+
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
     <!--/ FontAwesome -->
@@ -34,9 +38,12 @@
     </template>
     <template id="advisor-key">
         <div class="advisor-key-row">
-            <div class="avatar"></div>
-            <span class="advisor-name">Advisor Name</span>
-            <div class="response-marker advisor size2 static"></div>
+            <div class="advisor-avatar"></div>
+            <div class="advisor-details">
+                <span class="advisor-name">Advisor Name</span>
+                <span class="advisor-group">Advisor Group</span>
+            </div>
+            <div class="response-marker advisor size0 static"></div>
         </div>
     </template>
 
@@ -54,11 +61,6 @@
                 <h1>About the study</h1>
                 <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. Your task is to identify the year in which that event occurred. You will do this by dragging a marker onto a timeline.</p>
                 <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the study.</p>
-            </esm-instruction-page>
-            <esm-instruction-page>
-                <h1>Scoring</h1>
-                <p>You will have several markers to choose from. The markers are worth different numbers of points. When your score is calculated, you will get the number of points the marker is worth for all the questions where a marker touches the correct year.</p>
-                <p>The thinner the marker is, the fewer years it covers, but the more points you get if you get the answer right. This means you will do better if you use different markers depending upon how confident you are that you know the answer.</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Advice</h1>
@@ -87,12 +89,11 @@
         <esm-instruction>
             <esm-instruction-page>
                 <h1>Practice with Advice</h1>
-                <p>During the main study you will get advice on the answers you give. You will now do a few questions where you'll receive practice advice so you can get used to it.</p>
+                <p>During the main study you will get advice about the correct answer. You will now answer a few questions where you'll receive practice advice so you can get used to it.</p>
                 <p>Once you give your <strong>initial answer</strong> you will see an advisor's estimate. You will then be able to provide your <strong>final answer</strong>.</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <p>The advisor will give advice by highlighting a region of the timeline, similar to how you cover parts of it with your markers.</p>
-                <p>Once again, you will get feedback on each question as you go. Remember this will tell you about how well the advisor does, as well as how well you do.</p>
                 <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>.</p>
             </esm-instruction-page>
         </esm-instruction>
@@ -106,11 +107,19 @@
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
+                <p>From now on, you won't get to see the correct answer after each question. You'll get to see all the answers at the end of the study, though!</p>
                 <p>If you are still unsure of how the study works, you can go through the tutorial again by closing the page and relaunching it from the link you were provided.</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
-                <p>From now on you will have multiple advisors who might give you advice. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
+                <p>You will have various advisors who might give you advice. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
+                <p>If you're happy with how it works, let's go!</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Groups</h1>
+                <p>The last thing to tell you is that the advisors have been assigned to groups. You can tell which group an advisor is in by the background on the left of the screen, and by the colour of their marker on the timeline.</p>
+                <p>One of these groups <strong>matches the colour of your marker</strong>. These advisors will give you the <strong>best advice that they can</strong>.</p>
+                <p>The other group has a <strong>different colour to your marker</strong>. The advisors from this group might sometimes try to direct you <strong>away from the correct answer</strong>.</p>
                 <p>If you're happy with how it works, let's go!</p>
             </esm-instruction-page>
         </esm-instruction>
@@ -207,18 +216,22 @@
                     <label class="label" for="know">knowledgeable</label>
                 </div>
                 <div class="item">
-                    <label class="label" for="help">unhelpful</label>
-                    <input type="range" name="helpfulness" id="help"/>
-                    <label class="label" for="help">helpful</label>
+                    <label class="label" for="consistent">inconsistent</label>
+                    <input type="range" name="consistency" id="consistent"/>
+                    <label class="label" for="consistent">consistent</label>
                 </div>
                 <div class="item">
-                    <label class="label" for="like">unlikeable</label>
-                    <input type="range" name="likability" id="like"/>
-                    <label class="label" for="like">likable</label>
+                    <label class="label" for="help">not trying to help me</label>
+                    <input type="range" name="helpfulness" id="help"/>
+                    <label class="label" for="help">trying to help me</label>
+                </div>
+                <div class="item">
+                    <label class="label" for="trust">untrustworthy</label>
+                    <input type="range" name="trustworthiness" id="trust"/>
+                    <label class="label" for="trust">trustworthy</label>
                 </div>
             </div>
             <div class="bottom">
-                <textarea name="comment" placeholder="Any particular comments about this advisor? (optional, public)" title="Your answer will be included in the public dataset, so please do not include personal information."></textarea>
                 <button name="submit" class="confirm">&check;</button>
             </div>
         </form>
@@ -229,7 +242,7 @@
             <div class="question">
                 <p>On the next screen you will see your results. Before you do, please answer these final questions:</p>
             </div>
-            <textarea name="advisorDifference" class="mandatory" placeholder="There was a difference between the advisors. What do you think it was? (mandatory, public)" title="Your answers will be included in the public dataset, so please do not include personal information."></textarea>
+            <textarea name="advisorDifference" class="mandatory" placeholder="What do you think was the difference between the advisors? (mandatory, public)" title="Your answers will be included in the public dataset, so please do not include personal information."></textarea>
             <textarea name="generalComments" placeholder="Are there any other questions or comments you'd like to leave about the experiment? (optional, private)" title="Your answer to this question will only be visible to the experimenter and colleagues."></textarea>
             <div class="bottom">
                 <button name="submit" class="confirm">&check;</button>
@@ -259,6 +272,7 @@
             </div>
             <div class="display">
                 <p>Your answers are shown below. Click/touch a marker to see the correct answer and your confidence interval.</p>
+                <p>When you're finished you can close the browser window to end the study.</p>
                 <div class="legend permalink">
                     link
                     <div><span class="permalink" title="Direct link to these results" onclick="document.execCommand('copy')"></span></div>
@@ -346,7 +360,7 @@
             <esm-response-timeline id="response-panel" data-min="1890"
                                  data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="10" data-marker-widths="1, 3, 11, 21" data-marker-values="100, 35, 10, 5">
+                                 data-no-confidence="true" data-label-step="10" data-marker-widths="11" data-marker-values="10">
                 <div class="response-timeline">
                     <div class="response-line"></div>
                 </div>
@@ -358,24 +372,6 @@
                         <div>
                             <div class="label">&plusmn;<span class="year"></span> year (<span class="points"></span>pts)</div>
                             <div class="response-marker size0">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> year (<span class="points"></span>pts)</div>
-                            <div class="response-marker size1">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> years (<span class="points"></span>pts)</div>
-                            <div class="response-marker size2">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> years (<span class="points"></span>pts)</div>
-                            <div class="response-marker size3">
                                 <div class="clickhandler"></div>
                             </div>
                         </div>
@@ -395,7 +391,6 @@
                         </esm-help>
                     </div>
                 </div>
-
             </esm-response-timeline>
             <!--<esm-help data-group="interface" data-parent-click-closes="false" class="top wide">
                 This <em>response panel</em> allows you to indicate your
@@ -484,47 +479,41 @@
                     group: 0,
                     name: "Practice advisor",
                     templateId: "advisor-key",
-                    confidence: 8,
-                    confidenceVariation: 3,
+                    confidence: 11,
+                    confidenceVariation: 21,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECT.copy(1)
+                            ADVICE_CORRECTISH.copy(1)
                         ]
                     })
                 }),
                 new Advisor({
                     id: 1,
                     position: 0,
-                    idDescription: "Accurate",
-                    group: 0,
+                    idDescription: "Unset",
+                    group: 1,
                     name: "Advisor #" + parseInt(10 + Math.random() * 50),
                     templateId: "advisor-key",
-                    confidence: 6,
-                    confidenceVariation: 5,
+                    confidence: 11,
+                    confidenceVariation: 21,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(10),
-                            ADVICE_INCORRECT_REFLECTED.copy(3),
-                            // fallbacks
-                            ADVICE_INCORRECT_REVERSED.copy(0)
+                            ADVICE_CORRECTISH.copy(1)
                         ]
                     })
                 }),
                 new Advisor({
                     id: 2,
                     position: 1,
-                    idDescription: "Agreeing",
-                    group: 0,
+                    idDescription: "Unset",
+                    group: 2,
                     name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
                     templateId: "advisor-key",
-                    confidence: 6,
-                    confidenceVariation: 5,
+                    confidence: 11,
+                    confidenceVariation: 21,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_AGREEISH.copy(10),
-                            ADVICE_INCORRECT_REFLECTED.copy(3),
-                            // fallbacks
-                            ADVICE_INCORRECT_REVERSED.copy(0)
+                            ADVICE_CORRECTISH.copy(11)
                         ]
                     })
                 })
@@ -533,52 +522,34 @@
             advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
 
         let studyBlueprint = {
-            studyName: "advisorChoice",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [16, 34],
+            attentionCheckTrials: [18, 24],
             blocks: [
                 new Block({
-                    trialCount: 1,
+                    trialCount: 7,
                     blockType: "practice",
                     advisors: [],
                     advisorsPerTrial: 0,
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 2,
+                    trialCount: 7,
                     blockType: "practiceAdvisor",
                     advisors: [advisors[0]],
                     advisorsPerTrial: 1,
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 3,
+                    trialCount: 7,
                     blockType: "core",
-                    advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    feedback: false,
+                    advisorsPerTrial: 1
                 }),
                 new Block({
-                    trialCount: 3,
+                    trialCount: 7,
                     blockType: "core",
-                    advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
-                }),
-                new Block({
-                    trialCount: 2,
-                    blockType: "core",
-                    advisorsPerTrial: 2,
-                    advisorChoice: true,
-                    adviceTypeOverride: (aP)=>aP.mainAdviceType
+                    feedback: false,
+                    advisorsPerTrial: 1
                 })
             ],
             questionsXML: "assets/etc/questions.xml",
