@@ -77,6 +77,305 @@ addExclusion <- function(current, reason) {
     paste(current, reason, collapse = ", ")
 }
 
+#' Calculate the derived variables for a dataframe
+#' @param df data frame to calculate derived variables for
+#' @param name of the dataframe extracted from its csv file
+#' @param opts list of options for calculating variables
+#' 
+#' @return df with derived variables in new columns
+getDerivedVariables <- function(x, name, opts = list()) {
+  
+  if (!nrow(x))
+    return(x)
+  
+  switch(
+    name,
+    
+    # ADVISORS ----------------------------------------------------------------
+    
+    advisors = {
+      # repair JS mistakes ------------------------------------------------------
+      # v1.0.0 of minGroups failed to identify advisors, so fix that here
+      if (studyName == "minGroups" && "1-0-0" %in% studyVersion) {
+        advisorDescription <- function(id, condition) {
+          if (id == 1) {
+            if (condition %% 2 == 1)
+              "inGroup"
+            else 
+              "outGroup"
+          } else {
+            if (condition %% 2 == 1)
+              "outGroup"
+            else
+              "inGroup"
+          }
+        }
+        
+        # Prepare factor levels
+        if (!("inGroup" %in% levels(x$idDescription))) {
+          levels(x$idDescription) <- c(levels(x$idDescription), 
+                                       "inGroup", "outGroup")
+        }
+        
+        # Fix advisors table
+        for (i in which(x$idDescription == "Unset")) {
+          x$idDescription[i] <- 
+            advisorDescription(x$id[i], 
+                               okayIds$condition[okayIds$pid == x$pid[i]])
+        }
+      }
+      
+      x
+    },
+    
+    # ADVISED TRIAL -----------------------------------------------------------
+    
+    AdvisedTrial = {
+      # repair JS mistakes ------------------------------------------------------
+      # v1.0.0 of minGroups failed to identify advisors, so fix that here
+      if (studyName == "minGroups" && "1-0-0" %in% studyVersion) {
+        advisorDescription <- function(id, condition) {
+          if (id == 1) {
+            if (condition %% 2 == 1)
+              "inGroup"
+            else 
+              "outGroup"
+          } else {
+            if (condition %% 2 == 1)
+              "outGroup"
+            else
+              "inGroup"
+          }
+        }
+        
+        # Prepare factor levels
+        if (!("inGroup" %in% levels(x$advisor0idDescription))) {
+          levels(x$advisor0idDescription) <- 
+            c(levels(x$advisor0idDescription), 
+              "inGroup", "outGroup")
+        }
+        
+        # Fix AdvisedTrial table
+        for (i in which(x$advisor0idDescription == "Unset")) {
+          x$advisor0idDescription[i] <-
+            advisorDescription(x$advisor0id[i],
+                               okayIds$condition[okayIds$pid == x$pid[i]])
+        }
+      }
+      
+      # reference varaibles -----------------------------------------------------
+      
+      # Gather a list of advisor names and advice types
+      # This is more complex than it needs to be because it handles a wider range of
+      # inputs than we give it here
+      
+      names <- NULL
+      types <- NULL
+      i <- 0
+      while (T) {
+        if (!length(grep(paste0("advisor", i), names(x)))) {
+          break()
+        }
+        names <- unique(c(names, 
+                          unique(x[, paste0("advisor", i, 
+                                            "idDescription")])))
+        types <- unique(c(types,
+                          unique(x[, paste0("advisor", i, 
+                                            "actualType")]),
+                          unique(x[, paste0("advisor", i,
+                                            "nominalType")])))
+        i <- i + 1
+      }
+      advisorNames <- unlist(names)
+      adviceTypes <- unlist(types)
+      
+      adviceTypes <- adviceTypes[nchar(adviceTypes) > 0]
+      
+      
+      # trial variables ---------------------------------------------------------
+      
+      # Check trials which are supposed to have feedback actually have it
+      if (!("feedback" %in% names(x))) {
+        x$feedback <- !is.na(x$timeFeedbackOn)
+      }
+      
+      x$feedback[is.na(x$feedback)] <- 0
+      x$feedback <- as.logical(x$feedback)
+      
+      if (is.null(opts$skipFeedbackCheck) || !opts$skipFeedbackCheck)  {
+        expect_equal(!is.na(x$timeFeedbackOn), x$feedback)
+      }
+      
+      x$responseCorrect <- 
+        x$correctAnswer >= x$responseEstimateLeft &
+        x$correctAnswer <= x$responseEstimateLeft + 
+        x$responseMarkerWidth
+      
+      x$responseCorrectFinal <- 
+        x$correctAnswer >= x$responseEstimateLeftFinal &
+        x$correctAnswer <= x$responseEstimateLeftFinal + 
+        x$responseMarkerWidthFinal
+      
+      x$responseError <- abs(x$correctAnswer - 
+                               x$responseEstimateLeft + 
+                               (x$responseMarkerWidth / 2))
+      
+      x$responseErrorFinal <- abs(x$correctAnswer -
+                                    x$responseEstimateLeftFinal 
+                                  + (x$responseMarkerWidthFinal / 2))
+      
+      x$errorReduction <- x$responseError - 
+        x$responseErrorFinal
+      
+      x$responseScore <- 
+        ifelse(x$responseCorrect, 27 / x$responseMarkerWidth, 0)
+      
+      x$responseScoreFinal <- 
+        ifelse(x$responseCorrectFinal, 27 / x$responseMarkerWidthFinal, 0)
+      
+      x$accuracyChange <- x$responseCorrectFinal - x$responseCorrect
+      
+      x$scoreChange <- x$responseScoreFinal - x$responseScore
+      
+      x$estimateLeftChange <- abs(x$responseEstimateLeftFinal -
+                                    x$responseEstimateLeft)
+      
+      x$changed <- x$estimateLeftChange > 0
+      
+      x$confidenceChange <- 
+        (4 - as.numeric(x$responseMarkerFinal)) -
+        (4 - as.numeric(x$responseMarker))
+      
+      
+      tmp <- x[order(x$number), ]
+      
+      x$firstAdvisor <- unlist(sapply(x$pid, 
+                                      function(z) 
+                                        tmp[tmp$pid == z,
+                                            "advisor0idDescription"][1, ]))
+      
+      x$advisor0offBrand <- x$advisor0actualType == "disagreeReflected"
+      
+      
+      # by advisor name variables -----------------------------------------------
+      
+      # Produce equivalents of the advisor1|2... variables which are named for the 
+      # advisor giving the advice
+      
+      for (v in names(x)[grepl("advisor0", names(x))]) {
+        suffix <- reFirstMatch("advisor0(\\S+)", v)
+        for (a in advisorNames) {
+          
+          s <- paste0(a, ".", suffix)
+          x[, s] <- NA
+          
+          for (i in 1:nrow(x)) {
+            z <- 0
+            while (T) {
+              if (!length(grep(paste0("advisor", z), 
+                               names(x)))) {
+                break()
+              }
+              
+              if (x[i, paste0("advisor", z, "idDescription")] == a) {
+                x[i, s] <- x[i, paste0("advisor", z, suffix)]
+                break()
+              }
+              
+              z <- z + 1
+            }
+            
+          }
+        }
+      }
+      
+      # Trials - advisor-specific variables
+      for (a in advisorNames) {
+        # Accuracy
+        x[, paste0(a, ".accurate")] <- 
+          (x[, paste0(a, ".advice")] - 
+             (x[, paste0(a, ".adviceWidth")] / 2)) <= x[, "correctAnswer"] &
+          (x[, paste0(a, ".advice")] + 
+             (x[, paste0(a, ".adviceWidth")] / 2)) >= x[, "correctAnswer"]
+        
+        # Error
+        x[, paste0(a, ".error")] <- 
+          abs(x[, paste0(a, ".advice")] - x[, "correctAnswer"])
+        
+        # Weight on Advice
+        i <- x[, "responseEstimateLeft"] + (x[, "responseMarkerWidth"] - 1) / 2
+        f <- x[, "responseEstimateLeftFinal"] + 
+          (x[, "responseMarkerWidthFinal"] - 1) / 2
+        adv <- x[, paste0(a, ".advice")]
+        
+        z <- ((f - i) / (adv - i))
+        x[, paste0(a, ".woaRaw")] <- z
+        
+        z[z < 0] <- 0
+        z[z > 1] <- 1
+        
+        x[, paste0(a, ".woa")] <- z
+        
+        # Agreement
+        for (d in c("", "Final")) {
+          minA <- x[, paste0(a, ".advice")] - 
+            (x[, paste0(a, ".adviceWidth")] / 2)
+          maxA <- x[, paste0(a, ".advice")] + 
+            (x[, paste0(a, ".adviceWidth")] / 2)
+          
+          minP <- x[, paste0("responseEstimateLeft", d)]
+          maxP <- minP + x[, paste0("responseMarkerWidth", d)]
+          
+          x[, paste0(a, ".agree", d)] <- 
+            ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP))  
+          
+          # Distance
+          reMid <- minP + (maxP - minP) / 2
+          adv <- x[, paste0(a, ".advice")]
+          x[, paste0(a, ".distance", d)] <- abs(reMid - adv)
+        }
+        
+        # Agreement change
+        x[, paste0(a, ".agreementChange")] <- 
+          x[, paste0(a, ".agreeFinal")] - 
+          x[, paste0(a, ".agree")]
+      }
+      
+      # backfilling advisor0 properties -----------------------------------------
+      
+      low <- 0
+      high <- 1
+      n <- 11
+      
+      for (z in c("woa", "woaRaw")) {
+        x[, paste0("advisor0", z)] <- 
+          sapply(1:nrow(x), function(i)
+            unlist(
+              x[i, paste0(as.character(x$advisor0idDescription[i]), ".", z)]))
+      }
+      
+      x$woa[x$advisor0woaRaw >= 1] <- ">=1"
+      for (z in rev(seq(low, high, length.out = n))) {
+        x$woa[x$advisor0woaRaw < z] <- paste0("<", z)
+      }
+      x$woa <- factor(x$woa)
+      
+      x
+    },
+    
+    # TRIAL -------------------------------------------------------------------
+    
+    Trial = {
+      x$responseCorrect <- 
+        x$correctAnswer >= x$responseEstimateLeft &
+        x$correctAnswer <= x$responseEstimateLeft + 
+        x$responseMarkerWidth
+      
+      x
+    }
+  )
+}
+
 
 # wrangling functions -----------------------------------------------------
 

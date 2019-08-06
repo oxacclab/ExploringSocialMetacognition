@@ -27,6 +27,9 @@ if (!isSet("studyName")) {
 if (!isSet("rDir")) {
   rDir = "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/"
 }
+if (!isSet("vars")) {
+  vars <- list() # variables passed to getDerviedVariables
+}
 
 
 # load data ---------------------------------------------------------------
@@ -74,12 +77,12 @@ for (v in versions) {
     
     n <- grep("advisor[0-9]+(name|validTypes|nominalType|actualType)$", 
               names(tmp), value = T)
-    for (x in n)
-      tmp[, x] <- lapply(tmp[, x], as.character)
+    for (z in n)
+      tmp[, z] <- lapply(tmp[, z], as.character)
     
     n <- grep("responseEstimateLabel", names(tmp), value = T)
-    for (x in n)
-      tmp[, x] <- lapply(tmp[, x], function(y) 
+    for (z in n)
+      tmp[, z] <- lapply(tmp[, z], function(y) 
         as.numeric(stripTags((as.character(y)))))
     
     if ("responseMarkerWidth" %in% names(tmp))
@@ -91,6 +94,8 @@ for (v in versions) {
     name <- reFirstMatch("([^_]+)\\.csv", f)
     name <- sub("-", ".", name)
     
+    tmp <- getDerivedVariables(tmp, name, vars[[name]])
+    
     if (length(versions) > 1 & 
         any(grepl(paste0('^', name, '$'), ls()) == T)) {
       assign(name, safeBind(list(get(name), tmp)))
@@ -100,273 +105,11 @@ for (v in versions) {
   }
 }
 
-
-# repair JS mistakes ------------------------------------------------------
-
-# v1.0.0 of minGroups failed to identify advisors, so fix that here
-if (studyName == "minGroups" && "1-0-0" %in% studyVersion) {
-  advisorDescription <- function(id, condition) {
-    if (id == 1) {
-      if (condition %% 2 == 1)
-        "inGroup"
-      else 
-        "outGroup"
-    } else {
-      if (condition %% 2 == 1)
-        "outGroup"
-      else
-        "inGroup"
-    }
-  }
-  
-  # Prepare factor levels
-  if (!("inGroup" %in% levels(advisors$idDescription))) {
-    levels(advisors$idDescription) <- c(levels(advisors$idDescription), 
-                                        "inGroup", "outGroup")
-  }
-  if (!("inGroup" %in% levels(AdvisedTrial$advisor0idDescription))) {
-    levels(AdvisedTrial$advisor0idDescription) <- 
-      c(levels(AdvisedTrial$advisor0idDescription), 
-        "inGroup", "outGroup")
-  }
-  
-  # Fix advisors table
-  for (i in which(advisors$idDescription == "Unset")) {
-    advisors$idDescription[i] <- 
-      advisorDescription(advisors$id[i], 
-                         okayIds$condition[okayIds$pid == advisors$pid[i]])
-  }
-  
-  # Fix AdvisedTrial table
-  for (i in which(AdvisedTrial$advisor0idDescription == "Unset")) {
-    AdvisedTrial$advisor0idDescription[i] <-
-      advisorDescription(AdvisedTrial$advisor0id[i],
-                         okayIds$condition[okayIds$pid == AdvisedTrial$pid[i]])
-  }
-}
-
-
-# reference varaibles -----------------------------------------------------
-
-# Gather a list of advisor names and advice types
-# This is more complex than it needs to be because it handles a wider range of
-# inputs than we give it here
-
-names <- NULL
-types <- NULL
-i <- 0
-while (T) {
-  if (!length(grep(paste0("advisor", i), names(AdvisedTrial)))) {
-    break()
-  }
-  names <- unique(c(names, 
-                    unique(AdvisedTrial[, paste0("advisor", i, 
-                                                 "idDescription")])))
-  types <- unique(c(types,
-                    unique(AdvisedTrial[, paste0("advisor", i, 
-                                                 "actualType")]),
-                    unique(AdvisedTrial[, paste0("advisor", i,
-                                                 "nominalType")])))
-  i <- i + 1
-}
-advisorNames <- unlist(names)
-adviceTypes <- unlist(types)
-
-adviceTypes <- adviceTypes[nchar(adviceTypes) > 0]
-
-
-# trial variables ---------------------------------------------------------
-
-# Check trials which are supposed to have feedback actually have it
-AdvisedTrial$feedback[is.na(AdvisedTrial$feedback)] <- 0
-AdvisedTrial$feedback <- as.logical(AdvisedTrial$feedback)
-
-expect_equal(!is.na(AdvisedTrial$timeFeedbackOn), AdvisedTrial$feedback)
-
-AdvisedTrial$responseCorrect <- 
-  AdvisedTrial$correctAnswer >= AdvisedTrial$responseEstimateLeft &
-  AdvisedTrial$correctAnswer <= AdvisedTrial$responseEstimateLeft + 
-  AdvisedTrial$responseMarkerWidth
-
-AdvisedTrial$responseCorrectFinal <- 
-  AdvisedTrial$correctAnswer >= AdvisedTrial$responseEstimateLeftFinal &
-  AdvisedTrial$correctAnswer <= AdvisedTrial$responseEstimateLeftFinal + 
-  AdvisedTrial$responseMarkerWidthFinal
-
-Trial$responseCorrect <- 
-  Trial$correctAnswer >= Trial$responseEstimateLeft &
-  Trial$correctAnswer <= Trial$responseEstimateLeft + 
-  Trial$responseMarkerWidth
-
-AdvisedTrial$responseError <- abs(AdvisedTrial$correctAnswer - 
-                                    AdvisedTrial$responseEstimateLeft + 
-                                    (AdvisedTrial$responseMarkerWidth / 2))
-
-AdvisedTrial$responseErrorFinal <- abs(AdvisedTrial$correctAnswer - 
-                                         AdvisedTrial$responseEstimateLeftFinal 
-                                       + (AdvisedTrial$responseMarkerWidthFinal 
-                                          / 2))
-
-AdvisedTrial$errorReduction <- AdvisedTrial$responseError - 
-  AdvisedTrial$responseErrorFinal
-
-AdvisedTrial$responseScore <- 
-  ifelse(AdvisedTrial$responseCorrect, 
-         27 / AdvisedTrial$responseMarkerWidth, 0)
-
-AdvisedTrial$responseScoreFinal <- 
-  ifelse(AdvisedTrial$responseCorrectFinal, 
-         27 / AdvisedTrial$responseMarkerWidthFinal, 0)
-
-AdvisedTrial$accuracyChange <- AdvisedTrial$responseCorrectFinal -
-  AdvisedTrial$responseCorrect
-
-AdvisedTrial$scoreChange <- AdvisedTrial$responseScoreFinal -
-  AdvisedTrial$responseScore
-
-AdvisedTrial$estimateLeftChange <- abs(AdvisedTrial$responseEstimateLeftFinal -
-                                         AdvisedTrial$responseEstimateLeft)
-
-AdvisedTrial$changed <- AdvisedTrial$estimateLeftChange > 0
-
-AdvisedTrial$confidenceChange <- 
-  (4 - as.numeric(AdvisedTrial$responseMarkerFinal)) -
-  (4 - as.numeric(AdvisedTrial$responseMarker))
-
-
-tmp <- AdvisedTrial[order(AdvisedTrial$number), ]
-
-AdvisedTrial$firstAdvisor <- unlist(sapply(AdvisedTrial$pid, 
-                                           function(x) 
-                                             tmp[
-                                               tmp$pid == x,
-                                               "advisor0idDescription"][1, ]))
-
-AdvisedTrial$advisor0offBrand <- AdvisedTrial$advisor0actualType == 
-  "disagreeReflected"
-
-
-# by advisor name variables -----------------------------------------------
-
-# Produce equivalents of the advisor1|2... variables which are named for the 
-# advisor giving the advice
-
-for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
-  suffix <- reFirstMatch("advisor0(\\S+)", v)
-  for (a in advisorNames) {
-    
-    s <- paste0(a, ".", suffix)
-    AdvisedTrial[, s] <- NA
-    
-    for (i in 1:nrow(AdvisedTrial)) {
-      x <- 0
-      while (T) {
-        if (!length(grep(paste0("advisor", x), 
-                         names(AdvisedTrial)))) {
-          break()
-        }
-        
-        if (AdvisedTrial[i, paste0("advisor", x, "idDescription")] == a) {
-          AdvisedTrial[i, s] <- AdvisedTrial[i, paste0("advisor", x, suffix)]
-          break()
-        }
-        
-        x <- x + 1
-      }
-      
-    }
-  }
-}
-
-# Trials - advisor-specific variables
-for (a in advisorNames) {
-  # Accuracy
-  AdvisedTrial[, paste0(a, ".accurate")] <- 
-    (AdvisedTrial[, paste0(a, ".advice")] - 
-       (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)) <= 
-    AdvisedTrial[, "correctAnswer"] &
-    (AdvisedTrial[, paste0(a, ".advice")] + 
-       (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)) >= 
-    AdvisedTrial[, "correctAnswer"]
-  
-  # Error
-  AdvisedTrial[, paste0(a, ".error")] <- 
-    abs(AdvisedTrial[, paste0(a, ".advice")] - AdvisedTrial[, "correctAnswer"])
-  
-  # Weight on Advice
-  i <- AdvisedTrial[, "responseEstimateLeft"] + 
-    (AdvisedTrial[, "responseMarkerWidth"] - 1) / 2
-  f <- AdvisedTrial[, "responseEstimateLeftFinal"] + 
-    (AdvisedTrial[, "responseMarkerWidthFinal"] - 1) / 2
-  adv <- AdvisedTrial[, paste0(a, ".advice")]
-  
-  x <- ((f - i) / (adv - i))
-  AdvisedTrial[, paste0(a, ".woaRaw")] <- x
-  
-  x[x < 0] <- 0
-  x[x > 1] <- 1
-  
-  AdvisedTrial[, paste0(a, ".woa")] <- x
-  
-  # Agreement
-  for (d in c("", "Final")) {
-    minA <- AdvisedTrial[, paste0(a, ".advice")] - 
-      (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)
-    maxA <- AdvisedTrial[, paste0(a, ".advice")] + 
-      (AdvisedTrial[, paste0(a, ".adviceWidth")] / 2)
-    
-    minP <- AdvisedTrial[, paste0("responseEstimateLeft", d)]
-    maxP <- minP + AdvisedTrial[, paste0("responseMarkerWidth", d)]
-    
-    AdvisedTrial[, paste0(a, ".agree", d)] <- 
-      ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP))  
-    
-    # Distance
-    reMid <- minP + (maxP - minP) / 2
-    adv <- AdvisedTrial[, paste0(a, ".advice")]
-    AdvisedTrial[, paste0(a, ".distance", d)] <- abs(reMid - adv)
-  }
-  
-  # Agreement change
-  AdvisedTrial[, paste0(a, ".agreementChange")] <- 
-    AdvisedTrial[, paste0(a, ".agreeFinal")] - 
-    AdvisedTrial[, paste0(a, ".agree")]
-}
-
-
-# backfilling advisor0 properties -----------------------------------------
-
-low <- 0
-high <- 1
-n <- 11
-
-AdvisedTrial$woa <- ""
-for (x in c("woa", "woaRaw")) {
-  AdvisedTrial[, paste0("advisor0", x)] <- 
-    sapply(1:nrow(AdvisedTrial), function(i)
-      unlist(
-        AdvisedTrial[i, 
-                     paste0(as.character(AdvisedTrial$advisor0idDescription[i]), 
-                            ".", x)]))
-}
-
-AdvisedTrial$woa[AdvisedTrial$advisor0woaRaw >= 1] <- ">=1"
-for (x in rev(seq(low, high, length.out = n))) {
-  AdvisedTrial$woa[AdvisedTrial$advisor0woaRaw < x] <- paste0("<", x)
-}
-AdvisedTrial$woa <- factor(AdvisedTrial$woa)
-
-
-
 # additional framing of data ----------------------------------------------
-
 decisions <- byDecision(AdvisedTrial)
 
 PP <- participantSummary(decisions)
 
-
 # cleanup -----------------------------------------------------------------
 
-suppressWarnings(rm("a", "d", "n", "s", "v", "suffix", "files", "name",
-                    "adv", "f", "i", "maxA", "maxP", "minA", "minP", 
-                    "names", "reMid", "tmp", "types", "x", "low", "high"))
+suppressWarnings(rm("v", "suffix", "files", "name", "f", "names", "tmp"))
