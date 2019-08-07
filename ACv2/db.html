@@ -490,7 +490,7 @@
                 new Advisor({
                     id: 1,
                     position: 0,
-                    idDescription: "Unset",
+                    idDescription: "inGroup",
                     group: 1,
                     name: "Advisor #" + parseInt(10 + Math.random() * 50),
                     templateId: "advisor-key",
@@ -505,7 +505,7 @@
                 new Advisor({
                     id: 2,
                     position: 1,
-                    idDescription: "Unset",
+                    idDescription: "outGroup",
                     group: 2,
                     name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
                     templateId: "advisor-key",
@@ -556,7 +556,7 @@
             questionsXML: "assets/etc/questions.xml",
             advisors,
             participantCount: 20,
-            conditionCount: 4
+            conditionCount: 2
         };
 
         // shorter study in debug mode
