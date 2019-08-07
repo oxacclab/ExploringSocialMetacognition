@@ -17,6 +17,8 @@ if (!isSet("skipLoadData") || !skipLoadData) {
   source("./src/00 Functions.R")
 }
 
+markerList <- getMarkerList()
+
 library(tibble)
 
 # required variables ------------------------------------------------------
@@ -39,7 +41,6 @@ if (!isSet("exclude")) {
   
   stop("No criteria for exclusion ([exclude] variable not set). See above for a list of options.")
 }
-
 
 # output variables --------------------------------------------------------
 

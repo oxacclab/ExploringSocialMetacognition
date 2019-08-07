@@ -22,14 +22,6 @@ if (!isSet("silent")) {
   options(error = function() {beep("wilhelm")})
 }
 
-# constants ---------------------------------------------------------------
-
-markerList <- {
- unique(c(AdvisedTrial$responseMarkerWidth,
-          AdvisedTrial$responseMarkerWidthFinal,
-          Trial$responseMarkerWidth))       
-}
-
 # loading functions -------------------------------------------------------
 
 #' List the files on the server matching the specified version
@@ -62,6 +54,11 @@ listServerFiles <- function(study = "datesStudy", version = "all",
   out
 }
 
+getMarkerList <- function() {
+  unique(c(AdvisedTrial$responseMarkerWidth,
+           AdvisedTrial$responseMarkerWidthFinal,
+           Trial$responseMarkerWidth))       
+}
 
 # processing functions ----------------------------------------------------
 
@@ -74,6 +71,85 @@ addExclusion <- function(current, reason) {
     reason
   else 
     paste(current, reason, collapse = ", ")
+}
+
+#' Fix v1.0.0 of minGroups failing to identify advisors
+#' @param x dataframe to adjust
+fixGroups <- function(x) {
+  if ((studyName == "minGroups" && "1-0-0" %in% studyVersion)
+      || (studyName == "directBenevolence" && "1-2-0" %in% studyVersion)) {
+    
+    advisorDescription <- function(id, condition) {
+      if (id == 1) {
+        if (condition %% 2 == 1)
+          "inGroup"
+        else 
+          "outGroup"
+      } else {
+        if (condition %% 2 == 1)
+          "outGroup"
+        else
+          "inGroup"
+      }
+    }
+    
+    vars <- grep("idDescription", names(x), value = T)
+    for (v in vars) {
+      
+      id <- sub("Description", "", v)
+    
+      # Prepare factor levels
+      if (!("inGroup" %in% levels(x[[v]]))) {
+        levels(x[[v]]) <- c(levels(x[[v]]), "inGroup", "outGroup")
+      }
+      
+      # Fix table
+      for (i in which(x[[v]] == "Unset")) {
+        x[i, v] <- 
+          advisorDescription(x[i, id], 
+                             okayIds$condition[okayIds$pid %in% x$pid[i]])
+      }
+      
+      x[[v]] <- factor(x[[v]])
+    }
+  }
+  
+  x
+}
+
+#' Extract a list of advisor names and ids from a data frame where advisors are
+#' sequentially numbered
+#' @param x dataframe
+getAdvisorDetails <- function(x) {
+  
+  names <- NULL
+  types <- NULL
+  i <- 0
+  maxAdvisors <- 100
+  
+  while (T && i < maxAdvisors) {
+    if (!length(grep(paste0("advisor", i), names(x)))) {
+      break()
+    }
+    names <- unique(c(names, 
+                      unique(x[, paste0("advisor", i, 
+                                        "idDescription")])))
+    
+    types <- unique(c(types, 
+                      unique(x[, paste0("advisor", i, 
+                                        "actualType")]),
+                      unique(x[, paste0("advisor", i, 
+                                        "nominalType")])))
+    i <- i + 1
+  }
+  
+  types <- unlist(types)
+  types <- types[nchar(types) > 0]
+  
+  list(
+    names = unlist(names),
+    types = types
+  )
 }
 
 #' Calculate the derived variables for a dataframe
@@ -93,103 +169,16 @@ getDerivedVariables <- function(x, name, opts = list()) {
     # ADVISORS ----------------------------------------------------------------
     
     advisors = {
-      # repair JS mistakes ------------------------------------------------------
-      # v1.0.0 of minGroups failed to identify advisors, so fix that here
-      if (studyName == "minGroups" && "1-0-0" %in% studyVersion) {
-        advisorDescription <- function(id, condition) {
-          if (id == 1) {
-            if (condition %% 2 == 1)
-              "inGroup"
-            else 
-              "outGroup"
-          } else {
-            if (condition %% 2 == 1)
-              "outGroup"
-            else
-              "inGroup"
-          }
-        }
-        
-        # Prepare factor levels
-        if (!("inGroup" %in% levels(x$idDescription))) {
-          levels(x$idDescription) <- c(levels(x$idDescription), 
-                                       "inGroup", "outGroup")
-        }
-        
-        # Fix advisors table
-        for (i in which(x$idDescription == "Unset")) {
-          x$idDescription[i] <- 
-            advisorDescription(x$id[i], 
-                               okayIds$condition[okayIds$pid == x$pid[i]])
-        }
-      }
-      
-      x
+      fixGroups(x)
     },
     
     # ADVISED TRIAL -----------------------------------------------------------
     
     AdvisedTrial = {
-      # repair JS mistakes ------------------------------------------------------
-      # v1.0.0 of minGroups failed to identify advisors, so fix that here
-      if (studyName == "minGroups" && "1-0-0" %in% studyVersion) {
-        advisorDescription <- function(id, condition) {
-          if (id == 1) {
-            if (condition %% 2 == 1)
-              "inGroup"
-            else 
-              "outGroup"
-          } else {
-            if (condition %% 2 == 1)
-              "outGroup"
-            else
-              "inGroup"
-          }
-        }
-        
-        # Prepare factor levels
-        if (!("inGroup" %in% levels(x$advisor0idDescription))) {
-          levels(x$advisor0idDescription) <- 
-            c(levels(x$advisor0idDescription), 
-              "inGroup", "outGroup")
-        }
-        
-        # Fix AdvisedTrial table
-        for (i in which(x$advisor0idDescription == "Unset")) {
-          x$advisor0idDescription[i] <-
-            advisorDescription(x$advisor0id[i],
-                               okayIds$condition[okayIds$pid == x$pid[i]])
-        }
-      }
+      x <- fixGroups(x)
       
-      # reference varaibles -----------------------------------------------------
-      
-      # Gather a list of advisor names and advice types
-      # This is more complex than it needs to be because it handles a wider range of
-      # inputs than we give it here
-      
-      names <- NULL
-      types <- NULL
-      i <- 0
-      while (T) {
-        if (!length(grep(paste0("advisor", i), names(x)))) {
-          break()
-        }
-        names <- unique(c(names, 
-                          unique(x[, paste0("advisor", i, 
-                                            "idDescription")])))
-        types <- unique(c(types,
-                          unique(x[, paste0("advisor", i, 
-                                            "actualType")]),
-                          unique(x[, paste0("advisor", i,
-                                            "nominalType")])))
-        i <- i + 1
-      }
-      advisorNames <- unlist(names)
-      adviceTypes <- unlist(types)
-      
-      adviceTypes <- adviceTypes[nchar(adviceTypes) > 0]
-      
+      details <- getAdvisorDetails(x)
+      advisorNames <- details[["names"]]
       
       # trial variables ---------------------------------------------------------
       
@@ -371,7 +360,9 @@ getDerivedVariables <- function(x, name, opts = list()) {
         x$responseMarkerWidth
       
       x
-    }
+    },
+    
+    x
   )
 }
 
@@ -393,6 +384,14 @@ stripTags <- function(s) {
   
   s <- gsub("<[^>]+\\/>", "", s)
   s
+}
+
+#' extract only numbers from a string as one number
+#' @param s string
+#' 
+#' @return numeric representation of the result
+numerify <- function(s) {
+  as.numeric(gsub("[^0-9\\.]", "", s))
 }
 
 #' Return the first match for a regexpr
@@ -465,6 +464,10 @@ expect_equal(uniqueTotal(c("a", "b", "c")),
 #' name of the advisor column.
 #' @param df data frame to process
 singleAdvisorTrials <- function(df) {
+  
+  details <- getAdvisorDetails(x)
+  advisorNames <- details[["names"]]
+  
   # Find the number of advisors by counting advisorXadvice columns
   df$advisorCount <- 0
   for (r in 1:nrow(df)) {
@@ -585,7 +588,8 @@ markerBreakdown <- function(v,
                             ...) {
   v <- substitute(v)
   
-  markerList <- markerList[markerList %in% df$responseMarker]
+  markers <- getMarkerList()
+  markerList <- markers[markers %in% df$responseMarker]
   
   fun <- function(x) {
     if (!nrow(x))

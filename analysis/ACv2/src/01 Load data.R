@@ -83,7 +83,7 @@ for (v in versions) {
     n <- grep("responseEstimateLabel", names(tmp), value = T)
     for (z in n)
       tmp[, z] <- lapply(tmp[, z], function(y) 
-        as.numeric(stripTags((as.character(y)))))
+        numerify(stripTags((as.character(y)))))
     
     if ("responseMarkerWidth" %in% names(tmp))
       tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
@@ -109,6 +109,14 @@ for (v in versions) {
 decisions <- byDecision(AdvisedTrial)
 
 PP <- participantSummary(decisions)
+
+# Hoist key variables -----------------------------------------------------
+
+details <- getAdvisorDetails(AdvisedTrial)
+advisorNames <- details[["names"]]
+adviceTypes <- details[["types"]]
+
+markerList <- getMarkerList()
 
 # cleanup -----------------------------------------------------------------
 
