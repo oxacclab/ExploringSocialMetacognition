@@ -972,7 +972,7 @@ class Study extends ControlObject {
         let feedback;
         let advisorOrder = [];
 
-        feedback = this.condition <= this.conditionCount;
+        feedback = this.condition <= this.conditionCount / 2;
 
         advisorOrder[0] = (this.condition % 2) + 1;
         advisorOrder[1] = 3 - advisorOrder[0];
