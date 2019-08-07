@@ -118,8 +118,8 @@
             <esm-instruction-page>
                 <h1>Groups</h1>
                 <p>The last thing to tell you is that the advisors have been assigned to groups. You can tell which group an advisor is in by the background on the left of the screen, and by the colour of their marker on the timeline.</p>
-                <p>One of these groups <strong>matches the colour of your marker</strong>. These advisors will give you the <strong>best advice that they can</strong>.</p>
-                <p>The other group has a <strong>different colour to your marker</strong>. The advisors from this group might sometimes try to direct you <strong>away from the correct answer</strong>.</p>
+                <p>One of these groups (GROUP ONE) <strong>matches the colour of your marker</strong>. These advisors will give you the <strong>best advice that they can</strong>.</p>
+                <p>The other group (GROUP TWO) has a <strong>different colour to your marker</strong>. The advisors from this group might sometimes try to direct you <strong>away from the correct answer</strong>.</p>
                 <p>If you're happy with how it works, let's go!</p>
             </esm-instruction-page>
         </esm-instruction>
@@ -365,7 +365,7 @@
                     <div class="response-line"></div>
                 </div>
                 <esm-help data-group="interface" class="top wide">
-                    You indicate your answer by dragging one of the <em>markers</em> onto this <em>timeline</em>.
+                    You indicate your answer by dragging the <em>marker</em> onto this <em>timeline</em>.
                 </esm-help>
                 <div class="response-panel">
                     <div class="response-marker-pool">
@@ -522,6 +522,7 @@
             advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
 
         let studyBlueprint = {
+            studyName: "directBenevolence",
             studyVersion: document.querySelector("head").dataset.version,
             attentionCheckTrials: [18, 24],
             blocks: [

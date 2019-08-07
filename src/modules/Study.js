@@ -1854,8 +1854,6 @@ class MinGroupsStudy extends DatesStudy {
     }
     _setDefaults() {
         super._setDefaults();
-
-        this.studyName = "minGroups";
     }
 
     async assignGroup() {
