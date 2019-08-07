@@ -25,10 +25,9 @@ if (!isSet("silent")) {
 # constants ---------------------------------------------------------------
 
 markerList <- {
-  if (studyName == "datesStudy") 
-    c(1, 3, 9, 11, 21, 27)
-  else
-    c(11)
+ unique(c(AdvisedTrial$responseMarkerWidth,
+          AdvisedTrial$responseMarkerWidthFinal,
+          Trial$responseMarkerWidth))       
 }
 
 # loading functions -------------------------------------------------------
