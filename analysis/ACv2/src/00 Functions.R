@@ -152,6 +152,39 @@ getAdvisorDetails <- function(x) {
   )
 }
 
+#' Calculate variables detailing the quality of a response
+#' @param a answer
+#' @param e estimate lower bound
+#' @param w estimate width
+#' @param s estimate marker value
+#' @param suffix to append to each variable name
+#' 
+#' @return data frame with columns for response correctness, error, and score
+getResponseVars <- function(a, e, w, s, suffix = NULL) {
+  if (is.null(s)) {
+    s <- 27 / w
+  }
+  
+  n <- length(a)
+  
+  if (length(e) != n || length(w) != n) {
+    stop("Lengths of all input vectors must be the same.")
+  }
+  
+  x <- data.frame(
+    responseCorrect = a >= e & a <= e + w,
+    responseError = abs(a - e + (w / 2))
+  )
+  
+  x$responseScore <- ifelse(x$responseCorrect, s, 0)
+  
+  if (!is.null(suffix)) {
+    names(x) <- paste0(names(x), suffix)
+  }
+  
+  x
+}
+
 #' Calculate the derived variables for a dataframe
 #' @param df data frame to calculate derived variables for
 #' @param name of the dataframe extracted from its csv file
@@ -194,23 +227,18 @@ getDerivedVariables <- function(x, name, opts = list()) {
         expect_equal(!is.na(x$timeFeedbackOn), x$feedback)
       }
       
-      x$responseCorrect <- 
-        x$correctAnswer >= x$responseEstimateLeft &
-        x$correctAnswer <= x$responseEstimateLeft + 
-        x$responseMarkerWidth
+      x <- cbind(x, getResponseVars(x$correctAnswer,
+                                    x$responseEstimateLeft,
+                                    x$responseMarkerWidth,
+                                    x$responseMarkerValue))
       
-      x$responseCorrectFinal <- 
-        x$correctAnswer >= x$responseEstimateLeftFinal &
-        x$correctAnswer <= x$responseEstimateLeftFinal + 
-        x$responseMarkerWidthFinal
+      x <- cbind(x, getResponseVars(x$correctAnswer,
+                                    x$responseEstimateLeftFinal,
+                                    x$responseMarkerWidthFinal,
+                                    x$responseMarkerValueFinal,
+                                    "Final"))
       
-      x$responseError <- abs(x$correctAnswer - 
-                               x$responseEstimateLeft + 
-                               (x$responseMarkerWidth / 2))
-      
-      x$responseErrorFinal <- abs(x$correctAnswer -
-                                    x$responseEstimateLeftFinal 
-                                  + (x$responseMarkerWidthFinal / 2))
+      x <- as.tibble(x)
       
       x$errorReduction <- x$responseError - 
         x$responseErrorFinal
@@ -238,8 +266,8 @@ getDerivedVariables <- function(x, name, opts = list()) {
       tmp <- x[order(x$number), ]
       
       x$firstAdvisor <- unlist(sapply(x$pid, 
-                                      function(z) 
-                                        tmp[tmp$pid == z,
+                                      function(id) 
+                                        tmp[tmp$pid == id,
                                             "advisor0idDescription"][1, ]))
       
       x$advisor0offBrand <- x$advisor0actualType == "disagreeReflected"
@@ -354,12 +382,13 @@ getDerivedVariables <- function(x, name, opts = list()) {
     # TRIAL -------------------------------------------------------------------
     
     Trial = {
-      x$responseCorrect <- 
-        x$correctAnswer >= x$responseEstimateLeft &
-        x$correctAnswer <= x$responseEstimateLeft + 
-        x$responseMarkerWidth
       
-      x
+      x <- cbind(x, getResponseVars(x$correctAnswer,
+                                    x$responseEstimateLeft,
+                                    x$responseMarkerWidth,
+                                    x$responseMarkerValue))
+      
+      as.tibble(x)
     },
     
     x
