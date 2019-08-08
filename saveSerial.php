@@ -136,6 +136,8 @@ if(array_key_exists("prolificId", $data)) {
     $data["pid"] = "awaiting";
     $data["serverTime"] = date('c');
 
+    $data["hash"] = md5($prefix . "_" . $data["prolificId"]);
+
     if(!file_exists($filename)) {
         if(($handle = fopen($filename, "wb")) !== false) {
             fputcsv($handle, array_keys($data));
@@ -226,7 +228,7 @@ if(array_key_exists("prolificId", $data)) {
 
     if(($handle = fopen($metaFile, "a+b")) !== false) {
 
-        $hash = md5($prefix . "_" . $pid);
+        $hash = $data["hash"];
 
         if(isset($data["condition"]) && $data["condition"])
             $condition = $data["condition"];
@@ -237,7 +239,6 @@ if(array_key_exists("prolificId", $data)) {
         // Write data
         fputcsv($handle, array($pid, $tags, $hash, $condition));
     }
-
 
     die(json_encode(
         array("id" => $pid,
