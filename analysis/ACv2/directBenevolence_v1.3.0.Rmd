@@ -46,8 +46,10 @@ theme_set(theme_light() +
 
 ```{r loadData, include = F}
 
-studyVersion <- "1-2-0"
+studyVersion <- "1-3-0"
 studyName <- "directBenevolence"
+
+overrideMarkerList <- c(11) # Someone managed to get marker width 8 for one question, not sure how
 
 exclude <- list(
   maxAttnCheckFails = 0, # pass all attn checks
@@ -63,23 +65,15 @@ source("src/02 Exclusions.R")
 
 ```
 
-#Note {.summary}
-
-This study did not implement the participants' group correctly, meaning there was no visual cue for the shared group between the 'helpful' advisor and the participant. 
-
 # Introduction
 
-Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors sometimes provide deliberately poor advice. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of potentially misleading advice, we used a minimal groups paradigm to pair participant judges in a judge-advisor system with two advisors, one who shared their group and another who did not.
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors sometimes provide deliberately poor advice. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of potentially misleading advice, we used a direct benevolence manipulation to pair participant judges in a judge-advisor system with two advisors, one who they were told would consistently try to help them ('in-group advisor'), and one who they were told may occasionally try to mislead them ('out-group advisor').
 
 We hypothesised that participants would place greater weight on the advice of the in-group vs out-group advisor, and that this relationship would be mediated by responses to questionnaires asking about the perceived benevolence of the advisor.
 
-## Preregistration
-
-This study was preregistered on the Open Science Framework: [https://osf.io/6hvg5](https://osf.io/6hvg5).
-
 # Method
 
-The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/mg.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/mg.html?PROLIFIC_PID=WriteUp). 
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html?PROLIFIC_PID=WriteUp). 
 
 # Results
 
@@ -90,8 +84,6 @@ The experimental code is available on [GitHub](https://github.com/oxacclab/Explo
 tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
 
 tmp$condition <- factor(tmp$condition, labels = c("InFirst",
-                                                  "OutFirst",
-                                                  "InFirst",
                                                   "OutFirst"))
 
 kable(table(tmp$excluded, tmp$condition))
@@ -224,7 +216,7 @@ ggplot(aggregate(rt ~
 
 ### Summary {.summary}
 
-Participants took longer on their final decisions, and improved their accuracy. This suggests that they took the time to weigh up the advice, and that they took it into account when making their (final) decisions.
+Participants took longer on their final decisions, and slightly improved their accuracy. This suggests that they took the time to weigh up the advice, and that they took it into account when making their (final) decisions.
 
 ## Advisor performance
 
@@ -395,7 +387,7 @@ ggplot(AdvisedTrial, aes(woa)) +
 
 ### Summary {.summary}
 
-Weight on Advice scores are highly similar identical between the advisors, as are the distributions. Participants tend to have similar weight on advice for both advisors (shallow slopes), with fairly mixed preferences (similar numbers have higher weight on advice for each advisor). This suggests that participants are not systematically differentiating between the advisors with regard to the weight placed on those advisors' advice. Formal testing of the hypothesis is below.
+Weight on Advice scores are highly similar identical between the advisors, as are the distributions. Participants tend to have different weight on advice for both advisors (shallow slopes), with mixed preferences (similar numbers have higher weight on advice for each advisor). This suggests that participants have preferences between advisors, but that these preferences are not systematically different between the advisors. Formal testing of the hypothesis is below.
 
 ## Questionnaire data
 
@@ -427,7 +419,7 @@ ggplot(tmp, aes(x = sameGroup, y = rating)) +
 
 ### Summary {.summary} 
 
-Across all questions there is a preference for the ingroup vs outgroup advisor, although this is not highly pronounced. There is not an obviously greater difference in benevolence ('helpfulness') compared to the other questions, although 'helpfulness' and 'trustworthiness' show the largest differences.
+Across all questions there is no pronounced preference for the ingroup vs outgroup advisor, there does seem to be a difference in perceived consistency. The other measures, including 'trustworthiness' and 'helpfulness', show little difference. This is surpising because participants were explicitly informed that one advisor was more trustworthy and was trying to help more than the other. 
 
 ## Hypothesis testing
 
@@ -487,19 +479,55 @@ plot(r$main_result)
 
 ### Summary {.summary}
 
-There is not enough evidence to conclude anything about the pathway $\beta$ (the correlation between higher benevolence ratings and higher weight on advice scores). There is evidence against the other pathways, and against the mediation of a relationship between group and weight on advice by benevolence rating.
+These data support the conclusion that there are no meaningful associations between advisor group, subjective advisor assessment of benevolence ('helpfulness'), and the extent to which advice is taken.
+
+## Exploration
+
+Taking a look at the comments about what the difference between the advisors is (the participant are told explicitly), we can see whether it looks like there's an obvious break between participants for whom the manipulation was effective and those for whom it was not.
+
+```{r commentBreakdown}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription, AdvisedTrial, mean)
+pids <- tibble(pid = unique(tmp$pid))
+pids$worked <- sapply(unique(tmp$pid), function(pid) {
+  x <- tmp[tmp$pid == pid, ]
+  x$advisor0woa[x$advisor0idDescription == "inGroup"] > 
+    x$advisor0woa[x$advisor0idDescription == "outGroup"]
+})
+
+pids <- pull(pids[pids$worked, ], "pid")
+
+```
+
+Participants for whom the manipulation worked: 
+
+```{r commentManipSuccess}
+
+kable(debrief.form$comment[debrief.form$pid %in% pids])
+
+```
+
+And those for whom it did not:
+
+```{r commmentManipFail}
+
+kable(debrief.form$comment[!(debrief.form$pid %in% pids)])
+
+```
+
+### Summary {.summary}
+
+The comments appear to be fairly balanced between the participants for whom the manipulation worked, and those for whom it did not. If anything, the participants for whom the manipulation was unsuccessful provided more appropriate comments than those for whom it was successful.
 
 # Conclusions
 
 The experiment provided evidence against the hypotheses tested. Weight on advice was not higher for ingroup vs outgroup advisors, and the differences in the weighting of advice were not mediated by perceived benevolence. 
 
-These results may have occurred because the participants are not sensitive to the manipulation, providing evidence against the suggestion that humans exhibit context-sensitivity in their advice-taking analogous to evolutionary adaptation in modelling scenarios (note that this would not necessarily invalidate the suggestion that humans possess hyperpriors on advice baked in over evolutionary time). 
-
-It would be worth establishing experimentally whether participants are sensitive to direct manipulations of advisor benevolence before attempting more subtle inductions through minimal groups-style manipulations. 
+These results are odd. Participants told explicitly that one advisor is better should show a greater tendency to follow the advice of that advisor. It is perhaps possible that participants are attending more to the advice itself than the source of the advice. It is also possible that the high variation in advice makes it hard for participants to perform the task (although this variation was introduced due to non-effects in the previous minimal groups version of the manipulation). 
 
 ## Recommendation {.summary}
 
-A simpler proof of concept where benevolence is directly and explicitly manipulated may be wise before investing more time and money into the minimal groups implementation. 
+This manipulation should work. It may be worth reducing the variation in advice (making the advisors better), and perhaps also allowing _actual_ differences in advice to follow the ostensible differences, to check whether the resistence to the manipulation is rational (because there are no differences in actual advice quality) or simply bullheaded (because participants don't care about the advisors). 
 
 # Credits 
 
