@@ -15,9 +15,13 @@ if (!isSet("skipLoadData") || !skipLoadData) {
   source("./src/01 Load data.R")
 } else {
   source("./src/00 Functions.R")
+  markerList <- getMarkerList()
 }
 
-markerList <- getMarkerList()
+if (isSet("overrideMarkerList")) {
+  markerList <- overrideMarkerList
+}
+
 
 library(tibble)
 
@@ -41,6 +45,8 @@ if (!isSet("exclude")) {
   
   stop("No criteria for exclusion ([exclude] variable not set). See above for a list of options.")
 }
+
+referenceTrialList <- AdvisedTrial
 
 # output variables --------------------------------------------------------
 
@@ -226,7 +232,7 @@ if (!is.null(exclude$multipleAttempts) &&
     ids <- okayIds$pid[okayIds$uidHash == uid]
     
     # participants who have multiple attempts at core trials
-    if (length(ids[ids %in% AdvisedTrial[["pid"]]]) > 1) {
+    if (length(ids[ids %in% referenceTrialList[["pid"]]]) > 1) {
       tmp <- exclusions[exclusions$pid %in% ids, ]
       
       tmp$excluded <- addExclusion(tmp$excluded, "multipleAttempts")
@@ -235,7 +241,7 @@ if (!is.null(exclude$multipleAttempts) &&
     }
     
     # participants who have answered the same question twice
-    tmp <- c(AdvisedTrial$stimHTML[AdvisedTrial$pid %in% ids],
+    tmp <- c(referenceTrialList$stimHTML[referenceTrialList$pid %in% ids],
              practiceTrial$stimHTML[practiceTrial$pid %in% ids],
              practiceAdvisedTrial$stimHTML[practiceAdvisedTrial$pid %in% ids])
     
@@ -341,4 +347,4 @@ for (n in ls()) {
 # cleanup -----------------------------------------------------------------
 
 suppressWarnings(rm("tmp", "p", "i", "x", "n", "uid", 
-                    "outliers", "v", "dirty", "ids"))
+                    "outliers", "v", "dirty", "ids", "referenceTrialList"))
