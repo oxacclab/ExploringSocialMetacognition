@@ -6,11 +6,13 @@ output:
     df_print: paged
     toc: yes
     toc_depth: '3'
-  html_notebook:
+    css: ../src/writeUp.css
     includes:
       after_body: ../src/toc_menu.html
+  html_notebook:
     toc: yes
     toc_depth: 3
+    css: ../src/writeUp.css
 editor_options:
   chunk_output_type: inline
 ---
@@ -51,14 +53,14 @@ theme_set(theme_light() +
 
 ## Introduction
 
-Marker use study v0.1.1 is an exact replicaiton of the basic datesStudy, but with slightly different markers. 
+Marker use study v0.2.1 is an exact replicaiton of the basic datesStudy, but with slightly different markers.
 
 ## Load data
 
 ```{r loadData}
 
 studyName <- "markerUse"
-studyVersion <- "0-1-1"
+studyVersion <- "0-2-1"
 
 exclude <- list(
   maxAttnCheckFails = 0 # pass all attn checks
@@ -71,7 +73,7 @@ source("src/02 Exclusions.R")
 
 ```
 
-Here the marker widths are: `r print(markerList)`.
+Marker lists used in this study: `r print(getMarkerList())`.
 
 ### Exclusions
 
@@ -169,6 +171,10 @@ ggplot(PP[!is.na(PP$responseMarker), ],
        y = "p(marker used)")
 
 ```
+
+##### Summary {.summary}
+
+The marker use balance is improving on previous studies. In the first decision, where it is most critical to get an even spread, the latter three markers are seeing a more even distribution. Perhaps adjusting the width of the 10-wide marker down a little will help, although a previous study with marker widths of 7, 14, 21 showed a strong drop-off for the 21-width marker. Perhaps increasing the points for this marker would help.
 
 #### Error (estimate mean)
 
@@ -606,6 +612,10 @@ ezANOVA(df, advisor0woa, pid,
         type = 2)
 
 ```
+
+### Summary {.summary}
+
+As reflected in the WoA graph, it seems participants do treat the advisors differently. Where feedback is provided, the pattern is as expected whereby the accurate advisor is preferred. Where feedback is not provided, it seems participants show a preference for the advice style of the first advisor they encounter. We should note that we don't necessarily have enough participants to draw strong conclusions here, but the suggestion is interesting.
 
 ### Post-hoc tests
 
