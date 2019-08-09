@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head data-version="0.0.1">
+    <title>Study Browser Check</title>
+
+    <link rel="stylesheet" type="text/css" href="style/structure.css"/>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+    <!--/ FontAwesome -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body tabindex="0">
+<div class="content-wrapper">
+    <div id="checks" class="overlay open">
+        <section>
+            <h1>Checking browser compatibility</h1>
+            <article>
+                <p>The study uses some advanced features of JavaScript which are only supported by fairly modern browsers. Before you begin the study, we need to check whether your browser is able to run it.</p>
+                <p>Below, you should see a series of short tests being run. This process should only take a few seconds.</p>
+            </article>
+        </section>
+        <div id="test">
+            <h3>Testing iFrame support</h3>
+            <iframe src="browserTests/iFrame.html">
+                Your browser will not be able to run this study.
+            </iframe>
+        </div>
+        <div id="outcome">
+            <p class="reason">Check failed: <em class="reason">JavaScript enabled</em></p>
+            <p class="close">Please return the study if you are using Prolific and close your browser. Alternatively, you may try to do the study in another browser or on another device.</p>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    "use strict";
+
+    /*
+        The browser check will ensure participants are able to complete the study on their chosen device, or recommend that they use a different one.
+
+        The search part of the URL for this page will include a study=[path relative to root] for the study URL. The consent page, navigated to if the check is successful, will use this to point the participant to the correct target study.
+     */
+
+    // Test area
+    var testTitle = document.querySelector("#test > h3");
+    var testFrame = document.querySelector("#test > iframe");
+
+    // Timeout (ms) and current test index
+    var timeout = 1000;
+    var timeStep = 50;
+    var t = -1;
+
+    // Test urls and descriptions
+    // All tests resolve a paragraph containing 'Okay' in the body.
+    var tests = [
+        {
+            test: "browserTests/es6.html",
+            message: "JavaScript ES6 support"
+        },
+        {
+            test: "browserTests/modules.html",
+            message: "JavaScript module loading support"
+        }
+    ];
+
+    var test = {
+        test: "browserTests/iFrame.html",
+        message: "iFrames enabled"
+    };
+
+    /**
+     * Periodically check whether the check has passed or the timeout period has expired
+     */
+    function checkOkay(timer) {
+
+        if(testFrame.contentDocument &&
+            testFrame.contentDocument.querySelector("p") &&
+            testFrame.contentDocument.querySelector("p").innerText === "Okay")
+            nextTest();
+        else
+            if(timer > timeout)
+                fail();
+            else
+                setTimeout(checkOkay, timeStep, timer + timeStep);
+    }
+
+    /**
+     * Run the next test or finish the checks.
+     */
+    function nextTest() {
+        if(!tests.length) {
+            finish();
+            return;
+        }
+
+        test = tests.shift();
+
+        testTitle.innerText = test.message;
+        testFrame.src = test.test;
+
+        setTimeout(checkOkay, timeStep, timeStep);
+    }
+
+    /**
+     * Set a failure message and stop.
+     */
+    function fail() {
+        document.getElementById("outcome").classList.remove("cloak");
+        testFrame.remove();
+        document.querySelector("#outcome em.reason").innerText = test.message;
+    }
+
+    /**
+     * Forward to the consent page if required, or directly to the experiment if consent is already obtained.
+     */
+    function finish() {
+        function getQueryStringValue(key) {
+            let regex = new RegExp("[?&]?" + key + "=([^&]+)", "i");
+            let test = regex.exec(window.location.search);
+            if(test)
+                return test[1];
+            return null;
+        }
+
+        // Check there's somewhere sensible to go!
+        if(!getQueryStringValue("study")) {
+            testTitle.innerText = "Checking target study";
+            test.message = "No study declared.";
+            fail();
+            return;
+        }
+
+        // Sanitation of Prolific ID
+        var prolificId =
+            getQueryStringValue("PROLIFIC_PID") || "NoIdSupplied";
+
+        // Redirect if we don't have consent for participation
+        var consent = getQueryStringValue("consent");
+
+        if(!consent) {
+            // simulate redirect (no history)
+            window.location.replace(
+                "consent.html" + window.location.search
+            );
+        } else {
+            var redirectURL = getQueryStringValue("study") + "/";
+
+            var page = getQueryStringValue("v");
+            if(page)
+                redirectURL += page;
+
+            var search = window.location.search.split("&");
+            var newSearch = "";
+
+            for(var i = 0; i < search.length; i++) {
+                var s = search[i];
+                if(s.indexOf("study=") === -1 &&
+                    (!page || s.indexOf("=" + page) === -1))
+                    newSearch += (i? "&" : "") + s;
+            }
+
+            // Get the correct start to the querystring
+            if(newSearch[0] !== "?")
+                newSearch = "?" +
+                    (newSearch[0] === "&"?
+                        newSearch.substr(1) : newSearch);
+
+            redirectURL += newSearch;
+
+            window.location.replace(redirectURL);
+        }
+    }
+
+    // Hide the JS must be enabled message
+    document.getElementById("outcome").classList.add("cloak");
+
+    // Run the first check
+    checkOkay(0);
+
+</script>
+</body>
+</html>

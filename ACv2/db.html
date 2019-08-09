@@ -5,7 +5,6 @@
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="../src/sha1.js"></script>
-    <script src="../src/bowser.min.js"></script>
 
     <!--Custom HTML components-->
     <script src="../src/customElements/InstructionDiv.js"></script>
@@ -441,6 +440,7 @@
     // Procedural stuff
 
     // Check consent
+    const consent = utils.getQueryStringValue("consent") === "true";
 
     let prolificId = utils.getQueryStringValue("PROLIFIC_PID");
     if(!prolificId)
@@ -449,15 +449,19 @@
         window.prolificID = prolificId;
 
     // redirect if we don't have consent for participation
-    let consent = utils.getQueryStringValue("consent") === "true";
     if(!consent &&
         !utils.getQueryStringValue("fb") &&
         !utils.getQueryStringValue("debug")) {
-        const redirectURL =
-            "../consent.html" +
+        let redirectURL =
+            "../" +
             window.location.search +
             (/\?/.test(window.location.search)? "&" : "?") +
             "study=ACv2";
+
+        let page = window.location.pathname.split("/").pop();
+        if(page.length)
+            redirectURL += "&v=" + page;
+
         window.location.replace(redirectURL); // simulate redirect (no history)
     } else {
 

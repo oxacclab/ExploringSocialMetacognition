@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ES6</title>
+</head>
+<body>
+<p></p>
+<script type="text/javascript">
+    const f = (x) => x.innerText = 'Okay';
+
+    const list = [document.querySelector('body p')];
+
+    for(let item in list) {
+        if(!item)
+            throw("Item not an item!");
+    }
+
+    f(...list);
+</script>
+</body>
+</html>

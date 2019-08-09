@@ -142,6 +142,7 @@ esm-instruction > div:last-child {
     justify-self: stretch;
 }
 .overlay {
+    position: absolute;
     grid-column-start: 1;
     grid-column-end: 2;
     grid-row-start: 1;
@@ -759,6 +760,15 @@ span.redo-link {
 
 .payment-link {
     background-color: yellow;
+}
+
+
+/* Browser capability tests */
+#outcome.cloak {
+    display: none;
+}
+#outcome .reason {
+    color: red;
 }
 
 /* Sizing for smaller displays */

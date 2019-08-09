@@ -2,8 +2,12 @@ describe('Initial connection', function() {
     it('Redirects to collect confidence', function() {
         cy.visit('localhost/ExploringSocialMetacognition/ACv2/ac.html?PROLIFIC_PID=CypressTest');
 
-        // Should be redirected to the consent page
-        cy.url().should('include', '/consent.html?PROLIFIC_PID=CypressTest');
+        cy.url()
+            .should('include', '/consent.html')
+            .should('include', '?PROLIFIC_PID=CypressTest');
+
+        // Actually visit page
+        cy.visit('localhost/ExploringSocialMetacognition/consent.html?study=ACv2&v=ac.html&PROLIFIC_PID=CypressTest');
 
         // Click checkboxes
         cy.get('input[type="checkbox"]')

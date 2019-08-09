@@ -273,7 +273,7 @@ class Study extends ControlObject {
 
         instr.querySelector("esm-instruction").callback = callback;
 
-        instr.classList.remove("hidden");
+        instr.classList.add("open");
     }
 
     /**
@@ -831,8 +831,10 @@ class Study extends ControlObject {
     async saveErrorNotification(errStr) {
         this.warn("Save error");
 
-        document.body.appendChild(
+        const elm = document.body.appendChild(
             document.createElement("div")).id = "save-warning";
+
+        elm.classList.add("overlay");
 
         return new Promise(resolve => {
             Study._updateInstructions("save-error",
