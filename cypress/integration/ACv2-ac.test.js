@@ -6,9 +6,6 @@ describe('Initial connection', function() {
             .should('include', '/consent.html')
             .should('include', '?PROLIFIC_PID=CypressTest');
 
-        // Actually visit page
-        cy.visit('localhost/ExploringSocialMetacognition/consent.html?study=ACv2&v=ac.html&PROLIFIC_PID=CypressTest');
-
         // Click checkboxes
         cy.get('input[type="checkbox"]')
             .click({multiple: true});
@@ -24,8 +21,14 @@ describe('Initial connection', function() {
 
 describe('The Study', function() {
 
+    it('Checks browser compatability', function() {
+        cy.visit('localhost/ExploringSocialMetacognition/?study=ACv2&v=ac.html&PROLIFIC_PID=CypressTest&consent=true');
+
+        cy.get('iframe')
+            .should('be.visible');
+    });
+
     it('Welcomes the user', function() {
-        cy.visit('localhost/ExploringSocialMetacognition/ACv2/ac.html?PROLIFIC_PID=CypressTest&consent=true');
 
         // Should connect
         cy.contains('Welcome')

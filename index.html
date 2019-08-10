@@ -141,9 +141,13 @@
 
         if(!consent) {
             // simulate redirect (no history)
-            window.location.replace(
-                "consent.html" + window.location.search
-            );
+            var redirectURL = window.location.href;
+            if(redirectURL.indexOf("index.html?") !== -1) {
+                redirectURL = redirectURL.replace("index.html?", "consent.html?");
+            } else {
+                redirectURL = redirectURL.replace("/?", "/consent.html?");
+            }
+            window.location.replace(redirectURL);
         } else {
             var redirectURL = getQueryStringValue("study") + "/";
 
@@ -151,6 +155,7 @@
             if(page)
                 redirectURL += page;
 
+            // remove study and page from search string
             var search = window.location.search.split("&");
             var newSearch = "";
 
@@ -169,7 +174,12 @@
 
             redirectURL += newSearch;
 
-            window.location.replace(redirectURL);
+            var re = new RegExp("\\/(?:index\\.html)?(\\?[\\w\\W]*)");
+
+            var url = window.location.href.replace(
+                re.exec(window.location.href)[1], redirectURL);
+
+            window.location.replace(url);
         }
     }
 
