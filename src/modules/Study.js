@@ -740,7 +740,6 @@ class Study extends ControlObject {
         // Study properties
         out.tags = this.tags;
         out.prolific = this.prolific;
-        out.idHash = this.idHash;
         out.countdownTime = this.countdownTime;
         out.condition = this.condition;
 
@@ -906,6 +905,7 @@ class Study extends ControlObject {
             studyId: this.studyName,
             studyVersion: this.studyVersion,
             pid: await this.getSaveId(),
+            pidHash: this.idHash,
             clientTime: new Date().getTime(),
             ...data
         });
