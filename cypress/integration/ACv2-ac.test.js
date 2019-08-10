@@ -48,24 +48,6 @@ for(let run = 0; run < runs; run++) {
                 .should('eq', 'DatesStudy');
         });
 
-        it('Asks about the browser', function() {
-            // Should ask about
-            cy.contains('Device')
-                .should('be.visible');
-            cy.contains('OS / Type')
-                .should('be.visible');
-            cy.contains('Browser')
-                .should('be.visible');
-
-            // Click some options
-            cy.get('div.item:first-of-type input[type="radio"]')
-                .click({multiple: true});
-
-            // Submit
-            cy.get('button[name="submit"]')
-                .click();
-        });
-
         it('Gets study variables from server', function() {
             cy.window()
                 .its('study')

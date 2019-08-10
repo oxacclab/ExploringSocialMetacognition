@@ -173,71 +173,15 @@ class Study extends ControlObject {
 
         const me = this;
 
-        const checkInput = function() {
-            const data = {};
-            // Has anything been written in the mandatory fields?
-            let okay = true;
-            // Get unique name list
-            const names = {};
-            document.querySelectorAll("form input").forEach(elm => {
-                if(typeof names[elm.name] === "undefined")
-                    names[elm.name] = elm.classList.contains("mandatory");
-            });
-
-            for(const n in names) {
-               const inputs = document.querySelectorAll("form input[name='" + n + "']");
-
-                inputs[0].parentElement.parentElement.classList.remove("invalid");
-
-               let inputOkay = false;
-               inputs.forEach(elm => {
-                   if(elm.checked || elm.type === "text") {
-                       inputOkay = true;
-                       data[n] = elm.value;
-                   }
-               });
-
-               if(!inputOkay && names[n]) {
-                   // missing mandatory input
-                   inputs[0].parentElement.parentElement.classList.add("invalid");
-                   okay = false;
-               }
-            }
-
-            if(!okay)
-                return false;
-            return data;
-        };
-
         return new Promise(function(resolve) {
-            // Show the browser questions
-            const questionnaire = document.querySelector("#questionnaire");
-            questionnaire.innerHTML = "";
-            questionnaire.appendChild(
-                document.importNode(
-                    document.getElementById("demographics").content, true
-                ));
-            document.querySelector("form button[name='submit']").addEventListener("click", e=>{
-                e = e || window.event();
-                e.preventDefault();
+            const data = {
+                userAgent: navigator.userAgent,
+                ...me.toTable()
+            };
 
-                const data = checkInput();
+            me.saveCSVRow("study-details", true, data);
 
-                if(!data)
-                    return false;
-
-                data["userAgent"] = navigator.userAgent;
-
-                me.saveCSVRow("demographics-form", true, data);
-
-                if(data["browser"] === "safari" ||
-                    data["os"] === "apple" ||
-                    (data["userAgent"].toLowerCase().includes("safari") &&
-                    !data["userAgent"].toLowerCase().includes("chrome")))
-                    me.barSafari();
-                else
-                    resolve("demographics");
-            });
+            resolve("demographics");
         });
     }
 
@@ -793,8 +737,30 @@ class Study extends ControlObject {
     toTable() {
         const out = {};
 
-        out.blocks = this.blocks.length;
+        // Study properties
+        out.tags = this.tags;
+        out.prolific = this.prolific;
+        out.idHash = this.idHash;
         out.countdownTime = this.countdownTime;
+        out.condition = this.condition;
+
+        // Study structure
+        out.blocks = this.blocks.length;
+        out.trial = this.trials.length;
+
+        out.coreBlocks = this.blocks.filter(b => b.blockType === "core").length;
+        out.coreTrials = this.trials.filter(t => t.blockType === "core").length;
+
+        // Display measurements
+        const content = getComputedStyle(
+            document.getElementById("content"));
+
+        out.screenHeight = screen.availHeight;
+        out.windowHeight = window.outerHeight;
+        out.contentHeight = content.height;
+        out.screenWidth = screen.availWidth;
+        out.windowWidth = window.outerWidth;
+        out.contentWidth = content.width;
 
         return out;
     }
@@ -831,9 +797,10 @@ class Study extends ControlObject {
     async saveErrorNotification(errStr) {
         this.warn("Save error");
 
-        const elm = document.body.appendChild(
-            document.createElement("div")).id = "save-warning";
+        const elm = document.querySelector("#content").appendChild(
+            document.createElement("div"));
 
+        elm.id = "save-warning";
         elm.classList.add("overlay");
 
         return new Promise(resolve => {
@@ -1060,6 +1027,7 @@ class Study extends ControlObject {
                 this.tags = r.tags;
                 this.condition = r.condition;
                 this.prolific = /prolific/i.test(r.tags);
+                this.idHash = r.uidHash;
             })
             .catch((r) => me.saveErrorNotification(r));
 
@@ -1068,13 +1036,6 @@ class Study extends ControlObject {
         this.setCondition();
 
         return this.id;
-    }
-
-    barSafari() {
-        Study._updateInstructions("no-safari",
-            ()=>{},
-            "fullscreen-warning");
-        document.body.classList.add("fatal-error");
     }
 }
 
