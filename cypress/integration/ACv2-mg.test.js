@@ -1,36 +1,35 @@
-describe('Initial connection', function() {
-    it('Redirects to collect confidence', function() {
-        cy.visit('localhost/ExploringSocialMetacognition/?v=mg.html&PROLIFIC_PID=CypressTest&study=ACv2');
+const runs = 1;
+for(let run = 0; run < runs; run++) {
 
-        cy.url()
-            .should('include', '/consent.html')
-            .should('include', '?PROLIFIC_PID=CypressTest');
+    describe('ACv2/mg (run=' + run + ')', function() {
 
-        // Actually visit page
-        cy.visit('localhost/ExploringSocialMetacognition/consent.html?study=ACv2&v=mg.html&PROLIFIC_PID=CypressTest');
+        it('Checks browser compatability', function() {
+            cy.visit('localhost/ExploringSocialMetacognition/ACv2/mg.html?PROLIFIC_PID=CypressTest');
 
-        // Click checkboxes
-        cy.get('input[type="checkbox"]')
-            .click({multiple: true});
+            cy.get('iframe')
+                .should('be.visible');
+        });
 
-        // Give consent
-        cy.get('input[type="submit"')
-            .click();
+        it('Redirects to collect confidence', function() {
+            cy.url()
+                .should('include', '/consent.html')
+                .should('include', '?PROLIFIC_PID=CypressTest');
 
-        // Should be redirected to the actual test now
-        cy.url().should('not.include', '/consent.html');
-    })
-});
+            // Click checkboxes
+            cy.get('input[type="checkbox"]')
+                .click({multiple: true});
 
-const n = 1;
+            // Give consent
+            cy.get('input[type="submit"')
+                .click();
 
-for(let run = 0; run < n; run++) {
-    describe('The Study' + '(run=' + run + ')', function () {
+            // Should be redirected to the actual test now
+            cy.url().should('not.include', '/consent.html');
+        });
 
-        it('Welcomes the user', function () {
-            cy.visit('localhost/ExploringSocialMetacognition/ACv2/mg.html?PROLIFIC_PID=CypressTest&consent=true');
+        it('Welcomes the user', function() {
 
-            // Should connect
+        // Should connect
             cy.contains('Welcome')
                 .should('be.visible');
 
