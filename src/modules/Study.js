@@ -729,6 +729,9 @@ class Study extends ControlObject {
         div.innerHTML = "";
         div.appendChild(document.importNode(document.querySelector("#issue-report").content, true));
 
+        // Prevent form submission navigation especially on Safari
+        div.querySelector("form").addEventListener("submit", ()=>false);
+
         div.querySelector("form button[name='submit']").addEventListener("click", e => {
             e.preventDefault();
             const form = document.querySelector("#report-issue form");
@@ -1366,6 +1369,9 @@ class DatesStudy extends Study {
             div.dataset.id = advisor.id;
             div.appendChild(advisor.getInfoTab());
 
+            // Prevent form submission navigation especially on Safari
+            form.addEventListener("submit", ()=>false);
+
             // Disable form submission until an input or textarea has been clicked
             const submit = form.querySelector("button[name='submit'");
             submit.disabled = "disabled";
@@ -1448,6 +1454,10 @@ class DatesStudy extends Study {
                 document.importNode(
                     document.getElementById("debrief").content, true
                 ));
+
+            // Prevent form submission especially on Safari
+            content.querySelector("form").addEventListener("submit", ()=>false);
+
             document.querySelector("form button[name='submit']").addEventListener("click", e=>{
                 e = e || window.event();
                 e.preventDefault();
