@@ -105,11 +105,11 @@ esm-instruction > div:last-child {
     align-items: center;
     justify-items: center;
 }
-#content:fullscreen,
-#content:-webkit-full-screen,
-#content:-ms-fullscreen,
-#content:-moz-full-screen,
-#content:full-screen {
+:fullscreen,
+:-webkit-full-screen,
+:-ms-fullscreen,
+:-moz-full-screen,
+:full-screen {
     width: 100vw;
     height: 100vh;
 }
