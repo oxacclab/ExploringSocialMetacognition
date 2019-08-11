@@ -207,6 +207,12 @@ class Study extends ControlObject {
         if(typeof callback !== "function")
             callback = name => console.log(name);
 
+        const cb = (name) => {
+            if(name === "end")
+                instr.classList.remove("open");
+            return callback(name);
+        };
+
         instr.innerHTML = "";
 
         // Add new
@@ -215,7 +221,7 @@ class Study extends ControlObject {
                 document.getElementById(newTemplateId).content,
                 true));
 
-        instr.querySelector("esm-instruction").callback = callback;
+        instr.querySelector("esm-instruction").callback = cb;
 
         instr.classList.add("open");
     }
@@ -336,14 +342,14 @@ class Study extends ControlObject {
      * @return {Promise<void>}
      */
     static async enterFullscreen(elm) {
-        if(element.requestFullscreen)
-            return element.requestFullscreen();
-        if(element.mozRequestFullScreen)
-            return element.mozRequestFullScreen();
-        if(element.webkitRequestFullscreen)
-            return element.webkitRequestFullscreen();
-        if(element.msRequestFullscreen)
-            return element.msRequestFullscreen();
+        if(elm.requestFullscreen)
+            return elm.requestFullscreen();
+        if(elm.mozRequestFullScreen)
+            return elm.mozRequestFullScreen();
+        if(elm.webkitRequestFullscreen)
+            return elm.webkitRequestFullscreen();
+        if(elm.msRequestFullscreen)
+            return elm.msRequestFullscreen();
     }
 
     /**

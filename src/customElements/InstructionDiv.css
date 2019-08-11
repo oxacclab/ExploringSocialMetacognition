@@ -27,21 +27,23 @@ esm-instruction::before {
 esm-instruction {
     z-index: 1000;
     position: relative;
-    width: 80%;
-    height: 90%;
+    width: 100%;
+    height: 100%;
     top: 5%;
     margin: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-evenly;
     animation: scrollFromRight 200ms linear;
 }
 
 esm-instruction-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     z-index: 2000;
     height: 100%;
     text-align: left;
-    padding: 1em 1em 3em 1em;
     border-radius: 8px;
     border: 4px solid black;
     overflow: hidden;

@@ -58,7 +58,6 @@ esm-instruction-page {
     text-align: center;
     border: none;
     border-radius: 0;
-    height: unset;
 }
 esm-instruction > div:last-child {
     position: relative;
@@ -67,7 +66,7 @@ esm-instruction > div:last-child {
 
 #instructions {
     display: flex;
-    justify-items: center;
+    justify-content: space-evenly;
     flex-direction: column;
 }
 
@@ -232,7 +231,7 @@ esm-instruction > div:last-child {
 }
 .progress-bar .outer {
     height: 100%;
-    width: 75%;
+    width: 0;
     border: 1px solid transparent;
     background-color: #00ccfc;
 }
