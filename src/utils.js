@@ -25,6 +25,18 @@ function applyClassToChildren (element, classname, recursive = true) {
 }
 
 /**
+ * Prevent a form from being submittable, especially on Safari
+ * @param form {HTMLElement}
+ * @return {HTMLElement} form
+ */
+function preventFormSubmission(form) {
+    form.addEventListener("submit", ()=>false);
+    form.submit = null;
+
+    return form;
+}
+
+/**
  * return a new copy of an array
  *
  * @param {Array} array - array to copy
@@ -375,4 +387,4 @@ function zToNormal(z, mean = 0, sd = 1) {
 }
 
 
-export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, randomNumber, sampleNormal, zToNormal}
+export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, preventFormSubmission, randomNumber, sampleNormal, zToNormal}
