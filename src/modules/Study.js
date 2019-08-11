@@ -331,6 +331,35 @@ class Study extends ControlObject {
     }
 
     /**
+     * Put an element into fullscreen mode
+     * @param elm
+     * @return {Promise<void>}
+     */
+    static async enterFullscreen(elm) {
+        if(element.requestFullscreen)
+            return element.requestFullscreen();
+        if(element.mozRequestFullScreen)
+            return element.mozRequestFullScreen();
+        if(element.webkitRequestFullscreen)
+            return element.webkitRequestFullscreen();
+        if(element.msRequestFullscreen)
+            return element.msRequestFullscreen();
+    }
+
+    /**
+     * Exit fullscreen mode
+     * @return {Promise<void>}
+     */
+    static async exitFullscreen() {
+        if(document.exitFullscreen)
+            return document.exitFullscreen();
+        if(document.mozCancelFullScreen)
+            return document.mozCancelFullScreen();
+        if(document.webkitExitFullscreen)
+            return document.webkitExitFullscreen();
+    }
+
+    /**
      * Ensure element is fullscreen and prevent continuation when it is not
      * @param element {HTMLElement}
      * @return {Promise<void>}
@@ -338,7 +367,7 @@ class Study extends ControlObject {
     static async lockFullscreen(element) {
         document.body.classList.remove("fullscreen-error");
 
-        await element.requestFullscreen();
+        await Study.enterFullscreen(element);
 
         Study._updateInstructions("fullscreen-instructions",
             () => element.requestFullscreen(),
@@ -352,7 +381,7 @@ class Study extends ControlObject {
 
         clearTimeout(element.fullscreenTimeOut);
 
-        await document.exitFullscreen();
+        await Study.exitFullscreen();
     }
 
     static _navGuard() {
@@ -724,6 +753,8 @@ class Study extends ControlObject {
 
             form.classList.add("exit");
             setTimeout(() => document.body.classList.remove("report-issue"), 1000);
+
+            return false;
         });
 
         // Show the reporting form
@@ -1351,6 +1382,8 @@ class DatesStudy extends Study {
                     setForm(resolve);
                 else
                     resolve("debriefAdvisors");
+
+                return false;
             });
         };
 
@@ -1430,6 +1463,8 @@ class DatesStudy extends Study {
                         .then(() => window.onbeforeunload = null);
 
                 resolve("debrief");
+
+                return false;
             });
         });
     }
