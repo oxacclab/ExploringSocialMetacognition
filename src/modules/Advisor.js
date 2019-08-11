@@ -151,6 +151,11 @@ class Advisor extends BaseObject {
         this.marker.style.width = TL.valueToPixels(this.getAdvice(false).adviceWidth, true) + "px";
         this.marker.style.height = this.marker.style.width;
 
+        // Safari fix - flicker the marker so it draws in the correct place;
+        const d = this.marker.style.display;
+        this.marker.style.display = "none";
+        setTimeout((m)=>m.style.display = "", 0, this.marker);
+
         this.debug(this.getAdvice(false));
     }
 
