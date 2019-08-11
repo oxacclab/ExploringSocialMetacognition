@@ -1373,7 +1373,7 @@ class DatesStudy extends Study {
             utils.preventFormSubmission(form);
 
             // Disable form submission until an input or textarea has been clicked
-            const submit = form.querySelector("button[name='submit'");
+            const submit = form.querySelector("button[name='submit']");
             submit.disabled = "disabled";
             form.querySelectorAll("input[type='range'], form textarea")
                 .forEach(i => {
