@@ -1054,7 +1054,7 @@ class Study extends ControlObject {
             await new Promise((resolve => {
                 const check = function() {
                     if(me.id)
-                        resolve();
+                        resolve(me.id);
                     else
                         setTimeout(check, 25);
                 };
@@ -1360,7 +1360,6 @@ class DatesStudy extends Study {
         const markerWidths = document.querySelector('esm-response-timeline').markerWidths;
 
         let ans = 1900 + Math.floor(Math.random() * 100);
-        this.prolific = true;
         let bp = {
             stim: document.createElement("p"),
             correctAnswer: ans,

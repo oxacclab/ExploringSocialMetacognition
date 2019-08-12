@@ -224,21 +224,21 @@ if(array_key_exists("prolificId", $data)) {
         $handle = fopen($metaFile, "rb");
         $paid = in_array("paid", explode(", ", $tags));
         $tagsIndex = -1;
-        while($data = fgetcsv($handle)) {
+        while($entry = fgetcsv($handle)) {
             if($tagsIndex === -1) {
-                $tagsIndex = array_search("tags", $data);
+                $tagsIndex = array_search("tags", $entry);
                 if($tagsIndex === false)
                     break;
             }
             elseif (in_array("paid",
-                explode(", ", $data[$tagsIndex])) === $paid)
+                explode(", ", $entry[$tagsIndex])) === $paid)
                 $nLines++;
         }
     }
 
-    if(($handle = fopen($metaFile, "a+b")) !== false) {
+    $hash = $data["hash"];
 
-        $hash = $data["hash"];
+    if(($handle = fopen($metaFile, "a+b")) !== false) {
 
         if(isset($data["condition"]) && $data["condition"])
             $condition = $data["condition"];
