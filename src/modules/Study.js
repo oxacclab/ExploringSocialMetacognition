@@ -177,8 +177,8 @@ class Study extends ControlObject {
         if(this.isRepeat && this.prolific) {
             this.warn("Repeated prolific ID");
 
-            const elm = document.querySelector("#content").appendChild(
-                document.createElement("div"));
+            const elm = document.querySelector("#content")
+                .appendChild(document.createElement("div"));
 
             elm.id = "save-warning";
             elm.classList.add("overlay");
