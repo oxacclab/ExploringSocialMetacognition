@@ -23,7 +23,7 @@
         </section>
         <div id="test">
             <h3>Testing iFrame support</h3>
-            <iframe src="browserTests/iFrame.html">
+            <iframe src="">
                 Your browser will not be able to run this study.
             </iframe>
         </div>
@@ -44,17 +44,23 @@
      */
 
     // Test area
+    var lastTestOkay = true;
+
     var testTitle = document.querySelector("#test > h3");
     var testFrame = document.querySelector("#test > iframe");
 
     // Timeout (ms) and current test index
     var timeout = 1000;
     var timeStep = 50;
-    var t = -1;
+    var t = 0;
 
     // Test urls and descriptions
     // All tests resolve a paragraph containing 'Okay' in the body.
     var tests = [
+        {
+            test: "browserTests/iFrame.html",
+            message: "iFrame support"
+        },
         {
             test: "browserTests/es6.html",
             message: "JavaScript ES6 support"
@@ -71,13 +77,19 @@
     };
 
     /**
+     * Catch the message from the iframe and interpret it
+     */
+    window.addEventListener('message', function(event) {
+        if(event.data === "Okay")
+            lastTestOkay = true;
+    });
+
+    /**
      * Periodically check whether the check has passed or the timeout period has expired
      */
     function checkOkay(timer) {
 
-        if(testFrame.contentDocument &&
-            testFrame.contentDocument.querySelector("p") &&
-            testFrame.contentDocument.querySelector("p").innerText === "Okay")
+        if(lastTestOkay)
             nextTest();
         else
             if(timer > timeout)
@@ -94,6 +106,8 @@
             finish();
             return;
         }
+
+        lastTestOkay = false;
 
         test = tests.shift();
 

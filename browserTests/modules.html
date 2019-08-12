@@ -5,14 +5,13 @@
     <title>Modules</title>
 </head>
 <body>
-<p></p>
 <script type="module">
     import * as utils from "../src/utils.js";
 
     const list = utils.getSequence(1, 10);
 
     if(list.length === 10 && utils.min(list) === 1)
-        document.querySelector('body p').innerText = 'Okay';
+        window.parent.postMessage('Okay', "*");
 </script>
 </body>
 </html>

@@ -5,11 +5,10 @@
     <title>ES6</title>
 </head>
 <body>
-<p></p>
 <script type="text/javascript">
-    const f = (x) => x.innerText = 'Okay';
+    const f = (x, y) => window.parent.postMessage(x, y);
 
-    const list = [document.querySelector('body p')];
+    const list = ['Okay', '*'];
 
     for(let item in list) {
         if(!item)

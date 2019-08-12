@@ -31,6 +31,8 @@ module.exports = (on, config) => {
 
             // whatever you return here becomes the new args
             return args;
+        } else if(browser.name === 'electron') {
+
         }
     })
 };

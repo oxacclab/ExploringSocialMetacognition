@@ -96,7 +96,9 @@ class BaseObject {
             fetch("../saveErrorDump.php", {
                 method: "POST",
                 body: JSON.stringify({metadata, data})
-            }).finally(() => {
+            })
+                .catch(()=>{})
+                .finally(() => {
                 throw new Error(content);
             });
         } else

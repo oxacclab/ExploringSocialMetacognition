@@ -105,10 +105,6 @@
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
-                <p>If you are still unsure of how the study works, you can go through the tutorial again by closing the page and relaunching it from the link you were provided.</p>
-            </esm-instruction-page>
-            <esm-instruction-page>
-                <h1>Main experiment</h1>
                 <p>From now on you will have multiple advisors who might give you advice. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
                 <p>If you're happy with how it works, let's go!</p>
             </esm-instruction-page>
@@ -121,77 +117,6 @@
                 <p>You may take a short break here if you wish. Use the button below when you're ready to continue.</p>
             </esm-instruction-page>
         </esm-instruction>
-    </template>
-    <template id="demographics">
-        <form class="questionnaire demographics">
-            <div class="question">
-                <p>We need some information about your browser and device to ensure we can interpret your results correctly:</p>
-            </div>
-            <div class="items">
-                <div>
-                    <label class="label">Device:</label>
-                    <div class="item">
-                        <input name="device" type="radio" class="mandatory" value="pc" id="pc"/>
-                        <label class="label" for="pc" title="Personal computer"><i class="fas fa-desktop"></i> / <i class="fas fa-laptop"></i></label>
-                    </div>
-                    <div class="item">
-                        <input name="device" type="radio" class="mandatory" value="tablet" id="tablet"/>
-                        <label class="label" for="tablet" title="Tablet"><i class="fas fa-tablet-alt"></i></label>
-                    </div>
-                    <div class="item">
-                        <input name="device" type="radio" class="mandatory" value="mobile" id="mobile"/>
-                        <label class="label" for="mobile" title="Smartphone"><i class="fas fa-mobile-alt"></i></label>
-                    </div>
-                    <div class="item">
-                        <input name="device" type="radio" class="mandatory" value="other" id="otherD"/>
-                        <label class="label" for="otherD" title="other (indicate which)"><input type="text" name="otherD" placeholder="device type" onclick="this.closest('div').querySelector('input[value=\'other\']').checked = true;"/></label>
-                    </div>
-                </div>
-                <div>
-                    <label class="label">OS / Type:</label>
-                    <div class="item">
-                        <input name="os" type="radio" class="mandatory" value="android" id="android"/>
-                        <label class="label" for="android" title="Android / Linux"><i class="fab fa-android"></i></label>
-                    </div>
-                    <div class="item">
-                        <input name="os" type="radio" class="mandatory" value="apple" id="apple"/>
-                        <label class="label" for="apple" title="Apple / MacOS"><i class="fab fa-apple"></i></label>
-                    </div>
-                    <div class="item">
-                        <input name="os" type="radio" class="mandatory" value="windows" id="windows"/>
-                        <label class="label" for="windows" title="Microsoft / Windows"><i class="fab fa-windows"></i></label>
-                    </div>
-                    <div class="item">
-                        <input name="os" type="radio" class="mandatory" value="other" id="otherOS"/>
-                        <label class="label" for="otherOS" title="other (indicate which)"><input type="text" name="otherOS" placeholder="OS name" onclick="this.closest('div').querySelector('input[value=\'other\']').checked = true;"/></label>
-                    </div>
-                </div>
-                <div>
-                    <div class="group">
-                        <label class="label">Browser:</label>
-                        <div class="item">
-                            <input name="browser" type="radio" class="mandatory" value="chrome" id="chrome"/>
-                            <label class="label" for="chrome" title="Google Chrome"><i class="fab fa-chrome"></i></label>
-                        </div>
-                        <div class="item">
-                            <input name="browser" type="radio" class="mandatory" value="firefox" id="ff"/>
-                            <label class="label" for="ff" title="Mozilla Firefox"><i class="fab fa-firefox"></i></label>
-                        </div>
-                        <div class="item">
-                            <input name="browser" type="radio" class="mandatory" value="safari" id="safari"/>
-                            <label class="label" for="safari" title="MacOS Safari"><i class="fab fa-safari"></i></label>
-                        </div>
-                        <div class="item">
-                            <input name="browser" type="radio" class="mandatory" value="other" id="otherB"/>
-                            <label class="label" for="otherB" title="other (indicate which)"><input type="text" name="otherB" placeholder="browser name" onclick="this.closest('div').querySelector('input[value=\'other\']').checked = true;"/></label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <button name="submit" class="confirm">&check;</button>
-            </div>
-        </form>
     </template>
     <template id="debrief-advisors">
         <form class="questionnaire advisors overlay">
@@ -283,6 +208,16 @@
             <esm-instruction-page>
                 <h1>Fullscreen</h1>
                 <p>This study will not work outside fullscreen mode. Please put the study back into fullscreen mode by pressing the button below.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="repeat">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>ID already used</h1>
+                <p>Your Prolific ID has already been used to attempt this study. Because the study can reuse questions, we are not able to allow repeated attempts.</p>
+                <p>If you were unable to complete it the first time, please return the study on Prolific. If a technical issue occurred to prevent you completing the study, please send a message on Prolific with as much detail as you can about what happened.</p>
+                <p>If you want to take the study anyway, for your interest or to show a friend, please use <a href="?PROLIFIC_ID=repetition&consent=true">this link</a> instead.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>

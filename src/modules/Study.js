@@ -169,9 +169,37 @@ class Study extends ControlObject {
         });
     }
 
+    /**
+     * Check whether the participant is qualified to take the study
+     * @return {boolean} whether the study qualifications are met
+     */
+    checkQualifications() {
+        if(this.isRepeat && this.prolific) {
+            this.warn("Repeated prolific ID");
+
+            const elm = document.querySelector("#content").appendChild(
+                document.createElement("div"));
+
+            elm.id = "save-warning";
+            elm.classList.add("overlay");
+
+            Study._updateInstructions(
+                "repeat",
+                ()=>{},
+                "save-warning");
+
+            return false;
+        }
+
+        return true;
+    }
+
     async demographics() {
 
         const me = this;
+
+        if(!this.checkQualifications())
+            return false;
 
         return new Promise(function(resolve) {
             const data = {
@@ -780,6 +808,7 @@ class Study extends ControlObject {
         // Study properties
         out.tags = this.tags;
         out.prolific = this.prolific;
+        out.isRepeat = this.isRepeat;
         out.countdownTime = this.countdownTime;
         out.condition = this.condition;
 
@@ -964,7 +993,7 @@ class Study extends ControlObject {
                         callback(r);
                 })
                 .catch(error => onError(error))
-                .finally(r => resolve(r));
+                .then(r => resolve(r));
         });
     }
 
@@ -1066,7 +1095,8 @@ class Study extends ControlObject {
                 this.id = r.id;
                 this.tags = r.tags;
                 this.condition = r.condition;
-                this.prolific = /prolific/i.test(r.tags);
+                this.prolific = /(^|, )prolific($|, )/i.test(r.tags);
+                this.isRepeat = /(^|, )repeat($|, )/i.test(r.tags);
                 this.idHash = r.uidHash;
             })
             .catch((r) => me.saveErrorNotification(r));

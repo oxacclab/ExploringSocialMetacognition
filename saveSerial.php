@@ -130,6 +130,8 @@ $filename = PATH . $privacy . "/" . $prefix . "_" . $tid . ".csv";
 
 $pid = 0;
 
+$prolificIds = array();
+
 // Initial responses will have a prolificId and will require an id to be assigned
 if(array_key_exists("prolificId", $data)) {
 
@@ -152,10 +154,14 @@ if(array_key_exists("prolificId", $data)) {
         $index = -1;
         while(($line = fgetcsv($handle)) !== false) {
             // first row: get the index of the pid field
-            if($index == -1)
+            if($index == -1) {
                 $index = array_search("pid", $line, true);
-            else
+                $prolificIndex = array_search("prolificId", $line, true);
+            }
+            else {
                 array_push($existingIds, $line[$index]);
+                array_push($prolificIds, $line[$prolificIndex]);
+            }
         }
         fclose($handle);
 
@@ -203,6 +209,10 @@ if(array_key_exists("prolificId", $data)) {
 
     if(preg_match("/(\+1|%2B1)$/i", $data["prolificId"])) {
         array_push($tags, "plus1");
+    }
+
+    if(in_array($data["prolificId"], $prolificIds)) {
+        array_push($tags, "repeat");
     }
 
     $tags = join(", ", $tags);
