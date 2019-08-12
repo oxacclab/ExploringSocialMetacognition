@@ -653,10 +653,14 @@ form .invalid {
     margin: 0;
 }
 .debrief {
-    height: calc(100% - 400px);
+    height: 40%;
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
+}
+.display {
+    height: 60%;
+    min-height: 400px;
 }
 .debrief span {
     font-weight: bold;
