@@ -1,0 +1,19 @@
+{
+  "name": "ExploringSocialMetacognition",
+  "version": "1.0.0",
+  "description": "Experiments on advice taking.",
+  "homepage": "https://github.com/OxAccLab/ExploringSocialMetacognition/",
+  "repository": "github:OxAccLab/ExploringSocialMetacognition/",
+  "files": [
+    "dist/*"
+  ],
+  "browser": true,
+  "dependencies": {},
+  "private": true,
+  "devDependencies": {
+    "cypress": "^3.4.1"
+  },
+  "scripts": {
+    "test": "cypress run"
+  }
+}

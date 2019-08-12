@@ -9,10 +9,10 @@ analysis/.Rhistory
 analysis/tmp.csv
 analysis/explore
 *.Rhistory
-*.JSON
 analysis/spss
 data/public/raw/*.JSON
 data/*/*.csv
+*/data/*/*.JSON
 data/private/*
 .htaccess
 .htpasswd
