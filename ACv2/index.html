@@ -131,18 +131,22 @@
                     <label class="label" for="know">knowledgeable</label>
                 </div>
                 <div class="item">
-                    <label class="label" for="help">unhelpful</label>
-                    <input type="range" name="helpfulness" id="help"/>
-                    <label class="label" for="help">helpful</label>
+                    <label class="label" for="consistent">inconsistent</label>
+                    <input type="range" name="consistency" id="consistent"/>
+                    <label class="label" for="consistent">consistent</label>
                 </div>
                 <div class="item">
-                    <label class="label" for="like">unlikeable</label>
-                    <input type="range" name="likability" id="like"/>
-                    <label class="label" for="like">likable</label>
+                    <label class="label" for="help">not trying to help me</label>
+                    <input type="range" name="helpfulness" id="help"/>
+                    <label class="label" for="help">trying to help me</label>
+                </div>
+                <div class="item">
+                    <label class="label" for="trust">untrustworthy</label>
+                    <input type="range" name="trustworthiness" id="trust"/>
+                    <label class="label" for="trust">trustworthy</label>
                 </div>
             </div>
             <div class="bottom">
-                <textarea name="comment" placeholder="Any particular comments about this advisor? (optional, public)" title="Your answer will be included in the public dataset, so please do not include personal information."></textarea>
                 <button name="submit" class="confirm">&check;</button>
             </div>
         </form>
@@ -227,15 +231,6 @@
                 <h1>Save error</h1>
                 <p>There was an error saving your information. If you are using the Prolific platform you should report this issue there including your <strong>browser</strong>, <strong>device</strong>, and the following information:</p>
                 <div class="error-content"></div>
-            </esm-instruction-page>
-        </esm-instruction>
-    </template>
-    <template id="no-safari">
-        <esm-instruction data-no-buttons="true">
-            <esm-instruction-page>
-                <h1>Apple/Safari</h1>
-                <p>As mentioned in the Prolific details, this study currently does not support Apple products or Safari browsers. We are trying to rectify this, but for the moment you are unable to complete the study.</p>
-                <p>Sorry for the inconvenience.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>

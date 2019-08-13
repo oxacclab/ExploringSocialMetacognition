@@ -6,8 +6,9 @@ for(let run = 0; run < runs; run++) {
         it('Checks browser compatability', function() {
             cy.visit('localhost/ExploringSocialMetacognition/ACv2/ac.html?PROLIFIC_PID=CypressTest');
 
-            cy.get('iframe')
-                .should('be.visible');
+            cy.get('h1')
+                .should('be.visible')
+                .contains('Checking browser compatibility');
         });
 
         it('Redirects to collect confidence', function() {

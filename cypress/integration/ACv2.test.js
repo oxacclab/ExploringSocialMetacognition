@@ -6,8 +6,9 @@ for(let run = 0; run < runs; run++) {
         it('Checks browser compatability', function() {
             cy.visit('localhost/ExploringSocialMetacognition/ACv2/?PROLIFIC_PID=CypressTest');
 
-            cy.get('iframe')
-                .should('be.visible');
+            cy.get('h1')
+                .should('be.visible')
+                .contains('Checking browser compatibility');
         });
 
         it('Redirects to collect confidence', function() {
@@ -408,24 +409,20 @@ for(let run = 0; run < runs; run++) {
                     .click();
             });
         }
-
-        it('Provides advisor questionnaires', function() {
-            // Questionnaires for both advisors
-            for(let i = 0; i < 2; i++) {
+        
+        for (let i = 0; i < 2; i++) {
+            it('Provides questionnaire for advisor ' + i, function () {
+                // Questionnaires for both advisors
                 cy.get('input[type="range"]').as('range')
-                    .invoke('val', ()=> Math.floor(Math.random() * 100))
+                    .invoke('val', () => Math.floor(Math.random() * 100))
                     .each(e => e.trigger('change'))
                     .click({multiple: true});
-
-                cy.get('textarea')
-                    .focus()
-                    .type("no comment");
 
                 cy.get('button[name="submit"]')
                     .should('be.visible')
                     .click()
-            }
-        });
+            });
+        }
 
         it('Provides a debrief screen', function() {
             cy.get('textarea.mandatory')
