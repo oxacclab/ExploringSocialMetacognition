@@ -50,6 +50,10 @@ esm-instruction-page {
     background-color: white;
 }
 
+esm-instruction-page p {
+    margin: .1em 0 0 0;
+}
+
 /*Navigation buttons*/
 esm-instruction > div:last-child {
     z-index: 3000;

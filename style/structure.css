@@ -58,6 +58,7 @@ esm-instruction-page {
     text-align: center;
     border: none;
     border-radius: 0;
+    padding: 0 1em;
 }
 esm-instruction > div:last-child {
     position: relative;
@@ -94,7 +95,7 @@ esm-instruction > div:last-child {
     background-color: var(--background);
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 1em 2em 2fr 1fr;
+    grid-template-rows: 1em 2em 1fr 150px;
     grid-template-areas:
         "progress"
         "prompt"
@@ -414,6 +415,18 @@ esm-instruction > div:last-child {
 
 esm-response-timeline .response-timeline {
     height: 100px;
+}
+
+.esm-instruction-button.confirm {
+    padding: 0;
+    margin: 0;
+}
+.esm-instruction-button.confirm:not(.questionnaire) {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-right: none;
+    border-bottom: none;
 }
 
 #help-button {

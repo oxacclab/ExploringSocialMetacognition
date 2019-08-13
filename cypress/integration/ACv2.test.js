@@ -409,7 +409,7 @@ for(let run = 0; run < runs; run++) {
                     .click();
             });
         }
-        
+
         for (let i = 0; i < 2; i++) {
             it('Provides questionnaire for advisor ' + i, function () {
                 // Questionnaires for both advisors

@@ -6,6 +6,8 @@
     --response-bar-thickness: 25px;
 
     --response-min-opacity: 0.4;
+
+    --response-color-disabled: gainsboro;
 }
 
 .response-timeline {
@@ -137,7 +139,8 @@
     opacity: .6;
 }
 .response-panel .confirm:not(.enabled) {
-    border-color: transparent;
+    background-color: var(--response-color-disabled);
+    border-color: var(--response-color-disabled);
 }
 .response-panel .confirm.enabled {
     opacity: 1;
