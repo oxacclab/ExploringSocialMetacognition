@@ -30,8 +30,7 @@ function applyClassToChildren (element, classname, recursive = true) {
  * @return {HTMLElement} form
  */
 function preventFormSubmission(form) {
-    form.addEventListener("submit", ()=>false);
-    form.submit = null;
+    form.addEventListener("submit", (e)=>{e.preventDefault(); return false});
 
     return form;
 }
