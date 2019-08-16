@@ -1367,7 +1367,7 @@ class DatesStudy extends Study {
             attentionCheck: true,
             attentionCheckMarkerWidth: parseInt(markerWidths[0]),
             advisors: null,
-            displayFeedback: this.prolific?
+            displayFeedback: (this.prolific || /test/i.test(this.tags))?
                 (t)=>me.attentionCheckFeedback(t) : null
         };
 

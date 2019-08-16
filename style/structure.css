@@ -198,9 +198,6 @@ esm-instruction > div:last-child {
     opacity: 0.2;
 }
 
-#fullscreen-warning {
-    display: none;
-}
 #fullscreen-warning esm-instruction,
 #save-warning esm-instruction {
     display: flex;

@@ -240,6 +240,7 @@
                 <h1>Attention checks</h1>
                 <p>The previous question was an attention check, and the answer you provided was incorrect. This happens either because you used the wrong marker, or because you marked an incorrect date, or both. </p>
                 <p>When we receive incorrect answers on attention checks it makes us unable to trust the responses to the rest of the questions. Because we can't be sure of your responses, we have to end your participation in the study here.</p>
+                <p>If you're using the prolific payment platform, please return the study.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -259,13 +260,9 @@
         <div class="middle">
             <div class="sidebar">
                 <div class="advisor-key"></div>
-                <esm-help data-group="interface" class="right">
-                    This area of the screen will display the advisors who might give you advice on a question.<br/>
-                    At the moment you don't have any advisors so the area is empty.
-                </esm-help>
             </div>
             <div class="stimulus">
-                <div id="stimulus"></div>
+                <div id="stimulus">The study appears to have run into a problem. We're sorry, but it doesn't look like the study will work on your system.</div>
                 <esm-help data-group="interface" class="bottom wide">
                     This is the <em>question</em> you have to answer.
                 </esm-help>
@@ -349,9 +346,8 @@
             questionnaire
         </div>
     </div>
-</div>
-<div id="fullscreen-warning" class="overlay">
-    Fullscreen warning
+    <div id="fullscreen-warning" class="overlay">
+    </div>
 </div>
 <!--<div id="save-warning"></div>-->
 <script type="text/javascript">
@@ -469,7 +465,7 @@
         let studyBlueprint = {
             studyName: "markerUse",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [16, 34],
+            attentionCheckTrials: [2,16, 34],
             blocks: [
                 new Block({
                     trialCount: 10,
