@@ -198,6 +198,25 @@ esm-instruction > div:last-child {
     opacity: 0.2;
 }
 
+#aspect-ratio-warning {
+    display: none;
+}
+@media screen and (max-width: 900px) and (orientation: portrait) {
+    #aspect-ratio-warning {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        background-color: white;
+        z-index: 10;
+    }
+}
+
 #fullscreen-warning esm-instruction,
 #save-warning esm-instruction {
     display: flex;
