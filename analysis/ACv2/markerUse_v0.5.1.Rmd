@@ -2,15 +2,17 @@
 title: "Marker use analysis"
 author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
 output:
-  html_notebook:
-    includes:
-      after_body: ../src/toc_menu.html
-    toc: yes
-    toc_depth: 3
   html_document:
     df_print: paged
     toc: yes
     toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
 editor_options:
   chunk_output_type: inline
 ---
@@ -51,16 +53,19 @@ theme_set(theme_light() +
 
 ## Introduction
 
-Marker use study v0.0.1 provides the same markers as the datesStudy studies, but removes the by-decade labelling on the timeline. This doesn't appear to make much difference to participant preferences.
+Marker use study v0.5.1 is an exact replicaiton of the basic datesStudy, but with slightly different markers.
 
 ## Load data
 
 ```{r loadData}
+
 studyName <- "markerUse"
-studyVersion <- "all"
+studyVersion <- "0-5-1"
+overrideMarkerList <- c(7, 13, 21) # Someone managed to get marker width 8 for one question, not sure how
 
 exclude <- list(
-  maxAttnCheckFails = 0 # pass all attn checks
+  maxAttnCheckFails = 0, # pass all attn checks
+  badMarker = T
 )
 
 skipLoadData <- F
@@ -69,6 +74,8 @@ skipLoadData <- F
 source("src/02 Exclusions.R")
 
 ```
+
+Marker lists used in this study: `r print(getMarkerList())`.
 
 ### Exclusions
 
@@ -91,32 +98,23 @@ table(tmp$excluded, tmp$condition)
 
 ```
 
-# Marker usage
+# Confirmatory analyses
 
-# Key outcome
+## Task performance
 
-The key outcome is marker usage on the first decision. We are hoping for a relatively even balance between options, perhaps with a slight preference for the middle option.
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
 
-```{r markerGraph}
+The statistics for many of these are broken down as a cross-section of two factors, **decision** and **feedback**. **Decision** is a within-subjects variable, and indicates whether the judgement under consideration was the *first* (pre-advice) or *last* (post-advice) decision. **Feedback** is a between-subjects variable, and indicates whether the participant received feedback immediately following the last decision on a trial. Feedback allows participants to track the value of advice directly.
 
-PP$studyVersion <- sapply(PP$pid, function(x)
-  unique(AdvisedTrial$studyVersion[AdvisedTrial$pid %in% x]))
+**Note:** *"first" and "last" are used as terms simply because they arrange the factors into alphabetical order with no messing about. Other terms would work equally well (e.g. initial/final is common in the literature).*
 
-ggplot(PP[!is.na(PP$responseMarker) && PP$decision == "first", ], 
-       aes(x = responseMarker, y = proportion)) +
-  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
-  geom_line(alpha = 2/length(unique(PP$pid)), aes(group = pid), size = 1.25) + 
-  geom_point(aes(colour = pid), size = 2) +
-  stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5) +
-  facet_grid(~ studyVersion, labeller = label_both) +
-  scale_linetype_manual(values = c("dashed")) + 
-  labs(x = "response marker width (years)", 
-       y = "p(marker used)")
+### Decisions
 
-```
+Participants offered estimates of the year in which various events took place. The correct answers were always between 1900 and 2000, although the timeline on which participants responded went from 1890 to 2010 in order to allow extra room for advice. Participants answered by dragging a marker onto a timeline. Markers of various widths were available for the participants to choose, with wider markers which covered more years being worth fewer points. Participants were informed that a correct answer was one in which the marker covered the year in which the event took place.
 
-# Table
+#### Marker usage
+
+##### Table
 
 These markers were used by the participants as described in the table below:
 
@@ -154,6 +152,31 @@ ggplot(PP[!is.na(PP$responseMarker), ],
        y = "p(marker used)")
 
 ```
+
+##### Combined graph
+
+It's perhaps more useful to look at this split only by decision.
+
+```{r markerGraphCombined}
+
+ggplot(PP[!is.na(PP$responseMarker), ], 
+       aes(x = responseMarker, y = proportion)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_line(alpha = 2/length(unique(PP$pid)), aes(group = pid), size = 1.25) + 
+  geom_point(aes(colour = pid), size = 2) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_wrap( ~ decision, labeller = label_both) +
+  scale_linetype_manual(values = c("dashed")) +
+  scale_colour_discrete(guide = "none") +
+  labs(x = "response marker width (years)", 
+       y = "p(marker used)")
+
+```
+
+##### Summary {.summary}
+
+The marker use balance is improving on previous studies. In the first decision, where it is most critical to get an even spread, the latter three markers are seeing a more even distribution. Perhaps adjusting the width of the 10-wide marker down a little will help, although a previous study with marker widths of 7, 14, 21 showed a strong drop-off for the 21-width marker. Perhaps increasing the points for this marker would help.
 
 #### Error (estimate mean)
 
@@ -592,6 +615,10 @@ ezANOVA(df, advisor0woa, pid,
 
 ```
 
+### Summary {.summary}
+
+As reflected in the WoA graph, it seems participants do treat the advisors differently. Where feedback is provided, the pattern is as expected whereby the accurate advisor is preferred. Where feedback is not provided, it seems participants show a preference for the advice style of the first advisor they encounter. We should note that we don't necessarily have enough participants to draw strong conclusions here, but the suggestion is interesting.
+
 ### Post-hoc tests
 
 Advisor preference is quantified as WoA(Accurate) - WoA(Agreeing).
@@ -658,209 +685,6 @@ r <- md.ttest(tmp$AccPref[tmp$feedback != T &
               labels = c("*M*|¬fb,Acc", "*M*|¬fb,Agr"))
 
 cat(r)
-
-```
-
-## Resiliance testing
-
-We want to ensure the result above is robust to differences in choices made during analysis. A quick way to do this is to look at what happens to the interaction parameter if different exclusion choices are made.
-
-```{r multiverse}
-
-if (F) { # don't run by default!
-  
-  # this is embarassingly parallel. Make it so.
-  library(parallel)
-  
-  #' Run the ANOVA
-  #' @param exclusions dataframe of exclusion options
-  #' @param datafile file containing the workspace to use
-  #' @param scriptfile file contianing the exclusions script
-  #' @param studyVersion version of the study being examined
-  #'
-  #' @return list 
-  #' incompleteCases - cases dropped due to incompleteness
-  #' n - number of cases included
-  #' ANOVA - ANOVA results dataframe
-  analyse <- function(exclude, datafile, scriptfile, studyVersion) {
-    
-    load(datafile)
-    
-    results <- list(exclude = exclude, studyVersion = studyVersion)
-    
-    # hoist variables
-    assign("skipLoadData", T, .GlobalEnv)
-    for (v in ls()) {
-      assign(v, get(v), .GlobalEnv)
-    }
-    
-    # run exclusions
-    source(scriptfile)
-    
-    offBrand <- AdvisedTrial[AdvisedTrial$advisor0offBrand == T, ]
-    
-    df <- aggregate(advisor0woa ~ 
-                       pid + feedback + advisor0idDescription + firstAdvisor,
-                     offBrand, mean, na.rm = T)
-    df$feedback <- factor(df$feedback)
-    
-    x <- 0
-    
-    # remove incomplete cases
-    for (p in unique(df$pid)) {
-      if (nrow(df[df$pid == p, ]) != 2) {
-        x <- x + 1
-        df <- df[df$pid != p, ]
-      }
-    }
-    
-    results$incompleteCases <- x
-    
-    results$n <- length(unique(df$pid))
-    
-    # refactor pid
-    df$pid <- factor(df$pid)
-    
-    r <- suppressWarnings(
-      ez::ezANOVA(df, advisor0woa, pid,
-                  within = advisor0idDescription,
-                  between = list(feedback, firstAdvisor),
-                  detailed = F,
-                  type = 2)
-      )
-    
-    results$ANOVA <- r$ANOVA
-    
-    results  
-  }
-  
-  # Initial preparation
-  srcFile <- paste0(getwd(), "/src/01 Load data.R")
-  scriptFile <- paste0(getwd(), "/src/02 Exclusions.R")
-  
-  # Load the raw data and save a copy to speed up the process
-  source(srcFile)
-  
-  fList <- listServerFiles(studyVersion)
-  fList <- sub("-", ".", reFirstMatch("([^_]+)\\.csv", fList))
-  fList <- fList[fList %in% ls()]
-  
-  cleanDataFile <- tempfile()
-  
-  save(list = c(fList, "studyVersion", "okayIds"), file = cleanDataFile)
-  
-  # Build exclusions map
-  # We start with a binary map for whether the exclusion is used or not,
-  # then we expand it to cover the multiple levels for each exclusion.
-  
-  exclusionCandidates <- list( # plausible values for each exlusion
-    requireComplete = list(T, F),   
-    maxTrialRT = list(10000, 30000, 60000),   
-    minTrials = list(20, 25, 28),       
-    minOffBrandTrials = list(4, 6), 
-    minChangeRate = list(.05, .1, .25),   
-    participantOutliers = list(
-      data.frame(varName = c("timeEnd", "responseError", "responseCorrect"),
-                 zThresh = 2),
-      data.frame(varName = c("timeEnd", "responseError", "responseCorrect"),
-                 zThresh = 3)
-      ),        
-    multipleAttempts = list(T, F),  # exclude multiple attempts
-    manual = list(
-      c(F, F, F, F, F, F, F, F, F, T,
-        F, F, F, F, F, F, F, T, F, T,
-        F, F, F, F, F, F, F, F, T, F,
-        F, T, F, F)
-      ),
-    maxPerCondition = list(5)   
-  )
-  
-  # always need to pass attn checks
-  fixedExclusions <- list(maxAttnCheckFails = 0) 
-  
-  multiverse <- NULL
-  
-  # construct an exhaustive search using binary logic
-  for (i in seq(2 ^ length(exclusionCandidates))) {
-    # binary representation of column number
-    tmp <- as.binary(i - 1)
-    # pad to length
-    if (length(exclusionCandidates) > length(tmp))
-      tmp <- c(rep(0, length(exclusionCandidates) - length(tmp)), tmp)
-    
-    # convert to dataframe
-    tmp <- t(tibble(tmp))
-    
-    multiverse <- rbind(multiverse, tmp)
-  }
-  
-  # expand the matrix to include values > 1 where necessary
-  for (i in seq(length(exclusionCandidates))) {
-    if (length(exclusionCandidates[[i]]) <= 1)
-      next()
-    
-    for (r in seq(nrow(multiverse))) {
-      if (multiverse[r, i] == 1) {
-        for (n in 2:length(exclusionCandidates[[i]])) {
-          tmp <- multiverse[r, ]
-          tmp[i] <- n
-          multiverse <- rbind(multiverse, tmp)
-        }
-      }
-    }
-  }
-  
-  rownames(multiverse) <- NULL
-  colnames(multiverse) <- names(exclusionCandidates)
-  
-  multiverse <- apply(multiverse, 1, as.list)
-  
-  # convert numbers to values
-  for (i in 1:length(multiverse)) {
-    m <- multiverse[[i]]
-    
-    for (x in names(m)) {
-      if (m[[x]] == 0)
-        m[[x]] <- NA # drop null values
-      else
-        m[[x]] <- exclusionCandidates[[x]][[m[[x]]]]
-    }
-    
-    # bind on the fixed values
-    multiverse[[i]] <- c(m, fixedExclusions)
-  }
-  
-  # analyse(multiverse[[length(multiverse)]], datafile = cleanDataFile, scriptfile = scriptFile)
-  
-  # Run in parallel
-  nCores <- detectCores() - 2
-  cl <- makeCluster(nCores)
-  
-  # clusterApply(cl, multiverse[length(multiverse)], fun = analyse, datafile = cleanDataFile, scriptfile = scriptFile)
-  
-  startTime <- Sys.time()
-  results <- clusterApply(cl, multiverse, 
-                          fun = analyse, 
-                          datafile = cleanDataFile,
-                          scriptfile = scriptFile)
-  print(paste0("Time elapsed: ", Sys.time() - startTime))
-  
-  results
-}
-
-
-```
-
-```{r multiversePlot}
-if (!is.null(multiverse)) {
-    
-  multiverse <- multiverse[order(multiverse$pValue), ]
-  multiverse$x <- 1:nrow(multiverse)
-  
-  ggplot(multiverse, aes(x, pValue)) +
-    geom_hline(yintercept = .05, linetype = "dashed") + 
-    geom_point()
-} 
 
 ```
 

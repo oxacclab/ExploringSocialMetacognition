@@ -14,6 +14,7 @@ isSet <- function(v) {
 library(testthat) # unit tests
 library(curl) # fetching files from server
 library(beepr) # beeps for error/complete
+library(stringr) # simpler string manipulation
 
 
 # error beeps -------------------------------------------------------------
@@ -24,17 +25,32 @@ if (!isSet("silent")) {
 
 # loading functions -------------------------------------------------------
 
+#' Check whether version v is a valid match with test x
+#' @param v version string major.minor.patch
+#' @param x test string in numeric_version test format or 'all' to match anything
+#' 
+#' @examples 
+#' 
+#' versionMatches("0-1-1", "0.0-0.1")
+#' versionMatches("0.5.5", "0-5-5")
+#' 
+#' @return boolean
+versionMatches <- function(v, x) {
+  if (x == 'all' || v == x) {
+    T
+  } else {
+    v <- numeric_version(v)
+    v <= x
+  }
+}
+
 #' List the files on the server matching the specified version
 #' @param study to fetch data for. Default for back-compatability
 #' @param version version of the experiment to use, or all for all
 #' @param rDir remote directory to crawl
 listServerFiles <- function(study = "datesStudy", version = "all",
                             rDir = "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/" ) {
-  
-  if (version == "all") {
-    version <- "[0-9\\-]+"
-  }
-  
+
   out <- NULL
   
   con <- curl(rDir)
@@ -42,10 +58,18 @@ listServerFiles <- function(study = "datesStudy", version = "all",
   while (isIncomplete(con)) {
     buffer <- readLines(con, n = 1)
     if (length(buffer)) {
-      f <- reFirstMatch(paste0("(", study, "_v", version, '_[^"]+.csv)'),
+      f <- reFirstMatch(paste0('(', study, '_v[0-9\\-]+_[^"]+.csv)'),
                         buffer)
+      
       if (nchar(f)) {
-        out <- c(out, paste0(rDir, f))
+        v <- reFirstMatch(paste0('_v([0-9\\-]+)_[^"]+.csv'), f)
+        
+        v <- str_replace_all(v, "-", ".")
+        
+        # Check version compatability with version mask
+        if (versionMatches(v, version)) {
+          out <- c(out, paste0(rDir, f))
+        }
       }
     }
   }

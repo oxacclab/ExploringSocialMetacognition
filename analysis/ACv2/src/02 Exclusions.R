@@ -41,7 +41,8 @@ if (!isSet("exclude")) {
                 "participantOutliers", "dataframe", "Remove participants by abs(scale(df$varName)) > .$zThresh",
                 "multipleAttempts", "bool", "Remove participants who saw feedback on questions in previous attempts",
                 "manual", "vector", "Remove participants by logical mask",
-                "maxPerCondition", "int", "Remove excess participants by condition"))
+                "maxPerCondition", "int", "Remove excess participants by condition",
+                "badMarker", "bool", "Remove participants with some bad markers"))
   
   stop("No criteria for exclusion ([exclude] variable not set). See above for a list of options.")
 }
