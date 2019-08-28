@@ -2,6 +2,12 @@
 title: "Direct benevolence manipulation analysis"
 author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
 output:
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
   html_document:
     df_print: paged
     toc: yes
@@ -9,9 +15,6 @@ output:
     css: ../src/writeUp.css
     includes:
       after_body: ../src/toc_menu.html
-  html_notebook:
-    toc: yes
-    toc_depth: 3
 editor_options:
   chunk_output_type: inline
 ---
@@ -524,6 +527,8 @@ The comments appear to be fairly balanced between the participants for whom the 
 The experiment provided evidence against the hypotheses tested. Weight on advice was not higher for ingroup vs outgroup advisors, and the differences in the weighting of advice were not mediated by perceived benevolence. 
 
 These results are odd. Participants told explicitly that one advisor is better should show a greater tendency to follow the advice of that advisor. It is perhaps possible that participants are attending more to the advice itself than the source of the advice. It is also possible that the high variation in advice makes it hard for participants to perform the task (although this variation was introduced due to non-effects in the previous minimal groups version of the manipulation). 
+
+Another explanation, which may warrant empirical testing, is that participants respond to being warned about potentially misleading advice by selectively increasing their discounting of suspicious advice rather than by increasing discounting for all advice. 
 
 ## Recommendation {.summary}
 

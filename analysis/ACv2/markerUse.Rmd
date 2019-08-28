@@ -9,6 +9,8 @@ output:
     toc_depth: 3
     css: ../src/writeUp.css
   html_document:
+    includes:
+      after_body: ../src/toc_menu.html
     df_print: paged
     toc: yes
     toc_depth: '3'
