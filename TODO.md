@@ -10,9 +10,13 @@
 * ~~Preregistration~~
 * ~~Run~~
 * ~~Data analysis~~
-* Redesign for explicit benevolence manipulation
+* ~~Redesign for explicit benevolence manipulation~~
+* ~~Preregistration (not done)~~
+* ~~Run~~ 
+* ~~Data analysis~~ 
+* Redesign explicit benevolence manipulation
 * Preregistration
-* Run 
+* Run
 * Data analysis 
 ### Registered Report
 * Identify journal(s)

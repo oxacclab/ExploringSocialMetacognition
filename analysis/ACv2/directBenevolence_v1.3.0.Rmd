@@ -86,7 +86,7 @@ tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
 tmp$condition <- factor(tmp$condition, labels = c("InFirst",
                                                   "OutFirst"))
 
-kable(table(tmp$excluded, tmp$condition))
+table(tmp$excluded, tmp$condition)
 
 ```
 

@@ -52,6 +52,8 @@ referenceTrialList <- AdvisedTrial
 # output variables --------------------------------------------------------
 
 exclusions <- tibble(pid = unique(AdvisedTrial$pid))
+exclusions$studyVersion <- sapply(exclusions$pid, function(x) 
+  AdvisedTrial$studyVersion[AdvisedTrial$pid == x][1])
 exclusions$excluded <- F
 
 # attention checks --------------------------------------------------------
@@ -64,7 +66,10 @@ if (!is.null(exclude$maxAttnCheckFails) && !is.na(exclude$maxAttnCheckFails)) {
       exclusions$excluded[exclusions$pid == p] <- 
         addExclusion(exclusions$excluded[exclusions$pid == p], "attnCheckYear")
     
-    if (sum(tmp$responseMarkerWidth != min(markerList)) > 
+    smallest <- min(Trial$responseMarkerWidth[Trial$studyVersion == 
+                                                tmp$studyVersion[1]])
+    
+    if (sum(tmp$responseMarkerWidth != smallest) > 
         exclude$maxAttnCheckFails)
       exclusions$excluded[exclusions$pid == p] <- 
         addExclusion(exclusions$excluded[exclusions$pid == p], "attnCheckWidth")

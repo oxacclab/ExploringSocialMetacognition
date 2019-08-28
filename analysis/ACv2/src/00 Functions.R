@@ -15,6 +15,7 @@ library(testthat) # unit tests
 library(curl) # fetching files from server
 library(beepr) # beeps for error/complete
 library(stringr) # simpler string manipulation
+library(forcats) # factor manipulation
 
 
 # error beeps -------------------------------------------------------------
@@ -27,20 +28,17 @@ if (!isSet("silent")) {
 
 #' Check whether version v is a valid match with test x
 #' @param v version string major.minor.patch
-#' @param x test string in numeric_version test format or 'all' to match anything
-#' 
-#' @examples 
-#' 
-#' versionMatches("0-1-1", "0.0-0.1")
-#' versionMatches("0.5.5", "0-5-5")
-#' 
+#' @param x vector of valid versions or 'all' to match anything
+#'  
 #' @return boolean
 versionMatches <- function(v, x) {
-  if (x == 'all' || v == x) {
+  v <- str_replace_all(v, "-", ".")
+  x <- str_replace_all(x, "-", ".")
+  
+  if ('all' %in% x) {
     T
   } else {
-    v <- numeric_version(v)
-    v <= x
+    v %in% x
   }
 }
 
@@ -63,8 +61,6 @@ listServerFiles <- function(study = "datesStudy", version = "all",
       
       if (nchar(f)) {
         v <- reFirstMatch(paste0('_v([0-9\\-]+)_[^"]+.csv'), f)
-        
-        v <- str_replace_all(v, "-", ".")
         
         # Check version compatability with version mask
         if (versionMatches(v, version)) {
@@ -101,7 +97,7 @@ addExclusion <- function(current, reason) {
 #' @param x dataframe to adjust
 fixGroups <- function(x) {
   if ((studyName == "minGroups" && "1-0-0" %in% studyVersion)
-      || (studyName == "directBenevolence" && "1-2-0" %in% studyVersion)) {
+      | (studyName == "directBenevolence" && "1-2-0" %in% studyVersion)) {
     
     advisorDescription <- function(id, condition) {
       if (id == 1) {
@@ -383,6 +379,8 @@ getDerivedVariables <- function(x, name, opts = list()) {
       
       # backfilling advisor0 properties -----------------------------------------
       
+      x$woa <- NA
+      
       low <- 0
       high <- 1
       n <- 11
@@ -569,8 +567,18 @@ byDecision <- function(df) {
                                  if (x <= n) "first" else "last")
   
   for (i in (n + 1):nrow(out)) {
+    
+    # fill in final responses in the initial response columns for final decisions
     for (v in names(out)[grepl("^response", names(out), perl = T)]) {
-      out[i, v] <- AdvisedTrial[i - n, paste0(v, "Final")]
+      old <- out[[v]][i]
+      new <- AdvisedTrial[[paste0(v, "Final")]][i - n]
+      
+      if (is.factor(old)) {
+        if (!(new %in% levels(old))) {
+          out[[v]] <- fct_expand(out[[v]], levels(new))
+        }
+      } 
+      out[[v]][i] <- new
     }
   }
   
@@ -583,6 +591,18 @@ byDecision <- function(df) {
 #' @param by vector of categorical variables to aggregate by
 #' @return table of participant summary stats
 participantSummary <- function(df, extract = NULL, by = NULL) {
+  
+  if ("studyVersion" %in% names(df) && length(unique(df$studyVersion)) > 1) {
+    # Calculate summary separately for each version
+    out <- NULL
+    
+    for (v in unique(df$studyVersion)) {
+      tmp <- df[df$studyVersion == v, ]
+      out <- safeBind(list(out, participantSummary(tmp, extract, by)))
+    }
+    
+    return(out)
+  }
   
   if (is.null(extract))
     extract <- c("timeEnd", "responseCorrect", "responseError", "number")
@@ -608,7 +628,7 @@ participantSummary <- function(df, extract = NULL, by = NULL) {
   # Pad out the proportions with 0s
   for (p in unique(PP$pid)) {
     for (d in unique(PP$decision))
-      for (m in unique(decisions$responseMarker))
+      for (m in unique(df$responseMarker))
         if (nrow(PP[PP$pid == p & 
                     PP$decision == d &
                     PP$responseMarker == m, ]) == 0)

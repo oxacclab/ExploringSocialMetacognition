@@ -47,13 +47,25 @@ for (v in versions) {
   if (length(f) < 1)
     next()
   
-  okayIds <- read.csv(f)
+  tmp <- read.csv(f)
   
   if (!isSet("testData")) {
-    okayIds$okay <- grepl("prolific", okayIds$tags)
+    tmp$okay <- grepl("prolific", tmp$tags)
   } else {
-    okayIds$okay <- T
+    tmp$okay <- T
   }
+  
+  tmp$studyVersion <- v
+  
+  name <- "okayIds"
+  # Bind to existing okayIds in workspace
+  if (length(versions) > 1 & 
+      any(grepl(paste0('^', name, '$'), ls()) == T)) {
+    assign(name, safeBind(list(get(name), tmp)))
+  } else {
+    assign(name, tmp)
+  }
+  
   
   files <- files[grep("metadata", files, invert = T)]
   

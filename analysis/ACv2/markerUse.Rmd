@@ -1,0 +1,183 @@
+---
+title: "Marker use analysis"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_notebook:
+    includes:
+      after_body: ../src/toc_menu.html
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  chunk_output_type: inline
+---
+
+August 2019
+
+[Script run `r Sys.time()`]
+
+```{r prematter, include = F}
+
+library(binaryLogic)
+library(dplyr)
+library(prettyMD)
+
+
+library(testthat)
+
+library(tidyverse)
+
+library(curl)
+
+library(lsr)
+library(BayesFactor)
+library(BANOVA)
+library(ez)
+
+library(knitr)
+
+# opts_chunk$set('echo' = F)
+
+set.seed(20190425)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+```
+
+## Introduction
+
+Marker use study v0.0.1 provides the same markers as the datesStudy studies, but removes the by-decade labelling on the timeline. This doesn't appear to make much difference to participant preferences.
+
+## Load data
+
+```{r loadData}
+studyName <- "markerUse"
+studyVersion <- c("0.0.1",
+                  "0.1.1",
+                  # "0.2.1", inconsitent columns
+                  "0.3.1",
+                  "0.4.1",
+                  "0.5.1")
+
+exclude <- list(
+  maxAttnCheckFails = 0 # pass all attn checks
+)
+
+skipLoadData <- F
+
+# source("src/01 Load Data.R")
+source("src/02 Exclusions.R")
+
+```
+
+### Exclusions
+
+Exclusions happen in the following order:
+
+* Exclude participants failing attention checks and remove their trials
+
+The numbers excluded for these reasons (participants can be excluded for multiple reasons):
+
+```{r exclusions}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+
+tmp$condition <- factor(tmp$condition, labels = c("fb_AgrFirst",
+                                                  "fb_AccFirst",
+                                                  "¬fb_AgrFirst",
+                                                  "¬fb_AccFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+```
+
+# Marker usage
+
+# Key outcome
+
+The key outcome is marker usage on the first decision. We are hoping for a relatively even balance between options, perhaps with a slight preference for the middle option.
+
+```{r markerGraph}
+
+PP$studyVersion <- sapply(PP$pid, function(x)
+  unique(AdvisedTrial$studyVersion[AdvisedTrial$pid %in% x]))
+
+for (v in unique(PP$studyVersion)) {
+  
+  tmp <- PP[PP$studyVersion == v, ]
+  tmp$responseMarker <- factor(tmp$responseMarker, 
+                               levels = levels(tmp$responseMarker)[order(
+                                 as.integer(levels(tmp$responseMarker)))])
+  
+  print(
+    ggplot(tmp[!is.na(tmp$responseMarker) && tmp$decision == "first", ], 
+           aes(x = responseMarker, y = proportion)) +
+      geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+      geom_line(alpha = 2/length(unique(PP$pid)), aes(group = pid), size = 1.25) + 
+      geom_point(aes(colour = pid), size = 2) +
+      stat_summary(geom = "line", fun.y = mean,
+                   aes(group = 1, linetype = "mean"), size = 1.5) +
+      scale_linetype_manual(values = c("dashed")) + 
+      scale_colour_discrete(guide = "none") +
+      labs(x = "response marker width (years)", 
+           y = "p(marker used)",
+           title = paste("Study version", v))
+  )
+}
+
+
+```
+
+## Summary {.summary}
+
+It is possible to produce roughly the desired pattern of marker usage by arranging the marker widths appropriately. For most sets of three, participants will gravitate towards the middle option, especially where that option is roughly 11 years wide. This happens irrespective of whether there are decade-wide ticks on the response timeline (v0.0.1). 
+
+Marker widths of 7/13/21 seem to give about the desired pattern, with high- and low-confidence responses equally frequent, and with medium-confidence responses slightly more frequent. This pattern emerges in aggregate, however, and is not clearly demonstrated by the majority of participants. Indeed, very few individual participants show this pattern at all: most participants have a clear favourite width and use the other markers sparingly. 
+
+## Credits 
+
+### Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+### R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+### Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+### Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```
