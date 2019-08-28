@@ -7,10 +7,12 @@ output:
       after_body: ../src/toc_menu.html
     toc: yes
     toc_depth: 3
+    css: ../src/writeUp.css
   html_document:
     df_print: paged
     toc: yes
     toc_depth: '3'
+    css: ../src/writeUp.css
 editor_options:
   chunk_output_type: inline
 ---
@@ -109,14 +111,15 @@ PP$studyVersion <- sapply(PP$pid, function(x)
 
 for (v in unique(PP$studyVersion)) {
   
-  tmp <- PP[PP$studyVersion == v, ]
+  tmp <- PP[PP$studyVersion == v 
+            & !is.na(PP$responseMarker) 
+            & PP$decision == "first", ]
   tmp$responseMarker <- factor(tmp$responseMarker, 
                                levels = levels(tmp$responseMarker)[order(
                                  as.integer(levels(tmp$responseMarker)))])
   
   print(
-    ggplot(tmp[!is.na(tmp$responseMarker) && tmp$decision == "first", ], 
-           aes(x = responseMarker, y = proportion)) +
+    ggplot(tmp, aes(x = responseMarker, y = proportion)) +
       geom_violin(alpha = .25, colour = NA, fill = "grey75") +
       geom_line(alpha = 2/length(unique(PP$pid)), aes(group = pid), size = 1.25) + 
       geom_point(aes(colour = pid), size = 2) +
