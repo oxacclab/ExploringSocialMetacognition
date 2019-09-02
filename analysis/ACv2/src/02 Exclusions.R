@@ -271,7 +271,7 @@ if (!is.null(exclude$manual) &&
   if (length(exclude$manual) != 1 && 
        length(exclude$manual) != nrow(debrief.form)) {
     debrief.form[, c("pid", "comment")]
-    stop("exclude$manual vector must of length 1 or equal to the number of participants")
+    stop("exclude$manual vector must be of length 1 or equal to the number of participants")
   }
   
   debrief.form$manualExclusion <- exclude$manual

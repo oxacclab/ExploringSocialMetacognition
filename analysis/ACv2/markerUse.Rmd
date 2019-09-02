@@ -55,7 +55,7 @@ theme_set(theme_light() +
 
 ## Introduction
 
-Marker use study v0.0.1 provides the same markers as the datesStudy studies, but removes the by-decade labelling on the timeline. This doesn't appear to make much difference to participant preferences.
+Marker use study v0.0.1 provides the same markers as the datesStudy studies, but removes the by-decade labelling on the timeline. The other versions return the timeline labels but use a variety of different marker widths.
 
 ## Load data
 
