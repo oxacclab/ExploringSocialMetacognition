@@ -1,5 +1,6 @@
 :root {
-
+    --esm-button-color: rgba(33, 150, 243, 1);
+    --esm-button-color-alt: whitesmoke;
 }
 
 @keyframes scrollFromRight {
@@ -69,8 +70,8 @@ esm-instruction div:last-child button,
     border-radius: .2em;
     font-size: 2em;
     background-color: transparent;
-    border: 2px solid #2196F3;
-    color: #2196F3;
+    border: 2px solid var(--esm-button-color);
+    color: var(--esm-button-color);
     cursor: pointer;
 }
 
@@ -84,8 +85,8 @@ esm-instruction div:last-child button:disabled,
 esm-instruction div:last-child button:hover,
 esm-instruction div:last-child button:focus,
 .esm-instruction-button:hover {
-    background-color: #2196F3;
-    color: whitesmoke;
+    background-color: var(--esm-button-color);
+    color: var(--esm-button-color-alt);
     cursor: pointer;
 }
 

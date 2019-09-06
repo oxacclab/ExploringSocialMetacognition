@@ -1,17 +1,17 @@
-const runs = 1;
+const runs = 31;
 for(let run = 0; run < runs; run++) {
 
-    describe('ACv2/db (run=' + run + ')', function () {
+    describe('ACv2 with Confidence (run=' + run + ')', function() {
 
-        it('Checks browser compatability', function () {
-            cy.visit('localhost/ExploringSocialMetacognition/ACv2/db.html?PROLIFIC_PID=CypressTest');
+        it('Checks browser compatability', function() {
+            cy.visit('localhost/ExploringSocialMetacognition/ACv2/wc.html?PROLIFIC_PID=CypressTest');
 
             cy.get('h1')
                 .should('be.visible')
                 .contains('Checking browser compatibility');
         });
 
-        it('Redirects to collect confidence', function () {
+        it('Redirects to collect confidence', function() {
             cy.url()
                 .should('include', '/consent.html')
                 .should('include', '?PROLIFIC_PID=CypressTest');
@@ -28,7 +28,7 @@ for(let run = 0; run < runs; run++) {
             cy.url().should('not.include', '/consent.html');
         });
 
-        it('Welcomes the user', function () {
+        it('Welcomes the user', function() {
 
             // Should connect
             cy.contains('Welcome')
@@ -41,7 +41,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        it('Creates a DatesStudy object', function () {
+        it('Creates a DatesStudy object', function() {
             cy.window()
                 .its('study')
                 .its('constructor')
@@ -49,7 +49,7 @@ for(let run = 0; run < runs; run++) {
                 .should('eq', 'DatesStudy');
         });
 
-        it('Gets study variables from server', function () {
+        it('Gets study variables from server', function() {
             cy.window()
                 .its('study')
                 .its('id')
@@ -61,7 +61,7 @@ for(let run = 0; run < runs; run++) {
                 .should('gt', 0);
         });
 
-        it('Describes the study', function () {
+        it('Describes the study', function() {
             // Should connect
             cy.contains('About the study')
                 .should('be.visible');
@@ -79,12 +79,17 @@ for(let run = 0; run < runs; run++) {
                 .click();
 
             cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+
+            cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
                 .click();
         });
 
-        it('Runs the training', function () {
+        it('Runs the training', function() {
             // Should have a visible continue instruction
             cy.get('#training-instructions')
                 .contains('Click or Touch')
@@ -121,11 +126,7 @@ for(let run = 0; run < runs; run++) {
             // Fill in a response
             cy.get('.response-marker-pool .response-marker.size0 .clickhandler')
                 .trigger('mousedown', {force: true})
-                .trigger('mousemove', {
-                    force: true,
-                    pageX: 600,
-                    pageY: 600
-                })
+                .trigger('mousemove', { force: true, pageX: 600, pageY: 600 })
                 .trigger('mouseup', {force: true});
 
             // Confirm response
@@ -133,7 +134,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        it('Gives instructions before practice', function () {
+        it('Gives instructions before practice', function() {
 
             cy.get('#instructions h1')
                 .should('have.text', 'Practice')
@@ -149,9 +150,9 @@ for(let run = 0; run < runs; run++) {
         let q = -1;
 
         // 10 practice questions
-        for (let i = 0; i < 7; i++) {
+        for(let i = 0; i < 10; i++) {
             q++;
-            it('Runs practice Q' + i + ' [Q' + q + ']', function () {
+            it('Runs practice Q' + i + ' [Q' + q + ']', function() {
 
                 // Should show a question
                 cy.get('#stimulus p')
@@ -168,20 +169,21 @@ for(let run = 0; run < runs; run++) {
                 // Fill in a response
                 cy.get('.response-marker-pool .response-marker.size0 .clickhandler')
                     .trigger('mousedown', {force: true})
-                    .trigger('mousemove', {
-                        force: true,
-                        pageX: 600,
-                        pageY: 600
-                    })
+                    .trigger('mousemove', { force: true, pageX: 600, pageY: 600 })
                     .trigger('mouseup', {force: true});
 
                 // Confirm response
                 cy.get('button.confirm.enabled')
                     .click();
+
+                // Enter confidence
+                cy.get('#conf-widget button:first-of-type')
+                    .should('be.visible')
+                    .click();
             });
         }
 
-        it('Introduces advice', function () {
+        it('Introduces advice', function() {
 
             cy.get('#instructions h1')
                 .should('have.text', 'Practice with Advice')
@@ -197,17 +199,12 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
-
-            // Acknowledge new advisor
-            cy.get('.advisor-intro .esm-instruction-button')
-                .should('be.visible')
-                .click();
         });
 
-        for (let i = 0; i < 7; i++) {
+        for(let i = 0; i < 2; i++) {
             q++;
 
-            it('Runs advisor practice q' + i + ' [Q' + q + ']', function () {
+            it('Runs advisor practice q'+ i + ' [Q' + q + ']', function() {
 
                 // Should show a question
                 cy.get('#stimulus p')
@@ -224,15 +221,16 @@ for(let run = 0; run < runs; run++) {
                 // Fill in a response
                 cy.get('.response-marker-pool .response-marker.size0 .clickhandler')
                     .trigger('mousedown', {force: true})
-                    .trigger('mousemove', {
-                        force: true,
-                        pageX: 600,
-                        pageY: 600
-                    })
+                    .trigger('mousemove', { force: true, pageX: 600, pageY: 600 })
                     .trigger('mouseup', {force: true});
 
                 // Confirm response
                 cy.get('button.confirm.enabled')
+                    .click();
+
+                // Enter confidence
+                cy.get('#conf-widget button:first-of-type')
+                    .should('be.visible')
                     .click();
 
                 // Receive advice
@@ -251,10 +249,15 @@ for(let run = 0; run < runs; run++) {
                 // Confirm response
                 cy.get('button.confirm.enabled')
                     .click();
+
+                // Enter confidence
+                cy.get('#conf-widget button:first-of-type')
+                    .should('be.visible')
+                    .click();
             });
         }
 
-        it('Provides final instructions', function () {
+        it('Provides final instructions', function() {
 
             cy.get('#instructions')
                 .should('be.visible');
@@ -265,29 +268,13 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            // Click through instructions
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-
             cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
                 .click();
-
-            // Acknowledge new advisor
-            cy.get('.advisor-intro .esm-instruction-button')
-                .should('be.visible')
-                .click();
         });
 
-        for (let i = 0; i < 7; i++) {
+        for(let i = 0; i < 15; i++) {
             q++;
 
             it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
@@ -327,16 +314,26 @@ for(let run = 0; run < runs; run++) {
                             study,
                             TL,
                             marker
-                        })
+                        });
 
                         const ans = study.trials[study.currentTrial].correctAnswer;
-                        console.log(ans)
 
                         marker.style.left = TL.valueToPixels(ans) + "px";
                         marker.style.width = TL.valueToPixels(TL.markerWidths[0], true) + "px";
+
+                        // Confirm response
+                        cy.get('button.confirm.enabled')
+                            .click();
                     } else {
                         // Continue as normal with normal responses
                         cy.get('button.confirm.enabled')
+                            .click();
+
+                        const x = Math.random() > .5? "first-of-type" : "last-of-type";
+
+                        // Enter confidence
+                        cy.get('#conf-widget button:' + x)
+                            .should('be.visible')
                             .click();
 
                         // Receive advice
@@ -351,16 +348,21 @@ for(let run = 0; run < runs; run++) {
                         // Tap marker
                         cy.get('esm-response-timeline .response-marker.ghost.set .clickhandler')
                             .click({force: true});
+
+                        // Confirm response
+                        cy.get('button.confirm.enabled')
+                            .click();
+
+                        // Enter confidence
+                        cy.get('#conf-widget button:first-of-type')
+                            .should('be.visible')
+                            .click();
                     }
                 });
-
-                // Confirm response
-                cy.get('button.confirm.enabled')
-                    .click();
             });
         }
 
-        it('Pauses between blocks', function () {
+        it('Pauses between blocks', function() {
 
             cy.get('#instructions h1')
                 .should('have.text', 'Break')
@@ -371,17 +373,12 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
-
-            // Acknowledge new advisor
-            cy.get('.advisor-intro .esm-instruction-button')
-                .should('be.visible')
-                .click();
         });
 
-        for (let i = 0; i < 7; i++) {
+        for(let i = 0; i < 15; i++) {
             q++;
 
-            it('Runs block 2 Q' + i + ' [Q' + q + ']', function () {
+            it('Runs block 2 Q' + i + ' [Q' + q + ']', function() {
 
                 // Should show a question
                 cy.get('#stimulus p')
@@ -398,11 +395,7 @@ for(let run = 0; run < runs; run++) {
                 // Fill in a response
                 cy.get('.response-marker-pool .response-marker.size0 .clickhandler')
                     .trigger('mousedown', {force: true})
-                    .trigger('mousemove', {
-                        force: true,
-                        pageX: 600,
-                        pageY: 600
-                    })
+                    .trigger('mousemove', { force: true, pageX: 600, pageY: 600 })
                     .trigger('mouseup', {force: true});
 
                 // Branch based on whether Q is attention check
@@ -421,9 +414,20 @@ for(let run = 0; run < runs; run++) {
                             TL.valueToPixels(ans) +
                             "px";
                         marker.style.width = TL.valueToPixels(TL.markerWidths[0], true) + "px";
+
+                        // Confirm response
+                        cy.get('button.confirm.enabled')
+                            .click();
                     } else {
                         // Continue as normal with normal responses
                         cy.get('button.confirm.enabled')
+                            .click();
+
+                        const x = Math.random() > .5? "first-of-type" : "last-of-type";
+
+                        // Enter confidence
+                        cy.get('#conf-widget button:' + x)
+                            .should('be.visible')
                             .click();
 
                         // Receive advice
@@ -438,12 +442,17 @@ for(let run = 0; run < runs; run++) {
                         // Tap marker
                         cy.get('esm-response-timeline .response-marker.ghost.set .clickhandler')
                             .click({force: true});
+
+                        // Confirm response
+                        cy.get('button.confirm.enabled')
+                            .click();
+
+                        // Enter confidence
+                        cy.get('#conf-widget button:first-of-type')
+                            .should('be.visible')
+                            .click();
                     }
                 });
-
-                // Confirm response
-                cy.get('button.confirm.enabled')
-                    .click();
             });
         }
 
@@ -461,7 +470,7 @@ for(let run = 0; run < runs; run++) {
             });
         }
 
-        it('Provides a debrief screen', function () {
+        it('Provides a debrief screen', function() {
             cy.get('textarea.mandatory')
                 .focus()
                 .type('You might very well think that; I couldn\'t possibly comment.');
@@ -471,12 +480,12 @@ for(let run = 0; run < runs; run++) {
                 .click()
         });
 
-        it('Shows feedback', function () {
+        it('Shows feedback', function() {
             cy.get('body')
                 .contains('Payment code')
         });
 
-        it('Provides a functional permalink', function () {
+        it('Provides a functional permalink', function() {
             cy.get('.legend.permalink .permalink')
                 .invoke('text').then((txt) => {
                 cy.visit(txt);

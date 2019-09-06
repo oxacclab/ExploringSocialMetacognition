@@ -15,6 +15,12 @@
 * ~~Run~~ 
 * ~~Data analysis~~ 
 * Redesign explicit benevolence manipulation
+    * ~~Clearer manipulation~~
+        * ~~At advisor introduction~~
+            * ~~"will sometimes try to mislead"~~
+        * ~~"You are in Group 1" displayed throughout~~
+    * ~~Actually provide occasionally bad advice from outgroup advisor~~
+    * ~~Improve advice slightly (inc. for training advisor)~~
 * Preregistration
 * Run
 * Data analysis 
@@ -26,8 +32,16 @@
 * RR stage 2
 
 ## Core studies
-* Clarify marker usage (confidence)
-* Implement Agree-in-confidence/uncertainty advisors
+* ~~Clarify marker usage (confidence)~~
+* Redesign core studies
+    * ~~One marker width~~
+    * ~~Post-decision confidence judgement~~
+* ~~Implement Agree-in-confidence/uncertainty advisors~~
+    * ~~Discrete distances from participant marker 3, 5, 7 | 9, 11, 13~~
+    * ~~AiC uses first set where high conf~~
+    * ~~AiU uses second set where high conf~~
+    * ~~Tests on trials where 8 used regardless of confidence (offbrand)~~
+    * ~~Integration tests~~
 * Run AiC/AiU study
 ### Advisor choice
 * ~~Implement advisor choice~~

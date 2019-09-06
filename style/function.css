@@ -108,6 +108,12 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
     cursor: pointer;
 }
 
+/* Confidence collection widget shows during confidence phases */
+.Trial-getConfidence #conf-widget,
+.Trial-getFinalConfidence #conf-widget {
+    display: unset;
+}
+
 /* Reveal the feedback marker during feedback phase */
 .Trial-showFeedback .response-marker {
     display: unset;
@@ -145,6 +151,11 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 /* Hide the advisor portrait during the coin flip */
 .Study-assignGroup .advisor-key-row {
     display: none;
+}
+
+/* Show the participant group notification where necessary */
+.DatesStudy.Study-core .group-info {
+    display: flex;
 }
 
 @media screen and (max-height: 500px) {

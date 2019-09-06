@@ -801,4 +801,77 @@ const ADVICE_AGREEISH = Object.freeze(new AdviceType({
 }));
 
 
-export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED, ADVICE_CORRECTISH, ADVICE_AGREEISH};
+// ADVICE_AGREE_BY_CONF gives different advice depending on the confidence of the previous response. Advisors must have a confidenceOptions object containing a list of possible advice offsets (from the initial response) for each of the possible confidence levels. Advice is selected randomly from the available offsets, in the direction of the correct answer.
+//
+// Where the advice would not fit on the scale, Correct advice is used instead.
+const ADVICE_AGREE_BY_CONF = Object.freeze(new AdviceType({
+    name: "agree-in-conf",
+    flag: 256,
+    fallback: 2,
+    /**
+     * Values dependent on initial response + initial confidence.
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]}
+     */
+    match: (t, a) => {
+        // Participant answer
+        const ans = t.data.responseEstimateLeft +
+            Math.floor(t.data.responseMarkerWidth / 2);
+
+        const w = Math.ceil(a.confidence / 2);
+        const minS = parseFloat(t.responseWidget.dataset.min);
+        const maxS = parseFloat(t.responseWidget.dataset.max);
+
+        const set = a.confidenceOptions[t.data.confidenceConfidence];
+        const pick = set[utils.randomNumber(0, set.length - 1)];
+
+        // Advice should be in the direction of the correct answer
+        const c = t.correctAnswer > ans? ans + pick: ans - pick;
+
+        // Test whether the target value works
+        if(c + w > maxS || c - w < minS)
+            return null;
+
+        return [c, c];
+    }
+}));
+
+// ADVICE_AGREE_OFFSET gives advice offset from the initial response by a given value specified as the Advisor's confidenceOffset. The advice is always in the direction of the correct answer.
+//
+// Where the advice would not fit on the scale, Correct advice is used instead.
+const ADVICE_AGREE_OFFSET = Object.freeze(new AdviceType({
+    name: "agree-offset",
+    flag: 512,
+    fallback: 2,
+    /**
+     * Values dependent on initial response + initial confidence.
+     * @param t {Trial} at the post-initial-decision phase
+     * @param a {Advisor} advisor giving advice
+     * @return {number[]}
+     */
+    match: (t, a) => {
+        // Participant answer
+        const ans = t.data.responseEstimateLeft +
+            Math.floor(t.data.responseMarkerWidth / 2);
+
+        const w = Math.ceil(a.confidence / 2);
+        const minS = parseFloat(t.responseWidget.dataset.min);
+        const maxS = parseFloat(t.responseWidget.dataset.max);
+
+        const set = a.confidenceOffset;
+        const pick = set[utils.randomNumber(0, set.length - 1)];
+
+        // Advice should be in the direction of the correct answer
+        const c = t.correctAnswer > ans? ans + pick: ans - pick;
+
+        // Test whether the target value works
+        if(c + w > maxS || c - w < minS)
+            return null;
+
+        return [c, c];
+    }
+}));
+
+
+export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED, ADVICE_CORRECTISH, ADVICE_AGREEISH, ADVICE_AGREE_BY_CONF, ADVICE_AGREE_OFFSET};

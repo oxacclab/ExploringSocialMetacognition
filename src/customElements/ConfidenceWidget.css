@@ -1,0 +1,33 @@
+:root {
+    --esm-conf-button-margin: 2.5%;
+}
+
+esm-confidence-widget {
+    top: 50%;
+    position: absolute;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: white;
+    background-color: var(--background);
+}
+
+esm-confidence-widget div.buttons {
+    display: flex;
+    width: 100%;
+    justify-content: space-evenly;
+}
+
+esm-confidence-widget div.buttons button {
+    width: 100%;
+    margin: 0 var(--esm-conf-button-margin);
+}
+
+esm-confidence-widget div.buttons button:first-of-type {
+    margin-left: calc(var(--esm-conf-button-margin) * 2);
+}
+
+esm-confidence-widget div.buttons button:last-of-type {
+    margin-right: calc(var(--esm-conf-button-margin) * 2);
+}

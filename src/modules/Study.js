@@ -264,6 +264,10 @@ class Study extends ControlObject {
 
         // Handle the initial call
         if(max === null) {
+            // skip if no time
+            if(!s)
+                return;
+
             max = s + 1;
             stim.classList.add("countdown");
             stim.appendChild(
@@ -325,9 +329,10 @@ class Study extends ControlObject {
     /**
      * Insert an advisor's info tab with an animation for visibility.
      * @param advisor {Advisor}
+     * @param resolve {function} callback for promise
      * @return {Promise<HTMLElement>}
      */
-    _introduceAdvisor(advisor) {
+    _introduceAdvisor(advisor, resolve) {
         const elm = advisor.getInfoTab("advisor-key");
         document.querySelector(".advisor-key").appendChild(elm);
 
@@ -412,6 +417,7 @@ class Study extends ControlObject {
 
     static async unlockFullscreen(element) {
         document.body.classList.remove("fullscreen-error");
+        document.querySelector('#fullscreen-warning.open').classList.remove('open');
 
         clearTimeout(element.fullscreenTimeOut);
 
@@ -1134,17 +1140,17 @@ class DatesStudy extends Study {
                     const block = this.blocks[b];
                     for(let i = 0; i < block.trialCount; i++) {
                         if(this.attentionCheckTrials.indexOf(t) !== -1) {
-                            this.trials.push(new Trial(
+                            this.trials.push(block.createTrial(
                                 {
                                     block: b,
                                     ...block,
                                     ...this.attentionCheckBlueprint,
                                     number: t++
-                                }));
+                                }, Trial, true));
                         } else {
                             switch(block.blockType) {
                                 case "practice":
-                                    this.trials.push(new Trial(
+                                    this.trials.push(block.createTrial(
                                         {
                                             block: b,
                                             ...block,
@@ -1153,11 +1159,11 @@ class DatesStudy extends Study {
                                             saveTableName: "practiceTrial",
                                             displayFeedback: block.feedback?
                                                 this.displayFeedback : null
-                                        }));
+                                        }, Trial));
                                     break;
 
                                 case "practiceAdvisor":
-                                    this.trials.push(new AdvisedTrial(
+                                    this.trials.push(block.createTrial(
                                         {
                                             block: b,
                                             ...block,
@@ -1167,18 +1173,18 @@ class DatesStudy extends Study {
                                                 "practiceAdvisedTrial",
                                             displayFeedback: block.feedback?
                                                 this.displayFeedback : null
-                                        }));
+                                        }, AdvisedTrial));
                                     break;
 
                                 case "core":
-                                    this.trials.push(new AdvisedTrial({
+                                    this.trials.push(block.createTrial({
                                         block: b,
                                         ...block,
                                         ...this.trialBlueprint,
                                         number: t++,
                                         displayFeedback: block.feedback?
                                             this.displayFeedback : null
-                                    }));
+                                    }, AdvisedTrial));
                                     break;
                             }
                         }
@@ -1320,6 +1326,49 @@ class DatesStudy extends Study {
 
     set trialBlueprint(bp) {
         this._trialBlueprint = bp;
+    }
+
+    /**
+     * Insert an advisor's info tab with an animation for visibility.
+     * @param advisor {Advisor}
+     * @param resolve {function} callback for promise
+     * @return {Promise<HTMLElement>}
+     */
+    async _introduceAdvisor(advisor, resolve) {
+        const elm = await super._introduceAdvisor(advisor, (o)=>o);
+
+        // Continue immediately if no intro text exists
+        if(!advisor.introText) {
+            return new Promise((resolve) => {setTimeout(resolve, 0, elm)});
+        }
+
+        return new Promise((resolve) => {
+            // Description message about the advisor, continue when clicked
+            elm.appendChild(document.importNode(
+                document.getElementById("advisor-intro-text").content,
+                true));
+
+            const popup = elm.querySelector('.advisor-intro');
+
+            const delay = 1000;
+            const minTime = new Date().getTime() + delay;
+            popup.querySelector(".text").innerHTML = advisor.introText;
+
+            const btn = popup.querySelector(".confirm button");
+            btn.disabled = "disabled";
+
+            setTimeout(() => btn.disabled = "", delay);
+
+            btn.addEventListener("click", (e) => {
+                if(new Date().getTime() < minTime)
+                    return;
+
+                advisor.info("Intro text okay'd.");
+                popup.remove();
+                resolve(elm);
+            });
+        });
+
     }
 
     /**
@@ -1562,7 +1611,12 @@ class DatesStudy extends Study {
                 idCode = this.id;
                 version = this.studyVersion;
             }
-            await fetch("../readSerial.php?tbl=AdvisedTrial",
+
+            // Look up trials according to the core trial type
+            const trialClass = this.blocks.filter(b => b.blockType === "core")[0].trialClass;
+            const trialClassName = trialClass? trialClass.name : "AdvisedTrial";
+
+            await fetch("../readSerial.php?tbl=" + trialClassName,
                 {method: "POST", body: JSON.stringify(
                         { idCode, version, studyId: this.studyName})})
                 .then(async (r) => await r.text())
@@ -2034,7 +2088,26 @@ class MinGroupsStudy extends DatesStudy {
  * @property advisors {Advisor[]} advisors available to trials in the block
  */
 class Block extends BaseObject{
+    /**
+     *
+     * @param props {object} blueprint and other properties fed to class constructor
+     * @param defaultClass {prototype} default class if block does not have trialClass variable set
+     * @param [forceDefaultClass=false] {boolean} whether to force the defaultClass to be the class prototype used
+     *
+     * @return {object} Trial of the desired class with props
+     */
+    createTrial(props, defaultClass, forceDefaultClass = false) {
 
+        let proto = this.trialClass? this.trialClass : defaultClass;
+
+        if(forceDefaultClass)
+            proto = defaultClass;
+
+        if(!proto)
+            this.error("Tried to create a trial with no prototype supplied.");
+
+        return new proto(props);
+    }
 }
 
 export {Study, DatesStudy, MinGroupsStudy, Block}
