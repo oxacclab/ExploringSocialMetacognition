@@ -1,0 +1,463 @@
+---
+title: "2x2 Linear Mixed Effect Models"
+author: "Matt Jaquiery"
+date: "10/09/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This guide covers data simulation and power analysis using linear mixed effects modelling. For a basic introduction to the topic, see Lisa DeBruine and Dale Barr's [helpful tutorial](https://debruine.github.io/lmem_sim/index.html). This guide extends the process to cover two predictors, and will explain how to specify the random effects in order to the high false-positive rate that [occurs otherwise](https://www.frontiersin.org/articles/10.3389/fpsyg.2013.00328/full). We will not be dealing with covariation in the effects.
+
+## Data
+
+First we want some data to play with. We'll imagine the following, closely based on my own research:
+
+> Participants complete a quiz where they encounter questions asking them to estimate things (and tell us how sure they are). They then get advice on those estimates and provide a final estimate. 
+
+We have the following variables:
+
+variable | name | values
+---------|------|--------
+Participant ID | `pID` | [nominal]
+Question ID | `qID` | [nominal]
+Confidence | `conf` | low \| high
+Advisor type | `advisor` | bias-sharing \| anti-bias
+
+We use the amount participants moved their estimate from before they got advice as our measure of advice taking ($\text{woa} = \text{weight on advice} = (\text{final estimate - initial estimate}) / (\text{advice estimate - initial estimate})$). This is our outcome variable, and we're interested in how it is predicted by the interaction of advisor type and confidence. 
+
+We'll generate that data with some pre-specified effects according to the same formula we'll use to analyse it (and hopefully recover our parameters!). That formula will be: 
+
+### Generative model
+
+$$\text{woa} = b0 + 
+b1_\text{pID} + 
+b2_\text{qID} + 
+b3 \cdot \text{conf} + b4_\text{pID} \cdot \text{conf} + b5_\text{qID} \cdot \text{conf} +
+b6 \cdot \text{advisor} + b7_\text{pID} \cdot \text{advisor} + b8_\text{qID} \cdot \text{conf} + 
+b9 \cdot \text{advisor} \cdot \text{conf} + b10_\text{pID} \cdot \text{conf} \cdot \text{advisor} + b11_\text{qID} \cdot \text{conf} \cdot \text{advisor}$$
+where the random effects are drawn from normal distrbutions with standard deviations specified by the beta.
+$$bX_i ~ \sim \mathcal{N}(0, bX)$$
+
+Yes, that's a lot of parameters. But they split into a mixture of random effects and fixed effects. Random effects provide individual observations over which we'll generalise, while fixed effects give specific values we'll want to estimate. Any variable which involves the `pID` or `qID` will be a random effect.
+
+#### Effects
+
+Random effects are in plainface, **fixed effects** in **boldface**
+
+* **$b0$ = grand mean for advice-taking**
+* $b1_\text{pID}$ = participant's propensity to take advice
+* $b1_\text{qID}$ = amount of advice-taking due to the question asked (probably due to difficulty!)
+* **$b3 \cdot \text{conf}$ = amount confidence affects advice-taking**
+* $b4_\text{pID} \cdot \text{conf}$ = participant's variation in effect of confidence on advice-taking
+* $b5_\text{qID} \cdot \text{conf}$ = item variation in effect of confidence on advice-taking
+* **$b6 \cdot \text{advisor}$ = amount advisor affects advice-taking**
+* $b7_\text{pID} \cdot \text{advisor}$ = participant's variation in effect of advisor on advice-taking
+* $b8_\text{qID} \cdot \text{advisor}$ = item variation in effect of advisor on advice-taking
+* **$b9 \cdot \text{advisor} \cdot \text{conf}$ = interaction of confidence and advisor on advice-taking**
+* $b10_\text{pID} \cdot \text{conf} \cdot \text{advisor}$ = participant's variation in interaction effect
+* $b11_\text{qID} \cdot \text{conf} \cdot \text{advisor}$ = item variation in interaction effect
+
+### Make it so
+
+First we want to specify the design of the experiment. We have 100 questions, but each participant will only answer 30 of them. This kind of design is unusual, and means that some questions will have more instances over which we can generalise to others (meaning the random effects of those questions are estimated more precisely), but that's okay. We're not as sensitive to missing data using linear mixed models as we would be using ANOVA. We'll also have 50 participants and each question/participant combination (i.e. each observation) will have one of two confidences (high or low) and advice from one of two advisors (bias-sharing or anti-bias). The data will be in long format.
+
+```{r data structure}
+library(tibble)
+
+#' Generate the trial structure with ns listed in n
+baseFrame <- function(n = NULL) {
+  if (is.null(n)) {
+    n <- list(
+      p = 50,   # number of participants
+      q = 100,  # number of questions in the question set
+      obs = 30  # number of questions answered by each participant
+      )
+  }
+  
+  d <- tibble(
+    pID = rep(factor(1:n$p), each = n$obs),
+    qID = NA,
+    confRating = sample(factor(c("low", "high")), n$p * n$obs, replace = T),
+    advisorName = factor(rep(c("bias-sharing", "anti-bias"), n$p * n$obs / 2))
+  )
+  
+  # Assign question numbers
+  for (p in unique(d$pID)) {
+    d$qID[d$pID == p] <- sample(1:n$q, n$obs)
+  }
+  
+  # adapt the conf and advisor ratings to the values we'll want to use in the models
+  d$conf <- as.numeric(d$confRating) - 1
+  d$advisor <- as.numeric(d$advisorName) - 1
+  
+  d
+}
+
+d <- baseFrame()
+
+```
+
+***Note:** Many implementations of LME code two-level categorical variables with -.5 and +.5 so that the other estimates give the mean across both categories rather than the mean for the first category. We use 0 and 1 as is familiar from basic linear modelling because we are interested in the interactions (and .5*.5 = -.5*-.5 meaning 'interactions' would group cases where the levels were the same rather than where both levels were the higher category).
+
+Next we specify some sizes for all the betas in our model. Each beta represents the change in weight-on-advice, which is a proportion between 0 and 1 (0 = sticking with one's initial estimate; 1 = fully adopting the advised estimate).
+
+```{r data model betas}
+betas <- list(
+  b0 = .0,  # grand mean (low confidence, anti-bias advisor)
+  b1 = .2,  # SD of participant variation in mean
+  b2 = .2,  # SD of item variation in mean
+  b3 = .3,  # effect of CONF
+  b4 = .1,  # SD of participant variation in b3
+  b5 = .1,  # SD of item variation in b3
+  b6 = .1,  # effect of ADVISOR
+  b7 = .1,  # SD of participant variation in b6
+  b8 = .1,  # SD of item variation in b6
+  b9 = .3,  # effect of CONF * ADVISOR
+  b10 = .1, # SD of participant variation in b9
+  b11 = .1, # SD of item variation in b9
+  noise = .1
+)
+```
+
+Finally we can use the model to calculate the weight-on-advice for each observation. 
+
+```{r data outcomes}
+
+#' Generate WOA scores for dataframe d using model parameters b
+getWOA <- function(d, b) {
+  
+  # function to fetch consistent values for each x from a normal distribution with
+  # sd = sd
+  f <- function(sd, x) {
+    if (length(x) > 1) {
+      return(sapply(x, function(x) f(sd, x)))
+    }
+    
+    R.utils::withSeed(rnorm(1, sd = as.numeric(sd)), as.numeric(x))
+  }
+  
+  d$woaRaw <- 
+    b$b0 +                                  # grand mean
+    f(b$b1, d$pID) +                        # SD of participant variation in mean          
+    f(b$b2, d$qID) +                        # SD of item variation in mean 
+    
+    b$b3 * d$conf +                         # effect of CONF          
+    f(b$b4, d$pID) * d$conf +               # SD of participant variation in b3          
+    f(b$b5, d$qID) * d$conf +               # SD of item variation in b3   
+    
+    b$b6 * d$advisor +                      # effect of ADVISOR            
+    f(b$b7, d$pID) * d$advisor +            # SD of participant variation in b6          
+    f(b$b8, d$qID) * d$advisor +            # SD of item variation in b6  
+    
+    b$b9 * d$conf * d$advisor +             # effect of CONF * ADVISOR
+    f(b$b10, d$pID) * d$conf * d$advisor +  # SD of participant variation in b9            
+    f(b$b11, d$qID) * d$conf * d$advisor +  # SD of item variation in b9     
+    
+    rnorm(nrow(d), sd = b$noise)    # random noise
+  
+  # Cap woa to between 0 and 1
+  d$woa <- pmin(1, pmax(0, d$woaRaw))
+  
+  d
+}
+
+d <- getWOA(d, betas)
+
+```
+
+### Plot the data
+
+We'll plot a subset of the data; 9 participants.
+
+```{r data plotting}
+library(ggplot2)
+
+ggplot(d[as.numeric(d$pID) < 26, ],
+       aes(x = conf, y = woa, colour = factor(advisor))) +
+  geom_point(alpha = .5, position = position_jitterdodge(dodge.width = .4,
+                                                         jitter.width = .2)) +
+  geom_smooth(method = "lm", se = F) +
+  facet_wrap(~pID) +
+  scale_x_continuous(breaks = c(0, 1), labels = levels(d$confRating), name = "confRating") +
+  scale_color_discrete(labels = levels(d$advisorName), name = "advisorName") +
+  theme_light() +
+  theme(legend.position = "top")
+
+```
+
+## Parameter recover
+
+The next step is to try to pull the parameters we supplied to the model out from the data we generated. We do this by using linear mixed effect modelling for analysis.
+
+### Specifying the model
+
+```{r recovery}
+library(lmerTest)
+
+model <- woa ~ 
+  1 +                         # b0 grand mean
+  
+  (1 | pID) +                 # b1 participant intercept
+  (1 | qID) +                 # b2 item intercept
+  
+  conf +                      # b3 confidence slope
+  
+  (0 + conf | pID) +          # b4 participant conf slope
+  (0 + conf | qID) +          # b5 item conf slope
+  
+  advisor +                   # b6 advisor slope
+  
+  (0 + advisor | pID) +       # b7 participant advisor slope
+  (0 + advisor | qID) +       # b8 item advisor slope
+  
+  conf:advisor +              # b9 interaction slope
+  
+  (0 + conf:advisor | pID) +  # b10 participant interaction slope
+  (0 + conf:advisor | qID) +  # b11 item interaction slope
+  
+                              # Noise is assumed
+  NULL
+
+```
+
+### Running the analysis
+
+```{r recovery analysis}
+out <- summary(lmer(model, data = d, REML = T))
+
+out
+```
+
+### Comparing the input values and output estimates
+
+```{r recover results}
+
+niceResults <- function(summary, b) {
+  rx <- summary$varcor
+  fx <- summary$coefficients
+  
+  # Nice summary dataframe of the input effect vs the recovered effect
+  fxt <- cbind(data.frame(input = c(b$b0, b$b3, b$b6, b$b9)), fx)
+  rxt <- cbind(data.frame(input = c(
+                 # order is irritating
+                 b$b11, b$b8, b$b5, b$b2, # item stuff
+                 b$b10, b$b7, b$b4, b$b1, # participant stuff
+                 b$noise)),
+               as.data.frame(rx))
+  rxt <- rxt[, c(2:3, 1, 6:5)]
+  
+  list(fixed = fxt, random = rxt, message = summary$optinfo$conv$lme4$messages)
+}
+
+r <- niceResults(out, betas)
+
+r
+
+```
+
+## Power analysis
+
+We can run multiple iterations of these analyses on data generated by models with variying parameters, and/or using various sample sizes for observations/question set. We can then compare the false positive and false negative rates observed using frequentist statistics. We can also observe how likely the model is to run into singularity/convergence issues.
+
+```{r power test structure}
+
+# experimental setups
+nP <- c(20, 50, 100, 1000)
+nQ <- c(4, 100)
+nO <- c(4, 100)
+
+BETAS <- list(
+  # above
+  betas,
+  # larger baseline
+  list(b0 = .25, b1 = .2, b2 = .2,  b3 = .3,  b4 = .1,  b5 = .1,  b6 = .1,  
+       b7 = .1,  b8 = .1,  b9 = .3,  b10 = .1, b11 = .1, noise = .1),
+  # bigger effect
+  list(b0 = .0, b1 = .2, b2 = .2,  b3 = .3,  b4 = .1,  b5 = .1,  b6 = .1,  
+       b7 = .1,  b8 = .1,  b9 = .5,  b10 = .1, b11 = .1, noise = .1),
+  # no effects
+  list(b0 = .0, b1 = .2, b2 = .2,  b3 = .0,  b4 = .1,  b5 = .1,  b6 = .0,  
+       b7 = .1,  b8 = .1,  b9 = .0,  b10 = .1, b11 = .1, noise = .1)
+)
+
+paramList <- list()
+reps <- 1000 # number of times to run each model
+
+for (p in nP) {
+  for (q in nQ) {
+    for (o in nO) {
+      for (b in BETAS) {
+        # check there are enough questions for the observations taken
+        if (q >= o) {
+          runs <- list()
+          for (i in 1:reps) {
+            runs[[length(runs) + 1]] <-
+              list(n = list(p = p, q = q, obs = o),
+                   betas = b,
+                   model = model,
+                   i = i)
+          }
+          paramList[[length(paramList) + 1]] <- runs
+        }
+      }
+    }
+  }
+}
+
+
+```
+
+```{r power test run}
+library(parallel)
+
+#' Function to run everything with given parameters
+getResults <- function(params, funcs, savePath) {
+  library(tibble)
+  library(lmerTest)
+  library(digest)
+  
+  set.seed(Sys.time())
+  
+  # generate data
+  d <- funcs$getWOA(funcs$baseFrame(params$n), params$betas)
+  
+  # run model
+  r <- funcs$niceResults(
+    summary(lmer(params$model, data = d, REML = F)),
+    params$betas
+  )
+  
+  # save output
+  output <- list(params = params, results = r)
+  
+  mydir <- paste0(savePath, 
+                  'p', params$n$p,
+                  '-q', params$n$q,
+                  '-o', params$n$obs,
+                  '_b', digest2int(sha1(params$betas)))
+  
+  if (!dir.exists(mydir)) {
+    dir.create(mydir)
+  }
+  
+  savePath <- paste0(mydir, '/i', params$i, '.Rdata')
+  
+  save(output, file = savePath)
+  
+  savePath
+}
+
+# Define cluster
+cl <- makeCluster(detectCores() - 4)
+
+startTime <- Sys.time()
+saveDir <- paste0(getwd(), 
+                  '/linear-mixed-effects_results/',
+                  gsub(':', '-', gsub(' ', '_', startTime)))
+
+if (!dir.exists(saveDir)) {
+  dir.create(saveDir)
+}
+
+for (L in paramList[25:36]) {
+  results <- parLapply(cl, L, getResults, 
+                       funcs = list(getWOA = getWOA,
+                                    baseFrame = baseFrame,
+                                    niceResults = niceResults),
+                       savePath = paste0(saveDir, '/'))
+}
+
+
+stopCluster(cl)
+
+endTime <- Sys.time()
+print(paste0('Parallel processing of ', length(results), ' models complete.'))
+endTime - startTime
+
+# results now contains the filenames for the saved objects
+```
+
+```{r power compile results}
+
+latestFolder <- function(parentDir) {
+  dirs <- list.dirs(parentDir, full.names = F, recursive = F)
+  dirs <- gsub('[_-]', '', dirs)
+  
+  dirs <- as.numeric(dirs)
+  
+  list.dirs(parentDir, recursive = F)[order(dirs, decreasing = T)[1]]
+}
+
+summarizeResults <- function(folder, alpha.level = .05) {
+  r <- NULL
+  for (f in list.files(folder, full.names = T, 
+                       include.dirs = F, recursive = T)) {
+    load(f)
+    
+    if (is.null(output$results$message)) {
+      output$results$message <- NA
+    }
+
+    # extract relevant info
+    tmp <- tibble(
+      iteration = output$params$i,
+      problem = output$results$message,
+    )
+    # add in p-values for each fixed effect
+    for (i in 1:nrow(output$results$fixed)) {
+      tmp[rownames(output$results$fixed)[i]] <- 
+        output$results$fixed$`Pr(>|t|)`[i]
+    }
+    
+    r <- rbind(r, tmp)
+  }
+  
+  short <- tibble(
+    failureRate = sum(!is.na(r$problem)) / nrow(r),
+    failConvergeRate = sum(grepl("converge", r$problem)) / nrow(r),
+    failSingularRate = sum(grepl("singular", r$problem)) / nrow(r),
+    nOkay = sum(is.na(r$problem))
+  )
+  
+  r <- r[is.na(r$problem), ]
+  
+  for (i in 3:ncol(r)) {
+    short[paste0(names(r)[i], 'SigRate')] <- 
+      sum(r[[i]] <= alpha.level) / nrow(r)
+  }
+  
+  short <- cbind(short, tibble(
+    nP = output$params$n$p,
+    nQ = output$params$n$q,
+    nObs = output$params$n$obs,
+    b0 = output$params$betas$b0,
+    b3 = output$params$betas$b3,
+    b6 = output$params$betas$b6,
+    b9 = output$params$betas$b6
+  ))
+  
+  as_tibble(short)
+}
+
+folder <- latestFolder("F:/xampp/htdocs/ExploringSocialMetacognition/analysis/simulation/linear-mixed-effects_results")
+
+tmp <- NULL
+
+for (theDir in list.dirs(folder, recursive = F)) {
+  tmp <- rbind(tmp, summarizeResults(theDir))
+}
+
+tmp
+
+```
+
+```{r power analysis}
+
+
+
+```
