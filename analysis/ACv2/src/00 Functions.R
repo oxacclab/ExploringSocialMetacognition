@@ -9,6 +9,10 @@ isSet <- function(v) {
   length(grep(paste0("^", v, "$"), ls(parent.frame())))
 }
 
+if (!isSet("studyOffBrandTypeNames")) {
+  studyOffBrandTypeNames <- c("disagreeReflected")
+}
+
 # libraries ---------------------------------------------------------------
 
 library(testthat) # unit tests
@@ -75,9 +79,24 @@ listServerFiles <- function(study = "datesStudy", version = "all",
 }
 
 getMarkerList <- function() {
-  unique(c(AdvisedTrial$responseMarkerWidth,
-           AdvisedTrial$responseMarkerWidthFinal,
-           Trial$responseMarkerWidth))       
+  markersUsed <- c()
+  
+  # search environment for dataframes
+  for (v in ls(.GlobalEnv)) {
+    x <- get(v, parent.frame())
+    if (is.data.frame(x)) {
+      # search data frames for response marker columns
+      if ("responseMarker" %in% names(x)) {
+        markersUsed <- c(markersUsed, unique(x$responseMarker))
+      }
+      if ("responseMarkerFinal" %in% names(x)) {
+        markersUsed <- c(markersUsed, unique(x$responseMarkerFinal))
+      }
+    }
+  }
+  
+  # output unique values
+  unique(markersUsed)
 }
 
 # processing functions ----------------------------------------------------
@@ -290,7 +309,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
                                         tmp[tmp$pid == id,
                                             "advisor0idDescription"][1, ]))
       
-      x$advisor0offBrand <- x$advisor0actualType == "disagreeReflected"
+      x$advisor0offBrand <- x$advisor0actualType %in% studyOffBrandTypeNames
       
       
       # by advisor name variables -----------------------------------------------
@@ -399,6 +418,11 @@ getDerivedVariables <- function(x, name, opts = list()) {
       x$woa <- factor(x$woa)
       
       x
+    },
+    
+    # Process withconf trials in the same way as above
+    AdvisedTrialWithConf = {
+      getDerivedVariables(x, name = "AdvisedTrial", opts = opts)
     },
     
     # TRIAL -------------------------------------------------------------------
@@ -571,7 +595,7 @@ byDecision <- function(df) {
     # fill in final responses in the initial response columns for final decisions
     for (v in names(out)[grepl("^response", names(out), perl = T)]) {
       old <- out[[v]][i]
-      new <- AdvisedTrial[[paste0(v, "Final")]][i - n]
+      new <- df[[paste0(v, "Final")]][i - n]
       
       if (is.factor(old)) {
         if (!(new %in% levels(old))) {

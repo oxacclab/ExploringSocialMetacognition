@@ -47,13 +47,18 @@ if (!isSet("exclude")) {
   stop("No criteria for exclusion ([exclude] variable not set). See above for a list of options.")
 }
 
-referenceTrialList <- AdvisedTrial
+mainDFName <- if (isSet('AdvisedTrialWithConf')) 
+  'AdvisedTrialWithConf' else 'AdvisedTrial'
+
+mainDF <- get(mainDFName)
+
+referenceTrialList <- mainDF
 
 # output variables --------------------------------------------------------
 
-exclusions <- tibble(pid = unique(AdvisedTrial$pid))
+exclusions <- tibble(pid = unique(mainDF$pid))
 exclusions$studyVersion <- sapply(exclusions$pid, function(x) 
-  AdvisedTrial$studyVersion[AdvisedTrial$pid == x][1])
+  mainDF$studyVersion[mainDF$pid == x][1])
 exclusions$excluded <- F
 
 # attention checks --------------------------------------------------------
@@ -77,11 +82,11 @@ if (!is.null(exclude$maxAttnCheckFails) && !is.na(exclude$maxAttnCheckFails)) {
   
   # Drop excluded participants' trials
   tmp <- NULL
-  for (i in 1:nrow(AdvisedTrial))
-    if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
-      tmp <- rbind(tmp, AdvisedTrial[i, ])
+  for (i in 1:nrow(mainDF))
+    if (exclusions$excluded[exclusions$pid == mainDF$pid[i]] == F)
+      tmp <- rbind(tmp, mainDF[i, ])
   
-  AdvisedTrial <- tmp
+  mainDF <- tmp
 }
 
 if (!is.null(exclude$requireGroupAttnCheck) && !is.na(exclude$requireGroupAttnCheck)) {
@@ -95,11 +100,11 @@ if (!is.null(exclude$requireGroupAttnCheck) && !is.na(exclude$requireGroupAttnCh
   
   # Drop excluded participants' trials
   tmp <- NULL
-  for (i in 1:nrow(AdvisedTrial))
-    if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
-      tmp <- rbind(tmp, AdvisedTrial[i, ])
+  for (i in 1:nrow(mainDF))
+    if (exclusions$excluded[exclusions$pid == mainDF$pid[i]] == F)
+      tmp <- rbind(tmp, mainDF[i, ])
   
-  AdvisedTrial <- tmp
+  mainDF <- tmp
 }
 
 # incomplete --------------------------------------------------------------
@@ -120,7 +125,7 @@ if (!is.null(exclude$requireComplete) &&
 
 if (!is.null(exclude$maxTrialRT) &&
     !is.na(exclude$maxTrialRT) && exclude$maxTrialRT > 0) {
-  AdvisedTrial <- AdvisedTrial[AdvisedTrial$timeEnd <= exclude$maxTrialRT, ]
+  mainDF <- mainDF[mainDF$timeEnd <= exclude$maxTrialRT, ]
 }
 
 
@@ -130,18 +135,18 @@ if (!is.null(exclude$minTrials) &&
     !is.na(exclude$minTrials) && exclude$minTrials > 0) {
   
   for (p in unique(exclusions$pid)) {
-    if (sum(AdvisedTrial$pid == p) < exclude$minTrials)
+    if (sum(mainDF$pid == p) < exclude$minTrials)
       exclusions$excluded[exclusions$pid == p] <- 
         addExclusion(exclusions$excluded[exclusions$pid == p], "outlyingTrials")
   }
   
   # Drop excluded participants' trials
   tmp <- NULL
-  for (i in 1:nrow(AdvisedTrial))
-    if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
-      tmp <- rbind(tmp, AdvisedTrial[i, ])
+  for (i in 1:nrow(mainDF))
+    if (exclusions$excluded[exclusions$pid == mainDF$pid[i]] == F)
+      tmp <- rbind(tmp, mainDF[i, ])
   
-  AdvisedTrial <- tmp
+  mainDF <- tmp
 }
 
 # offbrand outliers -------------------------------------------------------
@@ -151,7 +156,7 @@ if (!is.null(exclude$minOffBrandTrials) &&
     exclude$minOffBrandTrials > 0) {
   
   for (p in unique(exclusions$pid)) {
-    if (sum(AdvisedTrial$advisor0offBrand[AdvisedTrial$pid == p]) < 
+    if (sum(mainDF$advisor0offBrand[mainDF$pid == p]) < 
         exclude$minOffBrandTrials)
       exclusions$excluded[exclusions$pid == p] <- 
         addExclusion(exclusions$excluded[exclusions$pid == p], "offBrandOutliers")
@@ -159,11 +164,11 @@ if (!is.null(exclude$minOffBrandTrials) &&
   
   # Drop excluded participants' trials
   tmp <- NULL
-  for (i in 1:nrow(AdvisedTrial))
-    if (exclusions$excluded[exclusions$pid == AdvisedTrial$pid[i]] == F)
-      tmp <- rbind(tmp, AdvisedTrial[i, ])
+  for (i in 1:nrow(mainDF))
+    if (exclusions$excluded[exclusions$pid == mainDF$pid[i]] == F)
+      tmp <- rbind(tmp, mainDF[i, ])
   
-  AdvisedTrial <- tmp
+  mainDF <- tmp
 }
 
 # min change percent ------------------------------------------------------
@@ -174,9 +179,17 @@ if (!is.null(exclude$minChangeRate) &&
   changes <- tibble(pid = exclusions$pid, pChange = 0)
   
   for (p in exclusions$pid) {
-    tmp <- AdvisedTrial[AdvisedTrial$pid %in% p, ]
+    tmp <- mainDF[mainDF$pid %in% p, ]
     
-    if (nrow(tmp) == 0) {
+    null <- F
+    
+    if (is.null(tmp)) {
+      null <- T
+    } else {
+      null <- nrow(tmp) == 0
+    }
+    
+    if (null) {
       changes <- changes[!(changes$pid %in% p), ]
       next()
     }
@@ -211,7 +224,7 @@ if (!is.null(exclude$participantOutliers) &&
   for (i in seq(nrow(tmp))) {
     v <- as.character(tmp$varName[i])
     p <- aggregate(as.formula(paste(v, "~ pid + feedback")), 
-                   AdvisedTrial, 
+                   mainDF, 
                    mean)
     p[, v] <- abs(scale(p[, v])) # convert to z-scores
     
@@ -227,6 +240,9 @@ if (!is.null(exclude$participantOutliers) &&
 
 
 # multiple attempts -------------------------------------------------------
+
+# In later study versions repetitions are forbidden web-side for prolific
+# participants
 
 if (!is.null(exclude$multipleAttempts) &&
     !is.na(exclude$multipleAttempts) && 
@@ -291,8 +307,8 @@ if (!is.null(exclude$manual) &&
 
 if (!is.null(exclude$badMarker) && !is.na(exclude$badMarker)) {
   # Check for erroneous marker values
-  for (p in unique(AdvisedTrial$pid)) {
-    tmp <- AdvisedTrial[AdvisedTrial$pid == p, ]
+  for (p in unique(mainDF$pid)) {
+    tmp <- mainDF[mainDF$pid == p, ]
     if (!all(tmp$responseMarkerWidth %in% markerList) |
         !all(tmp$responseMarkerWidthFinal %in% markerList)) {
       if (p %in% exclusions$pid) {
@@ -328,9 +344,9 @@ if (!is.null(exclude$maxPerCondition) &&
 # do exclusions -----------------------------------------------------------
 
 
-AdvisedTrial <- AdvisedTrial[AdvisedTrial$pid %in% 
-                               exclusions$pid[exclusions$excluded == F], ]
-decisions <- byDecision(AdvisedTrial)
+mainDF <- mainDF[mainDF$pid %in% exclusions$pid[exclusions$excluded == F], ]
+assign(mainDFName, mainDF)
+decisions <- byDecision(mainDF)
 PP <- participantSummary(decisions)
 
 # Drop extraneous factor levels
@@ -352,5 +368,5 @@ for (n in ls()) {
 
 # cleanup -----------------------------------------------------------------
 
-suppressWarnings(rm("tmp", "p", "i", "x", "n", "uid", 
+suppressWarnings(rm("tmp", "p", "i", "x", "n", "uid", "null",
                     "outliers", "v", "dirty", "ids", "referenceTrialList"))

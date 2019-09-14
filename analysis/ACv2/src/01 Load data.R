@@ -117,14 +117,17 @@ for (v in versions) {
   }
 }
 
+mainDF <- if (isSet('AdvisedTrialWithConf')) 
+  AdvisedTrialWithConf else AdvisedTrial
+
 # additional framing of data ----------------------------------------------
-decisions <- byDecision(AdvisedTrial)
+decisions <- byDecision(mainDF)
 
 PP <- participantSummary(decisions)
 
 # Hoist key variables -----------------------------------------------------
 
-details <- getAdvisorDetails(AdvisedTrial)
+details <- getAdvisorDetails(mainDF)
 advisorNames <- details[["names"]]
 adviceTypes <- details[["types"]]
 
