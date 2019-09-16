@@ -9,7 +9,8 @@ if (is.null(studyVersion))
 if (is.null(studyName))
   studyName <- "datesStudy"
 
-key <- read.csv(paste0("../data/private/", studyName, "_v", studyVersion,
+key <- read.csv(paste0("../data/private/", studyName, "_v", 
+                       gsub('.', '-', studyVersion, fixed = T),
                        "_participant-metadata.csv"))
 
 

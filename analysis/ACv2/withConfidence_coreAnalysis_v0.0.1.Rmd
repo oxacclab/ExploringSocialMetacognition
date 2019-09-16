@@ -28,6 +28,7 @@ September 2019
 library(prettyMD)     # Clean markdown output of tests
 library(tidyverse)    # Data wrangling and plotting
 library(ez)           # ANOVA
+library(knitr)        # Neat table output
 
 # opts_chunk$set('echo' = F)
 
@@ -49,7 +50,7 @@ Here we analyse the marker use data, aggregated over all respondents, to determi
 
 ```{r loadData}
 studyName <- "withConf"
-studyVersion <- c("0.0.1")
+studyVersion <- c("0.0.1", "0.0.2")
 
 studyOffBrandTypeNames <- c("agree-offset")
 
@@ -84,15 +85,15 @@ Exclusions happen in the following order:
 
 * Exclude participants who did not complete the study
 
-* Exclude trials with a response time longer than `r maxTime / 1000`s
+* Exclude trials with a response time longer than `r exclude$maxTrialRT / 1000`s
 
-* Exclude participants with more than `r maxOutliers` trials excluded above and remove their trials
+* Exclude participants with fewer than `r exclude$minTrials` trials remaining after exclusions and remove their trials
 
 * Exclude participants with any 'offbrand' trials excluded above and remove their trials
 
-* Exclude participants who did not change responsese on at least `r minChangePercent * 100`% of trials
+* Exclude participants who did not change responsese on at least `r exclude$minChangeRate * 100`% of trials
 
-* Exclude participants who were outliers (abs(z) > `r zThresh`) for variables `paste(checkList, collapse = ", ")`
+* Exclude participants who were outliers (abs(z) > `r exclude$participantOutliers$zThresh`) for variables `paste(exclude$participantOutliers$varName, collapse = ", ")`
 
 * Exclude participants who previously saw feedback on any of the questions they were offered in the study
 
@@ -108,10 +109,10 @@ The numbers excluded for these reasons (participants can be excluded for multipl
 
 tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
 
-tmp$condition <- factor(tmp$condition, labels = c("fb_AICFirst",
+tmp$condition <- factor(tmp$condition, labels = c("fb_AIUFirst",
                                                   "fb_AICFirst",
-                                                  "¬fb_AICFirst",
-                                                  "¬fb_AIUFirst"))
+                                                  "¬fb_AIUFirst",
+                                                  "¬fb_AICFirst"))
 
 table(tmp$excluded, tmp$condition)
 
