@@ -228,8 +228,9 @@ class Study extends ControlObject {
      * the callback for instruction buttons. By default simply hide the
      * instruction div.
      * @param [targetElement="instructions"] {string} target HTML element id
+     * @param [keepClosed=false] {boolean} keep the overlay closed after updating
      */
-    static _updateInstructions(newTemplateId, callback, targetElement = "instructions") {
+    static _updateInstructions(newTemplateId, callback, targetElement = "instructions", keepClosed = false) {
         let instr = document.getElementById(targetElement);
 
         if(typeof callback !== "function")
@@ -251,7 +252,8 @@ class Study extends ControlObject {
 
         instr.querySelector("esm-instruction").callback = cb;
 
-        instr.classList.add("open");
+        if(!keepClosed)
+            instr.classList.add("open");
     }
 
     /**
@@ -361,28 +363,37 @@ class Study extends ControlObject {
     }
 
     static checkFullscreen(elm) {
+
         if(document.fullscreenElement !== elm) {
             document.body.classList.add("fullscreen-error");
+            document.querySelector('#fullscreen-warning.overlay').classList.add('open');
         } else {
             document.body.classList.remove("fullscreen-error");
+            document.querySelector('#fullscreen-warning.overlay').classList.remove('open');
         }
         elm.fullscreenTimeOut = setTimeout(Study.checkFullscreen, 100, elm);
     }
 
     /**
      * Put an element into fullscreen mode
-     * @param elm
+     * @param elm {HTMLElement} element to put into fullscreen
+     * @param [lock=true] {boolean} whether to lock fullscreen mode
      * @return {Promise<void>}
      */
-    static async enterFullscreen(elm) {
+    static async enterFullscreen(elm, lock = true) {
         if(elm.requestFullscreen)
-            return elm.requestFullscreen();
-        if(elm.mozRequestFullScreen)
-            return elm.mozRequestFullScreen();
-        if(elm.webkitRequestFullscreen)
-            return elm.webkitRequestFullscreen();
-        if(elm.msRequestFullscreen)
-            return elm.msRequestFullscreen();
+            await elm.requestFullscreen();
+        else if(elm.mozRequestFullScreen)
+            await elm.mozRequestFullScreen();
+        else if(elm.webkitRequestFullscreen)
+            await elm.webkitRequestFullscreen();
+        else if(elm.msRequestFullscreen)
+            await elm.msRequestFullscreen();
+
+        if(lock &&
+            (document.fullscreenElement === elm ||
+            document.webkitFullscreenElement === elm))
+            elm.fullscreenTimeOut = setTimeout(Study.checkFullscreen, 100, elm);
     }
 
     /**
@@ -409,10 +420,9 @@ class Study extends ControlObject {
         await Study.enterFullscreen(element);
 
         Study._updateInstructions("fullscreen-instructions",
-            () => element.requestFullscreen(),
-            "fullscreen-warning");
-
-        element.fullscreenTimeOut = setTimeout(Study.checkFullscreen, 100, element);
+            () => Study.enterFullscreen(element),
+            "fullscreen-warning",
+            true);
     }
 
     static async unlockFullscreen(element) {
