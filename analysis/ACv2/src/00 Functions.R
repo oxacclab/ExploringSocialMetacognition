@@ -86,11 +86,11 @@ getMarkerList <- function() {
     x <- get(v, parent.frame())
     if (is.data.frame(x)) {
       # search data frames for response marker columns
-      if ("responseMarker" %in% names(x)) {
-        markersUsed <- c(markersUsed, unique(x$responseMarker))
+      if ("responseMarkerWidth" %in% names(x)) {
+        markersUsed <- c(markersUsed, unique(x$responseMarkerWidth))
       }
-      if ("responseMarkerFinal" %in% names(x)) {
-        markersUsed <- c(markersUsed, unique(x$responseMarkerFinal))
+      if ("responseMarkerWidthFinal" %in% names(x)) {
+        markersUsed <- c(markersUsed, unique(x$responseMarkerWidthFinal))
       }
     }
   }

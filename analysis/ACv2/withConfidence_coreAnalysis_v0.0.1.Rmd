@@ -42,9 +42,11 @@ theme_set(theme_light() +
 
 ## Introduction
 
-The marker use studies use the same structure as the original agreement/accuracy experiment. The main difference between the two is the frequency of 'offbrand' trials - they are more frequent in the marker use studies. 
+In this study we ask participants to provide confidence ratings after each decision (both initial and final). We can then use this reported confidence to determine the behaviour of their advisors. The two advisors are **agree-in-confidence** and **agree-in-uncertainty**. Each advisor has an 'agreeing' distribution and a 'disagreeing' distribution, with the 'agreeing' distribution offering advice which is 3, 5, or 7 years away from the participant's estimate, and a 'disagreeing' distribution which is 9, 11, or 13 years away. When the participant is sure, the agree-in-confidence advisor draws from the agreeing distribution and the agree-in-uncertainty advisor from the disagreeing distribution. Where the participant is unsure the reverse is true. Where possible, advice lies in the direction of the correct answer.
 
-Here we analyse the marker use data, aggregated over all respondents, to determine whether we replicate the results of the original study.
+Both advisors offer advice 8 years away from the participant's estimate (regardless of confidence) on 'offbrand' trials. Statistical analyses are run on these trials. 
+
+***NB:*** The advisor labels are the wrong way around for this version of the task! This only affects the display of the data, not the underlying interpretations (i.e. the effects point the opposite way to the true occurence). 
 
 ## Load data
 
@@ -59,12 +61,11 @@ exclude <- list(
   requireComplete = T,   # complete experiment
   maxTrialRT = 60000,    # trials take < 1 minute
   minTrials = 25,        # at least 25 trials completed
-  minOffBrandTrials = 6, # no offBrand trials excluded
+  minOffBrandTrials = 4, # no offBrand trials excluded
   minChangeRate = .1,    # some advice taken on 10%+ of trials
   participantOutliers = data.frame(
     varName = c("timeEnd", "responseError", "responseCorrect"),
     zThresh = 3),        # |z-score| for these variables < 3
-  multipleAttempts = T,  # exclude multiple attempts
   manual = rep(F, 85)  # exclusions for guessing manipulation
 )
 
@@ -93,7 +94,7 @@ Exclusions happen in the following order:
 
 * Exclude participants who did not change responsese on at least `r exclude$minChangeRate * 100`% of trials
 
-* Exclude participants who were outliers (abs(z) > `r exclude$participantOutliers$zThresh`) for variables `paste(exclude$participantOutliers$varName, collapse = ", ")`
+* Exclude participants who were outliers (abs(z) > `r unique(exclude$participantOutliers$zThresh)`) for variables `r paste(exclude$participantOutliers$varName, collapse = ", ")`
 
 * Exclude participants who previously saw feedback on any of the questions they were offered in the study
 
@@ -126,7 +127,46 @@ table(tmp$excluded != F, tmp$condition)
 
 ```
 
-# Influence
+## Advice 
+
+We want to check that the advisors are doing what they're programmed to do. 
+
+```{r advice}
+tmp <- AdvisedTrialWithConf[c("pid", 
+                                 "studyId", 
+                                 "studyVersion", 
+                                 "advisor0idDescription",
+                                 "advisor0actualType",
+                                 "confidenceConfidence")]
+
+tmp$adviceDistance <- abs(AdvisedTrialWithConf$advisor0advice 
+                             - (AdvisedTrialWithConf$responseEstimateLeft + 
+                               (AdvisedTrialWithConf$responseMarkerWidth / 2)))
+
+# Advice ------------------------------------------------------------------
+
+ggplot(tmp, aes(x = advisor0idDescription, 
+                   y = adviceDistance, 
+                   colour = advisor0actualType,
+                   shape = confidenceConfidence)) +
+  geom_point(position = position_jitterdodge(jitter.width = .4)) +
+  labs(title = "Advice distance by advisor and advicetype.",
+       subtitle = "Correct advice is given where the desired advice type will not fit on the scale.")
+
+
+tmp <- aggregate(studyId ~ pid + advisor0actualType + advisor0idDescription, 
+                 tmp, length)
+
+ggplot(tmp, aes(x = advisor0actualType,
+                y = studyId)) +
+  stat_summary(geom = "point", aes(group = pid), fun.y = mean,
+               position = position_jitter()) +
+  labs(y = "Trial count") +
+  facet_wrap(~advisor0idDescription) +
+  labs(title = "Number of trials with each advice type seen by each participant.")
+```
+
+## Influence
 
 The measure of influence is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
 $$\text{WoA} = (\text{final} - \text{inital}) / (\text{advice} - \text{initial})$$
@@ -134,9 +174,9 @@ $$\text{WoA} = (\text{final} - \text{inital}) / (\text{advice} - \text{initial})
 
 Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
 
-## All trials
+### All trials
 
-### Table
+#### Table
 
 ```{r woa}
 
@@ -155,7 +195,7 @@ prop2str(as.tibble(aggregate(WoA ~ advisor + feedback, tmp, mean, na.rm = T)),
 
 ```
 
-### Graph
+#### Graph
 
 ```{r woaGraph}
 
@@ -171,11 +211,11 @@ ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
 
 ```
 
-## Offbrand trials
+### Offbrand trials
 
 Offbrand trials is where it really counts because this is where our stats happen. Differences here, where the advice is balanced between advisors, represents differences between _advisors_ rather than differences dependent upon the _advice_ itself.
 
-### Table
+#### Table
 
 ```{r woaOffbrand}
 
@@ -201,7 +241,7 @@ prop2str(as.tibble(aggregate(WoA ~ advisor + feedback, tmp, mean, na.rm = T)),
 
 ```
 
-### Graph
+#### Graph
 
 ```{r woaGraphOffbrand}
 
@@ -217,7 +257,7 @@ ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
 
 ```
 
-## WoA distribution
+### WoA distribution
 
 It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis (all trials). 
 
@@ -229,7 +269,7 @@ ggplot(AdvisedTrialWithConf, aes(woa)) +
 
 ```
 
-# ANOVA
+## ANOVA
 
 Statistical tests of the offbrand trial graph data.
 
@@ -264,13 +304,171 @@ r
 
 ```
 
-# Summary {.summary}
+### Summary {.summary}
 
-The observations for the feedback condition are consistent with the previous results: participants given feedback about their advisors learn to disregard the advice of the agreeing advisor (whose advice includes no new information). The observations for the no-feedback condition are less consistent: while we still see a different pattern from the feedback condition, it appears to a) not be a reversal of the pattern, as seen previously, and b) differ according to which advisor is seen first. This breakdown is shown in the figure below.
+Feedback makes a difference, with participants receiving feedback placing less weight on the advice. This is to be expected insofar as the advice is generally closer to the participant's answer than to the correct answer, but it is surprising given that the advice indicates the correct answer direction, and participants would improve their answers if they followed advice.
 
-where the first advisor is accurate, participants retain a preference for accurate advice over agreeing advice even when no feedback is provided. They likewise retain a preference for agreeing advice where they encounter the agreeing advisor first. This is probably because they are still learning about their own performance in the task: similar effects were found in early versions of the original study. 
+The identity of the advisor does not appear to make much difference; participants followed advice from both advisors at roughly similar rates, with no systematic preference emerging across participants. 
 
-Statistically we see a similar pattern to before in that an interaction is observed between feedback and advisor. We also see a three-way interaction between feedback, advisor, and first advisor, as well as main effects of feedback and advisor. 
+## Questionnaire data
+
+The questionnaire data, especially the trust question, may show differences which the behavioural weight-on-advice measure missed. 
+
+```{r questionnaires}
+
+debrief.advisors$idDescription <- unlist(
+  sapply(1:nrow(debrief.advisors), 
+         function(i) 
+           advisors[(advisors$id %in% debrief.advisors$advisorId[i]) &
+                      (advisors$pid %in% debrief.advisors$pid[i]),
+                    "idDescription"]))
+debrief.advisors$feedback <- sapply(debrief.advisors$pid,
+                                    function(pid) 
+                                      AdvisedTrialWithConf$feedback[
+                                        AdvisedTrialWithConf$pid %in% pid
+                                      ][1])
+
+ggplot(debrief.advisors[debrief.advisors$pid %in% AdvisedTrialWithConf$pid, ], 
+       aes(x = idDescription, y = trustworthiness, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = idDescription)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_wrap(~feedback, labeller = label_both) +
+  scale_color_discrete(guide = "none")
+```
+
+### ANOVA for trustworthiness 
+
+```{r questionnaire anova}
+
+debrief.advisors$firstAdvisor <- sapply(debrief.advisors$pid,
+                                        function(pid) 
+                                          AdvisedTrialWithConf$firstAdvisor[
+                                            AdvisedTrialWithConf$pid %in% pid
+                                            ][1])
+
+tmp <- aggregate(trustworthiness ~ 
+                   pid + feedback + idDescription + firstAdvisor,
+                 debrief.advisors, mean, na.rm = T)
+tmp$feedback <- factor(tmp$feedback)
+tmp$firstAdvisor <- factor(tmp$firstAdvisor)
+
+# remove incomplete cases
+for (p in unique(tmp$pid)) {
+  if (nrow(tmp[tmp$pid == p, ]) != 2) {
+    print(paste("Dropping incomplete case pid =", p))
+    tmp <- tmp[tmp$pid != p, ]
+  }
+}
+
+# refactor pid
+tmp$pid <- factor(tmp$pid)
+
+r <- ezANOVA(tmp, trustworthiness, pid, 
+             within = idDescription,
+             between = list(feedback, firstAdvisor),
+             detailed = T,
+             return_aov = T,
+             type = 2)
+
+r
+```
+
+### Summary {.summary}
+
+The same pattern is observed for the trustworthiness questionnaire as for the behavioural WOA measure: decreased in the feedback condition but apparently stable between advisors. 
+
+## WoA by Agreement experience
+
+Participants will have different experiences of the advisors depending on their confidence. Participants who frequently report low confidence will have more experience of the agree-in-uncertainty advisor agreeing with them. We can plot the difference in agreement experience against the difference in weight-on-advice to see if the general pattern remains whereby participants take more advice from advisors who agree with them (in the no-feedback condition).
+
+```{r woa by agreement experience}
+
+tmp <- NULL
+for (pid in unique(AdvisedTrialWithConf$pid)) {
+  x <- AdvisedTrialWithConf[AdvisedTrialWithConf$pid %in% pid, ]
+  
+  tmp <- rbind(tmp, 
+               tibble(
+                 pid,
+                 feedback = x$feedback[1],
+                 firstAdvisor = x$firstAdvisor[1],
+                 deltaWoA = mean(x$`Agree-in-Conf.woa`, na.rm = T) -
+                   mean(x$`Agree-in-Unconf.woa`, na.rm = T),
+                 conf = mean(as.numeric(x$confidenceConfidence) - 1)
+               ))
+}
+
+ggplot(tmp, aes(x = deltaWoA, y = conf, colour = pid)) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  geom_point(alpha = .6) +
+  geom_smooth(aes(group = 1), method = "lm") +
+  facet_wrap(~feedback, labeller = label_both) +
+  coord_fixed() + 
+  labs(y = "Confidence proportion (0 = 100% unsure, 1 = 100% sure)",
+       x = "WoA difference (AiC - AiU)") +
+  scale_color_discrete(guide = "none")
+
+```
+
+### Summary {.summary}
+
+Participants probably do not show a relationship between weight-on-advice difference and confidence. The effect in the feedback condition appears to be driven by outliers. If it were a real effect, it would indicate that unsure participants placed more weight on the advice of the advisor who agreed with them more frequently (remember the advisor label mistake!), provided they received feedback. It's not clear why this might be if the pattern is robust.
+
+These graphs show that most participants are confident ('sure' as opposed to 'unsure') most of the time, despite the task being difficult. The mean confidence is `mean(tmp$conf)`, indicating a bias towards 'sure' responses. Most interestingly, this tendency is clearest in the feedback group!
+
+### Metacognitive SDT
+
+Given how sure our participants are, it's worth looking at how well their confidence identifies their accuracy on any given trial. Is higher average confidence associated with lower metacognitive sensitivity? 
+
+To calculate the hit/miss/false alarm/correct rejection rates, each participant's median error will be used - high confidence should be associated with < median error. This is done for initial answers only.
+
+*Note:* Type II SDT (used here) makes assumptions which are demonstrably false. It is used here only to give an indication, not to draw any conclusions. Meta-d' would be a more suitable approach for robust analysis.
+
+```{r metacognitive sdt}
+
+# Calculation example from https://books.google.co.uk/books?id=sQ1nDAAAQBAJ&lpg=PR11&ots=83r1SfZekG&dq=signal%20detection%20theory&lr&pg=PA24#v=onepage&q&f=false section 2.3
+# faRate <- .46
+# hitRate <- .82
+# lambdaHat <- qnorm(1 - faRate)
+# difference <- qnorm(hitRate, lower.tail = F)
+# dPrimeHat <- lambdaHat - difference
+
+sdt <- NULL
+
+for (pid in unique(AdvisedTrialWithConf$pid)) {
+  x <- AdvisedTrialWithConf[AdvisedTrialWithConf$pid %in% pid, ]
+  cutoff <- median(x$responseError)
+  
+  sdt <- rbind(sdt, tibble(
+    pid,
+    feedback = x$feedback[1],
+    hitRate = sum(x$confidenceConfidence == 'sure' & x$responseError < cutoff) / 
+      sum(x$responseError < cutoff),
+    faRate = sum(x$confidenceConfidence == 'sure' & x$responseError > cutoff) / 
+      sum(x$responseError > cutoff),
+    meanConf = mean(as.numeric(x$confidenceConfidence) - 1),
+    c = qnorm(1 - faRate),
+    dPrime = c - (qnorm(hitRate, lower.tail = F))
+  ))
+}
+
+ggplot(gather(sdt, key = "Variable", value = "Score", c('c', 'dPrime')),
+       aes(x = meanConf, y = Score, colour = pid)) +
+  geom_point() +
+  geom_smooth(aes(group = 1), method = 'lm') +
+  facet_grid(feedback ~ Variable, labeller = label_both) +
+  scale_color_discrete(guide = "none")
+
+```
+
+#### Summary {.summary}
+
+As we might expect, participants with a higher bias towards giving confident answers also gave confident answers more frequently, and may have had a trend towards having lower metacognitive sensitivity. 
 
 ## Offbrand WoA by Condition
 

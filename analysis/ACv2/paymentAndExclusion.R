@@ -9,9 +9,14 @@ if (is.null(studyVersion))
 if (is.null(studyName))
   studyName <- "datesStudy"
 
-key <- read.csv(paste0("../data/private/", studyName, "_v", 
+fName <- paste0("../data/private/", studyName, "_v", 
                        gsub('.', '-', studyVersion, fixed = T),
-                       "_participant-metadata.csv"))
+                       "_participant-metadata.csv")
+
+key <- NULL
+
+for (f in fName)
+  key <- rbind(key, read.csv(f))
 
 
 # Exclusions --------------------------------------------------------------
@@ -36,6 +41,7 @@ for (i in grep("attnCheck", key$excluded)) {
                     "...", x$stimHTML)
   x$stimHTML <- sub("for this question use the marker to cover the year ", 
                     "...", x$stimHTML)
+  
   print(x)
 }
 
