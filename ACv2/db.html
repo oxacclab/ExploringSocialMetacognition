@@ -376,7 +376,7 @@
 <script type="module">
     "use strict";
 
-    import {Study, DatesStudy, Block} from "../src/modules/Study.js";
+    import {Study, NoFeedbackStudy, Block} from "../src/modules/Study.js";
     import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
     import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_AGREEISH, ADVICE_CORRECTISH, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
@@ -518,7 +518,7 @@
         if (DEBUG.qCount > 1 && !utils.getQueryStringValue("fb"))
             studyBlueprint.blockLength = [1, DEBUG.qCount];
 
-        window.study = new DatesStudy(studyBlueprint);
+        window.study = new NoFeedbackStudy(studyBlueprint);
 
         if (utils.getQueryStringValue("fb")) {
             study.awaitTrialLoading()
@@ -532,7 +532,7 @@
 
     // Hoist for debugging
     window.Study = Study;
-    window.DatesStudy = DatesStudy;
+    window.NoFeedbackStudy = NoFeedbackStudy;
     window.Trial = Trial;
     window.AdvisedTrial = AdvisedTrial;
     window.Advisor = Advisor;

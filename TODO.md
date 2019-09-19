@@ -14,16 +14,19 @@
 * ~~Preregistration (not done)~~
 * ~~Run~~ 
 * ~~Data analysis~~ 
-* Redesign explicit benevolence manipulation
+* ~~Redesign explicit benevolence manipulation~~
     * ~~Clearer manipulation~~
         * ~~At advisor introduction~~
             * ~~"will sometimes try to mislead"~~
         * ~~"You are in Group 1" displayed throughout~~
     * ~~Actually provide occasionally bad advice from outgroup advisor~~
     * ~~Improve advice slightly (inc. for training advisor)~~
-* Preregistration
-* Run
-* Data analysis 
+* Preregistration [omitted]
+* ~~Run~~
+* ~~Data analysis~~
+* Redesign based on clearer manipulation
+    * Pilot
+    * Data Analysis 
 ### Registered Report
 * Identify journal(s)
 * RR stage 1

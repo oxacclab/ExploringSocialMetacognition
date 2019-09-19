@@ -1014,38 +1014,46 @@ class Study extends ControlObject {
     }
 
     /**
-     * Assign this study to a condition
-     * @param [condition] {int} condition to assign (uses this.condition by default)
+     * Update the core blocks to add/remove feedback
+     * @param feedback {boolean} whether feedback is to be present in the blocks
+     * @protected
      */
-    setCondition(condition) {
-        if(condition)
-            this.condition = condition;
-
-        this.info("Assigning condition variables for condition " + this.condition);
-        // Study condition
-        let feedback;
-        let advisorOrder = [];
-
-        feedback = this.condition <= this.conditionCount / 2;
-
-        advisorOrder[0] = (this.condition % 2) + 1;
-        advisorOrder[1] = 3 - advisorOrder[0];
-
-        const advisors = this.advisors;
+    _setFeedback(feedback) {
         const me = this;
-
         this.blocks.filter(b => b.blockType === "core")
             .forEach(b => {
                 b.feedback = feedback;
                 b.displayFeedback = feedback?
                     me.displayFeedback : null;
+            });
+    }
+
+    /**
+     * Update core blocks to have the appropriate advisor order.
+     * @param x {int} 0 or 1
+     * @protected
+     */
+    _setAdvisorOrder(x) {
+        const advisorOrder = [];
+
+        advisorOrder[0] = x + 1;
+        advisorOrder[1] = 3 - advisorOrder[0];
+
+        const me = this;
+        this.blocks.filter(b => b.blockType === "core")
+            .forEach(b => {
                 let i = me.blocks.indexOf(b);
                 if(b.advisorChoice)
                     b.advisors = me.advisors.filter(a => a.id > 0);
                 else
-                    b.advisors = [advisors[advisorOrder[i % 2]]]
+                    b.advisors = [me.advisors[advisorOrder[i % 2]]];
             });
+    }
 
+    /**
+     * Refresh trial list to load block properties.
+     */
+    pushBlockPropertiesToTrials() {
         // Update trials with new info
         const blocks = this.blocks;
         this.trials.forEach(t => {
@@ -1057,6 +1065,23 @@ class Study extends ControlObject {
                 }
             }
         })
+    }
+
+    /**
+     * Assign this study to a condition
+     * @param [condition] {int} condition to assign (uses this.condition by default)
+     */
+    setCondition(condition) {
+        if(condition)
+            this.condition = condition;
+
+        this.info("Assigning condition variables for condition " + this.condition);
+        // Study condition
+
+        this._setFeedback(this.condition <= this.conditionCount / 2);
+        this._setAdvisorOrder(this.condition % 2);
+
+        this.pushBlockPropertiesToTrials();
     }
 
     async getSaveId() {
@@ -1931,6 +1956,32 @@ class DatesStudy extends Study {
     }
 }
 
+
+/**
+ * @class NoFeedbackStudy
+ * @extends DatesStudy
+ * @classdesc Overwrite feedback assignment in the conditions.
+ *
+ */
+class NoFeedbackStudy extends DatesStudy {
+
+    /**
+     * This is kinda a massive ugly copy+paste hack.
+     * Really conditions should be handled with flags or something.
+     * @param condition
+     */
+    setCondition(condition) {
+        if(condition)
+            this.condition = condition;
+
+        this.info("Assigning condition variables for condition " + this.condition);
+
+        this._setAdvisorOrder(this.condition % 2);
+
+        this.pushBlockPropertiesToTrials();
+    }
+}
+
 /**
  * @class MinGroupsStudy
  * @extends DatesStudy
@@ -2035,15 +2086,27 @@ class MinGroupsStudy extends DatesStudy {
 
         const pGroup = this.pGroup;
         this.advisors.forEach(a => {
+            // Do nothing with the practice advisor
+            if(a.idDescription === "Practice")
+                return;
+
             a.sameGroup = a.group === pGroup;
-            if(a.sameGroup)
+            if(a.sameGroup) {
                 a.idDescription = "inGroup";
-            else
+                a.introText = "This advisor is in your group."
+            }
+            else {
                 a.idDescription = "outGroup";
+                a.introText = "This advisor is in the other group."
+            }
         });
 
         // Track the participant's group in CSS using a body class
         document.body.classList.add("group-" + this.pGroup);
+        document.querySelector('#content .sidebar .group-info-row').classList.add(
+            'group-' + this.pGroup,
+            'group-bg',
+            'group-border');
 
         // Advisor order
         const advisorOrder = [];
@@ -2120,4 +2183,4 @@ class Block extends BaseObject{
     }
 }
 
-export {Study, DatesStudy, MinGroupsStudy, Block}
+export {Study, DatesStudy, NoFeedbackStudy, MinGroupsStudy, Block}

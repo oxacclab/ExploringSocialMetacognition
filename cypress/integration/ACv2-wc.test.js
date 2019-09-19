@@ -1,4 +1,4 @@
-const runs = 31;
+const runs = 1;
 for(let run = 0; run < runs; run++) {
 
     describe('ACv2 with Confidence (run=' + run + ')', function() {

@@ -198,6 +198,11 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
+
+            // Acknowledge new advisor
+            cy.get('.advisor-intro .esm-instruction-button')
+                .should('be.visible')
+                .click();
         });
 
         for (let i = 0; i < 7; i++) {
@@ -294,6 +299,11 @@ for(let run = 0; run < runs; run++) {
             cy.get('.controls button.okay')
                 .should('be.enabled')
                 .click();
+
+            // Acknowledge new advisor
+            cy.get('.advisor-intro .esm-instruction-button')
+                .should('be.visible')
+                .click();
         });
 
         for (let i = 0; i < 7; i++) {
@@ -336,10 +346,9 @@ for(let run = 0; run < runs; run++) {
                             study,
                             TL,
                             marker
-                        })
+                        });
 
                         const ans = study.trials[study.currentTrial].correctAnswer;
-                        console.log(ans)
 
                         marker.style.left = TL.valueToPixels(ans) + "px";
                         marker.style.width = TL.valueToPixels(TL.markerWidths[0], true) + "px";
@@ -378,6 +387,11 @@ for(let run = 0; run < runs; run++) {
             // Click through instructions
             cy.get('esm-instruction button')
                 .contains('Okay')
+                .should('be.visible')
+                .click();
+
+            // Acknowledge new advisor
+            cy.get('.advisor-intro .esm-instruction-button')
                 .should('be.visible')
                 .click();
         });

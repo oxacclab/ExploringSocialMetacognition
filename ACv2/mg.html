@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="1.2.0">
+<head data-version="2.0.0">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -43,6 +43,14 @@
                 <span class="advisor-group">Advisor Group</span>
             </div>
             <div class="response-marker advisor size0 static"></div>
+        </div>
+    </template>
+    <template id="advisor-intro-text">
+        <div class="advisor-intro">
+            <div class="text">This advisor will give you advice during this block of questions.</div>
+            <div class="confirm">
+                <button class="esm-instruction-button">&check;</button>
+            </div>
         </div>
     </template>
 
@@ -308,6 +316,11 @@
                     This area of the screen will display the advisors who might give you advice on a question.<br/>
                     At the moment you don't have any advisors so the area is empty.
                 </esm-help>
+                <div class="group-info">
+                    <div class="group-info-row group-1 group-bg group-border">
+                        <span>You are in GROUP ONE</span>
+                    </div>
+                </div>
             </div>
             <div class="stimulus">
                 <div id="stimulus"></div>
@@ -443,11 +456,12 @@
                     id: 0,
                     position: 0,
                     idDescription: "Practice",
+                    introText: "This advisor will give you advice during this block of questions.",
                     group: 0,
                     name: "Practice advisor",
                     templateId: "advisor-key",
                     confidence: 11,
-                    confidenceVariation: 21,
+                    confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECT.copy(1)
@@ -458,11 +472,12 @@
                     id: 1,
                     position: 0,
                     idDescription: "Unset",
+                    introText: "unset",
                     group: 1,
                     name: "Advisor #" + parseInt(10 + Math.random() * 50),
                     templateId: "advisor-key",
                     confidence: 11,
-                    confidenceVariation: 21,
+                    confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
@@ -473,11 +488,12 @@
                     id: 2,
                     position: 1,
                     idDescription: "Unset",
+                    introText: "unset",
                     group: 2,
                     name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
                     templateId: "advisor-key",
                     confidence: 11,
-                    confidenceVariation: 21,
+                    confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(11)
