@@ -16,14 +16,14 @@
     --group-0-primary: rgb(var(--group-0-p));
     --group-0-s: 16, 78, 145;
     --group-0-secondary: rgb(var(--group-0-s));
-    --group-1-p: 220, 132, 255;
-    --group-1-primary: rgb(var(--group-1-p));
-    --group-1-s: 97, 61, 112;
-    --group-1-secondary: rgb(var(--group-1-s));
-    --group-2-p: 23, 211, 69;
+    --group-2-p: 220, 132, 255;
     --group-2-primary: rgb(var(--group-2-p));
-    --group-2-s: 8, 123, 36;
+    --group-2-s: 97, 61, 112;
     --group-2-secondary: rgb(var(--group-2-s));
+    --group-1-p: 23, 211, 69;
+    --group-1-primary: rgb(var(--group-1-p));
+    --group-1-s: 8, 123, 36;
+    --group-1-secondary: rgb(var(--group-1-s));
 }
 
 /* Variables which get declared according to user's group */

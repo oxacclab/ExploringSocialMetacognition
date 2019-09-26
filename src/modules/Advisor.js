@@ -251,6 +251,7 @@ class Advisor extends BaseObject {
             "id",
             "position",
             "idDescription",
+            "introText",
             "group",
             "name",
             "confidence",

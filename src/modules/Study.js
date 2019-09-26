@@ -2103,10 +2103,6 @@ class MinGroupsStudy extends DatesStudy {
 
         // Track the participant's group in CSS using a body class
         document.body.classList.add("group-" + this.pGroup);
-        document.querySelector('#content .sidebar .group-info-row').classList.add(
-            'group-' + this.pGroup,
-            'group-bg',
-            'group-border');
 
         // Advisor order
         const advisorOrder = [];
