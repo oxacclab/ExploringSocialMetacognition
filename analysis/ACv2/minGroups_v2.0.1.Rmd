@@ -1,0 +1,581 @@
+---
+title: "Minimal groups analysis"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+editor_options:
+  chunk_output_type: inline
+---
+
+July 2019
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(testthat)
+
+library(tidyverse)
+
+library(BayesFactor)
+library(BayesMed)
+
+library(prettyMD)
+
+library(knitr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20190723)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+```
+
+```{r loadData, include = F}
+
+studyVersion <- "2-0-1"
+studyName <- "minGroups"
+
+exclude <- list(maxAttnCheckFails = 0, # pass all attn checks
+                requireGroupAttnCheck = T, # get the which group Q right
+                requireComplete = T,   # complete experiment
+                maxTrialRT = 60000,    # trials take < 1 minute
+                minTrials = 11,        # at least 11 trials completed
+                minChangeRate = .1,    # some advice taken on 10%+ of trials
+                participantOutliers = data.frame(
+                  varName = c("timeEnd", "responseError", "responseCorrect"),
+                  zThresh = 3),        # |z-score| for these variables < 3
+                multipleAttempts = T)  # exclude multiple attempts
+
+skipLoadData <- F
+
+source("src/02 Exclusions.R")
+
+```
+
+# Introduction
+
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors sometimes provide deliberately poor advice. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of potentially misleading advice, we used a minimal groups paradigm to pair participant judges in a judge-advisor system with two advisors, one who shared their group and another who did not.
+
+We hypothesised that participants would place greater weight on the advice of the in-group vs out-group advisor, and that this relationship would be mediated by responses to questionnaires asking about the perceived benevolence of the advisor.
+
+## Version 2.0.1
+
+The previous version showed that advisor colour (used to identify the different groups) was a better predictor of advice-taking and questionnaire responses than in/out group designation! This study is conducted with the colour/group number associations reversed so that, if there is a preference for one colour over another, the direction of the effect found in the previous study should be reversed. 
+
+## Preregistration
+
+This study was not pre-registered because it is a pilot. 
+
+# Method
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/mg.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/mg.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
+## Exclusions
+
+```{r exclusions}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+
+tmp$condition <- factor(tmp$condition, labels = c("colourB_InFirst",
+                                                  "colourB_OutFirst",
+                                                  "colourA_InFirst",
+                                                  "colourA_OutFirst"))
+
+kable(table(tmp$excluded, tmp$condition))
+
+```
+
+Our final participant list consists of `r length(unique(PP$pid))` participants who completed an average of `r num2str(mean(aggregate(number ~ pid, PP, function(x) sum(x) / 2)$number))` trials each.
+
+## Task performance
+
+```{r bindAdvisors}
+
+# bind feedback property from participants
+
+# convert pid columns to character to allow joining
+tmp <- PP
+tmp$pid <- as.character(tmp$pid)
+
+advisors$pid <- as.character(advisors$pid)
+
+advisors <- advisors[advisors$pid %in% tmp$pid, ]
+advisors <- left_join(advisors, unique(tmp[c("pid", "feedback")]), "pid")
+
+# drop practice advisors
+advisors <- advisors[advisors$idDescription != "Practice", ]
+
+```
+
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
+
+### Decisions
+
+Participants offered estimates of the year in which various events took place. The correct answers were always between 1900 and 2000, although the timeline on which participants responded went from 1890 to 2010 in order to allow extra room for advice. Participants answered by dragging a marker onto a timeline which covered a range of 11 years (e.g. 1940-1950). Participants were informed that a correct answer was one in which the marker covered the year in which the event took place.
+
+#### Correctness
+
+Responses are regarded as **correct** if the target year is included within the marker range.
+
+```{r accuracy}
+
+tmp <- markerBreakdown(responseCorrect, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r accuracyGraph}
+
+ggplot(aggregate(responseCorrect ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, y = responseCorrect)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) + 
+  labs(x = "response marker width (years)", 
+       y = "p(response correct)")
+
+```
+
+#### Error (estimate mean)
+
+The **error** is calcualted as the distance from the centre of the answer marker to the correct year. It is thus possible for **correct** answers to have non-zero error, and it is likely that the error for correct answers scales with the marker size.
+
+```{r err}
+
+tmp <- markerBreakdown(responseError, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r errGraph}
+
+ggplot(aggregate(responseError ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, y = responseError)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) + 
+  labs(x = "response marker width (years)", 
+       y = "|target - response marker centre| (years)")
+
+```
+
+### Timing
+
+We can look at the response time - the difference between the time the response is opened and the time the response is received.  
+
+```{r time}
+
+decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
+
+tmp <- markerBreakdown(rt, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r timeGraph}
+
+ggplot(aggregate(rt ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, 
+           y = rt / 1000)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) + 
+  labs(x = "response marker width (years)", 
+       y = "response time (s)")
+
+```
+
+### Summary {.summary}
+
+Participants took longer on their final decisions, and improved their accuracy. This suggests that they took the time to weigh up the advice, and that they took it into account when making their (final) decisions.
+
+## Advisor performance
+
+The advice offered should be equivalent between in/out group advisors.
+
+### Accuracy
+
+```{r adviceAccuracy}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0("cbind(`", a, ".accurate`, `", 
+                          a, ".error`) ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "accuracy", "error")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(cbind(accuracy, error) ~ advisor, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+
+tmp <- gather(tmp, key = "var", value = "value", c("accuracy", "error"))
+
+for (v in unique(tmp$var)) 
+  print(
+    ggplot(tmp[tmp$var == v, ], aes(x = advisor, y = value, colour = pid)) +
+      geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+      geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+      geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+      geom_point(alpha = .5, aes(colour = pid)) +
+      stat_summary(geom = "line", fun.y = mean,
+                   aes(group = 1, linetype = "mean"), size = 1.5) +
+      labs(y = v)
+  )
+
+```
+
+### Agreement
+
+```{r adviceAgreement}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".agree ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "agreement")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(agreement ~ advisor, 
+                             tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAgreementGraph}
+
+ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5)
+
+```
+
+### Distance
+
+Distance is the continuous version of agreement - the difference between the centre of the advice and the centre of the initial estimate. 
+
+```{r adviceDistance}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".distance ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "distance")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(distance ~ advisor, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceDistanceGraph}
+
+ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5)
+
+```
+
+### Summary {.summary}
+
+The advisors were similar in terms of their objective accuracy and their tendency to offer advice close to the participants' initial decisions. 
+
+### Influence
+
+The measure of influence is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
+$$\text{WoA} = (\text{final} - \text{inital}) / (\text{advice} - \text{initial})$$
+, or the degree to which the final decision moves towards the advised answer.
+
+Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
+
+```{r woa}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".woa ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "WoA")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(WoA ~ advisor, tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r woaGraph}
+
+tmp$condition <- sapply(tmp$pid, 
+                        function(pid) okayIds$condition[okayIds$pid %in% pid])
+
+ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_discrete(guide = 'none') +
+  facet_wrap(tmp$condition)
+
+```
+
+##### WoA distribution
+
+It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
+
+```{r woaDistribution}
+
+ggplot(AdvisedTrial, aes(woa)) + 
+  geom_histogram(stat = "count") +
+  facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
+
+```
+
+### Summary {.summary}
+
+Weight on Advice scores are highly similar identical between the advisors, as are the distributions. Participants tend to have similar weight on advice for both advisors (shallow slopes), with fairly mixed preferences (similar numbers have higher weight on advice for each advisor). This suggests that participants are not systematically differentiating between the advisors with regard to the weight placed on those advisors' advice. Formal testing of the hypothesis is below.
+
+## Questionnaire data
+
+```{r questionnaires}
+
+tmp <- debrief.advisors[debrief.advisors$pid %in% AdvisedTrial$pid, ]
+tmp$condition <- sapply(tmp$pid, 
+                        function(pid) okayIds$condition[okayIds$pid %in% pid])
+
+tmp$sameGroup <- NA
+
+for (i in seq(nrow(tmp))) {
+  tmp$sameGroup[i] <- as.character(
+    advisors$idDescription[advisors$pid == tmp$pid[i] &
+                             advisors$id == tmp$advisorId[i]])
+}
+
+tmp <- gather(tmp, key = "Q", value = "rating", 
+              c("knowledge", "helpfulness", "consistency", "trustworthiness"))
+
+ggplot(tmp, aes(x = sameGroup, y = rating)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = sameGroup)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 100)) +
+  scale_color_discrete(guide = 'none') +
+  facet_wrap(condition ~ Q, labeller = label_both)
+
+```
+
+### Summary {.summary} 
+
+Across all questions there is a preference for the ingroup vs outgroup advisor, although this is not highly pronounced. There is not an obviously greater difference in benevolence ('helpfulness') compared to the other questions, although 'helpfulness' and 'trustworthiness' show the largest differences.
+
+## Hypothesis testing
+
+The hypotheses being tested here are:  
+
+1. Participants will place higher weight on the advice of in-group advisors
+  
+2. Participants weighting of advisors by group will be mediated by reports of perceived advisor benevolence
+
+### Group differences
+
+Participants have different weight-on-advice for ingroup as opposed to outgroup advisors.
+
+```{r h1, results='asis'}
+
+tmp <- aggregate(inGroup.woa ~ pid, AdvisedTrial, mean, na.rm = T)
+tmp$outGroup.woa <- 
+  aggregate(outGroup.woa ~ pid, AdvisedTrial, mean, na.rm = T)$outGroup.woa
+
+r <- md.ttestBF(tmp$inGroup.woa, tmp$outGroup.woa, 
+              c("*M*|inGroup", "*M*|outGroup"), paired = T)
+cat(r)
+
+```
+
+### Summary {.summary}
+
+The Bayes factor indicates there is good evidence to support the claim that the participants do not place greater weight on the advice of one advisor versus the other.
+
+### Questionnaire measure
+
+Participants should rate in-group advisors as more trustworthy than outgroup advisors.
+
+```{r h1 questionnaires, results='asis'}
+
+debrief.advisors$advisorIdDescription <- unlist(
+  sapply(1:nrow(debrief.advisors), function(i) 
+    AdvisedTrial$advisor0idDescription[AdvisedTrial$pid %in% 
+                                         debrief.advisors$pid[i] &
+                                         AdvisedTrial$advisor0id == 
+                                         debrief.advisors$advisorId[i]][1]
+    )
+)
+
+tmp <- aggregate(trustworthiness ~ pid + advisorIdDescription, 
+                 debrief.advisors, mean, na.rm = T)
+
+r <- md.ttestBF(tmp$trustworthiness[tmp$advisorIdDescription == "inGroup"], 
+                tmp$trustworthiness[tmp$advisorIdDescription == "outGroup"], 
+              c("*M*|inGroup", "*M*|outGroup"), paired = T)
+cat(r)
+
+```
+
+### Mediation by benevolence
+
+```{r h2, results='asis'}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription + advisor0id, 
+                 AdvisedTrial, mean, na.rm = T)
+names(tmp) <- c("pid", "sameGroup", "id", "WoA")
+
+for (i in seq(nrow(tmp))) {
+  tmp$benevolence[i] <- debrief.advisors$helpfulness[
+    debrief.advisors$pid %in% tmp$pid[i] &
+      debrief.advisors$advisorId %in% tmp$id[i]
+  ]
+}
+
+tmp$sameGroupDummy <- as.numeric(tmp$sameGroup == "inGroup")
+
+r <- jzs_med(independent = tmp$sameGroupDummy, 
+             dependent = tmp$WoA, 
+             mediator = tmp$benevolence, 
+             standardize = T)
+
+r$main_result
+
+plot(r$main_result)
+
+```
+
+### Summary {.summary}
+
+There is not enough evidence to conclude anything about the pathway $\beta$ (the correlation between higher benevolence ratings and higher weight on advice scores). There is evidence against the other pathways, and against the mediation of a relationship between group and weight on advice by benevolence rating.
+
+# Conclusions
+
+The experiment provided evidence against the hypotheses tested. Weight on advice was not higher for ingroup vs outgroup advisors, and the differences in the weighting of advice were not mediated by perceived benevolence. 
+
+These results may have occurred because the participants are not sensitive to the manipulation, providing evidence against the suggestion that humans exhibit context-sensitivity in their advice-taking analogous to evolutionary adaptation in modelling scenarios (note that this would not necessarily invalidate the suggestion that humans possess hyperpriors on advice baked in over evolutionary time). 
+
+It would be worth establishing experimentally whether participants are sensitive to direct manipulations of advisor benevolence before attempting more subtle inductions through minimal groups-style manipulations. 
+
+## Recommendation {.summary}
+
+A simpler proof of concept where benevolence is directly and explicitly manipulated may be wise before investing more time and money into the minimal groups implementation. 
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```

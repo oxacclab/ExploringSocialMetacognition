@@ -1,0 +1,32 @@
+---
+title: "agreement-effects analysis"
+output: html_notebook
+---
+
+Here we run code which simulates agents who exhange advice with one another and update their weightings of one another based on the agreement of their initial decisions and advice.
+
+We want to see whether confidence-weighted updating has more pronounced effects than non-weighted agreement-only updating.
+
+```{r}
+
+n <- list(p = 6, d = 200) # numbers of participants and decisions
+conf <- T                 # whether to use confidence-weighted adivsor update
+biasMean <- 1             # +/- mean for bias distributions
+lambda <- .1              # learning rate
+saveAnimation <- F        # whether to save an animation
+  
+source('agreement-effects.R')
+
+```
+
+```{r}
+
+n <- list(p = 6, d = 200) # numbers of participants and decisions
+conf <- F                 # whether to use confidence-weighted adivsor update
+biasMean <- 1             # +/- mean for bias distributions
+lambda <- .1              # learning rate
+saveAnimation <- F        # whether to save an animation
+
+source('agreement-effects.R')
+
+```

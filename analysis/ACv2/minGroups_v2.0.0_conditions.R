@@ -11,14 +11,14 @@ both <- AdvisedTrial %>%
 
 # flip labels for conditions 3 & 4
 tmp <- both %>%
-  filter(condition >= 3) %>%
+  dplyr::filter(condition >= 3) %>%
   mutate(advisor0idDescription = 3 - as.numeric(advisor0idDescription)) %>%
   mutate(advisor0idDescription = factor(advisor0idDescription, 
                                         labels = c("inGroup", "outGroup")))
 
 # rejoin
 fixed <- both %>%
-  filter(condition <= 2) %>% 
+  dplyr::filter(condition <= 2) %>% 
   rbind(tmp)
 
 # summarise WoA
@@ -53,14 +53,14 @@ both_a <- debrief.advisors[complete.cases(debrief.advisors), ] %>%
   left_join(okayIds, by = "pid")
 
 tmp <- both_a %>%
-  filter(condition >= 3) %>%
+  dplyr::filter(condition >= 3) %>%
   mutate(advisorIdDescription = 3 - as.numeric(advisorIdDescription)) %>%
   mutate(advisorIdDescription = factor(advisorIdDescription, 
                                         labels = c("inGroup", "outGroup")))
 
 # rejoin
 fixed_a <- both_a %>%
-  filter(condition <= 2) %>% 
+  dplyr::filter(condition <= 2) %>% 
   rbind(tmp) %>%
   drop_na(advisorIdDescription)
 
@@ -88,7 +88,7 @@ info <- AdvisedTrial %>%
 
 info %>%
   group_by(pid, advisor0id) %>%
-  select(pid, advisor0id, pGroup, advisor0group, 
+  dplyr::select(pid, advisor0id, pGroup, advisor0group, 
          advisor0sameGroup, advisor0idDescription, 
          advisorIdDescription, condition) %>%
   unique() %>%
