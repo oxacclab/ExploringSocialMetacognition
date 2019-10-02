@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="2.0.1">
+<head data-version="2.1.0">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -456,7 +456,7 @@
                     id: 2,
                     position: 1,
                     idDescription: "outGroup",
-                    introText: "This advisor is in a different group. They will sometimes try to mislead you.",
+                    introText: "This advisor is in a different group. They may sometimes try to mislead you.",
                     group: 2,
                     name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
                     templateId: "advisor-key",
@@ -464,8 +464,7 @@
                     confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(5),
-                            ADVICE_INCORRECT_REFLECTED.copy(1)
+                            ADVICE_CORRECTISH.copy(1)
                         ]
                     })
                 })
