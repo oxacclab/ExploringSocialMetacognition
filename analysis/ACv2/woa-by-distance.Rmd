@@ -1,0 +1,432 @@
+---
+title: "Weight on advice by advice distance"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+October 2019
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(testthat)
+
+library(tidyverse)
+library(stringr)
+
+library(BayesFactor)
+library(BayesMed)
+
+library(prettyMD)
+
+library(broom)
+library(lmerTest)
+
+library(knitr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20191001)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid = element_blank()))
+
+```
+
+```{r loadData, include = F}
+
+
+# Search all study names
+studyName <- "all"
+studyVersion <- "all"
+vars <- list(
+  'AdvisedTrial' = list(
+    skipFeedbackCheck = T,
+    skipMixedOffsets = T
+    ),
+  'AdvisedTrialWithConf' = list(
+    skipFeedbackCheck = T,
+    skipMixedOffsets = T
+    )
+  )
+
+source("src/01 Load data.R")
+
+
+```
+
+```{r tidy data}
+
+# Bind confidence trials to non-confidence ones
+AdvisedTrial <- safeBind(list(AdvisedTrial, AdvisedTrialWithConf))
+
+# Drop participants tagged with 'test'
+dropList <- okayIds$pid[grepl('test', okayIds$tags)]
+AdvisedTrial <- dplyr::filter(AdvisedTrial, !(pid %in% dropList))
+
+```
+
+```{r add variables}
+nameList <- names(AdvisedTrial)[grepl('.distance', names(AdvisedTrial))]
+
+for (i in 1:nrow(AdvisedTrial)) {
+  for (n in nameList) {
+    if (!is.na(AdvisedTrial[i, n])) {
+      AdvisedTrial[i, paste0('advisor0', reFirstMatch('\\.(\\w+)*', n))] <-
+        AdvisedTrial[i, n]
+    }
+  }
+}
+
+```
+
+# Introduction
+
+We want to explore how weight on advice differs as a function of advice distance over all the participants we've ever collected data from. 
+
+# Analyses
+
+# Visualisation
+
+```{r visualisation whole sample}
+
+ggWhole <- AdvisedTrial %>% ggplot(aes(x = advisor0distance, y = advisor0woa)) +
+  geom_point(alpha = .2) +
+  geom_smooth(se = F)
+
+ggWhole
+
+```
+
+It is encouraging to see that the u-shaped relationship we expect is present in the sample as a whole. Next we'll look to see what the best quadratic fit is.
+
+```{r whole sample quadratic}
+mLinear <- lm(advisor0woa ~ advisor0distance, AdvisedTrial)
+mQuadratic <- lm(advisor0woa ~ advisor0distance + I(advisor0distance ^ 2), 
+                 AdvisedTrial)
+
+BIC <- function(model) {
+  LogLikelihood <- sum(log(dnorm(model$residuals)))
+  log(length(model$residuals)) * (length(model$coefficients) + 1) - 
+    2 * LogLikelihood
+}
+```
+
+The linear and quadratic models can be compared for significant improvement and using Bayesian Information Criterion, which adjusts for the number of parameters in the model. 
+
+```{r whole sample model comparison}
+
+anova(mLinear, mQuadratic)
+
+tribble(
+  ~model, ~BIC,
+  'linear', BIC(mLinear),
+  'quadratic', BIC(mQuadratic)
+)
+
+```
+
+```{r whole sample model plot}
+
+a <- coef(mQuadratic)[1]
+b <- coef(mQuadratic)[2]
+c <- coef(mQuadratic)[3]
+
+ggWhole +
+  stat_function(fun = ~ a + b * .x + c * (.x ^ 2), colour = 'red')
+
+```
+
+## Whole sample summary {.summary}
+
+There are two key observations: that the proposed non-linear relationship exists between distance and weight-on-advice, and that middle-of-the-road responses appear to become less frequent as distance increases. This latter point may be an illusion because there are far fewer cases on the extremes. It's worth understanding them in some detail, however, so we'll do some digging...
+
+## Sidenote: Frequency of extremes by distance
+
+We'll categorise extreme advice taking as <.05 | >.95. 
+
+```{r extremes visualisation}
+
+AdvisedTrial <- AdvisedTrial %>%
+  mutate(woaIsExtreme = advisor0woa < .05 | advisor0woa > .95,
+         distanceBin = cut(advisor0distance, 10))
+
+AdvisedTrial %>% 
+  group_by(distanceBin) %>%
+  summarise(m = mean(woaIsExtreme, na.rm = T), 
+            s = sd(woaIsExtreme, na.rm = T),
+            n = n()) %>%
+  ggplot(aes(x = distanceBin, y = m)) +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf, fill = 'grey80') +
+  geom_rect(ymin = 1, ymax = Inf, xmin = -Inf, xmax = Inf, fill = 'grey80') +
+  geom_point() +
+  geom_errorbar(aes(ymin = m - s, ymax = m + s), width = 0) +
+  geom_smooth(aes(group = 1), method = 'lm', se = F, fullrange = T) + 
+  scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+  geom_text(aes(y = max(m) + max(s), label = n)) +
+  labs(y = 'P(WoA is extreme)',
+       title = 'Extreme (<.05, >.95) WoA proportions by distance',
+       subtitle = 'Numbers at the top show the number of cases in each bin')
+
+```
+
+While we ought to take the latter bins with caution, given how few trials had such extreme advice differences, we can nevertheless see an increase in the proportion of extreme advice taking as the distance increases.
+
+## By participant
+
+We want to examine data by participant to see if they individually show the pattern. For each participant we can ask if the quadratic model is an improvement over the linear model.
+
+```{r plots by participant}
+
+byP <- AdvisedTrial %>%
+  mutate(dist = advisor0distance,
+         woa = advisor0woa,
+         p = factor(paste(as.character(studyId), 
+                          as.character(studyVersion),
+                          as.character(pid),
+                          sep = '-'))) %>%
+  group_by(p) 
+
+# run models for each participant
+linear <- byP %>% 
+  do(model = lm(woa ~ dist, data = .)) 
+
+quadratic <- byP %>% 
+  do(model = lm(woa ~ dist + I(dist ^ 2), data = .)) 
+
+bothModels <- left_join(glance(linear, model), glance(quadratic, model), 
+                        by = 'p', suffix = c('.lin', '.quad')) %>%
+  mutate(bestModel = if_else(BIC.quad > BIC.lin, 'Quadratic', 'Linear')) 
+
+coefs <- rbind(
+  linear %>% tidy(model) %>% mutate(model = 'linear'),
+  quadratic %>% tidy(model) %>% mutate(model = 'quadratic')
+)
+
+bothModels %>%
+  ungroup() %>%
+  summarise(P.quadModelBetter = mean(bestModel == 'Quadratic'))
+
+bothModels %>% gather('model', 'BIC', 
+                      c(which(grepl('BIC.', names(bothModels))))) %>%
+  ggplot(aes(x = model, y = BIC)) + 
+  geom_violin() + 
+  geom_line(aes(group = p, colour = bestModel == 'Quadratic'), 
+            alpha = .1, position = "jitter") +
+  scale_y_log10() +
+  labs(y = 'log10(BIC)') 
+
+```
+
+We can also plot the best-fitting functions for each participant.
+
+```{r parameter estimates}
+
+coefs %>% ggplot(aes(x = "coefficient", y = estimate, 
+                     ymin = estimate - std.error,
+                     ymax = estimate + std.error)) +
+  geom_point(position = "jitter", alpha = .1) +
+  facet_grid(term ~ model, scales = 'free')
+
+tmp <- coefs %>% dplyr::filter(model == "quadratic") %>%
+  dplyr::select(p:estimate) %>%
+  spread(term, estimate) 
+
+data <- NULL
+
+for (x in 0:100) {
+  data <- rbind(data, tibble(
+    p = tmp$p,
+    x,
+    intercept = tmp$`(Intercept)`,
+    distance = tmp$dist,
+    distanceSquared = tmp$`I(dist^2)`,
+    woa = tmp$`(Intercept)` + tmp$dist * x + tmp$`I(dist^2)` * (x ^ 2)
+  ))
+}
+
+data %>% dplyr::filter(woa > 0 & woa < 1) %>%
+  ggplot(aes(x, woa, colour = distance > 0, group = p)) +
+  geom_line(alpha = .25) +
+  scale_colour_discrete() + 
+  stat_function(fun = ~ a + b * .x + c * (.x ^ 2), colour = 'red') +
+  theme(legend.position = 'bottom')
+
+```
+
+The above is pretty messy - we can instead look at this within a participant by splitting up the advice they received into distance bins and computing their weight on advice by each bin. This is a less objective measure, but it seems plausible that participants calibrate to the expected distances of the advice during the task.
+
+```{r woa by distance within participant}
+
+byP <- byP %>%
+  mutate(distanceBinByP = as.numeric(cut(dist, 5)))
+
+byP$distanceBinByP <- factor(byP[['distanceBinByP']])
+
+# remove participants with fewer than 5 distance categories
+tmp <- byP %>% 
+  group_by(p, distanceBinByP) %>%
+  summarise(dist = mean(dist)) 
+tmp <- aggregate(distanceBinByP ~ p, tmp, length) %>%
+  dplyr::filter(distanceBinByP < 5)
+
+byPsub <- byP %>% 
+  dplyr::filter(p %in% tmp$p) %>%
+  ungroup(p) %>%
+  mutate(p = droplevels(p)) %>%
+  group_by(p)
+  
+
+# look at distribution for each participant
+byPsub %>% ggplot(aes(x = distanceBinByP, y = dist,
+               colour = p, group = p)) +
+  stat_summary(geom = 'point', fun.y = mean, alpha = .25, position = 'jitter') +
+  scale_color_discrete(guide = 'none') +
+  labs(title = 
+         'Mean distance of trial in each distance bin for each participant')
+
+```
+
+```{r woa by distance within analysis}
+
+# run models for each participant
+byPsub$distanceBinByP <- as.numeric(byPsub$distanceBinByP)
+
+linear <- byPsub %>% 
+  do(model = lm(woa ~ distanceBinByP, data = .)) 
+
+quadratic <- byPsub %>% 
+  do(model = lm(woa ~ distanceBinByP + I(distanceBinByP ^ 2), data = .)) 
+
+bothModels <- left_join(glance(linear, model), glance(quadratic, model), 
+                        by = 'p', suffix = c('.lin', '.quad')) %>%
+  mutate(bestModel = if_else(BIC.quad > BIC.lin, 'Quadratic', 'Linear')) 
+
+coefs <- rbind(
+  linear %>% tidy(model) %>% mutate(model = 'linear'),
+  quadratic %>% tidy(model) %>% mutate(model = 'quadratic')
+)
+
+bothModels %>%
+  ungroup() %>%
+  summarise(P.quadModelBetter = mean(bestModel == 'Quadratic'))
+
+bothModels %>% gather('model', 'BIC', 
+                      c(which(grepl('BIC.', names(bothModels))))) %>%
+  ggplot(aes(x = model, y = BIC)) + 
+  geom_violin() + 
+  geom_line(aes(group = p, colour = bestModel == 'Quadratic'), 
+            alpha = .1, position = "jitter") +
+  scale_y_log10() +
+  labs(y = 'log10(BIC)') 
+
+
+```
+
+
+```{r by individual advice spectrum parameter estimates}
+
+coefs %>% ggplot(aes(x = "coefficient", y = estimate, 
+                     ymin = estimate - std.error,
+                     ymax = estimate + std.error)) +
+  geom_point(position = "jitter", alpha = .1) +
+  facet_grid(term ~ model, scales = 'free')
+
+tmp <- coefs %>% dplyr::filter(model == "quadratic") %>%
+  dplyr::select(p:estimate) %>%
+  spread(term, estimate) 
+
+
+cuts <- quantile(AdvisedTrial$advisor0distance, seq(0, .9, length = 6))
+
+data <- NULL
+overallModel <- NULL
+
+for (x in 0:5) {
+  data <- rbind(data, tibble(
+    p = tmp$p,
+    adviceDistance = x,
+    intercept = tmp$`(Intercept)`,
+    distance = tmp$distanceBinByP,
+    distanceSquared = tmp$`I(distanceBinByP^2)`,
+    woa = tmp$`(Intercept)` + 
+      tmp$distanceBinByP * x + 
+      tmp$`I(distanceBinByP^2)` * (x ^ 2)
+  ))
+  overallModel <- rbind(overallModel, tibble(
+    adviceDistance = x,
+    intercept = a,
+    distance = b,
+    distanceSquared = c,
+    woa = a + b * cuts[x] + c * (cuts[x] ^ 2)
+  ))
+}
+
+data %>% #dplyr::filter(woa > 0 & woa < 1) %>%
+  ggplot(aes(x = adviceDistance,y = woa, colour = distance > 0, group = p)) +
+  geom_line(alpha = .25) +
+  scale_colour_discrete() + 
+  geom_line(data = overallModel, colour = 'red') +
+  theme(legend.position = 'bottom')
+
+```
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```

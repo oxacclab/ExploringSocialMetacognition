@@ -434,6 +434,54 @@ ggplot(tmp, aes(x = sameGroup, y = rating)) +
 
 Across all questions there is no pronounced preference for the ingroup vs outgroup advisor, there does seem to be a difference in perceived consistency. The other measures, including 'trustworthiness' and 'helpfulness', show little difference. This is surpising because participants were explicitly informed that one advisor was more trustworthy and was trying to help more than the other. 
 
+### WoA x Trustworthiness rating
+
+Participants' trustworthiness ratings should reflect their behavioural measure (weight on advice), such that the extent of advisor preference in one measure should be correlated with the other. 
+
+```{r woa trustworthiness correlation}
+
+tmp <- list()
+tmp[['woa']] <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  spread(advisor0idDescription, woa) %>%
+  mutate(inGroupWoaPref = inGroup - outGroup,
+         inGroup = NULL, outGroup = NULL)
+
+tmp[['trust']] <- AdvisedTrial %>% 
+  left_join(debrief.advisors, by = c('pid', 'advisor0id' = 'advisorId')) %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(trust = mean(trustworthiness)) %>%
+  spread(advisor0idDescription, trust) %>%
+  summarise(inGroupTrustPref = inGroup - outGroup)
+
+tmp <- tmp[['woa']] %>% left_join(tmp[['trust']], by = 'pid')
+
+test <- cor.test(tmp$inGroupWoaPref, tmp$inGroupTrustPref)
+
+```
+
+```{r woa trustworthiness graph}
+
+tmp %>% ggplot(aes(x = inGroupWoaPref, y = inGroupTrustPref)) +
+  geom_rect(ymin = -Inf, ymax = Inf, xmin = -Inf, xmax = 0, fill = 'grey75') +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf, fill = 'grey75') +
+  geom_rect(ymin = 0, ymax = Inf, xmin = 0, xmax = Inf, fill = 'white') +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = 0, fill = 'grey35') +
+  geom_abline(slope = 100, intercept = 0) + 
+  geom_point() +
+  geom_smooth(aes(group = 1), method = 'lm', se = F, fullrange = T) + 
+  scale_x_continuous(limits = c(-1, 1)) + 
+  scale_y_continuous(limits = c(-100, 100)) +
+  coord_fixed(.01) +
+  labs(title = 'Weight on Advice difference X Trustworthiness difference',
+       x = 'inGroup WoA preference',
+       y = 'inGroup trustworthiness preference',
+       caption = paste('Correlation: r = ', round(test$estimate, 3), 
+                       '; p = ', round(test$p.value, 4)))
+
+```
+
 ## Hypothesis testing
 
 The hypotheses being tested here are:  

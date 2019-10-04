@@ -441,6 +441,56 @@ ggplot(tmp, aes(x = sameGroup, y = rating)) +
 
 Across all questions there is a preference for the ingroup vs outgroup advisor, although this is not highly pronounced. There is not an obviously greater difference in benevolence ('helpfulness') compared to the other questions, although 'helpfulness' and 'trustworthiness' show the largest differences.
 
+### WoA x Trustworthiness rating
+
+Participants' trustworthiness ratings should reflect their behavioural measure (weight on advice), such that the extent of advisor preference in one measure should be correlated with the other. 
+
+```{r woa trustworthiness correlation}
+
+tmp <- list()
+tmp[['woa']] <- AdvisedTrial %>% 
+  left_join(okayIds, by = 'pid') %>% 
+  group_by(pid, advisor0idDescription, condition) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  spread(advisor0idDescription, woa) %>%
+  summarise(inGroupWoaPref = inGroup - outGroup,
+            condition = condition)
+
+tmp[['trust']] <- AdvisedTrial %>% 
+  left_join(debrief.advisors, by = c('pid', 'advisor0id' = 'advisorId')) %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(trust = mean(trustworthiness)) %>%
+  spread(advisor0idDescription, trust) %>%
+  summarise(inGroupTrustPref = inGroup - outGroup)
+
+tmp <- tmp[['woa']] %>% left_join(tmp[['trust']], by = 'pid')
+
+test <- cor.test(tmp$inGroupWoaPref, tmp$inGroupTrustPref)
+
+```
+
+```{r woa trustworthiness graph}
+
+tmp %>% ggplot(aes(x = inGroupWoaPref, y = inGroupTrustPref)) +
+  geom_rect(ymin = -Inf, ymax = Inf, xmin = -Inf, xmax = 0, fill = 'grey75') +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf, fill = 'grey75') +
+  geom_rect(ymin = 0, ymax = Inf, xmin = 0, xmax = Inf, fill = 'white') +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = 0, fill = 'grey35') +
+  geom_abline(slope = 100, intercept = 0) + 
+  geom_point(aes(colour = condition > 2)) +
+  geom_smooth(aes(colour = condition > 2), 
+              method = 'lm', se = F, fullrange = T) + 
+  scale_x_continuous(limits = c(-1, 1)) + 
+  scale_y_continuous(limits = c(-100, 100)) +
+  coord_fixed(.01) +
+  labs(title = 'Weight on Advice difference X Trustworthiness difference',
+       x = 'inGroup WoA preference',
+       y = 'inGroup trustworthiness preference',
+       caption = paste('Correlation: r = ', round(test$estimate, 3), 
+                       '; p = ', round(test$p.value, 4)))
+
+```
+
 ## Hypothesis testing
 
 The hypotheses being tested here are:  
@@ -473,7 +523,7 @@ The Bayes factor indicates there is good evidence to support the claim that the 
 
 Participants should rate in-group advisors as more trustworthy than outgroup advisors.
 
-```{r h1, results='asis'}
+```{r h1 questionnaires, results='asis'}
 
 debrief.advisors$advisorIdDescription <- unlist(
   sapply(1:nrow(debrief.advisors), function(i) 

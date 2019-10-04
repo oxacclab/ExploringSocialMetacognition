@@ -36,86 +36,92 @@ if (!isSet("vars")) {
 
 allFiles <- listServerFiles(study = studyName, version = studyVersion, rDir = rDir)
 
-versions <- unique(reFirstMatch("(v[0-9\\-]+)", allFiles))
+studies <- unique(reFirstMatch("/([\\w-]*)_v[0-9\\-]+_[\\w-]+.csv$", allFiles))
 
-for (v in versions) {
-  files <- allFiles[grepl(v, allFiles, fixed = T)]
+for (study in studies) {
+  studyFiles <- allFiles[grepl(study, allFiles)]
+  versions <- unique(reFirstMatch("(v[0-9\\-]+)", studyFiles))
+  
+  for (v in versions) {
+    files <- studyFiles[grepl(v, studyFiles, fixed = T)]
+      
+    # Screen for acceptable IDs
+    f <- files[grep("metadata", files)]
     
-  # Screen for acceptable IDs
-  f <- files[grep("metadata", files)]
-  
-  if (length(f) < 1)
-    next()
-  
-  tmp <- read.csv(f)
-  
-  if (!isSet("testData")) {
-    tmp$okay <- grepl("prolific", tmp$tags)
-  } else {
-    tmp$okay <- T
-  }
-  
-  tmp$studyVersion <- v
-  
-  name <- "okayIds"
-  # Bind to existing okayIds in workspace
-  if (length(versions) > 1 & 
-      any(grepl(paste0('^', name, '$'), ls()) == T)) {
-    assign(name, safeBind(list(get(name), tmp)))
-  } else {
-    assign(name, tmp)
-  }
-  
-  
-  files <- files[grep("metadata", files, invert = T)]
-  
-  # convert CSV files to tibbles
-  for (f in files) {
+    if (length(f) < 1)
+      next()
     
-    tmp <- as.tibble(read.csv(f))
+    tmp <- read.csv(f)
     
-    # screen out non-okay ids
-    if ("pid" %in% names(tmp))
-      tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
-    
-    # clean up stimulus text
-    if ("stimHTML" %in% names(tmp)) {
-      tmp$stimHTML <- stripTags(tmp$stimHTML)
+    if (!isSet("testData")) {
+      tmp$okay <- grepl("prolific", tmp$tags)
+    } else {
+      tmp$okay <- T
     }
     
-    # type coersion
-    if ("comment" %in% names(tmp))
-      tmp$comment <- as.character(tmp$comment)
+    tmp$studyVersion <- v
     
-    n <- grep("advisor[0-9]+(name|validTypes|nominalType|actualType)$", 
-              names(tmp), value = T)
-    for (z in n)
-      tmp[, z] <- lapply(tmp[, z], as.character)
-    
-    n <- grep("responseEstimateLabel", names(tmp), value = T)
-    for (z in n)
-      tmp[, z] <- lapply(tmp[, z], function(y) 
-        numerify(stripTags((as.character(y)))))
-    
-    if ("responseMarkerWidth" %in% names(tmp))
-      tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
-    if ("responseMarkerWidthFinal" %in% names(tmp))
-      tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
-    
-    # assign to workspace
-    name <- reFirstMatch("([^_]+)\\.csv", f)
-    name <- sub("-", ".", name)
-    
-    tmp <- getDerivedVariables(tmp, name, vars[[name]])
-    
+    name <- "okayIds"
+    # Bind to existing okayIds in workspace
     if (length(versions) > 1 & 
         any(grepl(paste0('^', name, '$'), ls()) == T)) {
       assign(name, safeBind(list(get(name), tmp)))
     } else {
       assign(name, tmp)
     }
+    
+    
+    files <- files[grep("metadata", files, invert = T)]
+    
+    # convert CSV files to tibbles
+    for (f in files) {
+      
+      tmp <- as.tibble(read.csv(f))
+      
+      # screen out non-okay ids
+      if ("pid" %in% names(tmp))
+        tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
+      
+      # clean up stimulus text
+      if ("stimHTML" %in% names(tmp)) {
+        tmp$stimHTML <- stripTags(tmp$stimHTML)
+      }
+      
+      # type coersion
+      if ("comment" %in% names(tmp))
+        tmp$comment <- as.character(tmp$comment)
+      
+      n <- grep("advisor[0-9]+(name|validTypes|nominalType|actualType)$", 
+                names(tmp), value = T)
+      for (z in n)
+        tmp[, z] <- lapply(tmp[, z], as.character)
+      
+      n <- grep("responseEstimateLabel", names(tmp), value = T)
+      for (z in n)
+        tmp[, z] <- lapply(tmp[, z], function(y) 
+          numerify(stripTags((as.character(y)))))
+      
+      if ("responseMarkerWidth" %in% names(tmp))
+        tmp$responseMarker <- factor(tmp[["responseMarkerWidth"]])
+      if ("responseMarkerWidthFinal" %in% names(tmp))
+        tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
+      
+      # assign to workspace
+      name <- reFirstMatch("([^_]+)\\.csv", f)
+      name <- sub("-", ".", name)
+      
+      tmp <- getDerivedVariables(tmp, name, vars[[name]])
+      
+      if (max(length(studies), length(versions)) > 1 & 
+          any(grepl(paste0('^', name, '$'), ls()) == T)) {
+        assign(name, safeBind(list(get(name), tmp)))
+      } else {
+        assign(name, tmp)
+      }
+    }
   }
 }
+
 
 mainDF <- if (isSet('AdvisedTrialWithConf')) 
   AdvisedTrialWithConf else AdvisedTrial

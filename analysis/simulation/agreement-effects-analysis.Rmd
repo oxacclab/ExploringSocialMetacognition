@@ -30,3 +30,11 @@ saveAnimation <- F        # whether to save an animation
 source('agreement-effects.R')
 
 ```
+
+The decisions invesitaged above are discrete. Because of this, agents do not update their expectations of future decisions (i.e. their bias) after making a decision. We can also investigate what happens when agents **bias**, as well as their **assessment of other agents** is able to change. Bias changes based on the final decision made by an agent according to Bayes' rule:
+
+Posterior = Prior * Evidence
+
+$$P(H1 | Data) = \frac{P(H1) * P(Data | H1)}{(P(Data|H1)P(H1)) + (P(Data|¬H1)P(¬H1))}$$
+
+In this case $Data$ is 1 or 0, according to the direction of the final decision. $H1$ is that the outcome will be >0 every time. 

@@ -60,8 +60,12 @@ listServerFiles <- function(study = "datesStudy", version = "all",
   while (isIncomplete(con)) {
     buffer <- readLines(con, n = 1)
     if (length(buffer)) {
-      f <- reFirstMatch(paste0('(', study, '_v[0-9\\-]+_[^"]+.csv)'),
-                        buffer)
+      if (study == "all") {
+        f <- reFirstMatch(paste0('([\\w-]*_v[0-9\\-]+_[^"]+.csv)'), buffer)
+      } else {
+        f <- reFirstMatch(paste0('(', study, '_v[0-9\\-]+_[^"]+.csv)'),
+                          buffer)
+      }
       
       if (nchar(f)) {
         v <- reFirstMatch(paste0('_v([0-9\\-]+)_[^"]+.csv'), f)
@@ -247,6 +251,14 @@ getDerivedVariables <- function(x, name, opts = list()) {
     # ADVISED TRIAL -----------------------------------------------------------
     
     AdvisedTrial = {
+      if (!is.null(opts$skipMixedOffsets) && length(opts$skipMixedOffsets) &&
+          opts$skipMixedOffsets && is.factor(x$correctAnswer)) {
+        # Remove rows in broken files where the correct answer field isn't a
+        # number
+        x <- x[which(!is.na(as.numeric(as.character(x$correctAnswer)))), ]
+        x$correctAnswer <- as.numeric(as.character(x$correctAnswer))
+      }
+      
       x <- fixGroups(x)
       
       details <- getAdvisorDetails(x)
