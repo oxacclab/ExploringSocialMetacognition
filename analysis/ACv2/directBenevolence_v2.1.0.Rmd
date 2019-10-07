@@ -29,6 +29,7 @@ July 2019
 library(testthat)
 
 library(tidyverse)
+library(broom)
 
 library(BayesFactor)
 library(BayesMed)
@@ -642,12 +643,247 @@ kable(debrief.form$comment[!(debrief.form$pid %in% pids)])
 
 ```
 
+### Mediation for manipulated participants
+
+We can look at the mediation analyses for only those participants for whom the manipulation worked.
+
+```{r mediation for manipulated participants only}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription + advisor0id, 
+                 AdvisedTrial[AdvisedTrial$pid %in% pids, ], mean, na.rm = T)
+names(tmp) <- c("pid", "sameGroup", "id", "WoA")
+
+for (i in seq(nrow(tmp))) {
+  tmp$trustworthiness[i] <- debrief.advisors$trustworthiness[
+    debrief.advisors$pid %in% tmp$pid[i] &
+      debrief.advisors$advisorId %in% tmp$id[i]
+  ]
+}
+
+tmp$sameGroupDummy <- as.numeric(tmp$sameGroup == "inGroup")
+
+r <- jzs_med(independent = tmp$sameGroupDummy, 
+             dependent = tmp$WoA, 
+             mediator = tmp$trustworthiness, 
+             standardize = T)
+
+r$main_result
+
+plot(r$main_result)
+
+```
+
+#### Summary {.summary}
+
+Result looks identical to that for the whole population. 
+
+### Advice-taking differences
+
+We want to know whether the lower advice-taking in the outGroup condition is due to reduced advice-taking on each trial, or whether it is due specifically to large reductions in advice-taking on trials where the advice is considered implausible. 
+
+If advice is generally discounted, we should see WoA x distance plot lines shifting in intercept but not shape. If it is due to implausible advice being more heavily penalised, we should see similar intercepts but different shapes. 
+
+
+```{r woa by distance graph all participants}
+
+nameList <- names(AdvisedTrial)[grepl('.distance', names(AdvisedTrial))]
+
+for (i in 1:nrow(AdvisedTrial)) {
+  for (n in nameList) {
+    if (!is.na(AdvisedTrial[i, n])) {
+      AdvisedTrial[i, paste0('advisor0', reFirstMatch('\\.(\\w+)*', n))] <-
+        AdvisedTrial[i, n]
+    }
+  }
+}
+
+
+byBin <- AdvisedTrial %>% 
+  mutate(distanceBin = cut(advisor0distance, 
+                           quantile(advisor0distance, 
+                                    seq(.1, .9, length = 5)),
+                           include.lowest = F)) 
+
+models <- byBin %>% 
+  group_by(advisor0idDescription) %>%
+  mutate(dist = if_else(is.na(distanceBin), 
+                        length(levels(distanceBin)) + 1, 
+                        as.numeric(distanceBin)),
+         distSquared = dist ^ 2) %>%
+  do(model = lm(advisor0woa ~ dist + distSquared, data = .data))
+
+models %>% glance(model)
+
+ses <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, std.error) %>%
+  spread(term, std.error) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared)
+
+modelParams <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, estimate) %>%
+  spread(term, estimate) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared) %>%
+  left_join(ses, by = 'advisor0idDescription', suffix = c('.m', '.se'))
+
+dw <- .6 
+
+modelFit <- function(x, 
+                     a = c('inGroup', 'outGroup'), 
+                     se = c(NA, 'low', 'high')) {
+  tmp <- modelParams[modelParams$advisor0idDescription %in% a, ]
+  if (length(se) > 1) {
+    tmp$i.m + x * tmp$d.m + (x ^ 2) * tmp$d2.m
+  } else if (se == 'high') {
+    tmp$i.m + tmp$i.se + 
+      x * (tmp$d.m + tmp$d.se) + 
+      (x ^ 2) * (tmp$d2.m + tmp$d2.se)
+  } else {
+    (tmp$i.m - tmp$i.se) + 
+      x * (tmp$d.m - tmp$d.se) + 
+      (x ^ 2) * (tmp$d2.m - tmp$d2.se)
+  }
+}
+
+byBin %>%  
+  group_by(distanceBin, advisor0idDescription) %>%
+  summarise(m = mean(advisor0woa, na.rm = T), 
+            s = sd(advisor0woa, na.rm = T),
+            n = n()) %>%
+  left_join(models, by = 'advisor0idDescription') %>%
+  # plot
+  ggplot(aes(x = distanceBin, y = m, colour = advisor0idDescription)) +
+  # technical limits shading
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  geom_rect(ymin = 1, ymax = Inf, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  # data
+  geom_point(position = position_dodge(dw)) +
+  geom_errorbar(aes(ymin = m - s, ymax = m + s), width = 0, position = position_dodge(dw)) +
+  geom_text(aes(y = max(m) + max(s), label = n), position = position_dodge(dw)) +
+  # function lines
+  stat_function(fun = modelFit, args = 'inGroup', 
+                colour = scales::hue_pal()(2)[1]) +
+  stat_function(fun = modelFit, args = 'outGroup', 
+                colour = scales::hue_pal()(2)[2]) +
+  # SEs for function lines
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  # scales and labels
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(-.5, 1.5)) +
+  labs(y = 'Mean WoA',
+       title = 'WoA by distance (all participants)',
+       subtitle = 'Numbers at the top show the number of cases in each bin',
+       caption = paste('Points show means across participants +/- 1SE',
+                       'Lines show modelled weight on advice +/- 1SE.',
+                       'Note: model fits were very poor.', sep = '\n'))
+
+```
+
+#### Summary {.summary}
+
+The graph indicates that the shapes of the functions are pretty similar, while the intercepts are somewhat different. This suggests that participants are discounting advice overall rather than modifying their advice as a function of the distance. To check this conclusion we run the same analysis with only 3 bins where the u-shaped curve ought to be more pronounced if it indeed exists. 
+
+#### 3-bin version 
+
+```{r three-bin woa by distance} 
+
+byBin <- AdvisedTrial %>% 
+  mutate(distanceBin = cut(advisor0distance, 
+                           quantile(advisor0distance, 
+                                    seq(.1, .9, length = 3)),
+                           include.lowest = F)) 
+
+models <- byBin %>% 
+  group_by(advisor0idDescription) %>%
+  mutate(dist = if_else(is.na(distanceBin), 
+                        length(levels(distanceBin)) + 1, 
+                        as.numeric(distanceBin)),
+         distSquared = dist ^ 2) %>%
+  do(model = lm(advisor0woa ~ dist + distSquared, data = .data))
+
+models %>% glance(model)
+
+ses <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, std.error) %>%
+  spread(term, std.error) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared)
+
+modelParams <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, estimate) %>%
+  spread(term, estimate) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared) %>%
+  left_join(ses, by = 'advisor0idDescription', suffix = c('.m', '.se'))
+
+dw <- .6 
+
+byBin %>%  
+  group_by(distanceBin, advisor0idDescription) %>%
+  summarise(m = mean(advisor0woa, na.rm = T), 
+            s = sd(advisor0woa, na.rm = T),
+            n = n()) %>%
+  left_join(models, by = 'advisor0idDescription') %>%
+  # plot
+  ggplot(aes(x = distanceBin, y = m, colour = advisor0idDescription)) +
+  # technical limits shading
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  geom_rect(ymin = 1, ymax = Inf, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  # data
+  geom_point(position = position_dodge(dw)) +
+  geom_errorbar(aes(ymin = m - s, ymax = m + s), width = 0, position = position_dodge(dw)) +
+  geom_text(aes(y = max(m) + max(s), label = n), position = position_dodge(dw)) +
+  # function lines
+  stat_function(fun = modelFit, args = 'inGroup', 
+                colour = scales::hue_pal()(2)[1]) +
+  stat_function(fun = modelFit, args = 'outGroup', 
+                colour = scales::hue_pal()(2)[2]) +
+  # SEs for function lines
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  # scales and labels
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(-.5, 1.5)) +
+  labs(y = 'Mean WoA',
+       title = 'WoA by distance (all participants)',
+       subtitle = 'Numbers at the top show the number of cases in each bin',
+       caption = paste('Points show means across participants +/- 1SE',
+                       'Lines show modelled weight on advice +/- 1SE.',
+                       'Note: model fit for outgroup was very poor.', sep = '\n'))
+
+```
+
+#### Summary {.summary}
+
+It looks like in this version there are differences in the intercepts and the other parameters, but the outgroup looks very flat, going against the hypothesis that the advice considered most helpful by participants (the middle advice) is the advice least affected by the manipulation. It appears that all advice from outgroup advisors is discounted, and it's possible this effect shows up _more strongly_ for middle-distance advice.
+
+We did not run statistical tests of this (they would likely not be useful given the ratio of distances to standard errors), but if necessary we could estimate the sample size we would require in order to reliably determine whether these interpretations are statistically valid. 
+
 # Conclusions {.summary}
 
 The experiment provided evidence against for hypotheses tested. Weight on advice was higher for ingroup vs outgroup advisors, but the differences in the weighting of advice were not mediated by perceived benevolence or trustworthiness. 
 
 Through further analysis we may be able to distinguish general wariness of advice from the outGroup advisor from specific discounting of 'implausible' advice from the outGroup advisor. 
-
 
 # Credits 
 
