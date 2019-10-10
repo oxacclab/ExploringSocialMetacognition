@@ -41,12 +41,12 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        it('Creates a DatesStudy object', function () {
+        it('Creates a NoFeedbackStudy object', function () {
             cy.window()
                 .its('study')
                 .its('constructor')
                 .its('name')
-                .should('eq', 'DatesStudy');
+                .should('eq', 'NoFeedbackStudy');
         });
 
         it('Gets study variables from server', function () {
@@ -327,10 +327,9 @@ for(let run = 0; run < runs; run++) {
                             study,
                             TL,
                             marker
-                        })
+                        });
 
                         const ans = study.trials[study.currentTrial].correctAnswer;
-                        console.log(ans)
 
                         marker.style.left = TL.valueToPixels(ans) + "px";
                         marker.style.width = TL.valueToPixels(TL.markerWidths[0], true) + "px";
@@ -342,6 +341,14 @@ for(let run = 0; run < runs; run++) {
                         // Receive advice
                         cy.get('esm-response-timeline .response-marker.advisor')
                             .should('be.visible');
+
+                        // Advice questionnaire
+                        const n = Math.floor(Math.random() * 3) + 1;
+                        cy.get('.esm-qw-items .esm-qw-item:nth-of-type(' + n + ') input')
+                            .click();
+
+                        cy.get('esm-questionnaire-widget .buttons button')
+                            .click();
 
                         cy.get('body')
                             .should('have.class', 'Trial-getFinalResponse');
@@ -429,6 +436,14 @@ for(let run = 0; run < runs; run++) {
                         // Receive advice
                         cy.get('esm-response-timeline .response-marker.advisor')
                             .should('be.visible');
+
+                        // Advice questionnaire
+                        const n = Math.floor(Math.random() * 3) + 1;
+                        cy.get('.esm-qw-items .esm-qw-item:nth-of-type(' + n + ') input')
+                            .click();
+
+                        cy.get('esm-questionnaire-widget .buttons button')
+                            .click();
 
                         cy.get('body')
                             .should('have.class', 'Trial-getFinalResponse');

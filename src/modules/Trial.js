@@ -488,23 +488,35 @@ class AdvisedTrial extends Trial {
         // Register advisors in the data output
         for(let i = 0; i < this.advisors.length; i++) {
             const a = this.advisors[i];
+
+            // Save advisor's advice
+            const advice = a.getAdvice(this);
+            Object.keys(advice).forEach((k)=> {
+                if(advice.hasOwnProperty(k))
+                    this.data["advisor" + i.toString() + k] = advice[k];
+            });
+
+            await a.drawAdvice();
+        }
+
+        return this;
+    }
+
+    /**
+     * Register advisors in the data output
+     */
+    saveAdvisorData() {
+
+        for(let i = 0; i < this.advisors.length; i++) {
+            const a = this.advisors[i];
             const tbl = a.toTable();
             const s = "advisor" + i.toString();
             this.data[s] = i;
             for(let x in tbl)
                 if(tbl.hasOwnProperty(x))
                     this.data[s + x] = tbl[x];
-
-            const advice = a.getAdvice(this);
-            Object.keys(advice).forEach((k)=> {
-                if(advice.hasOwnProperty(k))
-                    this.data["advisor" + i.toString() + k] = advice[k];
-            });
-            a.drawAdvice();
-            await this.wait(1000);
         }
 
-        return this;
     }
 
     /**
@@ -512,6 +524,7 @@ class AdvisedTrial extends Trial {
      * @return {Promise<AdvisedTrial>}
      */
     async getFinalResponse() {
+
         this.data.timeResponseOpenFinal = this.trialTime;
 
         let response = await this.responseWidget
@@ -527,6 +540,9 @@ class AdvisedTrial extends Trial {
     }
 
     processFinalResponse(data) {
+
+        this.saveAdvisorData();
+
         let me = this;
 
         Object.keys(data).forEach((k) => {

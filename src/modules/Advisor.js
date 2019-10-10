@@ -95,7 +95,7 @@ class Advisor extends BaseObject {
         return elm;
     }
 
-    drawAdvice() {
+    async drawAdvice() {
         this.info("Drawing advice");
 
         const rw = document.getElementById("response-panel");
@@ -107,6 +107,10 @@ class Advisor extends BaseObject {
                 this.drawTimelineAdvice();
                 break;
         }
+
+        await this.wait(1000);
+        // Collect questionnaire about advice if necessary
+        await this.offerQuestionnaire();
     }
 
     drawWidgetAdvice() {
@@ -157,6 +161,33 @@ class Advisor extends BaseObject {
         setTimeout((m)=>m.style.display = "", 0, this.marker);
 
         this.debug(this.getAdvice(false));
+    }
+
+    /**
+     * Provide a questionnaire probing view on the advice offered
+     */
+    async offerQuestionnaire() {
+        this.questionnaire = null;
+
+        if(!this.includeQuestionnaire || !this.getAdvice(false)) {
+            return;
+        }
+
+        let widget = document.querySelector('#questionnaire-widget');
+
+        if(!widget) {
+            this.warn('Questionnaire requested but no questionnaire-widget found');
+            return;
+        }
+
+        this.questionnaire = await widget.getResponse();
+
+        // unpack response
+        if(this.questionnaire === "undefined") {
+            this.log.push("Timeout on confidence judgement");
+        }
+
+        return;
     }
 
     hideAdvice() {
@@ -226,19 +257,26 @@ class Advisor extends BaseObject {
 
     /**
      * Fetch the data for the study in a flat format suitable for CSVing
-     * @param [headers=null] {string[]|null} values to read. Defaults to
+     * @param [overrideHeaders=null] {string[]|null} values to read. Defaults to
      * this.tableHeaders
      * @return {object} key-value pairs where all values are single items
      */
-    toTable(headers=null) {
+    toTable(overrideHeaders=null) {
         const out = {};
+        let headers = [];
 
         // Use own headers if not supplied
-        if(headers === null)
+        if(overrideHeaders === null)
             headers = this.tableHeaders;
 
-        for(let h of headers)
-            out[h] = typeof this[h] === "undefined"? null : this[h];
+        for(let h of headers) {
+            if(h === "questionnaire" && this.questionnaire) {
+                for(let n in this.questionnaire)
+                    out[n] = this.questionnaire[n];
+            } else
+                out[h] = typeof this[h] === "undefined"? null : this[h];
+
+        }
 
         return out;
     }
@@ -256,7 +294,8 @@ class Advisor extends BaseObject {
             "name",
             "confidence",
             "confidenceVariation",
-            "sameGroup"
+            "sameGroup",
+            "questionnaire"
         ];
     }
 }

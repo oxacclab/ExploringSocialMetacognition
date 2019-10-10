@@ -149,6 +149,18 @@ class BaseObject {
             o = JSON.stringify(o);
         this.log.push("[" + new Date().getTime() + "] " + level + ": " + o);
     }
+
+    /**
+     * Wait for a time.
+     * @param ms {int} milliseconds to wait
+     * @param [args=null] {*} argument to return from Promise
+     * @return {Promise<*>}
+     */
+    wait(ms, args = null) {
+        if(args === null)
+            args = this;
+        return new Promise((resolve) => setTimeout(resolve, ms, args));
+    }
 }
 
 /**
@@ -287,18 +299,6 @@ class ControlObject extends BaseObject {
 
         this._startPhase(phase);
         return await eval("this." + this.phases[phase] + "()");
-    }
-
-    /**
-     * Wait for a time.
-     * @param ms {int} milliseconds to wait
-     * @param [args=null] {*} argument to return from Promise
-     * @return {Promise<*>}
-     */
-    wait(ms, args = null) {
-        if(args === null)
-            args = this;
-        return new Promise((resolve) => setTimeout(resolve, ms, args));
     }
 }
 

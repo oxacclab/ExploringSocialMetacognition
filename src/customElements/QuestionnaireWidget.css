@@ -1,0 +1,62 @@
+:root {
+    --esm-conf-button-margin: 2.5%;
+}
+
+esm-questionnaire-widget {
+    top: 50%;
+    position: absolute;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: white;
+    background-color: var(--background);
+    z-index: 5;
+    padding: .5em;
+    border: .2em solid black;
+    border-radius: 1em;
+}
+
+esm-questionnaire-widget.cloak {
+    display: none;
+}
+
+esm-questionnaire-widget .esm-qw-rejected {
+    background-color: #fff0f0;
+}
+
+esm-questionnaire-widget .esm-qw-question * {
+    margin-top: .1em;
+    margin-bottom: .1em;
+}
+
+esm-questionnaire-widget .esm-qw-items {
+    display: flex;
+    align-items: center;
+}
+
+esm-questionnaire-widget .esm-qw-item {
+    display: flex;
+    flex-direction: column;
+    padding: 1em;
+    align-items: center;
+}
+
+esm-questionnaire-widget div.buttons {
+    display: flex;
+    width: 100%;
+    justify-content: space-evenly;
+}
+
+esm-questionnaire-widget div.buttons button {
+    width: 100%;
+    margin: 0 var(--esm-conf-button-margin);
+}
+
+esm-questionnaire-widget div.buttons button:first-of-type {
+    margin-left: calc(var(--esm-conf-button-margin) * 2);
+}
+
+esm-questionnaire-widget div.buttons button:last-of-type {
+    margin-right: calc(var(--esm-conf-button-margin) * 2);
+}
