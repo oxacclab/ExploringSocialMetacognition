@@ -14,7 +14,7 @@ customElements.define('esm-questionnaire-widget',
             super();
 
             this.dataset.name = typeof this.dataset.name === "undefined"? "questionnaire" : this.dataset.name;
-            this.dataset.mandatory = this.dataset.mandatory | 0;
+            this.dataset.mandatory = this.dataset.mandatory || 0;
 
             // Set up individual questions
             this.questions.forEach(q => {

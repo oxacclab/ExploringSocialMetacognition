@@ -427,7 +427,9 @@ class Study extends ControlObject {
 
     static async unlockFullscreen(element) {
         document.body.classList.remove("fullscreen-error");
-        document.querySelector('#fullscreen-warning.open').classList.remove('open');
+        const warning = document.querySelector('#fullscreen-warning.open');
+        if(warning)
+            warning.classList.remove('open');
 
         clearTimeout(element.fullscreenTimeOut);
 
@@ -1977,6 +1979,21 @@ class NoFeedbackStudy extends DatesStudy {
         this.info("Assigning condition variables for condition " + this.condition);
 
         this._setAdvisorOrder(this.condition % 2);
+
+        // Group stuff (static)
+        const match = /(^| )group-([0-9]+)( |$)/.exec(document.body.className);
+        let pGroup;
+        if(match[2]) {
+            pGroup = parseInt(match[2]);
+        } else {
+            this.warn('No group-# class in body, defaulting to group 1.');
+            pGroup = 1;
+        }
+        this.pGroup = pGroup;
+
+        this.advisors.forEach(
+            a => a.sameGroup = a.group === this.pGroup
+        );
 
         this.pushBlockPropertiesToTrials();
     }
