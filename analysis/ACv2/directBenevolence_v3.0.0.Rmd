@@ -1,0 +1,1081 @@
+---
+title: "Direct benevolence manipulation analysis"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+July 2019
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(testthat)
+
+library(tidyverse)
+library(broom)
+
+library(BayesFactor)
+library(BayesMed)
+
+library(prettyMD)
+
+library(ez)
+
+library(knitr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20190723)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+```
+
+```{r loadData, include = F}
+
+studyVersion <- "3-0-0"
+studyName <- "directBenevolence"
+
+overrideMarkerList <- c(11) # Someone managed to get marker width 8 for one question, not sure how
+
+exclude <- list(
+  maxAttnCheckFails = 0, # pass all attn checks
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1,    # some advice taken on 10%+ of trials
+  multipleAttempts = T   # exclude multiple attempts
+  ) 
+
+skipLoadData <- F
+
+source("src/02 Exclusions.R")
+
+```
+
+# Introduction
+
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors sometimes provide deliberately poor advice. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of potentially misleading advice, we used a direct benevolence manipulation to pair participant judges in a judge-advisor system with two advisors, one who they were told would consistently try to help them ('in-group advisor'), and one who they were told may occasionally try to mislead them ('out-group advisor').
+
+We hypothesised that participants would place greater weight on the advice of the in-group vs out-group advisor, and that this relationship would be mediated by responses to questionnaires asking about the perceived benevolence of the advisor.
+
+**Version 2.0.0 introduced a much clearer manipulation** by reminding participants of the properties of the advisor (whether they'd always be helpful) in a message the participant had to acknowledge, by keeping the participant's group visible throughout, and by including one trial on which the outgroup advisor did actually offer misleading advice.
+
+**Version 2.1.0** removed the difference in advice and adjusted the to be consistent ('may' rather than 'will' sometime mislead...). 
+
+**Version 3.0.0** adds a question after seeing advice but before giving a final reponse where participants rate the deceptiveness/honesty of the advice. We can examine how the weight on advice differs by both _advice_ and _advisor_. Will participants place less weight on all advice from the outGroup advisor, or only on those trials where they consider the advice deceptive?
+
+# Method
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
+## Exclusions
+
+```{r exclusions}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+
+tmp$condition <- factor(tmp$condition, labels = c("InFirst",
+                                                  "OutFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+```
+
+Our final participant list consists of `r length(unique(PP$pid))` participants who completed an average of `r num2str(mean(aggregate(number ~ pid, PP, function(x) sum(x) / 2)$number))` trials each.
+
+## Task performance
+
+```{r bindAdvisors}
+
+# bind feedback property from participants
+
+# convert pid columns to character to allow joining
+tmp <- PP
+tmp$pid <- as.character(tmp$pid)
+
+advisors$pid <- as.character(advisors$pid)
+
+advisors <- advisors[advisors$pid %in% tmp$pid, ]
+advisors <- left_join(advisors, unique(tmp[c("pid", "feedback")]), "pid")
+
+# drop practice advisors
+advisors <- advisors[advisors$idDescription != "Practice", ]
+
+```
+
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
+
+### Decisions
+
+Participants offered estimates of the year in which various events took place. The correct answers were always between 1900 and 2000, although the timeline on which participants responded went from 1890 to 2010 in order to allow extra room for advice. Participants answered by dragging a marker onto a timeline which covered a range of 11 years (e.g. 1940-1950). Participants were informed that a correct answer was one in which the marker covered the year in which the event took place.
+
+#### Correctness
+
+Responses are regarded as **correct** if the target year is included within the marker range.
+
+```{r accuracy}
+
+tmp <- markerBreakdown(responseCorrect, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r accuracyGraph}
+
+ggplot(aggregate(responseCorrect ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, y = responseCorrect)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) +
+  scale_color_discrete(guide = 'none') + 
+  labs(x = "response marker width (years)", 
+       y = "p(response correct)")
+
+```
+
+#### Error (estimate mean)
+
+The **error** is calcualted as the distance from the centre of the answer marker to the correct year. It is thus possible for **correct** answers to have non-zero error, and it is likely that the error for correct answers scales with the marker size.
+
+```{r err}
+
+tmp <- markerBreakdown(responseError, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r errGraph}
+
+ggplot(aggregate(responseError ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, y = responseError)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) +
+  scale_color_discrete(guide = 'none') + 
+  labs(x = "response marker width (years)", 
+       y = "|target - response marker centre| (years)")
+
+```
+
+### Timing
+
+We can look at the response time - the difference between the time the response is opened and the time the response is received.  
+
+```{r time}
+
+decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
+
+tmp <- markerBreakdown(rt, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r timeGraph}
+
+ggplot(aggregate(rt ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, 
+           y = rt / 1000)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) +
+  scale_color_discrete(guide = 'none') + 
+  labs(x = "response marker width (years)", 
+       y = "response time (s)")
+
+```
+
+### Summary {.summary}
+
+Participants took longer on their final decisions (partly due to answering the questionnaire), and slightly improved their accuracy. This suggests that they took the time to weigh up the advice, and that they took it into account when making their (final) decisions.
+
+## Advisor performance
+
+The advice offered should be equivalent between in/out group advisors.
+
+### Accuracy
+
+```{r adviceAccuracy}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0("cbind(", a, ".accurate, ", 
+                          a, ".error) ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "accuracy", "error")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(cbind(accuracy, error) ~ advisor, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+
+tmp <- gather(tmp, key = "var", value = "value", c("accuracy", "error"))
+
+for (v in unique(tmp$var)) 
+  print(
+    ggplot(tmp[tmp$var == v, ], aes(x = advisor, y = value, colour = pid)) +
+      geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+      geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+      geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+      geom_point(alpha = .5, aes(colour = pid)) +
+      stat_summary(geom = "line", fun.y = mean,
+                   aes(group = 1, linetype = "mean"), size = 1.5) +
+      labs(y = v) +
+      scale_color_discrete(guide = 'none')
+  )
+
+```
+
+### Agreement
+
+```{r adviceAgreement}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".agree ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "agreement")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(agreement ~ advisor, 
+                             tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAgreementGraph}
+
+ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_color_discrete(guide = 'none')
+
+```
+
+### Distance
+
+Distance is the continuous version of agreement - the difference between the centre of the advice and the centre of the initial estimate. 
+
+```{r adviceDistance}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".distance ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "distance")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(distance ~ advisor, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceDistanceGraph}
+
+ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_color_discrete(guide = 'none')
+
+```
+
+### Summary {.summary}
+
+The advisors were similar in terms of their objective accuracy and their tendency to offer advice close to the participants' initial decisions. 
+
+### Influence
+
+The measure of influence is weight-on-advice. This is well-defined for values between 0 and 1 (trucated otherwise), and is
+$$\text{WoA} = (\text{final} - \text{inital}) / (\text{advice} - \text{initial})$$
+, or the degree to which the final decision moves towards the advised answer.
+
+Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
+
+```{r woa}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".woa ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "WoA")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(WoA ~ advisor, tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r woaGraph}
+
+ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_discrete(guide = 'none')
+
+```
+
+##### WoA distribution
+
+It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
+
+```{r woaDistribution}
+
+ggplot(AdvisedTrial, aes(woa)) + 
+  geom_histogram(stat = "count") +
+  facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
+
+```
+
+### Summary {.summary}
+
+Weight on Advice scores differ substantially between the advisors, as do the distributions. While the distributions are quite broad between participants, almost all participants show a marked preference for the inGroup advisor. Formal testing of the hypothesis is below.
+
+#### WoA by Advice
+
+We also want to know if weight on advice differs as a function of how participants rate the advice itself.
+
+```{r woa by advice}
+
+byAdvice <- AdvisedTrial %>%
+  mutate(advisor0questionnaireHonestyLabel = 
+           factor(advisor0questionnaireHonestyLabel, 
+                  levels = 
+                    levels(advisor0questionnaireHonestyLabel)[c(1, 3, 2)])) %>%
+  group_by(pid, advisor0idDescription, advisor0questionnaireHonestyLabel) %>%
+  summarise(woa = mean(advisor0woa),
+            n = n()) 
+
+dw <- 1
+
+# Plot ns
+AdvisedTrial %>%
+  mutate(advisor0questionnaireHonestyLabel = 
+           factor(advisor0questionnaireHonestyLabel, 
+                  levels = 
+                    levels(advisor0questionnaireHonestyLabel)[c(1, 3, 2)])) %>%
+  group_by(pid,
+           advisor0idDescription,
+           advisor0questionnaireHonestyLabel) %>%
+  summarise(nTrials = n()) %>%
+  # CORRECT for missing (0 count) categories
+  spread(advisor0questionnaireHonestyLabel, nTrials) %>%
+  mutate_at(vars(-group_cols()), ~ ifelse(is.na(.), 0, .)) %>%
+  gather('advisor0questionnaireHonestyLabel', 'nTrials', Deceptive:Honest) %>%
+  mutate(advisor0questionnaireHonestyLabel = 
+           factor(advisor0questionnaireHonestyLabel)) %>%
+  mutate(
+    advisor0questionnaireHonestyLabel = 
+           factor(advisor0questionnaireHonestyLabel, 
+                  levels = 
+                    levels(advisor0questionnaireHonestyLabel)[c(1, 3, 2)])) %>%
+  # PLOT
+  ggplot(aes(x = advisor0questionnaireHonestyLabel, y = nTrials)) +
+  geom_point(aes(group = pid),
+             position = position_jitter(width = .2, height = 0), 
+             alpha = .25) + 
+  stat_summary(geom = 'line',
+               aes(group = 1),
+               fun.y = mean,
+               size = 1,
+               position = position_dodge(dw)) +
+  stat_summary(geom = 'errorbar',
+               fun.data = mean_cl_normal,
+               width = 0,
+               size = 1,
+               position = position_dodge(dw)) + 
+  guides(colour = 'none') +
+  scale_y_continuous(limits = c(0, NA)) +
+  facet_wrap(~advisor0idDescription)
+
+# Plot WoA
+byAdvice %>% ggplot(aes(x = advisor0questionnaireHonestyLabel,
+                        y = woa, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor0questionnaireHonestyLabel)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_discrete(guide = 'none') +
+  facet_wrap(~advisor0idDescription)
+
+```
+
+#### Summary {.summary}
+
+We see that WoA for both advisors increases as the rating of the advice honesty increases. There appears to be a general discounting effect whereby the outgroup advisors are less trusted than the ingroup advisors, even where the advice is rated equally. Furthermore, it's possible there is an interaction effect because the increase in weight on advice may be steeper as advice trustworthiness rises for the ingroup advisor. The statistical tests will disambiguate this.
+
+## Questionnaire data
+
+```{r questionnaires}
+
+tmp <- debrief.advisors[debrief.advisors$pid %in% AdvisedTrial$pid, ]
+tmp$sameGroup <- NA
+
+for (i in seq(nrow(tmp))) {
+  tmp$sameGroup[i] <- as.character(
+    advisors$idDescription[advisors$pid == tmp$pid[i] &
+                             advisors$id == tmp$advisorId[i]])
+}
+
+tmp <- gather(tmp, key = "Q", value = "rating", 
+              c("knowledge", "helpfulness", "consistency", "trustworthiness"))
+
+ggplot(tmp, aes(x = sameGroup, y = rating)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = sameGroup)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 100)) +
+  scale_color_discrete(guide = 'none') +
+  facet_wrap(. ~ Q, labeller = label_both)
+
+```
+
+### Summary {.summary} 
+
+Across all questions there is a preference for the ingroup vs outgroup advisor overall. Several participants do demonstrate higher ratings in some dimensions for the outgroup advisor, however, and the overall difference may be driven by the extent of the response in some participants more than a small consistent difference across participants. 
+
+### WoA x Trustworthiness rating
+
+Participants' trustworthiness ratings should reflect their behavioural measure (weight on advice), such that the extent of advisor preference in one measure should be correlated with the other. 
+
+```{r woa trustworthiness correlation}
+
+tmp <- list()
+tmp[['woa']] <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  spread(advisor0idDescription, woa) %>%
+  mutate(inGroupWoaPref = inGroup - outGroup,
+         inGroup = NULL, outGroup = NULL)
+
+tmp[['trust']] <- AdvisedTrial %>% 
+  left_join(debrief.advisors, by = c('pid', 'advisor0id' = 'advisorId')) %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(trust = mean(trustworthiness)) %>%
+  spread(advisor0idDescription, trust) %>%
+  summarise(inGroupTrustPref = inGroup - outGroup)
+
+tmp <- tmp[['woa']] %>% left_join(tmp[['trust']], by = 'pid')
+
+test <- cor.test(tmp$inGroupWoaPref, tmp$inGroupTrustPref)
+
+```
+
+```{r woa trustworthiness graph}
+
+tmp %>% ggplot(aes(x = inGroupWoaPref, y = inGroupTrustPref, colour = pid)) +
+  geom_rect(ymin = -Inf, ymax = Inf, xmin = -Inf, xmax = 0, 
+            fill = 'grey75', colour = NA) +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf, 
+            fill = 'grey75', colour = NA) +
+  geom_rect(ymin = 0, ymax = Inf, xmin = 0, xmax = Inf, 
+            fill = 'white', colour = NA) +
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = 0, 
+            fill = 'grey35', colour = NA) +
+  geom_abline(slope = 100, intercept = 0) + 
+  geom_point() +
+  geom_smooth(aes(group = 1), method = 'lm', se = F, fullrange = T,
+              colour = 'black', linetype = 'dashed') + 
+  scale_x_continuous(limits = c(-1, 1)) + 
+  scale_y_continuous(limits = c(-100, 100)) +
+  scale_color_discrete(guide = 'none') +
+  coord_fixed(.01) +
+  labs(title = 'Weight on Advice difference X Trustworthiness difference',
+       x = 'inGroup WoA preference',
+       y = 'inGroup trustworthiness preference',
+       caption = paste('Correlation: r = ', round(test$estimate, 3), 
+                       '; p = ', round(test$p.value, 4)))
+
+```
+
+### Summary {.summary}
+
+A small, non-significant correlation in the expected direct exists between the subjective and objective measures of trust difference. 
+
+## Hypothesis testing
+
+The hypotheses being tested here are:  
+
+1. Participants will place higher weight on the advice of in-group advisors, which we will test for advice rated as honest.
+  
+2. Participants weighting of advisors by group will be mediated by reports of perceived advisor benevolence
+
+3. Participants will place greater weight on advice on honest vs deceptive advice.
+
+### Group differences
+
+Participants have different weight-on-advice for ingroup as opposed to outgroup advisors.
+
+```{r h1, results='asis'}
+
+tmp <- AdvisedTrial %>%
+  dplyr::filter(advisor0questionnaireHonestyLabel == 'Honest') %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  spread(advisor0idDescription, woa)
+
+r <- md.ttest(tmp$inGroup, tmp$outGroup, 
+              c("*M*|inGroup", "*M*|outGroup"), paired = T)
+cat(r)
+
+```
+
+### Summary {.summary}
+
+The Bayes factor indicates there is good evidence to support the claim that the participants place greater weight on the advice of inGroup advisor versus the outGroup advisor.
+
+### Questionnaire measure
+
+```{r h1 questionnaire, results='asis'}
+
+tmp <- debrief.advisors %>% 
+  left_join(AdvisedTrial, by = c('pid', 'advisorId' = 'advisor0id')) %>%
+  dplyr::select(pid, advisor0idDescription, trustworthiness) %>%
+  unique() %>%
+  filter_all(all_vars(!is.na(.))) %>%
+  spread(advisor0idDescription, trustworthiness)
+
+r <- md.ttestBF(tmp$inGroup, tmp$outGroup, 
+                c("*M*|inGroup", "*M*|outGroup"), paired = T)
+cat(r)
+
+```
+
+### Summary {.summary}
+
+There is also good evidence to support the claim that participants give higher trustworthiness ratings to the inGroup versus outGroup advisor. 
+
+### Mediation by benevolence
+
+```{r h2, results='asis'}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription + advisor0id, 
+                 AdvisedTrial, mean, na.rm = T)
+names(tmp) <- c("pid", "sameGroup", "id", "WoA")
+
+for (i in seq(nrow(tmp))) {
+  tmp$benevolence[i] <- debrief.advisors$helpfulness[
+    debrief.advisors$pid %in% tmp$pid[i] &
+      debrief.advisors$advisorId %in% tmp$id[i]
+  ]
+}
+
+tmp$sameGroupDummy <- as.numeric(tmp$sameGroup == "inGroup")
+
+r <- jzs_med(independent = tmp$sameGroupDummy, 
+             dependent = tmp$WoA, 
+             mediator = tmp$benevolence, 
+             standardize = T)
+
+r$main_result
+
+plot(r$main_result)
+
+```
+
+### Summary {.summary}
+
+These data support the conclusion that advisor group affects both subjective advisor assessment of benevolence ('helpfulness'), and the extent to which advice is taken, but that the latter is not mediated by the former.
+
+### Effect of advice rating
+
+Participants should place greater weight on advice they rate as honest vs deceptive. 
+
+```{r woa by advice test, results='asis'}
+
+tmp <- AdvisedTrial %>%
+  dplyr::filter(advisor0questionnaireHonestyLabel %in% 
+                  c('Honest', 'Deceptive')) %>%
+  group_by(
+    pid,
+    advisor0questionnaireHonestyLabel
+  ) %>%
+  summarise(woa = mean(advisor0woa, na.rm = T))
+
+r <- md.ttest(tmp$woa[tmp$advisor0questionnaireHonestyLabel == 'Deceptive'], 
+              tmp$woa[tmp$advisor0questionnaireHonestyLabel == 'Honest'],
+              c('*M*|deceptive', '*M*|honest'))
+  
+cat(r)
+
+```
+
+### Summary {.summary}
+
+It definitely seems to be the case that participants place more weight on advice they consider honest rather than deceptive.
+
+## Exploration
+
+### ANOVA of woa by advice x advisor
+
+We want to investigate the full design of the study using ANOVA. So we do that:
+
+```{r woa by advice x advisor ANOVA}
+
+# We have to drop participants who did not rate any trials from a given advisor
+# as one of the categories. This is a major limitation and needs addressing.
+
+pids <- unique(AdvisedTrial$pid)
+
+n <- length(levels(AdvisedTrial$advisor0idDescription)) *
+  length(levels(AdvisedTrial$advisor0questionnaireHonestyLabel))
+
+for (p in pids) {
+  tmp <- AdvisedTrial %>%
+    dplyr::filter(pid == p) %>%
+    group_by(advisor0idDescription, advisor0questionnaireHonestyLabel) %>%
+    summarise(woa = mean(advisor0woa)) 
+  
+  if (nrow(tmp) != n) {
+    pids <- pids[-which(pids == p)]
+  }
+}
+
+as.character(pids)
+
+r <- ezANOVA(
+  AdvisedTrial[AdvisedTrial$pid %in% pids, ],
+  dv = advisor0woa,
+  wid = pid,
+  within = list(
+    advisor0idDescription,
+    advisor0questionnaireHonestyLabel
+  )
+)
+
+r$ANOVA
+
+```
+
+### Mediation by trustworthiness 
+
+```{r mediation by trustworthiness, results='asis'}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription + advisor0id, 
+                 AdvisedTrial, mean, na.rm = T)
+names(tmp) <- c("pid", "sameGroup", "id", "WoA")
+
+for (i in seq(nrow(tmp))) {
+  tmp$trustworthiness[i] <- debrief.advisors$trustworthiness[
+    debrief.advisors$pid %in% tmp$pid[i] &
+      debrief.advisors$advisorId %in% tmp$id[i]
+  ]
+}
+
+tmp$sameGroupDummy <- as.numeric(tmp$sameGroup == "inGroup")
+
+r <- jzs_med(independent = tmp$sameGroupDummy, 
+             dependent = tmp$WoA, 
+             mediator = tmp$trustworthiness, 
+             standardize = T)
+
+r$main_result
+
+plot(r$main_result)
+
+```
+
+### Summary {.summary}
+
+As we might have anticipated, the pattern is the same as observed for helpfulness - direct effects of group on trustworthiness and on advice-taking, but no evidence of mediation. 
+
+### Debrief comments
+
+Taking a look at the comments about what the difference between the advisors is (the participant are told explicitly), we can see whether it looks like there's an obvious break between participants for whom the manipulation was effective and those for whom it was not.
+
+```{r commentBreakdown}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription, AdvisedTrial, mean)
+pids <- tibble(pid = unique(tmp$pid))
+pids$worked <- sapply(unique(tmp$pid), function(pid) {
+  x <- tmp[tmp$pid == pid, ]
+  x$advisor0woa[x$advisor0idDescription == "inGroup"] > 
+    x$advisor0woa[x$advisor0idDescription == "outGroup"]
+})
+
+pids <- pull(pids[pids$worked, ], "pid")
+
+```
+
+Participants for whom the manipulation worked: 
+
+```{r commentManipSuccess}
+
+kable(debrief.form$comment[debrief.form$pid %in% pids])
+
+```
+
+And those for whom it did not:
+
+```{r commmentManipFail}
+
+kable(debrief.form$comment[!(debrief.form$pid %in% pids)])
+
+```
+
+### Mediation for manipulated participants
+
+We can look at the mediation analyses for only those participants for whom the manipulation worked.
+
+```{r mediation for manipulated participants only}
+
+tmp <- aggregate(advisor0woa ~ pid + advisor0idDescription + advisor0id, 
+                 AdvisedTrial[AdvisedTrial$pid %in% pids, ], mean, na.rm = T)
+names(tmp) <- c("pid", "sameGroup", "id", "WoA")
+
+for (i in seq(nrow(tmp))) {
+  tmp$trustworthiness[i] <- debrief.advisors$trustworthiness[
+    debrief.advisors$pid %in% tmp$pid[i] &
+      debrief.advisors$advisorId %in% tmp$id[i]
+  ]
+}
+
+tmp$sameGroupDummy <- as.numeric(tmp$sameGroup == "inGroup")
+
+r <- jzs_med(independent = tmp$sameGroupDummy, 
+             dependent = tmp$WoA, 
+             mediator = tmp$trustworthiness, 
+             standardize = T)
+
+r$main_result
+
+plot(r$main_result)
+
+```
+
+#### Summary {.summary}
+
+Result looks identical to that for the whole population. 
+
+### Advice-taking differences
+
+We want to know whether the lower advice-taking in the outGroup condition is due to reduced advice-taking on each trial, or whether it is due specifically to large reductions in advice-taking on trials where the advice is considered implausible. 
+
+If advice is generally discounted, we should see WoA x distance plot lines shifting in intercept but not shape. If it is due to implausible advice being more heavily penalised, we should see similar intercepts but different shapes. 
+
+
+```{r woa by distance graph all participants}
+
+nameList <- names(AdvisedTrial)[grepl('.distance', names(AdvisedTrial))]
+
+for (i in 1:nrow(AdvisedTrial)) {
+  for (n in nameList) {
+    if (!is.na(AdvisedTrial[i, n])) {
+      AdvisedTrial[i, paste0('advisor0', reFirstMatch('\\.(\\w+)*', n))] <-
+        AdvisedTrial[i, n]
+    }
+  }
+}
+
+
+byBin <- AdvisedTrial %>% 
+  mutate(distanceBin = cut(advisor0distance, 
+                           quantile(advisor0distance, 
+                                    seq(.1, .9, length = 5)),
+                           include.lowest = F)) 
+
+models <- byBin %>% 
+  group_by(advisor0idDescription) %>%
+  mutate(dist = if_else(is.na(distanceBin), 
+                        length(levels(distanceBin)) + 1, 
+                        as.numeric(distanceBin)),
+         distSquared = dist ^ 2) %>%
+  do(model = lm(advisor0woa ~ dist + distSquared, data = .data))
+
+models %>% glance(model)
+
+ses <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, std.error) %>%
+  spread(term, std.error) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared)
+
+modelParams <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, estimate) %>%
+  spread(term, estimate) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared) %>%
+  left_join(ses, by = 'advisor0idDescription', suffix = c('.m', '.se'))
+
+dw <- .6 
+
+modelFit <- function(x, 
+                     a = c('inGroup', 'outGroup'), 
+                     se = c(NA, 'low', 'high')) {
+  tmp <- modelParams[modelParams$advisor0idDescription %in% a, ]
+  if (length(se) > 1) {
+    tmp$i.m + x * tmp$d.m + (x ^ 2) * tmp$d2.m
+  } else if (se == 'high') {
+    tmp$i.m + tmp$i.se + 
+      x * (tmp$d.m + tmp$d.se) + 
+      (x ^ 2) * (tmp$d2.m + tmp$d2.se)
+  } else {
+    (tmp$i.m - tmp$i.se) + 
+      x * (tmp$d.m - tmp$d.se) + 
+      (x ^ 2) * (tmp$d2.m - tmp$d2.se)
+  }
+}
+
+byBin %>%  
+  group_by(distanceBin, advisor0idDescription) %>%
+  summarise(m = mean(advisor0woa, na.rm = T), 
+            s = sd(advisor0woa, na.rm = T),
+            n = n()) %>%
+  left_join(models, by = 'advisor0idDescription') %>%
+  # plot
+  ggplot(aes(x = distanceBin, y = m, colour = advisor0idDescription)) +
+  # technical limits shading
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  geom_rect(ymin = 1, ymax = Inf, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  # data
+  geom_point(position = position_dodge(dw)) +
+  geom_errorbar(aes(ymin = m - s, ymax = m + s), width = 0, position = position_dodge(dw)) +
+  geom_text(aes(y = max(m) + max(s), label = n), position = position_dodge(dw)) +
+  # function lines
+  stat_function(fun = modelFit, args = 'inGroup', 
+                colour = scales::hue_pal()(2)[1]) +
+  stat_function(fun = modelFit, args = 'outGroup', 
+                colour = scales::hue_pal()(2)[2]) +
+  # SEs for function lines
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  # scales and labels
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(-.5, 1.5)) +
+  labs(y = 'Mean WoA',
+       title = 'WoA by distance (all participants)',
+       subtitle = 'Numbers at the top show the number of cases in each bin',
+       caption = paste('Points show means across participants +/- 1SE',
+                       'Lines show modelled weight on advice +/- 1SE.',
+                       'Note: model fits were very poor.', sep = '\n'))
+
+```
+
+#### Summary {.summary}
+
+The graph indicates that the shapes of the functions are pretty similar, while the intercepts are somewhat different. This suggests that participants are discounting advice overall rather than modifying their advice as a function of the distance. To check this conclusion we run the same analysis with only 3 bins where the u-shaped curve ought to be more pronounced if it indeed exists. 
+
+#### 3-bin version 
+
+```{r three-bin woa by distance} 
+
+byBin <- AdvisedTrial %>% 
+  mutate(distanceBin = cut(advisor0distance, 
+                           quantile(advisor0distance, 
+                                    seq(.1, .9, length = 3)),
+                           include.lowest = F)) 
+
+models <- byBin %>% 
+  group_by(advisor0idDescription) %>%
+  mutate(dist = if_else(is.na(distanceBin), 
+                        length(levels(distanceBin)) + 1, 
+                        as.numeric(distanceBin)),
+         distSquared = dist ^ 2) %>%
+  do(model = lm(advisor0woa ~ dist + distSquared, data = .data))
+
+models %>% glance(model)
+
+ses <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, std.error) %>%
+  spread(term, std.error) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared)
+
+modelParams <- tidy(models, model) %>%
+  dplyr::select(advisor0idDescription, term, estimate) %>%
+  spread(term, estimate) %>%
+  mutate(i = `(Intercept)`,
+         d = dist,
+         d2 = distSquared) %>%
+  left_join(ses, by = 'advisor0idDescription', suffix = c('.m', '.se'))
+
+dw <- .6 
+
+byBin %>%  
+  group_by(distanceBin, advisor0idDescription) %>%
+  summarise(m = mean(advisor0woa, na.rm = T), 
+            s = sd(advisor0woa, na.rm = T),
+            n = n()) %>%
+  left_join(models, by = 'advisor0idDescription') %>%
+  # plot
+  ggplot(aes(x = distanceBin, y = m, colour = advisor0idDescription)) +
+  # technical limits shading
+  geom_rect(ymin = -Inf, ymax = 0, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  geom_rect(ymin = 1, ymax = Inf, xmin = -Inf, xmax = Inf,
+            fill = 'grey80', colour = NA) +
+  # data
+  geom_point(position = position_dodge(dw)) +
+  geom_errorbar(aes(ymin = m - s, ymax = m + s), width = 0, position = position_dodge(dw)) +
+  geom_text(aes(y = max(m) + max(s), label = n), position = position_dodge(dw)) +
+  # function lines
+  stat_function(fun = modelFit, args = 'inGroup', 
+                colour = scales::hue_pal()(2)[1]) +
+  stat_function(fun = modelFit, args = 'outGroup', 
+                colour = scales::hue_pal()(2)[2]) +
+  # SEs for function lines
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'low'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'inGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[1], linetype = 'dashed') +
+  stat_function(fun = modelFit, args = list(a = 'outGroup', se = 'high'),
+                colour = scales::hue_pal()(2)[2], linetype = 'dashed') +
+  # scales and labels
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(-.5, 1.5)) +
+  labs(y = 'Mean WoA',
+       title = 'WoA by distance (all participants)',
+       subtitle = 'Numbers at the top show the number of cases in each bin',
+       caption = paste('Points show means across participants +/- 1SE',
+                       'Lines show modelled weight on advice +/- 1SE.',
+                       'Note: model fit for outgroup was very poor.', sep = '\n'))
+
+```
+
+#### Summary {.summary}
+
+It looks like in this version there are differences in the intercepts and the other parameters, but the outgroup looks very flat, going against the hypothesis that the advice considered most helpful by participants (the middle advice) is the advice least affected by the manipulation. It appears that all advice from outgroup advisors is discounted, and it's possible this effect shows up _more strongly_ for middle-distance advice.
+
+We did not run statistical tests of this (they would likely not be useful given the ratio of distances to standard errors), but if necessary we could estimate the sample size we would require in order to reliably determine whether these interpretations are statistically valid. 
+
+# Conclusions {.summary}
+
+The experiment provided evidence against for hypotheses tested. Weight on advice was higher for ingroup vs outgroup advisors, but the differences in the weighting of advice were not mediated by perceived benevolence or trustworthiness. 
+
+Through further analysis we may be able to distinguish general wariness of advice from the outGroup advisor from specific discounting of 'implausible' advice from the outGroup advisor. 
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```

@@ -329,29 +329,47 @@ getDerivedVariables <- function(x, name, opts = list()) {
       # Produce equivalents of the advisor1|2... variables which are named for the 
       # advisor giving the advice
       
+      # Find the index for each advisor
+      for (a in advisorNames) {
+        x[[paste0(a, '.index')]] <- unlist(
+          sapply(1:nrow(x), function(i) {
+            tmp <- x[i, grepl('^advisor[0-0]+idDescription$', names(x))]
+            tmp <- t(tmp)
+            rn <- rownames(tmp)[tmp[1] == a]
+            if (length(rn) != 1)
+              NA
+            else
+              reFirstMatch('advisor([0-9]+)idDescription', rn)
+          })
+          )
+      }
+      
+      # Use the index to patch in the advisor's value
       for (v in names(x)[grepl("advisor0", names(x))]) {
         suffix <- reFirstMatch("advisor0(\\S+)", v)
+        
+        f <- is.factor(x[[paste0('advisor0', suffix)]])
+        
         for (a in advisorNames) {
           
           s <- paste0(a, ".", suffix)
-          x[, s] <- NA
+          x[[s]] <- unlist(
+            sapply(1:nrow(x), function(i) {
+              index <- x[i, paste0(a, '.index')]
+              if (is.na(index))
+                NA
+              else {
+                tmp <- x[i, paste0('advisor', index, suffix)]
+                if (f) 
+                  as.character(tmp)
+                else
+                  tmp
+              }
+            })
+            )
           
-          for (i in 1:nrow(x)) {
-            z <- 0
-            while (T) {
-              if (!length(grep(paste0("advisor", z), 
-                               names(x)))) {
-                break()
-              }
-              
-              if (x[i, paste0("advisor", z, "idDescription")] == a) {
-                x[i, s] <- x[i, paste0("advisor", z, suffix)]
-                break()
-              }
-              
-              z <- z + 1
-            }
-            
+          if (f) {
+            x[[s]] <- patchFactor(x[[s]], x[[paste0('advisor0', suffix)]])
           }
         }
       }
@@ -534,6 +552,17 @@ safeBind <- function(x, padWith = NA) {
 expect_equal(dim(safeBind(list(data.frame(x = 1:5, y = runif(5), rnorm(5)),
                                data.frame(x = 6:10, z = 1:5)))),
              c(10, 4))
+
+#' Return a factor safely inheriting specified level labels
+#' @param x vector to factorize
+#' @param y factor whose levels x should inherit
+#' @param ... additional arguments to try to pass to \code{factor()}
+#' @return x as a factor with y's labels 
+patchFactor <- function(x, y, ...) {
+  z <- c(x, unique(y))
+  z <- factor(z, labels = levels(y), ...)
+  z[1:length(x)]
+}
 
 #' List the unique values of a vector and a "total" item with all unique values
 #' Designed for outputting aggregate counts and totals
