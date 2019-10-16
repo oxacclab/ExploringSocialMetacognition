@@ -52,7 +52,7 @@ theme_set(theme_light() +
 
 ```{r loadData, include = F}
 
-studyVersion <- "3-0-0"
+studyVersion <- "3-0-1"
 studyName <- "directBenevolence"
 
 overrideMarkerList <- c(11) # Someone managed to get marker width 8 for one question, not sure how
@@ -82,6 +82,8 @@ We hypothesised that participants would place greater weight on the advice of th
 **Version 2.1.0** removed the difference in advice and adjusted the to be consistent ('may' rather than 'will' sometime mislead...). 
 
 **Version 3.0.0** adds a question after seeing advice but before giving a final reponse where participants rate the deceptiveness/honesty of the advice. We can examine how the weight on advice differs by both _advice_ and _advisor_. Will participants place less weight on all advice from the outGroup advisor, or only on those trials where they consider the advice deceptive?
+
+**Version 3.0.1** is a pre-registered replication of V3.0.0.
 
 # Method
 
