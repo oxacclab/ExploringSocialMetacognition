@@ -577,6 +577,41 @@ These data support the conclusion that advisor group affects both subjective adv
 
 ## Exploration
 
+### WoA where advice is taken
+
+We can look at weight on advice for trials where advice is taken: does it still differ between the advisors?
+
+```{r woa for taken advice}
+
+tmp <- AdvisedTrial %>%
+  dplyr::filter(advisor0woa > .05) %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(WoA = mean(advisor0woa)) 
+
+tmp %>%
+  ungroup() %>%
+  group_by(advisor0idDescription) %>%
+  summarise(WoA = mean(WoA))
+
+ttestBF(formula = WoA ~ advisor0idDescription, data = tmp)
+
+```
+
+```{r woaGraph for taken advice}
+
+ggplot(tmp, aes(x = advisor0idDescription, y = WoA, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, 
+               aes(group = advisor0idDescription)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_discrete(guide = 'none')
+
+```
+
 ### Mediation by trustworthiness 
 
 ```{r mediation by trustworthiness, results='asis'}
