@@ -320,6 +320,25 @@ if (!is.null(exclude$badMarker) && !is.na(exclude$badMarker)) {
 }
 
 
+# bad honesty questionnaire responses -------------------------------------
+
+if (!is.null(exclude$qqLableWhitelist) && 
+    length(exclude$qqLableWhitelist) > 0) {
+  # Exclude participants who didn't use the right labels (e.g. translations) for
+  # the questionnaire about advice honesty
+  tmp <- AdvisedTrial %>% 
+    dplyr::filter(!(advisor0questionnaireHonestyLabel %in% 
+                      exclude$qqLableWhitelist)) %>%
+    group_by(pid) %>%
+    summarise(n = n()) %>%
+    pull(pid) 
+  
+  exclusions$excluded[exclusions$pid %in% tmp] <- 
+    addExclusion(exclusions$excluded[exclusions$pid %in% tmp], 
+                 'badQQLabels')
+}
+
+
 # excess ------------------------------------------------------------------
 
 if (!is.null(exclude$maxPerCondition) &&
