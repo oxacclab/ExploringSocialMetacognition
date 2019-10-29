@@ -103,6 +103,10 @@ We hypothesised that participants would place greater weight on the advice of th
 
 * Included frequentist stats in the trustworthiness questionnaire item t-test.
 
+* Fixed some labels on graphs
+
+* Exploratory analyses expanded to include analysis of trials with WoA > .05
+
 # Method
 
 The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html?PROLIFIC_PID=WriteUp). 
@@ -122,7 +126,7 @@ table(tmp$excluded, tmp$condition)
 
 ```
 
-Our final participant list consists of `r length(unique(PP$pid))` participants who completed an average of `r num2str(mean(aggregate(number ~ pid, PP, function(x) sum(x) / 2)$number))` trials each.
+Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each.
 
 ## Task performance
 
@@ -177,7 +181,7 @@ ggplot(aggregate(responseCorrect ~
                aes(group = 1, linetype = "mean"), size = 1.5) +
   scale_linetype_manual(values = c("dashed")) +
   scale_color_discrete(guide = 'none') + 
-  labs(x = "response marker width (years)", 
+  labs(x = "decision", 
        y = "p(response correct)")
 
 ```
@@ -209,7 +213,7 @@ ggplot(aggregate(responseError ~
                aes(group = 1, linetype = "mean"), size = 1.5) +
   scale_linetype_manual(values = c("dashed")) +
   scale_color_discrete(guide = 'none') + 
-  labs(x = "response marker width (years)", 
+  labs(x = "decision", 
        y = "|target - response marker centre| (years)")
 
 ```
@@ -244,7 +248,7 @@ ggplot(aggregate(rt ~
                aes(group = 1, linetype = "mean"), size = 1.5) +
   scale_linetype_manual(values = c("dashed")) +
   scale_color_discrete(guide = 'none') + 
-  labs(x = "response marker width (years)", 
+  labs(x = "decision", 
        y = "response time (s)")
 
 ```
@@ -499,7 +503,9 @@ byAdvice %>% ggplot(aes(x = advisor0questionnaireHonestyLabel,
                aes(group = 1, linetype = "mean"), size = 1.5) +
   scale_y_continuous(limits = c(0, 1)) +
   scale_color_discrete(guide = 'none') +
-  facet_wrap(~advisor0idDescription)
+  facet_wrap(~advisor0idDescription) +
+  labs(x = 'Advice Honesty Rating',
+       y = 'Weight on Advice')
 
 ```
 
@@ -532,7 +538,8 @@ ggplot(tmp, aes(x = sameGroup, y = rating)) +
                aes(group = 1, linetype = "mean"), size = 1.5) +
   scale_y_continuous(limits = c(0, 100)) +
   scale_color_discrete(guide = 'none') +
-  facet_wrap(. ~ Q, labeller = label_both)
+  facet_wrap(. ~ Q, labeller = label_both) +
+  labs(x = '', y = 'Rating')
 
 ```
 
@@ -773,6 +780,58 @@ ggplot(tmp, aes(x = advisor0idDescription, y = distance,
 #### Summary {.summary}
 
 Distance does seem to be related to the probability of classifying advice as deceptive/honest. It's possible, but not overwhelmingly clear, that the ingroup advisor's answers can have higher distances than the outgroup's before being classified non-honest. 
+
+### WoA where advice is taken
+
+For parity with previous versions we can look at weight on advice for trials where advice is taken: does it still differ between the advisors?
+
+```{r woa for taken advice}
+
+AdvisedTrial %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(adviceIgnored = mean(advisor0woa <= .05)) %>%
+  ungroup() %>% group_by(advisor0idDescription) %>%
+  summarise(
+    p.adviceIgnored_m = mean(adviceIgnored),
+    p.adviceIgnored_sd = sd(adviceIgnored)
+  )
+
+tmp <- AdvisedTrial %>%
+  dplyr::filter(advisor0woa > .05) %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(WoA = mean(advisor0woa)) 
+
+tmp <- tmp %>%
+  ungroup() %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(WoA = mean(WoA)) %>%
+  spread(advisor0idDescription, WoA) %>% 
+  dplyr::filter_all(all_vars(!is.na(.)))
+  
+
+r <- md.ttest(tmp$inGroup, tmp$outGroup, 
+              labels = c('inGroup', 'outGroup'),
+              paired = T)
+
+cat(r)
+
+```
+
+```{r woaGraph for taken advice}
+
+tmp %>%
+  gather('advisor', 'WoA', -pid) %>%
+  ggplot(aes(x = advisor, y = WoA)) +
+  geom_violin(colour = NA, aes(fill = advisor), alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor),
+               width = .2) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+  labs(x = 'Advisor')
+
+```
 
 # Conclusions {.summary}
 

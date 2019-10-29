@@ -723,6 +723,58 @@ for (contrast in list(x[c(1,2)], x[c(1,3)], x[c(2,3)])) {
 
 ```
 
+### WoA where advice is taken
+
+For parity with previous versions we can look at weight on advice for trials where advice is taken: does it still differ between the advisors?
+
+```{r woa for taken advice}
+
+AdvisedTrial %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(adviceIgnored = mean(advisor0woa <= .05)) %>%
+  ungroup() %>% group_by(advisor0idDescription) %>%
+  summarise(
+    p.adviceIgnored_m = mean(adviceIgnored),
+    p.adviceIgnored_sd = sd(adviceIgnored)
+  )
+
+tmp <- AdvisedTrial %>%
+  dplyr::filter(advisor0woa > .05) %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(WoA = mean(advisor0woa)) 
+
+tmp <- tmp %>%
+  ungroup() %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(WoA = mean(WoA)) %>%
+  spread(advisor0idDescription, WoA) %>% 
+  dplyr::filter_all(all_vars(!is.na(.)))
+  
+
+r <- md.ttest(tmp$inGroup, tmp$outGroup, 
+              labels = c('inGroup', 'outGroup'),
+              paired = T)
+
+cat(r)
+
+```
+
+```{r woaGraph for taken advice}
+
+tmp %>%
+  gather('advisor', 'WoA', -pid) %>%
+  ggplot(aes(x = advisor, y = WoA)) +
+  geom_violin(colour = NA, aes(fill = advisor), alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor),
+               width = .2) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+  labs(x = 'Advisor')
+
+```
+
 # Conclusions {.summary}
 
 The experiment provided evidence against for hypotheses tested. Weight on (rated-as-honest) advice was higher for ingroup vs outgroup advisors, and weight on advice was higher for advice rated as honest than for advice rated as deceptive. This suggests that both the properties of the advice and of the advisor affect the extent to which advice is taken.

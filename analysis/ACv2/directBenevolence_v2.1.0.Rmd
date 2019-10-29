@@ -583,32 +583,48 @@ We can look at weight on advice for trials where advice is taken: does it still 
 
 ```{r woa for taken advice}
 
+AdvisedTrial %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(adviceIgnored = mean(advisor0woa <= .05)) %>%
+  ungroup() %>% group_by(advisor0idDescription) %>%
+  summarise(
+    p.adviceIgnored_m = mean(adviceIgnored),
+    p.adviceIgnored_sd = sd(adviceIgnored)
+  )
+
 tmp <- AdvisedTrial %>%
   dplyr::filter(advisor0woa > .05) %>%
   group_by(pid, advisor0idDescription) %>%
   summarise(WoA = mean(advisor0woa)) 
 
-tmp %>%
+tmp <- tmp %>%
   ungroup() %>%
-  group_by(advisor0idDescription) %>%
-  summarise(WoA = mean(WoA))
+  group_by(pid, advisor0idDescription) %>%
+  summarise(WoA = mean(WoA)) %>%
+  spread(advisor0idDescription, WoA)
+  
 
-ttestBF(formula = WoA ~ advisor0idDescription, data = tmp)
+r <- md.ttest(tmp$inGroup, tmp$outGroup, 
+              labels = c('inGroup', 'outGroup'),
+              paired = T)
+
+cat(r)
 
 ```
 
 ```{r woaGraph for taken advice}
 
-ggplot(tmp, aes(x = advisor0idDescription, y = WoA, colour = pid)) +
-  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
-  geom_boxplot(outlier.colour = NA, fill = NA, 
-               aes(group = advisor0idDescription)) +
-  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid)) +
+tmp %>%
+  gather('advisor', 'WoA', -pid) %>%
+  ggplot(aes(x = advisor, y = WoA)) +
+  geom_violin(colour = NA, aes(fill = advisor), alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor),
+               width = .2) +
+  geom_line(alpha = .25, aes(group = pid)) + 
   stat_summary(geom = "line", fun.y = mean,
                aes(group = 1, linetype = "mean"), size = 1.5) +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_discrete(guide = 'none')
+  scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+  labs(x = 'Advisor')
 
 ```
 
