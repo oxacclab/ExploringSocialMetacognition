@@ -22,7 +22,7 @@ exclude <- list(maxAttnCheckFails = 0, # pass all attn checks
                 minChangeRate = .1,    # some advice taken on 10%+ of trials
                 multipleAttempts = T)  # exclude multiple attempts
 
-source("./src/02 Exclusions.R")
+source("./src/02_Exclusions.R")
 
 re <- AdvisedTrial[, c("responseError", "pid", "studyVersion")]
 re$studyName <- studyName
@@ -45,11 +45,11 @@ exclude <- list(maxAttnCheckFails = 0, # pass all attn checks
                 minChangeRate = .1,    # some advice taken on 10%+ of trials
                 multipleAttempts = T)  # exclude multiple attempts
 
-source("./src/02 Exclusions.R")
+source("./src/02_Exclusions.R")
 
 # Also include v1.1.0
 studyVersion <- "1-1-0"
-source("./src/02 Exclusions.R")
+source("./src/02_Exclusions.R")
 
 tmp <- AdvisedTrial[, c("responseError", "pid", "studyVersion")]
 tmp$studyName <- studyName

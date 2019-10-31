@@ -81,7 +81,7 @@ exclude <- list(maxAttnCheckFails = 0, # pass all attn checks
 
 skipLoadData <- F
 
-source("src/02 Exclusions.R")
+source("src/02_Exclusions.R")
 
 ```
 
@@ -783,8 +783,8 @@ if (F) { # don't run by default!
   }
   
   # Initial preparation
-  srcFile <- paste0(getwd(), "/src/01 Load data.R")
-  scriptFile <- paste0(getwd(), "/src/02 Exclusions.R")
+  srcFile <- paste0(getwd(), "/src/01_Load-data.R")
+  scriptFile <- paste0(getwd(), "/src/02_Exclusions.R")
   
   # Load the raw data and save a copy to speed up the process
   source(srcFile)

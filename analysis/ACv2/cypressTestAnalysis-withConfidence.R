@@ -17,7 +17,7 @@ testData <- T
 
 exclude <- list()  # exclude multiple attempts
 
-source("./src/02 Exclusions.R")
+source("./src/02_Exclusions.R")
 
 AdvisedTrialWithConf <- AdvisedTrialWithConf[-1, ]
 

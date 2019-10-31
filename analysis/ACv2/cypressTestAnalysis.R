@@ -17,7 +17,7 @@ testData <- T
 
 exclude <- list()  # exclude multiple attempts
 
-source("./src/02 Exclusions.R")
+source("./src/02_Exclusions.R")
 
 advice <- AdvisedTrial[, c("pid", "studyVersion", "advisor0idDescription")]
 advice$adviceError <- abs(AdvisedTrial$advisor0adviceCentre - AdvisedTrial$correctAnswer)
