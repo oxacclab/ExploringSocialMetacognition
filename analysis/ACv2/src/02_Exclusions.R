@@ -7,6 +7,8 @@
 
 # dependencies ------------------------------------------------------------
 
+library(dplyr)
+
 isSet <- function(v) {
   length(grep(paste0("^", v, "$"), ls(parent.frame())))
 }
