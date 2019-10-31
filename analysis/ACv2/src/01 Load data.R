@@ -11,7 +11,11 @@ isSet <- function(v) {
   length(grep(paste0("^", v, "$"), ls(parent.frame())))
 }
 
-source("./src/00 Functions.R")
+if (!isSet(httpPath)) {
+  httpPath <- "./"
+}
+
+source(paste0(httpPath, "src/00 Functions.R"))
 
 library(tibble)
 

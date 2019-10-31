@@ -11,10 +11,14 @@ isSet <- function(v) {
   length(grep(paste0("^", v, "$"), ls(parent.frame())))
 }
 
+if (!isSet(httpPath)) {
+  httpPath <- "./"
+}
+
 if (!isSet("skipLoadData") || !skipLoadData) {
-  source("./src/01 Load data.R")
+  source(paste0(httpPath, "src/01 Load data.R"))
 } else {
-  source("./src/00 Functions.R")
+  source(paste0(httpPath, "src/00 Functions.R"))
   markerList <- getMarkerList()
 }
 
