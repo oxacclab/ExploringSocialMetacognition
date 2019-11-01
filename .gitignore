@@ -9,6 +9,7 @@ analysis/.Rhistory
 analysis/tmp.csv
 analysis/explore
 analysis/simulation/linear-mixed-effects_results
+analysis/data
 *.Rhistory
 analysis/spss
 data/public/raw/*.JSON
