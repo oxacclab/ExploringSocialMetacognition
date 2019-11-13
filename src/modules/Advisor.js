@@ -58,7 +58,7 @@ class Advisor extends BaseObject {
     }
 
     get svg() {
-        if(typeof this._image === "undefined") {
+        if(!this._image) {
 
             this.info("Generating identicon");
 
@@ -80,16 +80,14 @@ class Advisor extends BaseObject {
      * @return {HTMLElement}
      */
     image(options = {}) {
-        if(!options.class)
-            options.class = "identicon";
-        else
-            options.class += ", identicon";
 
         // write to a data URI
         const elm = document.createElement('img');
         for(let key in options) {
             elm[key] = options[key];
         }
+
+        elm.classList.add("identicon");
         elm.src = this.svg;
 
         return elm;

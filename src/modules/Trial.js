@@ -425,6 +425,37 @@ class AdvisedTrial extends Trial {
     }
 
     /**
+     * Check advisor can be seen, as well as setting prompt etc.
+     * @return {Promise<Trial>}
+     */
+    async begin() {
+        const advisors = this.advisors;
+        // Remove old unused advisors
+        document.querySelectorAll('.sidebar .advisor-key .advisor-key-row').forEach(elm => {
+            if(!advisors.filter(a => a.id.toString() === elm.dataset.advisorId).length)
+                elm.remove();
+        });
+
+        // Add new advisors
+        if(this.advisors) {
+            this.advisors.forEach(a => {
+                let add = true;
+                document.querySelectorAll(
+                    '.sidebar .advisor-key .advisor-key-row'
+                ).forEach(elm => {
+                    if(elm.dataset.advisorId === a.id.toString())
+                        add = false;
+                });
+                if(add)
+                    document.querySelector('.sidebar .advisor-key')
+                            .appendChild(a.getInfoTab());
+            });
+        }
+
+        return super.begin();
+    }
+
+    /**
      * Choose the advisor for the trial
      * @return {Promise<AdvisedTrial>}
      */

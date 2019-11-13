@@ -847,6 +847,10 @@ span.redo-link {
     background-color: yellow;
 }
 
+/* Modifications by experiment */
+.NoFeedbackContexts .advisor-key-row .advisor-group {
+    display: none;
+}
 
 /* Browser capability tests */
 #outcome.cloak {

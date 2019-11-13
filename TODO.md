@@ -21,18 +21,29 @@
         * ~~"You are in Group 1" displayed throughout~~
     * ~~Actually provide occasionally bad advice from outgroup advisor~~
     * ~~Improve advice slightly (inc. for training advisor)~~
-* Preregistration [omitted]
+* ~~Preregistration (omitted)~~
 * ~~Run~~
 * ~~Data analysis~~
-* Redesign based on clearer manipulation
+* ~~Redesign based on clearer manipulation~~
+    * ~~Pilot~~
+    * ~~Data Analysis~~ 
+    * ~~Preregistred replication~~
+* Advisor population version
     * Pilot
-    * Data Analysis 
+    * Preregistration
+    * Data analysis
 ### Registered Report
 * Identify journal(s)
 * RR stage 1
 * Revise RR
 * Run RR
 * RR stage 2
+
+## Confidence mapping study
+* Devise confidence mapping manipulation
+* Design study
+* Pilot
+* Preregistration
 
 ## Core studies
 * ~~Clarify marker usage (confidence)~~
