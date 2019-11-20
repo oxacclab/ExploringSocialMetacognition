@@ -273,6 +273,11 @@ for(let run = 0; run < runs; run++) {
                 .click();
 
             cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+
+            cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
                 .click();
