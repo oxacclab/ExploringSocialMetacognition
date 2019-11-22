@@ -593,6 +593,21 @@ class AdvisedTrial extends Trial {
         this.advisors.forEach((a) => a.hideAdvice());
         return super.cleanup();
     }
+
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @param [headers=null] {string[]|null} values to read. Defaults to
+     * this.tableHeaders
+     * @return {object} key-value pairs where all values are single items
+     */
+    toTable(headers=null) {
+        // Add advisor-specific data fields
+        this.data.context = this.context;
+        this.data.contextName = this.contextName;
+        this.data.contextDescription = this.contextDescription;
+
+        return super.toTable(headers);
+    }
 }
 
 
