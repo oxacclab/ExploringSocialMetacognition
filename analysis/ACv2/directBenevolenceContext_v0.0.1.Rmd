@@ -403,7 +403,7 @@ tmp <- AdvisedTrial %>%
   summarise(woa = mean(advisor0woa)) %>%
   spread(advisor0idDescription, woa) %>%
   dplyr::filter_all(all_vars(!is.na(.))) %>%
-  summarise(asExpected = honest > deceptive)
+  mutate(asExpected = honest > deceptive)
 
 ```
 

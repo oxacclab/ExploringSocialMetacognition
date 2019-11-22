@@ -556,11 +556,15 @@ expect_equal(dim(safeBind(list(data.frame(x = 1:5, y = runif(5), rnorm(5)),
 #' Return a factor safely inheriting specified level labels
 #' @param x vector to factorize
 #' @param y factor whose levels x should inherit
+#' @param dropUnused whether to drop levels of y not in use by y
 #' @param ... additional arguments to try to pass to \code{factor()}
 #' @return x as a factor with y's labels 
-patchFactor <- function(x, y, ...) {
+patchFactor <- function(x, y, dropUnused = T, ...) {
   z <- c(x, unique(y))
-  z <- factor(z, labels = levels(y), ...)
+  if (dropUnused)
+    z <- factor(z, labels = levels(factor(y)), ...)
+  else
+    z <- factor(z, labels = levels(y), ...)
   z[1:length(x)]
 }
 
