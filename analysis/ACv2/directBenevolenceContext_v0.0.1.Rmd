@@ -223,7 +223,9 @@ ggplot(aggregate(rt ~
 
 ### Summary {.summary}
 
-!TODO[Summarise task performance]
+For the most part, participants' final answers were closer to the correct answer, and more likely to include the correct answer, as compared to their intial answers. This suggests that they took the advice into account. 
+
+*N.B.: participants who do not adjust their answers following advice on >90% of trials are excluded.*
 
 ## Advisor performance
 
@@ -343,7 +345,7 @@ ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
 
 ### Summary {.summary}
 
-!TODO[summarise advisor performance] 
+The advice offered by the advisors was designed to be equivalent, and was similar in practice. The 'deceptive' advisors were slightly more accurate and had slightly lower average error, although the difference is unlikely to be meaningful. The same is true for agreement and advice distance, although these metrics showed more desirable scores for the 'honest' advisors.
 
 ### Influence
 
@@ -409,7 +411,7 @@ tmp <- AdvisedTrial %>%
 
 ### Summary {.summary}
 
-!TODO[Summarise WoA] (`r round(mean(tmp$asExpected) * 100, 2)`%) participants show a preference for the honest advisor. Formal testing of the hypothesis is below.
+Overall, advice was taken more seriously when it came from 'honest' advisors as opposed to 'deceptive' advisors. This appears to be predominantly driven by an increase in complete discounting of advice from the 'deceptive' advisors. Most (`r round(mean(tmp$asExpected) * 100, 2)`%) participants show a preference for the 'honest' advisors. Formal testing of the hypothesis is below.
 
 #### WoA by Advice
 
@@ -479,7 +481,7 @@ byAdvice %>% ggplot(aes(x = advisor0questionnaireHonestyLabel,
 
 #### Summary {.summary}
 
-!TODO[Summarise WoA full breakdown]
+As shown by the number of trials labelled a particular way for each advisor group, advice was more likely to be rated as "Honest" if it came from the 'honest' advisors. Both advisor groups show an increase in how influential the advice was as a function of how the advice was rated, and the influence of advice may be slightly higher for the 'honest' advisors at each label level.
 
 ## Hypothesis testing
 
@@ -511,7 +513,7 @@ cat(r)
 
 ### Summary {.summary}
 
-!TODO[Summarise advisor group differences]
+Where advice was labelled as "Honest" by the participants, advice was more influential when coming from 'honest' advisors. Participants are thus less willing to trust advice from a potentially dubious source even when that advice is perceived as being genuine. This effect is moderately sized. 
 
 ### 2. Effect of advice rating
 
@@ -541,7 +543,7 @@ cat(r)
 
 ### Summary {.summary}
 
-!TODO[Summarise advice rating effects]
+Participants are less influenced by advice they perceive as being misleading. This effect is enormous.
 
 ## Exploration
 
@@ -632,7 +634,7 @@ ggplot(tmp, aes(x = advisor0idDescription, y = distance,
 
 #### Summary {.summary}
 
-!TODO[summarise distance observations]
+There does not seem to be a clear difference in the criteria used to judge the deceptiveness of advice as a function of the labels of the advisors.
 
 ### WoA where advice is taken
 
@@ -688,7 +690,11 @@ tmp %>%
 
 # Conclusions {.summary}
 
-!TODO[overall summary]
+Both the properties of the source of advice and the advice itself are important for determining the influence of a piece of advice. That said, the properties of the advice are far more important than the properties of the advisor - people will mostly take advice on its own merit. 
+
+The properties of the advice may have been far more influential because the properties of the advisor influenced the rating of the advice: if it were harder for advice from 'deceptive' advisors to be rated as "Honest" then much of the explanatory power of the advisor would be hidden by the explanatory power of the advice. The exploratory analysis of advice rating distance by advisor indicated that this was not the case, however: participants were more likely to rate advice as "Deceptive" from 'deceptive' advisors, but not more so as a consequence of the distance between their initial estimate and the advice estimate (a measure of advice plausibility). 
+
+It seems, then, that labelling some advisors as potentially 'deceptive' made participants more likely to perceive their advice as "Deceptive". This is a blanket adjustment, and not an interaction with advice distance. Once the advice is labelled by the participant, the labelling of the advisor does make a slight difference in the influence of advice, but this is dwarfed by the difference made by the participant's own labelling of the advice.
 
 # Credits 
 
