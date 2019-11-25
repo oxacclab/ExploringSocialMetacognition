@@ -89,7 +89,7 @@ Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) 
 
 We hypothesised that participants would place greater weight on the advice of the 'honest' vs 'deceptive' advisors, and that this relationship would be mediated by responses to questionnaires asking about the perceived benevolence of the advisors.
 
-The study was [pre-registered](https://osf.io/tu3ev). Differences from the pre-registered script:
+The study was [pre-registered](https://osf.io/qjey5). Differences from the pre-registered script:
 
 * Minor fixes after collecting 4 participants' data:
 
@@ -99,7 +99,7 @@ The study was [pre-registered](https://osf.io/tu3ev). Differences from the pre-r
 
 # Method
 
-The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/db.html?PROLIFIC_PID=WriteUp). 
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/dbc.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/dbc.html?PROLIFIC_PID=WriteUp). 
 
 # Results
 
