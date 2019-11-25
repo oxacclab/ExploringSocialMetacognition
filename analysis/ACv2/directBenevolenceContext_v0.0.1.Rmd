@@ -91,7 +91,11 @@ We hypothesised that participants would place greater weight on the advice of th
 
 The study was [pre-registered](https://osf.io/tu3ev). Differences from the pre-registered script:
 
+* Minor fixes after collecting 4 participants' data:
 
+    * Fixed phantom levels in categorical variables
+
+    * Fixed percentage calculation for participants showing 'honest' > 'deceptive' pattern for weight on advice
 
 # Method
 
