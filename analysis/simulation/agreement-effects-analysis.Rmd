@@ -1,35 +1,223 @@
 ---
-title: "agreement-effects analysis"
-output: html_notebook
+title: "Agreement-effects analysis"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
 ---
 
 Here we run code which simulates agents who exhange advice with one another and update their weightings of one another based on the agreement of their initial decisions and advice.
 
-We want to see whether confidence-weighted updating has more pronounced effects than non-weighted agreement-only updating.
+## Model structure
+
+Agents ($^a$) make categorical decisions about a continuous variable in the world which changes at each time point($_t$) ($x_t \sim \mathcal{N}(\mu=0, \theta^=1)$). This intial estimate ($i_t^a$) is the result of combining the true value ($x_t$) with the agent's bias ($b_t^a$), and adding noise based on the agent's sensitivity ($s^a$):
+
+$$i_t^a = (x_t + b_t^a) s_t^a$$
+where $s_t^a \sim \mathcal{N}(\mu=0, \theta^=s^a)$.
+
+Agents then get the opportunity to make a final decision ($f_t^a$) by considering the initial estimate of another (randomly chosen) agent ($^z$) as their advice. This advice is weighted by the level of trust agent $^a$ has in agent $^z$ ($\omega_t^{a,z}$) at that moment:
+
+$$f_t^a = (1 - \omega_t^{a,z}) i_t^a + \omega_t^{a,z} i_t^z$$ 
+
+After making the final decision, the agent can then update their trust in the their advisor. The size of this update is governed by the learning rate ($\lambda$), and can either be based purely on agreement:
+
+$$\omega_{t+1}^{a,z} = \begin{cases}
+\omega_t^{a,z} + \lambda & \text{sign}(i_t^a) = \text{sign}(i_t^z) \\
+\omega_t^{a,z} - \lambda & \text{sign}(i_t^a) \neq \text{sign}(i_t^z) 
+\end{cases}$$
+
+or weighted by confidence:
+
+$$\omega_{t+1}^{a,z} = \begin{cases}
+\omega_t^{a,z} + \lambda |i_t^a| & \text{sign}(i_t^a) = \text{sign}(i_t^z) \\
+\omega_t^{a,z} - \lambda |i_t^a| & \text{sign}(i_t^a) \neq \text{sign}(i_t^z) 
+\end{cases}$$
+
+## Example
+
+To make a simple example where we can see the structure of the network and how it evolves, we'll use normal distributions for bias and sensitivity, and initialise bias around +/- 1 (values are expressed in standard deviations of the distribution underlying the true value). 
 
 ```{r}
 
-n <- list(p = 6, d = 200) # numbers of participants and decisions
-conf <- T                 # whether to use confidence-weighted adivsor update
-biasMean <- 1             # +/- mean for bias distributions
-lambda <- .1              # learning rate
-saveAnimation <- F        # whether to save an animation
+N <- list(p = 10, d = 200)  # numbers of participants and decisions
+CONF <- T                   # whether to use confidence-weighted advisor update
+BIAS_MEAN <- 1              # +/- mean for bias distributions
+BIAS_SD <- 1                # sd of bias distributions
+SENSITIVITY_SD <- 1         # sd of (1/)noise sds for agents
+LEARNING_RATE <- .1         # learning rate
+SAVE_ANIMATION <- F         # whether to save an animation
+OUTPUTS <- c()
+
+set.seed(20191127)          # Use the same seed each time so simulations are comparable
+  
+# hide the library loading details
+suppressWarnings(suppressPackageStartupMessages(source('agreement-effects.R')))
+
+```
+
+### Evolution of Weight
+
+The first thing to look at is the network graph for the agents. This graph rapidly becomes uninformative as the number of agents rises, but for a few agents it helps show the model structure. Agents are coloured and arranged according to their bias, with deeper colours indicating stronger biases and different colours indicating different directions of bias. Heavier lines between agents indicate greater weight of advice flowing from the source to the destination. 
+
+```{r}
+printNetworkGraph()
+```
+
+we should see that the network starts off with a random pattern of connections. These connections then become much stronger between agents who share biases compared to between agents who do not share biases. By and large, the two connections between any two agents should be fairly similar in weight to one another.
+
+### Effects of Bias Similarity on Weight
+
+We expect agents to increase their trust in other agents roughly in proportion to the extent to which they share a bias with those agents. We can thus take the correlation between the extent to which two agents share bias and the weight they assign one another as a measure of how pronounced the effect of bias is on trust.
+
+```{r}
+printBiasGraph()
+```
+
+This graph shows Pearson's $r$ statistic for the correlation between shared bias and advice weight at each decision. The error bars show 95% confidence intervals, and whether these include 0 is indicated by the colour.
+
+### Effects of Sensitivity on Weight
+
+We also expect sensitivity to affect the trust agents have in one another. This is the normative engine the shared bias corrupts: generally two independent agents with a better-than-chance ability to identify correct answers will converge on the correct answer more frequently than they converge on the incorrect one, so updating trust where they agree is sensible. This is complicated by the directionality of a tie: it is not obvious whether only indegree (weights others place on an agent) should increase as that agent's sensitivity increases, or whether outdegree (weight an agent places on others) decreases through a similar mechanism (the more accurate I am, the less I should move my estimate based on a random other person's assessment). 
+
+These models, however, only care about agreement/confidence; they do not know the actual answer and never update in response to feedback.
+
+```{r}
+printSensitivityGraph()
+```
+
+This graph shows Pearson's $r$ for the correlation between an agent's sensitivity and the mean weight of their incoming and outgoing ties at each decision time. Where the 95% confidence limits (shaded areas) do not touch 0 there are rugmarks at the top or bottom. In this particular graph the correlations are essentially noise: the effect of bias is substantially stronger and renders the effect of sensitivity irrelevant.
+
+## Unbiased agents
+
+Agents without biases probably benefit from upweighting those who agree, depending on the base probability of the agent being correct. In this environment, agents have different sensitivities, and this determines how good they are at being able to identify the correct answer. 
+
+### Using confidence
+
+We first explore this allowing agents to update their trust based on their own confidence in their initial answers.
+
+```{r}
+
+N <- list(p = 50, d = 200)  # numbers of participants and decisions
+CONF <- T                   # whether to use confidence-weighted adivsor update
+BIAS_MEAN <- 0              # +/- mean for bias distributions
+BIAS_SD <- .1                # sd of bias distributions
+SENSITIVITY_SD <- 4         # sd of (1/)noise sds for agents
+LEARNING_RATE <- .1         # learning rate
+SAVE_ANIMATION <- F         # whether to save an animation
+OUTPUTS <- c(
+  'BIAS_X_WEIGHT',
+  'SENSITIVITY_X_WEIGHT'
+)
+
+set.seed(20191127)
+
+source('agreement-effects.R')
+
+```
+
+Despite using a tiny SD for the agents' Biases, a significant (but tiny) correlation eventually emerges towards the end of the simulation. It's not clear whether this is noise or an actual effect, but it is important to note that any bias effects will be small enough not to cloud out sensitivity effects.
+
+More importantly, the relatively huge variation in sensitivities allows for a clear relationship to emerge between agents' sensitivities and their advice weight. This is almost immediate and sustained for the extent to which other agents take an agent's advice ("In"). It emerges more slowly for the extent to which an agent takes other agents' advice (with feedback we would expect this effect to disappear). It's not obvious why an agent with higher sensitivity would come to trust other agents more - plausibly it increases the probability of the sensitive agent identifying the correct answer, and therefore the probability that there is agreement with any given agent (whose probability of being correct is greater than chance), thus meaning that the more sensitive agents experience more agreement and thus have higher average trust levels.
+
+### Using agreement only
+
+We can run the same simulation but disable the metacognitive component, so that agents now increase or decrease their trust in others ony on the basis of agreement, rather than on the basis of agreement weighted by their own intial confidence.
+
+```{r}
+
+N <- list(p = 50, d = 200)  # numbers of participants and decisions
+CONF <- F                   # whether to use confidence-weighted adivsor update
+BIAS_MEAN <- 0              # +/- mean for bias distributions
+BIAS_SD <- .1                # sd of bias distributions
+SENSITIVITY_SD <- 4         # sd of (1/)noise sds for agents
+LEARNING_RATE <- .1         # learning rate
+SAVE_ANIMATION <- F         # whether to save an animation
+OUTPUTS <- c(
+  'BIAS_X_WEIGHT',
+  'SENSITIVITY_X_WEIGHT'
+)
+
+set.seed(20191127)
+
+source('agreement-effects.R')
+
+```
+
+The results of the simulation using agreement only are qualitatively identical to the confidence-weighted ones. Later we can dig into the temporal dynamics, but the effects produced are the same.
+
+## Biased agents
+
+To explore the dominant effects of biases, we can limit the sensitivity variation dramatically, and slightly increase the strength of the mean bias.
+
+### Using confidence
+
+Again, we can look at the results when agents use their confidence in their initial decisions to weight trust updates (in a direction determined by agreement).
+
+```{r}
+
+N <- list(p = 50, d = 200)  # numbers of participants and decisions
+CONF <- T                   # whether to use confidence-weighted adivsor update
+BIAS_MEAN <- 2              # +/- mean for bias distributions
+BIAS_SD <- 1                # sd of bias distributions
+SENSITIVITY_SD <- .1         # sd of (1/)noise sds for agents
+LEARNING_RATE <- .1         # learning rate
+SAVE_ANIMATION <- F         # whether to save an animation
+OUTPUTS <- c(
+  'BIAS_X_WEIGHT', 
+  'SENSITIVITY_X_WEIGHT'
+)
+
+set.seed(20191127)
   
 source('agreement-effects.R')
 
 ```
 
+The effect of shared bias in the model is almost immediate, pronouced, and increases steadily over the duration of the simulation. As time goes on, agents who share a bias become increasingly influence by one another. Note that in these simulations an agent's bias is fixed.
+
+As we may expect with so little variation allowed around sensitivity, there is no meaningful correlation between an agent's sensitivity and the extent to which it trusts or is trusted by others.
+
+### Using agreement only
+
+We can also explore this using the non-weighted, agreement-only construction.
+
 ```{r}
 
-n <- list(p = 6, d = 200) # numbers of participants and decisions
-conf <- F                 # whether to use confidence-weighted adivsor update
-biasMean <- 1             # +/- mean for bias distributions
-lambda <- .1              # learning rate
-saveAnimation <- F        # whether to save an animation
+N <- list(p = 50, d = 200)  # numbers of participants and decisions
+CONF <- F                   # whether to use confidence-weighted adivsor update
+BIAS_MEAN <- 2              # +/- mean for bias distributions
+BIAS_SD <- 1                # sd of bias distributions
+SENSITIVITY_SD <- .1         # sd of (1/)noise sds for agents
+LEARNING_RATE <- .1         # learning rate
+SAVE_ANIMATION <- F         # whether to save an animation
+OUTPUTS <- c(
+  'BIAS_X_WEIGHT', 
+  'SENSITIVITY_X_WEIGHT'
+)
 
+set.seed(20191127)
+  
 source('agreement-effects.R')
 
 ```
+
+Qualitatively identical results are obtained without using confidence weighting. 
+
+<!--
+## Bayesian updating of bias
 
 The decisions invesitaged above are discrete. Because of this, agents do not update their expectations of future decisions (i.e. their bias) after making a decision. We can also investigate what happens when agents **bias**, as well as their **assessment of other agents** is able to change. Bias changes based on the final decision made by an agent according to Bayes' rule:
 
@@ -38,3 +226,46 @@ Posterior = Prior * Evidence
 $$P(H1 | Data) = \frac{P(H1) * P(Data | H1)}{(P(Data|H1)P(H1)) + (P(Data|¬H1)P(¬H1))}$$
 
 In this case $Data$ is 1 or 0, according to the direction of the final decision. $H1$ is that the outcome will be >0 every time. 
+-->
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+suppressPackageStartupMessages(library(knitr))
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```
