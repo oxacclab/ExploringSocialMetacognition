@@ -6,109 +6,102 @@ library(tidyverse)
 library(igraph)
 library(animation)
 
+#' Run the simulation
+#' @param n list of numbers (participants and decisions) to simulate
+#' @param conf whether or not agents use confidence to update trust
+#' @param biasMean the mean for the agents' bias distribution (agents' biases
+#'   are drawn from normal distributions with mean +/- biasMean)
+#' @param biasSD standard deviation for the bias distribution
+#' @param sensitivitySD standard deviation for distribution of agents'
+#'   sensitivity (mean is 1)
+#' @param learningRate size of the trust update at each time step
+#' 
+runSimulation <- function(
+  n = list(p = 6, d = 200), 
+  conf = T,
+  biasMean = 1,
+  biasSD = 1, 
+  sensitivitySD = 1,
+  learningRate = .1
+  ) {
+  
+  out <- list(
+    times = list(
+      start = Sys.time()
+    ),
+    parameters = list(
+      n = n,
+      conf = conf,
+      biasMean = biasMean,
+      biasSD = biasSD,
+      sensitivitySD = sensitivitySD,
+      learningRate = learningRate
+    )
+  )
+
+  # Construct the agents
+  out$model <- makeAgents(
+    n = n, biasMean = biasMean, biasSD = biasSD, sensitivitySD = sensitivitySD
+    )
+  
+  out$times$agentsCreated <- Sys.time()
+  
+  # Run the model
+  for (d in 1:n$d) {
+    out <- simulationStep(out, d)
+  }
+  
+  out$times$end <- Sys.time()
+  
+  detailGraphs(out)
+  
+}
+
 # Agent construction ------------------------------------------------------
 
 #' Agents are constructed with a bias on their binary decision (constant over
 #' time) and a set of weights governing how seriously the advice of other agents
 #' is taken (modified over time). 
-
-setParams <- function() {
-  # numbers of participants and decisions
-  if (!any(grepl('^N$', ls(envir = .GlobalEnv)))) {
-    assign('N', list(p = 6, d = 200), envir = .GlobalEnv)   
-  }
+#' @param n list of numbers (participants and decisions) to simulate
+#' @param biasMean the mean for the agents' bias distribution (agents' biases
+#'   are drawn from normal distributions with mean +/- biasMean)
+#' @param biasSD standard deviation for the bias distribution
+#' @param sensitivitySD standard deviation for distribution of agents'
+#'   sensitivity (mean is 1)
+#'   
+#' @return list(
+#'   agents = tibble of agents' decisions, advice, etc. at each time point
+#'   graphs = list([[1]] = initial graph of agents' trust matrix)
+#' )
+makeAgents <- function(
+  n = list(p = 6, d = 200), 
+  biasMean = 1,
+  biasSD = 1, 
+  sensitivitySD = 1
+) {
+  bias <- ifelse(runif(n$p) > .5, 
+                 rnorm(n$p, biasMean, biasSD), 
+                 rnorm(n$p, -biasMean, biasSD))
   
-  # whether to use confidence-weighted advisor update
-  if (!any(grepl('^CONF$', ls(envir = .GlobalEnv)))) {
-    assign('CONF', T, envir = .GlobalEnv)                 
-  }
+  agents <- tibble(id = rep(1:n$p, n$d),
+                   decision = rep(1:n$d, each = n$p),
+                   sensitivity = pmax(
+                     abs(rep(rnorm(n$p, 1, sensitivitySD), n$d)), 
+                     .00001
+                     ),
+                   bias = rep(bias[order(bias)], n$d),
+                   truth = NA,
+                   initial = NA,
+                   advisor = NA,
+                   advice = NA,
+                   weight = NA,
+                   final = NA)
   
-  # +/- mean for bias distributions
-  if (!any(grepl('^BIAS_MEAN$', ls(envir = .GlobalEnv)))) {
-    assign('BIAS_MEAN', 1, envir = .GlobalEnv)             
-  }
+  graphs <- list(matrix(as.numeric(cut(runif(n$p ^ 2), 3))/3, n$p, n$p))
+  diag(graphs[[1]]) <- 0
   
-  # sd for bias distributions
-  if (!any(grepl('^BIAS_SD$', ls(envir = .GlobalEnv)))) {
-    assign('BIAS_SD', 1, envir = .GlobalEnv)             
-  }
-    
-  # sd of (1/)noise sds for agents
-  if (!any(grepl('^SENSITIVITY_SD$', ls(envir = .GlobalEnv)))) {
-    assign('SENSITIVITY_SD', 1, envir = .GlobalEnv)          
-  }
-    
-  # learning rate
-  if (!any(grepl('^LEARNING_RATE$', ls(envir = .GlobalEnv)))) {
-    assign('LEARNING_RATE', .1, envir = .GlobalEnv)              
-  }
-    
-  # whether to save an animation
-  if (!any(grepl('^SAVE_ANIMATION$', ls(envir = .GlobalEnv)))) {
-      assign('SAVE_ANIMATION', F, envir = .GlobalEnv)        
-  }
-    
-  # output controls
-  if (!any(grepl('^OUTPUTS$', ls(envir = .GlobalEnv)))) {
-    assign('OUTPUTS', c(
-      'BIAS_X_WEIGHT',            # graph of shared bias x weight correlation
-      'SENSITIVITY_X_WEIGHT'      # graph of sensitivity x mean degree weight
-    ), envir = .GlobalEnv)
-    if (SAVE_ANIMATION) {
-      OUTPUTS <- c(OUTPUTS, 'NETWORK_GRAPH')   # network graphs at start and end 
-    }
-  }
-  
-  if (!any(grepl('^OVERRIDE_THEME$', ls(envir = .GlobalEnv))) || 
-      !OVERRIDE_THEME) {
-    theme_set(
-      theme_light() + 
-        theme(
-          panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          legend.position = 'top'
-        ))
-  }
-    
-  (NULL)
+  list(agents = agents, graphs = graphs)
 }
-
-setParams()
-
-
-timeStart <- Sys.time()
-
-settingsStr <- function() {
-  paste0('Model parameters:\n',
-         'Agents = ', N$p, '; Decision = ', N$d, '; ',
-         'ConfidenceWeighted = ', CONF, '; \n',
-         'Sensitivity SD = ', SENSITIVITY_SD, '; ',
-         'Bias mean (SD) = +/-', BIAS_MEAN, ' (', BIAS_SD, '); ',
-         'Learning rate = ', LEARNING_RATE, '\n',
-         'Model run ', format(timeStart, "%F_%H-%M-%S"), ' (',
-         'runtime = ', round(as.numeric(timeElapsed), 1), 's)')
-}
-
-bias <- ifelse(runif(N$p) > .5, 
-               rnorm(N$p, BIAS_MEAN, BIAS_SD), 
-               rnorm(N$p, -BIAS_MEAN, BIAS_SD))
-
-agents <- tibble(id = rep(1:N$p, N$d),
-                 decision = rep(1:N$d, each = N$p),
-                 sensitivity = pmax(
-                   abs(rep(rnorm(N$p, 1, SENSITIVITY_SD), N$d)), 
-                   .00001
-                   ),
-                 bias = rep(bias[order(bias)], N$d),
-                 truth = NA,
-                 initial = NA,
-                 advisor = NA,
-                 advice = NA,
-                 weight = NA,
-                 final = NA)
-
-graph <- list(matrix(as.numeric(cut(runif(N$p ^ 2), 3))/3, N$p, N$p))
-diag(graph[[1]]) <- 0
 
 # Simulation --------------------------------------------------------------
 
@@ -119,61 +112,131 @@ diag(graph[[1]]) <- 0
 #' current weight placed on the other agent's trustworthiness. This weight is
 #' then updated according to whether the agents agree, weighted by the
 #' confidence of the deciding agent.
-
-for (d in 1:N$d) {
-  rows <- (((d - 1) * N$p):(d * N$p - 1)) + 1
+#' @param model to simulate the step for
+#' @param d decision to simulate
+#' 
+#' @return model updated to include values for decision d
+simulationStep <- function(model, d) {
+  # identify the agent tibble rows corresponding to decision d
+  rows <- (((d - 1) * model$parameters$n$p):(d * model$parameters$n$p - 1)) + 1
+  
+  agents <- model$model$agents[rows, ]
   
   # Truth
-  agents$truth[rows] <- rnorm(1)  # single true value for all agents
+  agents$truth <- rnorm(1)  # single true value for all agents
   
   # Initial decisions
-  agents$initial[rows] <- 
-    agents$truth[rows] +    # true value
-    agents$bias[rows] +     # bias
-    rnorm(N$p, 0, 1/agents$sensitivity[rows]) # normally distributed noise with sd = 1/sensitivity
+  agents$initial <- 
+    agents$truth +    # true value
+    agents$bias +     # bias
+    rnorm(model$parameters$n$p, 0, 1/agents$sensitivity) # normally distributed noise with sd = 1/sensitivity
   
   # Advice
-  agents$advisor[rows] <- sapply(agents$id[rows], function(i) 
-    base::sample((1:N$p)[-i], # never ask yourself!
+  agents$advisor <- sapply(agents$id, function(i) 
+    base::sample((1:model$parameters$n$p)[-i], # never ask yourself!
                  1))
   
-  agents$weight[rows] <- diag(graph[[d]][agents$advisor[rows], ])
+  agents$weight <- diag(model$model$graphs[[d]][agents$advisor, ])
   
-  agents$advice[rows] <- agents$initial[((d - 1) * N$p) + agents$advisor[rows]]
+  agents$advice <- 
+    agents$initial[agents$advisor]
   
-  agents$final[rows] <- (agents$initial[rows] * (1 - agents$weight[rows])) +
-    (agents$advice[rows] * agents$weight[rows])
+  agents$final <- 
+    (agents$initial * (1 - agents$weight)) +
+    (agents$advice * agents$weight)
   
-  # Updating
-  newWeights <- as.vector(graph[[d]])
-  if (CONF) {
-    newWeights[(agents$id[rows] - 1) * N$p + agents$advisor[rows]] <- 
-      newWeights[(agents$id[rows] - 1) * N$p + agents$advisor[rows]] +
-      ifelse((agents$initial[rows] > 0) == (agents$advice[rows] > 0),
-             LEARNING_RATE * abs(agents$initial[rows]), # agree
-             -LEARNING_RATE * abs(agents$initial[rows])) # disagree
+  # Write output to the model
+  model$model$agents[rows, ] <- agents
+  
+  # Updating weights
+  newWeights <- as.vector(model$model$graphs[[d]])
+  if (model$parameters$conf) {
+    newWeights[(agents$id - 1) * model$parameters$n$p + agents$advisor] <- 
+      newWeights[(agents$id - 1) * model$parameters$n$p + agents$advisor] +
+      ifelse((agents$initial > 0) == (agents$advice > 0),
+             model$parameters$learningRate * abs(agents$initial), # agree
+             -model$parameters$learningRate * abs(agents$initial)) # disagree
   } else {
-    newWeights[(agents$id[rows] - 1) * N$p + agents$advisor[rows]] <- 
-      newWeights[(agents$id[rows] - 1) * N$p + agents$advisor[rows]] + 
-      ifelse((agents$initial[rows] > 0) == (agents$advice[rows] > 0),
-             LEARNING_RATE, -LEARNING_RATE)
+    newWeights[(agents$id - 1) * model$parameters$n$p + agents$advisor] <- 
+      newWeights[(agents$id - 1) * model$parameters$n$p + agents$advisor] + 
+      ifelse((agents$initial > 0) == (agents$advice > 0),
+             model$parameters$learningRate, -model$parameters$learningRate)
   }
   newWeights <- pmax(0.0001, pmin(1, newWeights))
-  newWeights <- matrix(newWeights, N$p, N$p)
+  newWeights <- matrix(newWeights, model$parameters$n$p, model$parameters$n$p)
   diag(newWeights) <- 0
-  graph[[d + 1]] <- newWeights
+  model$model$graphs[[d + 1]] <- newWeights
+  
+  model
+}
+
+detailGraphs <- function(model) {
+  # Need to check the iGraph node numbers follow the agents$id/graph ones
+  agents <- model$model$agents
+  N <- model$parameters$n
+  
+  # transpose
+  g <- lapply(model$model$graphs, t)
+  g <- lapply(g, graph_from_adjacency_matrix, weighted = T)
+  
+  for (i in 1:N$d) {
+    
+    active <- rep(0, N$p * N$p)
+    # fill in colour for active advice (vectorised)
+    active[0:(N$p - 1) * N$p + agents$advisor[agents$decision == i]] <- 'green'
+    
+    active <- matrix(active, N$p, N$p)
+    active <- t(active)
+    active <- as.character(active)
+    # drop reciprocal connections
+    active <- active[-(seq(1, N$p * N$p, N$p) + 0:(N$p - 1))]
+    # overwrite active connections
+    E(g[[i]])$active[active != 0] <- active[active != 0]
+    
+    # Sensitivity
+    E(g[[i]])$sensitivity <- agents$sensitivity[head_of(g[[i]], E(g[[i]]))]
+    
+    # Bias difference
+    E(g[[i]])$headBias <- agents$bias[head_of(g[[i]], E(g[[i]]))]
+    E(g[[i]])$tailBias <- agents$bias[tail_of(g[[i]], E(g[[i]]))]
+    E(g[[i]])$sharedBias <- abs(E(g[[i]])$headBias) + 
+      abs(E(g[[i]])$tailBias) * 
+      ifelse((E(g[[i]])$headBias < 0) == (E(g[[i]])$tailBias < 0), 1, -1)
+    
+    # colour vertices by bias
+    V(g[[i]])$bias <- agents$bias[1:N$p]
+    V(g[[i]])$biasColour <- ifelse(agents$bias[1:N$p] > 0, 
+                                   biasToColourString(agents$bias[1:N$p], 'b'),
+                                   biasToColourString(agents$bias[1:N$p], 'r'))
+  }
+  
+  model$model$graphs <- g
+  
+  model
+  
 }
 
 # Results -----------------------------------------------------------------
 
-# Need to check the iGraph node numbers follow the agents$id/graph ones
+#' A neat string of the parameters for a model for inclusion in graphs
+#' @param model a simulation result model
+settingsStr <- function(model) {
+  timeElapsed <- difftime(model$times$end, model$times$start)
+  
+  paste0('Model parameters:\n',
+         'Agents = ', model$parameters$n$p, 
+         '; Decision = ', model$parameters$n$d, '; ',
+         'ConfidenceWeighted = ', model$parameters$conf, '; \n',
+         'Sensitivity SD = ', model$sensitivitySD, '; ',
+         'Bias mean (SD) = +/-', model$parameters$biasMean, 
+         ' (', model$parameters$biasSD, '); ',
+         'Learning rate = ', model$parameters$learningRate, '\n',
+         'Model run ', format(model$times$start, "%F_%H-%M-%S"), ' (',
+         'runtime = ', round(as.numeric(timeElapsed), 1), 's)')
+}
 
-# transpose
-g <- lapply(graph, t)
-g <- lapply(graph, graph_from_adjacency_matrix, weighted = T)
-
-weightToColourString <- function() {
-  colours <- E(g[[i]])$weight
+weightToColourString <- function(graph) {
+  colours <- E(graph)$weight
   
   limits <- list(low = .05 * 255, high = .95 * 255)
   colours <- 255 * colours
@@ -224,77 +287,44 @@ biasToColourString <- function(b, colour = c('r', 'g', 'b'),
   out
 }
 
-plotGraph <- function(i, activeColours = T) {
+plotGraph <- function(model, i, activeColours = T) {
   
   title <- paste("Advice weights after decision", i - 1)
   
-  cuts <- 4
   lines <- c(3, 4, 5, 1) # line weights light->heavy
+  cuts <- length(lines)
   
   # discrete weight categories for edges
-  weight <- as.numeric(cut(E(g[[i]])$weight, cuts))
+  weight <- as.numeric(cut(E(model$model$graphs[[i]])$weight, cuts))
   
   # colour lines currently undergoing advice-taking
   # by default use the weight of the connection
-  E(g[[i]])$active <- weightToColourString()
+  E(model$model$graphs[[i]])$active <- 
+    weightToColourString(model$model$graphs[[i]])
   
-  plot(g[[i]], 
+  plot(model$model$graphs[[i]], 
        main = title,
        layout = layout_in_circle,
-       vertex.color = V(g[[i]])$biasColour,
+       vertex.color = V(model$model$graphs[[i]])$biasColour,
        edge.arrow.size = 0.5,
-       edge.width = weight / N$p * 5,
+       edge.width = weight / model$parameters$n$p * 5,
        edge.lty = lines[weight],
-       edge.color = E(g[[i]])$active,
-       edge.curved = 1 / N$p)
+       edge.color = E(model$model$graphs[[i]])$active,
+       edge.curved = 1 / model$parameters$n$p)
 }
 
-for (i in 1:N$d) {
-  
-  active <- rep(0, N$p * N$p)
-  # fill in colour for active advice (vectorised)
-  active[0:(N$p - 1) * N$p + agents$advisor[agents$decision == i]] <- 'green'
-  
-  active <- matrix(active, N$p, N$p)
-  active <- t(active)
-  active <- as.character(active)
-  # drop reciprocal connections
-  active <- active[-(seq(1, N$p * N$p, N$p) + 0:(N$p - 1))]
-  # overwrite active connections
-  E(g[[i]])$active[active != 0] <- active[active != 0]
-  
-  # Sensitivity
-  E(g[[i]])$sensitivity <- agents$sensitivity[head_of(g[[i]], E(g[[i]]))]
-  
-  # Bias difference
-  E(g[[i]])$headBias <- agents$bias[head_of(g[[i]], E(g[[i]]))]
-  E(g[[i]])$tailBias <- agents$bias[tail_of(g[[i]], E(g[[i]]))]
-  E(g[[i]])$sharedBias <- abs(E(g[[i]])$headBias) + 
-    abs(E(g[[i]])$tailBias) * 
-    ifelse((E(g[[i]])$headBias < 0) == (E(g[[i]])$tailBias < 0), 1, -1)
-  
-  # colour vertices by bias
-  V(g[[i]])$bias <- agents$bias[1:N$p]
-  V(g[[i]])$biasColour <- ifelse(agents$bias[1:N$p] > 0, 
-                                 biasToColourString(agents$bias[1:N$p], 'b'),
-                                 biasToColourString(agents$bias[1:N$p], 'r'))
-}
-
-timeElapsed <- difftime(Sys.time(), timeStart, units = "secs")
-
-
-printNetworkGraph <- function() {
+networkGraph <- function(model) {
   par(mfrow = c(1,2))
-  plotGraph(1, activeColours = F)
-  plotGraph(N$d, activeColours = F)
+  plotGraph(model, 1, activeColours = F)
+  plotGraph(model, model$parameters$n$d, activeColours = F)
   invisible(NULL)
 }
 
 # Correlation between bias and tie strength
-printBiasGraph = function() {
+biasGraph = function(model) {
   cors <- NULL
-  for (d in 1:N$d) {
-    tmp <- g[[d]]
+  for (d in 1:model$parameters$n$d) {
+    tmp <- model$model$graphs[[d]]
     
     test <- cor.test(as.numeric(tmp[attr = 'sharedBias']), 
                      as.numeric(tmp[attr = 'weight'])) 
@@ -307,7 +337,7 @@ printBiasGraph = function() {
   }
   
   # Plot correlation
-  corPlot <- cors %>% ggplot(aes(x = decision, 
+  cors %>% ggplot(aes(x = decision, 
                                  y = r, ymin = ciL, ymax = ciH,
                                  colour = p < .05)) +
     geom_hline(yintercept = 0, linetype = 'dashed') +
@@ -315,27 +345,25 @@ printBiasGraph = function() {
     geom_errorbar(width = 0) +
     scale_y_continuous(limits = c(-1, 1)) +
     labs(title = 'Shared bias x Advice weight',
-         subtitle = ifelse(CONF, 
+         subtitle = ifelse(model$parameters$conf, 
                            'Confidence-weighted advisor updating',
                            'Agreement-only advisor updating'),
-         caption = settingsStr()) 
-  
-  print(corPlot)
+         caption = settingsStr(model)) 
 }
 
 # Correlation between sensitivity and tie strength
-printSensitivityGraph <- function() {
+sensitivityGraph <- function(model) {
   sens <- NULL
-  for (d in 1:N$d) {
-    tmp <- g[[d]]
+  for (d in 1:model$parameters$n$d) {
+    tmp <- model$model$graphs[[d]]
     
     # rows give outdegree, columns indegree
-    outdeg <- sapply(1:N$p, function(i) {
+    outdeg <- sapply(1:model$parameters$n$p, function(i) {
       w <- tmp[attr = "weight"]
       w <- w[i, ]
       mean(w[-i]) # don't include self weight in average
     })
-    indeg <- sapply(1:N$p, function(i) {
+    indeg <- sapply(1:model$parameters$n$p, function(i) {
       w <- tmp[attr = "weight"]
       w <- w[, i]
       mean(w[-i])
@@ -362,7 +390,7 @@ printSensitivityGraph <- function() {
                                ciH = testOut$conf.int[2]))
   }
   
-  sensitivityPlot <- sens %>% ggplot(aes(x = decision, 
+  sens %>% ggplot(aes(x = decision, 
                                          y = r, ymin = ciL, ymax = ciH,
                                          fill = direction, colour = direction)) +
     geom_hline(yintercept = 0, linetype = 'dashed') +
@@ -371,38 +399,28 @@ printSensitivityGraph <- function() {
     # rug plots to show significant divergences from 0 
     geom_rug(data = sens %>% 
                dplyr::filter(p < .05, direction == 'In'), 
-             sides = 't', size = N$d / 100 + 1) +
+             sides = 't', size = model$parameters$n$d / 100 + 1) +
   geom_rug(data = sens %>% 
              dplyr::filter(p < .05, direction == 'Out'), 
-           sides = 'b', size = N$d / 100 + 1) +
+           sides = 'b', size = model$parameters$n$d / 100 + 1) +
     scale_y_continuous(limits = c(-1, 1)) +
     labs(title = 'Sensitivity x Mean advice weight',
-         subtitle = paste0(ifelse(CONF, 
+         subtitle = paste0(ifelse(model$parameters$conf, 
                                   'Confidence-weighted advisor updating',
                                   'Agreement-only advisor updating'),
                            '\nRug marks show where p < .05'),
-         caption = settingsStr())
-  
-  print(sensitivityPlot)
+         caption = settingsStr(model))
 }
 
-if ('BIAS_X_WEIGHT' %in% OUTPUTS) {
-  printBiasGraph()
-}
-
-if ('SENSITIVITY_X_WEIGHT' %in% OUTPUTS) {
-  printSensitivityGraph()
-}
-
-# Animation ---------------------------------------------------------------
-
-if (SAVE_ANIMATION) {
+allOutput <- function(model) {
+  print(biasGraph(model))
+  print(sensitivityGraph(model))
   filename <- paste0(getwd(), '/ACv2/animation/',
                      timeRun,
                      '_agreement-effects.gif')
   
   saveGIF({
-    for (i in 1:N$d) plotGraph(i)
+    for (i in 1:N$d) plotGraph(model, i)
     }, 
     movie.name = filename, 
     ani.width = 1024,
@@ -410,12 +428,10 @@ if (SAVE_ANIMATION) {
     # ani.res = 300,
     interval = 0.25, 
     loop = 0)
+  
+  print(networkGraph(model))
+  
 }
-
-if ('NETWORK_GRAPH' %in% OUTPUTS) {
-  printNetworkGraph()
-}
-
 
 
      

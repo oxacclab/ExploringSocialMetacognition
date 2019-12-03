@@ -52,19 +52,25 @@ To make a simple example where we can see the structure of the network and how i
 
 ```{r}
 
-N <- list(p = 10, d = 200)  # numbers of participants and decisions
-CONF <- T                   # whether to use confidence-weighted advisor update
-BIAS_MEAN <- 1              # +/- mean for bias distributions
-BIAS_SD <- 1                # sd of bias distributions
-SENSITIVITY_SD <- 1         # sd of (1/)noise sds for agents
-LEARNING_RATE <- .1         # learning rate
-SAVE_ANIMATION <- F         # whether to save an animation
-OUTPUTS <- c()
-
-set.seed(20191127)          # Use the same seed each time so simulations are comparable
-  
 # hide the library loading details
 suppressWarnings(suppressPackageStartupMessages(source('agreement-effects.R')))
+
+theme_set(theme_light() + theme(
+  legend.position = 'top',
+  panel.grid.minor = element_blank(),
+  panel.grid.major.x = element_blank()
+))
+
+set.seed(20191127)          # Use the same seed each time so simulations are comparable
+
+model <- runSimulation(
+  n = list(p = 10, d = 200),
+  conf = T,
+  biasMean = 1,
+  biasSD = 1,
+  sensitivitySD = 1,
+  learningRate = .1
+)
 
 ```
 
@@ -73,7 +79,7 @@ suppressWarnings(suppressPackageStartupMessages(source('agreement-effects.R')))
 The first thing to look at is the network graph for the agents. This graph rapidly becomes uninformative as the number of agents rises, but for a few agents it helps show the model structure. Agents are coloured and arranged according to their bias, with deeper colours indicating stronger biases and different colours indicating different directions of bias. Heavier lines between agents indicate greater weight of advice flowing from the source to the destination. 
 
 ```{r}
-printNetworkGraph()
+networkGraph(model)
 ```
 
 we should see that the network starts off with a random pattern of connections. These connections then become much stronger between agents who share biases compared to between agents who do not share biases. By and large, the two connections between any two agents should be fairly similar in weight to one another.
@@ -83,7 +89,7 @@ we should see that the network starts off with a random pattern of connections. 
 We expect agents to increase their trust in other agents roughly in proportion to the extent to which they share a bias with those agents. We can thus take the correlation between the extent to which two agents share bias and the weight they assign one another as a measure of how pronounced the effect of bias is on trust.
 
 ```{r}
-printBiasGraph()
+biasGraph(model)
 ```
 
 This graph shows Pearson's $r$ statistic for the correlation between shared bias and advice weight at each decision. The error bars show 95% confidence intervals, and whether these include 0 is indicated by the colour.
@@ -95,7 +101,7 @@ We also expect sensitivity to affect the trust agents have in one another. This 
 These models, however, only care about agreement/confidence; they do not know the actual answer and never update in response to feedback.
 
 ```{r}
-printSensitivityGraph()
+sensitivityGraph(model)
 ```
 
 This graph shows Pearson's $r$ for the correlation between an agent's sensitivity and the mean weight of their incoming and outgoing ties at each decision time. Where the 95% confidence limits (shaded areas) do not touch 0 there are rugmarks at the top or bottom. In this particular graph the correlations are essentially noise: the effect of bias is substantially stronger and renders the effect of sensitivity irrelevant.
@@ -110,21 +116,19 @@ We first explore this allowing agents to update their trust based on their own c
 
 ```{r}
 
-N <- list(p = 50, d = 200)  # numbers of participants and decisions
-CONF <- T                   # whether to use confidence-weighted adivsor update
-BIAS_MEAN <- 0              # +/- mean for bias distributions
-BIAS_SD <- .1                # sd of bias distributions
-SENSITIVITY_SD <- 4         # sd of (1/)noise sds for agents
-LEARNING_RATE <- .1         # learning rate
-SAVE_ANIMATION <- F         # whether to save an animation
-OUTPUTS <- c(
-  'BIAS_X_WEIGHT',
-  'SENSITIVITY_X_WEIGHT'
-)
-
 set.seed(20191127)
 
-source('agreement-effects.R')
+model <- runSimulation(
+  n = list(p = 50, d = 200),
+  conf = T,
+  biasMean = 0,
+  biasSD = .1,
+  sensitivitySD = 4,
+  learningRate = .1
+  )
+
+biasGraph(model)
+sensitivityGraph(model)
 
 ```
 
@@ -138,21 +142,19 @@ We can run the same simulation but disable the metacognitive component, so that 
 
 ```{r}
 
-N <- list(p = 50, d = 200)  # numbers of participants and decisions
-CONF <- F                   # whether to use confidence-weighted adivsor update
-BIAS_MEAN <- 0              # +/- mean for bias distributions
-BIAS_SD <- .1                # sd of bias distributions
-SENSITIVITY_SD <- 4         # sd of (1/)noise sds for agents
-LEARNING_RATE <- .1         # learning rate
-SAVE_ANIMATION <- F         # whether to save an animation
-OUTPUTS <- c(
-  'BIAS_X_WEIGHT',
-  'SENSITIVITY_X_WEIGHT'
-)
-
 set.seed(20191127)
 
-source('agreement-effects.R')
+model <- runSimulation(
+  n = list(p = 50, d = 200),
+  conf = F,
+  biasMean = 0,
+  biasSD = .1,
+  sensitivitySD = 4,
+  learningRate = .1
+  )
+
+biasGraph(model)
+sensitivityGraph(model)
 
 ```
 
@@ -168,21 +170,19 @@ Again, we can look at the results when agents use their confidence in their init
 
 ```{r}
 
-N <- list(p = 50, d = 200)  # numbers of participants and decisions
-CONF <- T                   # whether to use confidence-weighted adivsor update
-BIAS_MEAN <- 2              # +/- mean for bias distributions
-BIAS_SD <- 1                # sd of bias distributions
-SENSITIVITY_SD <- .1         # sd of (1/)noise sds for agents
-LEARNING_RATE <- .1         # learning rate
-SAVE_ANIMATION <- F         # whether to save an animation
-OUTPUTS <- c(
-  'BIAS_X_WEIGHT', 
-  'SENSITIVITY_X_WEIGHT'
-)
-
 set.seed(20191127)
   
-source('agreement-effects.R')
+model <- runSimulation(
+  n = list(p = 50, d = 200),
+  conf = T,
+  biasMean = 2,
+  biasSD = 1,
+  sensitivitySD = .1,
+  learningRate = .1
+  )
+
+biasGraph(model)
+sensitivityGraph(model)
 
 ```
 
@@ -196,25 +196,57 @@ We can also explore this using the non-weighted, agreement-only construction.
 
 ```{r}
 
-N <- list(p = 50, d = 200)  # numbers of participants and decisions
-CONF <- F                   # whether to use confidence-weighted adivsor update
-BIAS_MEAN <- 2              # +/- mean for bias distributions
-BIAS_SD <- 1                # sd of bias distributions
-SENSITIVITY_SD <- .1         # sd of (1/)noise sds for agents
-LEARNING_RATE <- .1         # learning rate
-SAVE_ANIMATION <- F         # whether to save an animation
-OUTPUTS <- c(
-  'BIAS_X_WEIGHT', 
-  'SENSITIVITY_X_WEIGHT'
-)
-
 set.seed(20191127)
   
-source('agreement-effects.R')
+model <- runSimulation(
+  n = list(p = 50, d = 200),
+  conf = F,
+  biasMean = 2,
+  biasSD = 1,
+  sensitivitySD = .1,
+  learningRate = .1
+  )
+
+biasGraph(model)
+sensitivityGraph(model)
 
 ```
 
 Qualitatively identical results are obtained without using confidence weighting. 
+
+## Comparison of non/metacognitive models
+
+The above results have the same pattern whether or not the models use metacognitive weighting. It is possible that metacognition alters the timeline, speeding up or slowing down the rate at which the positive feedback processes function to produce strong associations between sensitivity or bias similarity and advice weight. A first step for investigating this is to chart the evolution of the correlation coefficient until it peaks and measure the time taken to reach that peak.
+
+```{r}
+
+set.seed(20191127)
+  
+mdlConf <- runSimulation(
+  n = list(p = 50, d = 200),
+  conf = T,
+  biasMean = 2,
+  biasSD = 1,
+  sensitivitySD = .1,
+  learningRate = .1
+  )
+
+mdlNoConf <- runSimulation(
+  n = list(p = 50, d = 200),
+  conf = F, 
+  biasMean = 2, 
+  biasSD = 1,
+  sensitivitySD = .1, 
+  learningRate = .1
+)
+
+```
+
+!TODO[superimpose the two graphs to highlight differences]
+
+### Unbiased agents
+
+
 
 <!--
 ## Bayesian updating of bias
