@@ -21,6 +21,7 @@ Static structure of the elements in the experiment.
 
     --font-size-small: 24px;
     --font-size-medium: 32px;
+    --font-size-large: 72px;
 
     --tag-border-radius: 0.5em;
 
@@ -156,6 +157,9 @@ esm-instruction > div:last-child {
     justify-self: stretch;
     padding: 0 1em;
 }
+.grid .stimulus {
+    padding: 0 3em;
+}
 .response {
     grid-area: response;
     align-self: stretch;
@@ -185,6 +189,14 @@ esm-instruction > div:last-child {
     width: 100%;
 }
 
+#date {
+    font-size: var(--font-size-large);
+}
+#date p {
+    margin: 0;
+    line-height: var(--font-size-large);
+}
+
 #prompt {
     font-size: var(--font-size-medium);
 }
@@ -196,6 +208,9 @@ esm-instruction > div:last-child {
     flex-direction: column;
     transition: opacity 0.5s, box-shadow 0.5s;
     opacity: 0.2;
+}
+esm-response-binary-conf#response-panel {
+    display: grid;
 }
 
 #conf-widget {
@@ -236,7 +251,7 @@ esm-instruction > div:last-child {
     border: 1px solid var(--esm-help-borderColor);
 }
 #training-instructions.bump {
-    grid-row-start: 3;
+    top: 50vh;
     align-self: start;
 }
 
@@ -282,6 +297,43 @@ esm-instruction > div:last-child {
     border-radius: var(--tag-border-radius);
     box-shadow: 0 1px 1px 0 black;
     transition: width .5s;
+}
+.grid .advisor-key-row, .grid .group-info-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 2fr 1fr;
+    grid-template-areas:
+        "avatar"
+        "details";
+    row-gap: .5em;
+
+    border: none;
+    box-shadow: none;
+    padding: 1em;
+    margin: 0;
+}
+.grid .advisor-key-row .advisor-intro {
+    left: unset;
+    top: 100%;
+    transform: unset;
+    margin: 1em 0;
+    width: 200%;
+    place-self: center;
+}
+.grid .advisor-key-row .response-marker.advisor {
+    grid-area: avatar;
+    place-self: center;
+    display: flex;
+}
+.grid img.identicon {
+    width: 7em;
+    height: 7em;
+}
+.grid .advisor-key-row .advisor-details {
+    grid-area: details;
+    place-self: center;
+    width: 100%;
+    padding: 0;
 }
 
 .group-info {
@@ -363,6 +415,39 @@ esm-instruction > div:last-child {
     }
 }
 
+@keyframes adviceAnimationVertical {
+    0% {
+        opacity: 0;
+        bottom: 50%;
+    }
+    33% {
+        opacity: 1;
+        bottom: 50%;
+    }
+}
+
+@keyframes adviceAnimationHorizontal {
+    0% {
+        opacity: 0;
+        left: 425%;
+    }
+    33% {
+        opacity: 1;
+        left: 425%;
+    }
+}
+
+@keyframes adviceAnimationHorizontalRight {
+    0% {
+        opacity: 0;
+        right: 425%;
+    }
+    33% {
+        opacity: 1;
+        right: 425%;
+    }
+}
+
 .marker {
     height: 100%;
     width: 100%;
@@ -422,6 +507,67 @@ esm-instruction > div:last-child {
     transform: none;
 }
 
+.grid .response-marker.advisor {
+    --triangle-size: 2em;
+
+    grid-area: answer;
+    align-self: start;
+    justify-self: end;
+    transform: none;
+    left: 50%;
+    animation-name: adviceAnimationHorizontal;
+}
+.grid .response-panel.response-right .response-marker.advisor {
+    left: unset;
+    right: 50%;
+    animation-name: adviceAnimationHorizontalRight;
+}
+.grid .response-marker.advisor.confidence.confidence {
+    left: calc(100% + (var(--triangle-size) / 2));
+    animation-name: adviceAnimationVertical;
+}
+.grid .response-panel.response-right .response-marker.advisor.confidence {
+    left: unset;
+    right: calc(100% + (var(--triangle-size) / 2));
+}
+.grid .response-panel.response-right .response-marker.advisor {
+    justify-self: start;
+}
+.response-marker.advisor:not(.static):not(.confidence)::after {
+    content: close-quote;
+    position: absolute;
+    top: 100%;
+    left: calc(50% - var(--triangle-size));
+
+    /* triangle pointing down */
+    border-left: var(--triangle-size) solid transparent;
+    border-right: var(--triangle-size) solid transparent;
+    border-top: var(--triangle-size) solid var(--group-primary);
+    border-bottom: none;
+}
+.response-marker.advisor.confidence:not(.static)::after {
+    content: close-quote;
+    position: absolute;
+    top: calc(50% - var(--triangle-size));
+    right: 100%;
+
+    /* triangle pointing left */
+    border-left: none;
+    border-right: var(--triangle-size) solid var(--group-primary);
+    border-top: var(--triangle-size) solid transparent;
+    border-bottom: var(--triangle-size) solid transparent;
+}
+.response-panel.response-right .response-marker.advisor.confidence:not(.static)::after {
+    right: unset;
+    left: 100%;
+
+    /* triangle pointing right */
+    border-left: var(--triangle-size) solid var(--group-primary);
+    border-right: none;
+    border-top: var(--triangle-size) solid transparent;
+    border-bottom: var(--triangle-size) solid transparent;
+}
+
 .response-marker.advisor:not(.static),
 .response-marker.feedback,
 .response-marker.ghost {
@@ -430,18 +576,27 @@ esm-instruction > div:last-child {
 
 .response-marker.feedback {
     color: #ffe96e;
-    font-size: 14px;
     font-weight: bold;
     position: absolute;
-    transform: translateX(calc(-50% - 2px)) scale(3);
     background-color: transparent;
     border: none;
     box-shadow: none;
+}
+.response-marker.feedback.participantWrong {
+    color: grey;
+}
+.grid .response-marker.feedback {
+    font-size: 10em;
+    place-self: center;
+}
+#content:not(.grid) .response-marker.feedback {
+    transform: translateX(calc(-50% - 2px)) scale(3);
+    font-size: 14px;
     bottom: 4em;
     line-height: 1em;
     height: 1em;
 }
-.response-marker.feedback::before {
+#content:not(.grid) .response-marker.feedback::before {
     left: 50%;
     transform: translateX(-50%);
     background-color: black;
@@ -847,6 +1002,56 @@ span.redo-link {
     background-color: yellow;
 }
 
+/* Grid layout (high priority) */
+#content.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1em 1.5em 1fr 1fr 1fr;
+    grid-template-areas:
+        "progress progress progress"
+        "prompt prompt prompt"
+        "stimulus stimulus stimulus"
+        "left-cell advisor right-cell"
+        "left-cell controls right-cell";
+    grid-gap: 0;
+    gap: 0;
+}
+
+.grid .progress-bar {
+    grid-area: progress;
+}
+.grid .prompt {
+    grid-area: prompt;
+}
+.grid .stimulus {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+        "text text text"
+        ". date .";
+
+    text-align: center;
+}
+.grid #stimulus {
+    grid-area: text;
+}
+.grid #date {
+    grid-area: date;
+}
+.grid .advisor-key {
+    grid-area: advisor;
+}
+.grid .response {
+    grid-area: left-cell-start / left-cell-start / right-cell-end / right-cell-end;
+
+}
+.grid .overlay {
+    grid-column: span 3;
+    grid-row: span 4;
+}
+
 /* Modifications by experiment */
 .NoFeedbackContexts .advisor-key-row .advisor-group {
     display: none;
@@ -863,6 +1068,7 @@ span.redo-link {
 /* Sizing for smaller displays */
 @media screen and (max-height: 500px) {
     :root {
+        --font-size-large: 32px;
         --font-size-medium: 16px;
         --font-size-small: 12px;
 
@@ -877,6 +1083,16 @@ span.redo-link {
         width: 100vw;
         height: 100vh;
         border-radius: 0;
+    }
+    esm-response-binary-conf#response-panel .response-panel .response-answer {
+        font-size: 1.5em;
+    }
+    .grid img.identicon {
+        width: 3em;
+        height: 3em;
+    }
+    .grid .response-marker.advisor {
+        --triangle-size: 1em;
     }
     .debrief {
         height: 20vh;

@@ -30,6 +30,7 @@ import {ControlObject} from "./Prototypes.js";
  * @property stim {HTMLElement} contents of the stimulus window when the
  * stimulus is visible
  * @property correctAnswer {*} correct answer on the trial
+ * @property [anchor=null] {HTMLElement} contents of the date prompt area when the stimulus is visible
  * @property [prompt=null] {string|object|null} HTML string of the prompt text.
  * Can be an object with phase names and entries for each phase (begin,
  * showStim, hideStim, getResponse, processResponse, showFeedback, end,
@@ -63,6 +64,8 @@ class Trial extends ControlObject {
 
         // Register properties in the data output
         this.data.stimHTML = this.stim.outerHTML;
+        this.data.anchorHTML = this.anchor? this.anchor.outerHTML : null;
+        this.data.anchorDate = this.anchorDate;
         this.data.correctAnswer = typeof this.correctAnswer === "function"?
             this.correctAnswer() : this.correctAnswer;
 
@@ -178,6 +181,9 @@ class Trial extends ControlObject {
      */
     begin() {
         document.querySelector("#stimulus").innerHTML = this.stim.outerHTML;
+        const date = document.querySelector('#date');
+        if(date && this.anchor)
+            date.innerHTML = this.anchor.outerHTML;
 
         this.data.timestampStart = new Date().getTime();
 
@@ -293,6 +299,8 @@ class Trial extends ControlObject {
     static reset() {
         document.querySelector("#stimulus").innerHTML = "";
         document.querySelector("#prompt").innerHTML = "";
+        if(document.querySelector('#date'))
+            document.querySelector('#date').innerHTML = "";
     }
 
     /**
@@ -441,13 +449,13 @@ class AdvisedTrial extends Trial {
             this.advisors.forEach(a => {
                 let add = true;
                 document.querySelectorAll(
-                    '.sidebar .advisor-key .advisor-key-row'
+                    '.advisor-key .advisor-key-row'
                 ).forEach(elm => {
                     if(elm.dataset.advisorId === a.id.toString())
                         add = false;
                 });
                 if(add)
-                    document.querySelector('.sidebar .advisor-key')
+                    document.querySelector('.advisor-key')
                             .appendChild(a.getInfoTab());
             });
         }
@@ -605,6 +613,13 @@ class AdvisedTrial extends Trial {
         this.data.context = this.context;
         this.data.contextName = this.contextName;
         this.data.contextDescription = this.contextDescription;
+
+        // Add attention check stuff
+        if(this.attentionCheck) {
+           this.data.attentionCheckMarkerWidth = this.attentionCheckMarkerWidth;
+           this.data.attentionCheckHighConf = this.attentionCheckHighConf;
+           this.data.attentionCheckCorrect = this.attentionCheckCorrect;
+        }
 
         return super.toTable(headers);
     }
@@ -771,4 +786,9 @@ class TrialWithConf extends AdvisedTrialWithConf {
     }
 }
 
-export {AdvisedTrial, Trial, AdvisedTrialWithConf, TrialWithConf};
+export {
+    AdvisedTrial,
+    Trial,
+    AdvisedTrialWithConf,
+    TrialWithConf
+};

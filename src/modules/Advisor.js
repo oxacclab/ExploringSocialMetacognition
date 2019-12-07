@@ -104,6 +104,9 @@ class Advisor extends BaseObject {
             case "esm-response-timeline":
                 this.drawTimelineAdvice();
                 break;
+            case "esm-response-binary-conf":
+                this.drawBinaryConfAdvice();
+                break;
         }
 
         await this.wait(1000);
@@ -159,6 +162,34 @@ class Advisor extends BaseObject {
         setTimeout((m)=>m.style.display = "", 0, this.marker);
 
         this.debug(this.getAdvice(false));
+    }
+
+    drawBinaryConfAdvice() {
+        // Which side is advice on?
+        const side = this.getAdvice(false).side;
+        const confidence = this.getAdvice(false).confidence;
+        const panel = document.querySelector("esm-response-binary-conf .response-panel:" + (side? "last-of-type" : "first-of-type"));
+
+        if(!panel)
+            this.error("Could not find panel " + side + " to draw advice on.");
+
+        // Refresh marker in the correct panel
+        if(this.marker)
+            this.marker.remove();
+
+        // Are we showing advice confidence?
+        if(confidence !== null) {
+            // with confidence we draw alongside the column
+            const column = panel.querySelector(".response-column");
+            this.createMarker(column);
+            this.marker.classList.add("confidence");
+            this.marker.style.bottom =
+                "calc(" + Math.round(confidence) + "% - " +
+                (this.marker.getBoundingClientRect().height / 2) + "px)";
+        } else {
+            // without confidence just indicate the answer
+            this.createMarker(panel);
+        }
     }
 
     /**
@@ -335,14 +366,21 @@ class AdviceProfile extends BaseObject {
      * Return the centre of the advice for a trial
      * @param trial {Trial}
      * @param advisor {Advisor}
-     * @return {number} centre for the advice
+     * @return {{validTypeFlags: int[], nominalTypeFlag: int, nominalType: string, validTypes: string[], actualTypeFlag: int, actualType: string, adviceCentre: number, adviceWidth: number, advice: number, side: number|null, confidence: number|null}} centre for the advice
      */
     getAdvice(trial, advisor) {
         const out = {
             validTypes: null,
             validTypeFlags: null,
             nominalType: null,
-            nominalTypeFlag: null
+            nominalTypeFlag: null,
+            actualTypeFlag: null,
+            actualType: null,
+            adviceCentre: null,
+            adviceWidth: null,
+            advice: null,
+            side: null,
+            confidence: null
         };
         let aT = null;
 
@@ -437,6 +475,20 @@ class AdviceProfile extends BaseObject {
             range[1] - out.adviceCentre
         ], true);
         out.advice = utils.randomNumber(out.adviceCentre - room, out.adviceCentre + room);
+
+        // Advice for binary options is thresholded by the anchor
+        if(trial.anchorDate)
+            out.side = (out.advice >= trial.anchorDate)? 1 : 0;
+
+        if(trial.showAdvisorConfidence) {
+            // More confident each year, up to 100% confident at confidence boundary
+            out.confidence =
+                Math.abs(out.advice - trial.anchorDate) /
+                advisor.confidence * 100;
+            out.confidence = Math.max(
+                0, Math.min(100, Math.round(out.confidence))
+            );
+        }
 
         return out;
     }

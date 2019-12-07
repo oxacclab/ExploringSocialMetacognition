@@ -566,7 +566,7 @@ class Study extends ControlObject {
             let data = T.nextPhase("hideStim");
             T.nextPhase("getResponse");
 
-            help = Study._showHelp(document.querySelector(".response-timeline ~ esm-help"));
+            help = Study._showHelp(document.querySelector(".response-timeline ~ esm-help, esm-response-binary-conf esm-help"));
 
             instr.innerHTML = "Enter a response to continue";
 
@@ -734,11 +734,11 @@ class Study extends ControlObject {
             "Answer: <span>" + correctAnswer.toString() + "</span>";
 
         // Draw marker
-        document.getElementById("response-panel").feedbackMarker(correctAnswer);
+        document.getElementById("response-panel").feedbackMarker(correctAnswer, trial.data.anchorDate || null);
 
         setTimeout(()=> {
             document.getElementById("prompt").innerText = "";
-            document.querySelector("esm-response-timeline").reset();
+            document.querySelector("#response-panel").reset();
         }, feedbackDuration - 10);
         return new Promise((resolve) => {
             setTimeout(resolve, feedbackDuration);
@@ -1168,7 +1168,10 @@ class DatesStudy extends Study {
     async setupTrials() {
 
         // Fetch questions then assign trials
-        await this.parseQuestionsXML()
+        await Promise.all([
+            this.getSaveId(),
+            this.parseQuestionsXML()
+        ])
             .then(() => {
                 this.trials = [];
                 let t = 0;
@@ -1415,14 +1418,7 @@ class DatesStudy extends Study {
      */
     async attentionCheckFeedback(trial) {
 
-        if( // correctness
-            !(trial.data.responseEstimateLeft <= trial.correctAnswer &&
-            trial.data.responseEstimateLeft +
-            trial.data.responseMarkerWidth - 1 >= trial.correctAnswer) ||
-            // marker width
-            (trial.attentionCheckMarkerWidth &&
-                trial.data.responseMarkerWidth !==
-                trial.attentionCheckMarkerWidth)) {
+        if(trial.attentionCheckCorrect && !trial.attentionCheckCorrect(trial)) {
             Study._updateInstructions("attn-check-fail",
                 ()=>{},
                 "fullscreen-warning");
@@ -1442,23 +1438,27 @@ class DatesStudy extends Study {
     }
 
     get attentionCheckBlueprint() {
-        const me = this;
-        const markerWidths = document.querySelector('esm-response-timeline').markerWidths;
 
-        let ans = 1900 + Math.floor(Math.random() * 100);
+        const me = this;
+        const attentionCheck = document.querySelector('#response-panel').attentionCheck || null;
+        const markerWidth = attentionCheck && attentionCheck.markerWidths?
+            parseInt(attentionCheck.markerWidths[0]) : null;
+        const highConf = attentionCheck? attentionCheck.confidence : null;
+
         let bp = {
             stim: document.createElement("p"),
-            correctAnswer: ans,
+            correctAnswer: attentionCheck.answer,
             prompt: "",
             attentionCheck: true,
-            attentionCheckMarkerWidth: parseInt(markerWidths[0]),
+            attentionCheckMarkerWidth: markerWidth,
+            attentionCheckHighConf: highConf,
+            attentionCheckCorrect: attentionCheck.checkFunction,
             advisors: null,
-            displayFeedback: (this.prolific || /test/i.test(this.tags))?
+            displayFeedback: (me.prolific || /test/i.test(me.tags))?
                 (t)=>me.attentionCheckFeedback(t) : null
         };
 
-        const size = markerWidths.length > 1? "smallest " : "";
-        bp.stim.innerHTML = "for this question use the " + size + "marker to cover the year " + utils.numberToLetters(ans);
+        bp.stim.innerHTML = attentionCheck.question;
 
         return bp;
     }
@@ -2270,6 +2270,73 @@ class MinGroupsStudy extends DatesStudy {
 }
 
 /**
+ * @class DatesStudyBinary
+ * @extends DatesStudy
+ * @classdesc The task is altered to be one in which a prospective date is offered for each event, and the participant indicates whether the event occurred before or after that date.
+ *
+ * @property questionsXML {string} URL of a question.xml file for parsing
+ * @property [yearDifference=null] {function} function returning a prospective date given a real date (i.e. the correct answer) and limits ([min, max]). Can be used to alter the difficulty of the task.
+ */
+class DatesStudyBinary extends DatesStudy {
+
+    /**
+     * Default year difference function. Sample an answer from a normal distribution around the correct answer with SD=10yrs.
+     * @param correctAnswer {int}
+     * @param [limits=[-Infinity, Infinity]] {[int, int]} limits within which to keep the answer
+     * @protected
+     * @return {int}
+     */
+    _yearDifference(correctAnswer, limits = [-Infinity, Infinity]) {
+        let answer = null;
+        let cycle = 0;
+        const maxCycles = 10000;
+        while(answer === null || answer < limits[0] || answer > limits[1] || answer === correctAnswer) {
+            if(cycle++ > maxCycles)
+                this.error("Exceeded maximum cycles in _yearDifference(" + correctAnswer + ", " + limits.toString() + ")");
+
+            answer = parseInt(utils.sampleNormal(1, correctAnswer, 10));
+        }
+
+        return answer;
+    }
+
+    /**
+     * Return the next blueprint in the sequence derived from parsing questions
+     * @return {object}
+     */
+    get trialBlueprint() {
+        if(typeof this.yearDifference !== "function")
+            this.yearDifference = this.yearDifference || this._yearDifference;
+
+        const bp = super.trialBlueprint;
+
+        if(this.questions) {
+            bp.anchor = document.createElement("p");
+            bp.anchorDate = this.yearDifference(bp.correctAnswer, [1900, 2000]);
+            bp.anchor.innerHTML = bp.anchorDate;
+        }
+
+        return bp;
+    };
+
+    set trialBlueprint(bp) {
+        this._trialBlueprint = bp;
+    }
+
+    /**
+     * Fetch the data for the study in a flat format suitable for CSVing
+     * @return {object} key-value pairs
+     */
+    toTable() {
+        return {
+            ...super.toTable(),
+            yearDifference: this.yearDifference?
+                this.yearDifference.toString() : null
+        };
+    }
+}
+
+/**
  * @class Block
  * @classdesc A block is a class which is never saved in the data; its properties are saved in each trial in the block. It thus presents an easy way of applying specific properties to groups of trials.
  * @property trialCount {int} number of trials in the block
@@ -2300,4 +2367,12 @@ class Block extends BaseObject{
     }
 }
 
-export {Study, DatesStudy, NoFeedbackStudy, NoFeedbackContexts, MinGroupsStudy, Block}
+export {
+    Study,
+    DatesStudy,
+    DatesStudyBinary,
+    NoFeedbackStudy,
+    NoFeedbackContexts,
+    MinGroupsStudy,
+    Block
+}

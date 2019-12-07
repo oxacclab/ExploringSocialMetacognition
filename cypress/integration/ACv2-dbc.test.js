@@ -199,7 +199,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
 
             // Acknowledge new context
-            cy.wait(600);
+            cy.wait(1200);
             cy.get('.advisor-intro .esm-instruction-button')
                 .should('be.visible')
                 .click();

@@ -28,10 +28,10 @@
     * ~~Pilot~~
     * ~~Data Analysis~~ 
     * ~~Preregistred replication~~
-* Advisor population version
-    * Pilot
-    * Preregistration
-    * Data analysis
+* ~~Advisor population version~~
+    * ~~Pilot~~
+    * ~~Preregistration~~
+    * ~~Data analysis~~
 ### Registered Report
 * Identify journal(s)
 * RR stage 1

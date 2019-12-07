@@ -35,6 +35,29 @@ function preventFormSubmission(form) {
     return form;
 }
 
+
+/**
+ * Split a comma-separated list into its component items
+ * @param list {string} comma-separated list
+ * @return {string[]} array of items in list
+ */
+function explodeCommaList(list) {
+    const items = [];
+    const r = new RegExp(/([^,]+)/g);
+    while(true) {
+        const match = r.exec(list);
+        if(!match)
+            break;
+
+        // Clean up initial spaces for item
+        let item = match[0];
+        item = item.replace(/\s*/, "");
+
+        items.push(item);
+    }
+    return items;
+}
+
 /**
  * return a new copy of an array
  *
@@ -386,4 +409,4 @@ function zToNormal(z, mean = 0, sd = 1) {
 }
 
 
-export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, preventFormSubmission, randomNumber, sampleNormal, zToNormal}
+export {getQueryStringValue, shuffle, shuffleShoe, sumList, mean, stDev, max, min, copyArray, orderArray, copyObject, getMatches, applyClassToChildren, round, getSequence, numberToLetters, preventFormSubmission, randomNumber, sampleNormal, zToNormal, explodeCommaList}

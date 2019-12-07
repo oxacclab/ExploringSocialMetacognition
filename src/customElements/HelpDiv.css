@@ -94,3 +94,9 @@ esm-help.show {
 esm-help.wide {
     max-width: 100vw;
 }
+esm-help.full-wide {
+    max-width: calc(100vw - 2em);
+    margin: 0 1em;
+    width: max-content;
+    left: unset;
+}

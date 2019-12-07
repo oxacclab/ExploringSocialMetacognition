@@ -406,35 +406,54 @@ customElements.define('esm-response-timeline',
             return display;
         }
 
-        /**
-         * Split a comma-separated list into its component items
-         * @param list {string} comma-separated list
-         * @return {string[]} array of items in list
-         */
-        static explodeCommaList(list) {
-            const items = [];
-            const r = new RegExp(/([^,]+)/g);
-            while(true) {
-                const match = r.exec(list);
-                if(!match)
-                    break;
-
-                // Clean up initial spaces for item
-                let item = match[0];
-                item = item.replace(/\s*/, "");
-
-                items.push(item);
-            }
-            return items;
-        }
-
         get markerWidths() {
-            return ResponseTimeline.explodeCommaList(this.dataset.markerWidths);
+            return utils.explodeCommaList(this.dataset.markerWidths);
         }
 
         get markerPoints() {
 
-            return ResponseTimeline.explodeCommaList(this.dataset.markerValues);
+            return utils.explodeCommaList(this.dataset.markerValues);
+        }
+
+        /**
+         * Produce the details the study will need to run attention checks using this response method.
+         * @return {{question: string, answer: *, markerWidths: *}}
+         */
+        get attentionCheck() {
+
+            const ans = parseInt(this.dataset.min) +
+                Math.floor(
+                    Math.random() *
+                    (parseInt(this.dataset.max) - parseInt(this.dataset.min))
+                );
+
+            const size = this.markerWidths.length > 1? "smallest " : "";
+            const q = "for this question use the " + size + "marker to cover the year " + utils.numberToLetters(ans);
+
+            return {
+                question: q,
+                answer: ans,
+                markerWidths: this.markerWidths,
+                checkFunction: ResponseTimeline.isAttentionCheckCorrect
+            }
+        }
+
+        /**
+         * Check a response matches the expected attention check properties
+         * @param trial
+         * @return {boolean}
+         */
+        static isAttentionCheckCorrect(trial) {
+            if(!(trial.data.responseEstimateLeft <= trial.correctAnswer &&
+                trial.data.responseEstimateLeft +
+                trial.data.responseMarkerWidth - 1 >= trial.correctAnswer) ||
+            // marker width
+            (trial.attentionCheckMarkerWidth &&
+                trial.data.responseMarkerWidth !==
+                trial.attentionCheckMarkerWidth))
+                return false;
+
+            return true;
         }
 
         /**

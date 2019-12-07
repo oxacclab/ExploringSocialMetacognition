@@ -1,3 +1,4 @@
+import * as utils from "../utils.js";
 
 customElements.define('esm-confidence-widget',
     /**
@@ -92,12 +93,12 @@ customElements.define('esm-confidence-widget',
         }
 
         resetButtons() {
-            const buttonClasses = ConfidenceWidget.explodeCommaList(this.dataset.buttonClasses);
+            const buttonClasses = utils.explodeCommaList(this.dataset.buttonClasses);
 
             const buttonDiv = this.buttonDiv;
             buttonDiv.innerHTML = "";
 
-            const buttonLabels = ConfidenceWidget.explodeCommaList(this.dataset.labels);
+            const buttonLabels = utils.explodeCommaList(this.dataset.labels);
 
             buttonLabels.map((s) => {
                 const elm = document.createElement("button");
@@ -114,28 +115,6 @@ customElements.define('esm-confidence-widget',
 
                 buttonDiv.appendChild(elm);
             })
-        }
-
-        /**
-         * Split a comma-separated list into its component items
-         * @param list {string} comma-separated list
-         * @return {string[]} array of items in list
-         */
-        static explodeCommaList(list) {
-            const items = [];
-            const r = new RegExp(/([^,]+)/g);
-            while(true) {
-                const match = r.exec(list);
-                if(!match)
-                    break;
-
-                // Clean up initial spaces for item
-                let item = match[0];
-                item = item.replace(/\s*/, "");
-
-                items.push(item);
-            }
-            return items;
         }
     }
 );

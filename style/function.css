@@ -63,6 +63,10 @@ body:not(.Trial-any) #response-panel {
 body:not(.Trial-any):not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #content #stimulus {
     opacity: 0;
 }
+.grid.Trial-begin #content .stimulus,
+body.grid:not(.Trial-any):not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #content .stimulus {
+    opacity: 0;
+}
 
 /* Hide the help button when we're not in practice */
 body:not(.Study-practice):not(.Study-advisorPractice) #help-button {
@@ -127,7 +131,7 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 .Trial-getResponse .response-marker.ghost,
 .Trial-showAdvice .response-marker.ghost,
 .Trial-getFinalResponse .response-marker.ghost {
-    display: block;
+    display: flex;
 }
 
 /* Show appropriately-sized prompt text during final decision */
