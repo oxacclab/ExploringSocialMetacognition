@@ -52,7 +52,7 @@ customElements.define('esm-response-binary-conf',
                 return;
 
             // If a touch is dragged out of the column, zero it
-            if(evt instanceof TouchEvent) {
+            if(TouchEvent && evt instanceof TouchEvent) {
                 const t = evt.targetTouches[0];
                 if(!(t.clientX >= bb.left &&
                     t.clientX <= bb.right &&
@@ -127,7 +127,7 @@ customElements.define('esm-response-binary-conf',
         endInput(evt) {
             // Touch events must still be within the target to be valid endings
             // This allows cancelling the response by dragging the touch out
-            if(evt instanceof TouchEvent) {
+            if(TouchEvent && evt instanceof TouchEvent) {
                 // Stop propagation of other events
                 evt.preventDefault();
 
