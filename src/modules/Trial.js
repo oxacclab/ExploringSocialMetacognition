@@ -437,10 +437,13 @@ class AdvisedTrial extends Trial {
      * @return {Promise<Trial>}
      */
     async begin() {
+        const me = this;
         const advisors = this.advisors;
         // Remove old unused advisors
-        document.querySelectorAll('.sidebar .advisor-key .advisor-key-row').forEach(elm => {
-            if(!advisors.filter(a => a.id.toString() === elm.dataset.advisorId).length)
+        document.querySelectorAll('.advisor-key .advisor-key-row').forEach(elm => {
+            if(
+                !advisors.filter(a => a.id.toString() === elm.dataset.advisorId).length ||
+            me.forceRefreshAdvisor)
                 elm.remove();
         });
 

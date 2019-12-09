@@ -785,8 +785,8 @@ class Study extends ControlObject {
             const block = blocks[b];
 
             let intro = false;
-            if(b.introduceAdvisors !== "undefined")
-                intro = b.introduceAdvisors;
+            if(block.introduceAdvisors !== "undefined")
+                intro = block.introduceAdvisors;
             else
                 intro = b === 0?
                     true :
@@ -2343,6 +2343,24 @@ class MinGroupsStudy extends DatesStudy {
  * @property [yearDifference=null] {function} function returning a prospective date given a real date (i.e. the correct answer) and limits ([min, max]). Can be used to alter the difficulty of the task.
  */
 class DatesStudyBinary extends DatesStudy {
+
+    static get listPhases() {
+        return [
+            "splashScreen",
+            "consent",
+            "demographics",
+            "introduction",
+            "training",
+            "practiceInstructions",
+            "practice",
+            "advisorPracticeInstructions",
+            "advisorPractice",
+            "coreInstructions",
+            "core",
+            "debrief",
+            "results"
+        ];
+    }
 
     async setupTrials() {
         await super.setupTrials();
