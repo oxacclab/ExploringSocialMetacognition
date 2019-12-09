@@ -157,14 +157,23 @@ class Study extends ControlObject {
         const me = this;
         return new Promise(function(resolve) {
             let data = [];
-            Study._updateInstructions("instr-fullscreen",
-                () => {
-                    if(!document.fullscreenElement)
-                        Study.lockFullscreen(document.querySelector("#content"));
+            Study._updateInstructions(
+                "instr-fullscreen",
+                (name) => {
+                    if(name !== "end") {
+                        if(!document.fullscreenElement)
+                            Study.lockFullscreen(document.querySelector("#content"));
 
-                    me.saveCSVRow("consent",false,{
-                        consentTime: "not yet implemented"//new Date().getTime()
-                    }).then(me.setupTrials()).then(reply => resolve(reply));
+                        me.saveCSVRow(
+                            "consent",
+                            false,
+                            {
+                                //consentTime: new Date().getTime()
+                                consentTime: "not yet implemented"
+                            })
+                            .then(me.setupTrials())
+                            .then(reply => resolve(reply));
+                    }
                 });
         });
     }
@@ -644,6 +653,28 @@ class Study extends ControlObject {
         if(typeof block === "number")
             block = this.blocks[block];
 
+        // Introductory text for a block
+        if(block.introText) {
+            // support either esm-instruction or normal HTML
+            let intro = "";
+            if(/<esm-instruction/.test(block.introText))
+                intro = block.introText;
+            else
+                intro = "<esm-instruction><esm-instruction-page>" + block.introText + "</esm-instruction-page></esm-instruction>";
+            document.getElementById("block-intro").querySelector(".intro").innerHTML = intro;
+
+            await new Promise(function(resolve) {
+                let data = [];
+                Study._updateInstructions("block-intro",
+                    (name) => {
+                        let now = new Date().getTime();
+                        data.push({name, now});
+                        if(name === "exit")
+                            resolve(data);
+                    });
+            });
+        }
+
         if(introduceAdvisors) {
             await this._introduceAdvisors(block.advisors);
         }
@@ -753,7 +784,13 @@ class Study extends ControlObject {
 
             const block = blocks[b];
 
-            let intro = b === 0? true : !block.advisors.every(x => blocks[b - 1].advisors.includes(x));
+            let intro = false;
+            if(b.introduceAdvisors !== "undefined")
+                intro = b.introduceAdvisors;
+            else
+                intro = b === 0?
+                    true :
+                    !block.advisors.every(x => blocks[b - 1].advisors.includes(x));
 
             await this.preBlock(block, intro);
 
@@ -1084,6 +1121,8 @@ class Study extends ControlObject {
         this._setAdvisorOrder(this.condition % 2);
 
         this.pushBlockPropertiesToTrials();
+
+        this.validate();
     }
 
     async getSaveId() {
@@ -1149,6 +1188,30 @@ class Study extends ControlObject {
         this.setCondition();
 
         return this.id;
+    }
+
+    /**
+     * Validate the structure of the Study
+     * @param errorOnFail {boolean} whether to throw an error if structure is invalid
+     * @param verbose {boolean} whether to log tests to the console
+     * @return {boolean}
+     */
+    validate(errorOnFail = true, verbose = false) {
+        this.info("Validation passed.");
+        return true;
+    }
+
+    /**
+     * Handle failed validation checks
+     * @param content {string} log content
+     * @param withError {boolean} whether to throw an error
+     * @param details {object} to print to console
+     */
+    raise(content, withError = true, details) {
+        console.log("Validation error: " + content);
+        console.log(details);
+        if(withError)
+            this.error(content);
     }
 }
 
@@ -1346,7 +1409,7 @@ class DatesStudy extends Study {
             this.warn("More questions requested than available; " +
                 "shuffling and recycling.");
             this.questions = utils.shuffle(this.questions);
-            this.questionIndex = -1;
+            this.questionIndex = 0;
         }
 
         let q = this.questions[this.questionIndex];
@@ -2250,7 +2313,9 @@ class MinGroupsStudy extends DatesStudy {
                     }
                 }
             }
-        })
+        });
+
+        this.validate();
     }
 
     _getPublicDebriefFormData() {
@@ -2279,6 +2344,194 @@ class MinGroupsStudy extends DatesStudy {
  */
 class DatesStudyBinary extends DatesStudy {
 
+    async setupTrials() {
+        await super.setupTrials();
+        this.fillAdvisorNames();
+    }
+
+    /**
+     * Update core blocks to have the appropriate advisor order.
+     * @param x {int} 0 or 1
+     * @protected
+     */
+    _setAdvisorOrder(x) {
+        const advisorOrder = [];
+
+        advisorOrder[0] = x + 1;
+        advisorOrder[1] = 3 - advisorOrder[0];
+
+        const coreBlocks = this.blocks.filter(
+            b => b.blockType === "core" && b.feedback
+        );
+        const advisors = [];
+
+        // Repeat advisorOrder as many times as needed to index all advisors
+        for(let i = 0; i < coreBlocks.length / advisorOrder.length; i++)
+            advisors.push(...advisorOrder.map(x => x + (advisorOrder.length * i)));
+
+        const me = this;
+
+        coreBlocks.forEach(b => {
+                const i = advisors.shift();
+                if(b.advisorChoice)
+                    b.advisors = me.advisors.filter(a => a.id > 0);
+                else
+                    b.advisors = [me.advisors[i]];
+            });
+    }
+
+    /**
+     * Add cosmetic renaming of certain advisors to make them appear to be a group rather than an individual
+     * Advisors who have the number '###' will get assigned a new number.
+     * Advisors who have the isGroup variable set to 'true' will be cloned and given different numbers at each appearance.
+     * @return {void}
+     */
+    setCondition(condition) {
+
+        if(condition)
+            this.condition = condition;
+
+        this.info("Assigning condition variables for condition " + this.condition);
+
+        // Counterbalanced advisor order
+        this._setAdvisorOrder(this.condition % 2);
+
+        this.pushBlockPropertiesToTrials();
+
+        this.validate();
+    }
+
+    /**
+     * Fill in '###' in advisor names with a unique number
+     */
+    fillAdvisorNames() {
+        // Make individual advisors for each trial from the individual advisors
+        let numbers = utils.shuffle(utils.getSequence(10, 99));
+
+        // Ensure specifically named advisors' names aren't duplicated
+        this.advisors.forEach(a => {
+            const regex = /[ #]([0-9]+)$/.exec(a.name);
+            if(regex) {
+                const num = parseInt(regex.groups[0]);
+                const i = numbers.indexOf(num);
+                if(i !== -1) {
+                    // remove the number from the numbers list
+                    numbers.splice(i, 1);
+                }
+            }
+        });
+
+        // Assign ### advisors' numbers from the pool
+        for(let t = 0; t < this.trials.length; t++) {
+            const T = this.trials[t];
+            if(!T.advisors || !T.advisors.length)
+                continue;
+            const advisors = [];
+            for(let i = 0; i < T.advisors.length; i++) {
+                const a = T.advisors[i];
+
+                // Skip advisor if they have a number
+                if(!/###/.test(a.name)) {
+                    advisors.push(a);
+                    continue;
+                }
+
+                const name = a.name.replace(/###/, "#" + numbers.pop());
+
+                // Hoist advisor group properties to be trial context properties
+                T.context = a.group;
+                T.contextName = a.idDescription;
+                T.contextDescription = a.introText;
+
+                // Save as new copy of advisor if advisor is a group member
+                if(a.isGroup)
+                    advisors.push(new Advisor({
+                        ...a,
+                        name: name,
+                        _image: null // force the identicon to recalculate
+                    }));
+                else {
+                    a.name = name;
+                    advisors.push(a);
+                }
+            }
+            T.advisors = advisors;
+        }
+    }
+
+    /**
+     * Validate the structure of the Study
+     * @param errorOnFail {boolean} whether to throw an error if structure is invalid
+     * @param verbose {boolean} whether to log tests to the console
+     * @return {boolean}
+     */
+    validate(errorOnFail = true, verbose = false) {
+        const me = this;
+        // Advisors should alternate between block sets by isGroup
+        const coreBlocks = this.blocks.filter(
+            // Core (non-test) blocks have feedback
+            b => b.blockType === "core" && b.feedback);
+        let x = -1;
+        coreBlocks.forEach((b, i) => {
+            if(verbose)
+                console.log({coreBlockNum: i, advisorId: b.advisors[0].id, block: b, isGroup: b.advisors[0].isGroup});
+
+            if(b.advisors[0].isGroup === x)
+                me.raise(
+                    "Advisors have same isGroup status in consecutive block sets",
+                    errorOnFail,
+                    verbose? {block: b, isGroupValue: x, advisor: b.advisors[0]} : {}
+                    );
+            else
+                x = b.advisors[0].isGroup;
+        });
+
+        return super.validate(errorOnFail, verbose);
+    }
+
+    /**
+     * Insert an advisor's info tab with an animation for visibility.
+     * @param advisor {Advisor}
+     * @param resolve {function} callback for promise
+     * @return {Promise<HTMLElement>}
+     */
+    async _introduceAdvisor(advisor, resolve) {
+
+        document.querySelector('#stimulus').innerHTML =
+            document.querySelector('#advisor-intro-text')
+                .content.querySelector('.advisor-intro').outerHTML;
+
+        document.querySelector('.advisor-intro .text').innerHTML =
+            advisor.introText;
+
+        await new Promise((r) => {
+            // Add a slight delay to the button press
+            const minTime = new Date().getTime() + 500;
+            document.querySelector('.advisor-intro .confirm button')
+                .addEventListener('click', () => {
+                    if(new Date().getTime() >= minTime)
+                        r();
+                });
+        });
+    }
+
+    /**
+     * Wipe the advisors panel and introduce new advisors
+     * @param advisors {Advisor[]}
+     */
+    async _introduceAdvisors(advisors) {
+        // Remove current advisors
+        document.querySelectorAll(".advisor-key .advisor-key-row").forEach(
+            (elm) => elm.remove()
+        );
+
+        // Change prompt text to state what is happening
+        document.getElementById("prompt").innerHTML = "New advisor" + (advisors.length > 1? " group" : "") + "!";
+        await this.wait(500);
+
+        await this._introduceAdvisor(advisors[0]);
+    }
+
     /**
      * Default year difference function. Sample an answer from a normal distribution around the correct answer with SD=10yrs.
      * @param correctAnswer {int}
@@ -2294,7 +2547,7 @@ class DatesStudyBinary extends DatesStudy {
             if(cycle++ > maxCycles)
                 this.error("Exceeded maximum cycles in _yearDifference(" + correctAnswer + ", " + limits.toString() + ")");
 
-            answer = parseInt(utils.sampleNormal(1, correctAnswer, 10));
+            answer = Math.round(utils.sampleNormal(1, correctAnswer, 10));
         }
 
         return answer;
@@ -2333,6 +2586,10 @@ class DatesStudyBinary extends DatesStudy {
             yearDifference: this.yearDifference?
                 this.yearDifference.toString() : null
         };
+    }
+
+    async results() {
+        throw("Feedback not yet implemented!")
     }
 }
 

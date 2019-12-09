@@ -186,6 +186,8 @@ function round (x, decimals = 0, asPaddedString=false) {
 
 /**
  * https://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array
+ * @param array {[]}
+ * @return {[]}
  */
 function shuffle(array) {
     let counter = array.length;

@@ -67,12 +67,12 @@
         <esm-instruction>
             <esm-instruction-page>
                 <h1>About the study</h1>
-                <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. You will be given an event and a year, and your task is to determine whether the event happened before the given year. You will also indicate your confidence in your decision.</p>
+                <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. You will be given an event and a year, and your task is to determine whether the event happened before or after the given year. You will also indicate your confidence in your decision.</p>
                 <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the study.</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Advice</h1>
-                <p>To help you complete the task, you will receive advice from advisors. You will see the advisors who are giving you advice in the middle of your screen. One or more of those advisors may give you advice on each question.</p>
+                <p>To help you complete the task, you will receive advice from advisors. You will see the advisors who are giving you advice in the middle of your screen.</p>
                 <p>Sometimes the advisors will let you know how confident they are in their answers by indicating a place on the confidence scale. At other times, they will simply indicate which answer is correct. The advisors aren't always correct, but they are quite good at the task. Part of your job is to identify which advisors are best and to weigh their advice accordingly.</p>
             </esm-instruction-page>
             <esm-instruction-page>
@@ -87,7 +87,6 @@
             <esm-instruction-page>
                 <h1>Practice</h1>
                 <p>You will now have an opportunity to practice the task and get a sense of the kind of questions we ask and how well you can estimate the answers.</p>
-                <p>You will get feedback on your performance while you are doing the practice.</p>
                 <p>Throughout the practice you can use the ? in the top-right to see the help for any part of the screen again.</p>
                 <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. The feedback will tell you what the answer was for each question.</p>
             </esm-instruction-page>
@@ -100,10 +99,6 @@
                 <p>During the main study you will get advice about the correct answer. You will now answer a few questions where you'll receive practice advice so you can get used to it.</p>
                 <p>Once you give your <strong>initial answer</strong> you will see an advisor's estimate. You will then be able to provide your <strong>final answer</strong>.</p>
             </esm-instruction-page>
-            <esm-instruction-page>
-                <p>The advisor will give advice by highlighting a region of the timeline, similar to how you cover parts of it with your markers.</p>
-                <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>.</p>
-            </esm-instruction-page>
         </esm-instruction>
     </template>
     <template id="instr-final">
@@ -115,19 +110,17 @@
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
-                <p>From now on, you won't get to see the correct answer after each question. You'll get to see all the answers at the end of the study, though!</p>
+                <p>From now on, you won't always get to see the correct answer after each question. You'll get to see all the answers at the end of the study, though!</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
                 <p>You will have various advisors who will give you advice about each question. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
-                <p>We will also ask you questions about the advice you receive as you go through the study.</p>
             </esm-instruction-page>
-            <esm-instruction-page>
-            <h1>Advisors</h1>
-            <p>The last thing to tell you is that some of the advisors may try to deceive you. You will be warned before you start a set of questions where the advisors may offer deceptive advice.</p>
-            <p>If you're happy with how it works, let's go!</p>
-        </esm-instruction-page>
         </esm-instruction>
+    </template>
+    <template id="block-intro">
+        <div class="intro">
+        </div>
     </template>
     <template id="block-break">
         <esm-instruction>
@@ -136,39 +129,6 @@
                 <p>You may take a short break here if you wish. Use the button below when you're ready to continue.</p>
             </esm-instruction-page>
         </esm-instruction>
-    </template>
-    <template id="debrief-advisors">
-        <form class="questionnaire advisors overlay">
-            <div class="question">
-                <p>Please indicate how you felt about this advisor:</p>
-                <div class="subject"></div>
-            </div>
-            <div class="items">
-                <div class="item">
-                    <label class="label" for="know">ignorant</label>
-                    <input type="range" name="knowledge" id="know"/>
-                    <label class="label" for="know">knowledgeable</label>
-                </div>
-                <div class="item">
-                    <label class="label" for="consistent">inconsistent</label>
-                    <input type="range" name="consistency" id="consistent"/>
-                    <label class="label" for="consistent">consistent</label>
-                </div>
-                <div class="item">
-                    <label class="label" for="help">not trying to help me</label>
-                    <input type="range" name="helpfulness" id="help"/>
-                    <label class="label" for="help">trying to help me</label>
-                </div>
-                <div class="item">
-                    <label class="label" for="trust">untrustworthy</label>
-                    <input type="range" name="trustworthiness" id="trust"/>
-                    <label class="label" for="trust">trustworthy</label>
-                </div>
-            </div>
-            <div class="bottom">
-                <button name="submit" class="confirm esm-instruction-button questionnaire">&check;</button>
-            </div>
-        </form>
     </template>
     <template id="debrief">
         <form class="questionnaire general overlay">
@@ -433,7 +393,7 @@
                     idDescription: "Practice",
                     introText: "During this block of questions you will be given advice to consider before making a final decision.",
                     group: 0,
-                    name: "Practice advisor",
+                    name: "Practice advisor ###",
                     templateId: "advisor-key",
                     confidence: 11,
                     confidenceVariation: 11,
@@ -445,11 +405,12 @@
                 }),
                 new Advisor({
                     id: 1,
-                    position: 0,
-                    idDescription: "honest",
-                    introText: "During this block of questions the advisors will all try their best to help you.",
-                    group: 1,
-                    name: "Prototype ('Honest')",
+                    position: 1,
+                    idDescription: "mass, no-conf",
+                    introText: "During this block of questions you will get advice from <strong>different</strong> advisors each time.",
+                    group: 0,
+                    name: "Advisor ###",
+                    isGroup: true,
                     templateId: "advisor-key",
                     confidence: 11,
                     confidenceVariation: 11,
@@ -457,16 +418,16 @@
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
                         ]
-                    }),
-                    includeQuestionnaire: true
+                    })
                 }),
                 new Advisor({
                     id: 2,
-                    position: 1,
-                    idDescription: "deceptive",
-                    introText: "During this block of questions some of the advisors may sometimes try to mislead you.",
-                    group: 2,
-                    name: "Prototype ('Deceptive')",
+                    position: 2,
+                    idDescription: "single, no-conf",
+                    isGroup: false,
+                    introText: "During this block of questions you will get advice from <strong>the same</strong> advisor every time.",
+                    group: 0,
+                    name: "Advisor ###",
                     templateId: "advisor-key",
                     confidence: 11,
                     confidenceVariation: 11,
@@ -474,15 +435,48 @@
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
                         ]
-                    }),
-                    includeQuestionnaire: true
+                    })
+                }),
+                new Advisor({
+                    id: 3,
+                    position: 3,
+                    idDescription: "mass, conf",
+                    isGroup: true,
+                    introText: "<p>During this block of questions you will get advice from <strong>different</strong> advisors each time.</p><p>These advisors will <strong>indicate their confidence</strong> in their advice.</p>",
+                    group: 0,
+                    name: "Advisor ###",
+                    templateId: "advisor-key",
+                    confidence: 11,
+                    confidenceVariation: 11,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_CORRECTISH.copy(1)
+                        ]
+                    })
+                }),
+                new Advisor({
+                    id: 4,
+                    position: 4,
+                    idDescription: "single, conf",
+                    isGroup: false,
+                    introText: "<p>During this block of questions you will get advice from <strong>the same</strong> advisor every time.</p><p>This advisor will <strong>indicate their confidence</strong> in their advice.</p>",
+                    group: 0,
+                    name: "Advisor ###",
+                    templateId: "advisor-key",
+                    confidence: 11,
+                    confidenceVariation: 11,
+                    adviceProfile: new AdviceProfile({
+                        adviceTypes: [
+                            ADVICE_CORRECTISH.copy(1)
+                        ]
+                    })
                 })
             ];
 
         let studyBlueprint = {
             studyName: "ConfidenceExploration",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [17, 18, 19],
+            attentionCheckTrials: [17, 30, 42, 61],
             blocks: [
                 new Block({
                     trialCount: 7,
@@ -492,24 +486,88 @@
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 7,
+                    trialCount: 3,
                     blockType: "practiceAdvisor",
-                    advisors: [advisors[0]],
-                    advisorsPerTrial: 1,
                     feedback: true,
-                    showAdvisorConfidence: true
-                }),
-                new Block({
-                    trialCount: 7,
-                    blockType: "core",
-                    feedback: false,
+                    showAdvisorConfidence: false,
+                    advisors: [advisors[0]],
                     advisorsPerTrial: 1
                 }),
+                // Feedback + no confidence info - train
                 new Block({
-                    trialCount: 7,
+                    trialCount: 10,
+                    blockType: "core",
+                    feedback: true,
+                    showAdvisorConfidence: false,
+                    advisors: [advisors[1]],
+                    advisorsPerTrial: 1
+                }),
+                // Test
+                new Block({
+                    trialCount: 5,
                     blockType: "core",
                     feedback: false,
+                    showAdvisorConfidence: false,
+                    advisors: [advisors[1]],
+                    advisorsPerTrial: 1,
+                    introduceAdvisors: false
+                }),
+                // Feedback + no confidence info - train
+                new Block({
+                    trialCount: 10,
+                    blockType: "core",
+                    feedback: true,
+                    showAdvisorConfidence: false,
+                    advisors: [advisors[2]],
                     advisorsPerTrial: 1
+                }),
+                // Test
+                new Block({
+                    trialCount: 5,
+                    blockType: "core",
+                    feedback: false,
+                    showAdvisorConfidence: false,
+                    advisors: [advisors[2]],
+                    advisorsPerTrial: 1,
+                    introduceAdvisors: false
+                }),
+                // Feedback + confidence info - train
+                new Block({
+                    trialCount: 10,
+                    blockType: "core",
+                    feedback: true,
+                    showAdvisorConfidence: true,
+                    advisors: [advisors[3]],
+                    advisorsPerTrial: 1
+                }),
+                // Test
+                new Block({
+                    trialCount: 5,
+                    blockType: "core",
+                    feedback: false,
+                    showAdvisorConfidence: true,
+                    advisors: [advisors[3]],
+                    advisorsPerTrial: 1,
+                    introduceAdvisors: false
+                }),
+                // Feedback + confidence info - train
+                new Block({
+                    trialCount: 10,
+                    blockType: "core",
+                    feedback: true,
+                    showAdvisorConfidence: true,
+                    advisors: [advisors[4]],
+                    advisorsPerTrial: 1
+                }),
+                // Test
+                new Block({
+                    trialCount: 5,
+                    blockType: "core",
+                    feedback: false,
+                    showAdvisorConfidence: true,
+                    advisors: [advisors[4]],
+                    advisorsPerTrial: 1,
+                    introduceAdvisors: false
                 })
             ],
             questionsXML: "assets/etc/questions.xml",

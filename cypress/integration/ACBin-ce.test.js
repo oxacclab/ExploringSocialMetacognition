@@ -1,9 +1,12 @@
 const runs = 1;
 
-function respond(position = null) {
+function respond(position = null, side = null) {
     position = position || {x: 0, y: Math.random() * 100};
 
-    cy.get('esm-response-binary-conf .response-panel.response-' + (Math.random() > .5 ? 'left' : 'right') + ' .response-column')
+    if(side === null)
+        side = Math.random() > .5;
+
+    cy.get('esm-response-binary-conf .response-panel.response-' + ( side? 'left' : 'right') + ' .response-column')
         .trigger('mousemove', {
             position: "top",
             force: true,
@@ -33,12 +36,10 @@ function doTrial() {
             let study = cy.state('window').study;
             const ans = study.trials[study.currentTrial].correctAnswer;
             const conf = study.trials[study.currentTrial].attentionCheckHighConf;
-            const bar = 'esm-response-binary-conf .response-panel.response-' + (ans === 0 ? 'left' : 'right') + ' .response-column';
             const offset = conf ? -50 : 50;
 
-            cy.get(bar).click(0, offset);
+            respond({x: 0, y: offset}, ans);
         } else {
-
             // Fill in a response
             respond();
 
@@ -177,7 +178,7 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible');
 
             // Fill in a response
-            respond({x: 50, y: 20});
+            respond({x: 50, y: 15});
         });
 
         it('Gives instructions before practice', function () {
@@ -222,23 +223,18 @@ for(let run = 0; run < runs; run++) {
 
             // Click through instructions
             cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-
-            cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
                 .click();
 
             // Acknowledge new context
-            cy.wait(600);
+            cy.wait(1200);
             cy.get('.advisor-intro .esm-instruction-button')
                 .should('be.visible')
                 .click();
         });
 
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 3; i++) {
             q++;
 
             it('Runs advisor practice q' + i + ' [Q' + q + ']',
@@ -265,28 +261,43 @@ for(let run = 0; run < runs; run++) {
                 .click();
 
             cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-
-            cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
                 .click();
 
             // Acknowledge new context
-            cy.wait(600);
+            cy.wait(1200);
             cy.get('.advisor-intro .esm-instruction-button')
                 .should('be.visible')
                 .click();
         });
 
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 10; i++) {
             q++;
 
             it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
                 doTrial();
             });
+        }
+
+        it('Pauses between blocks', function () {
+
+            cy.get('#instructions h1')
+                .should('have.text', 'Break')
+                .should('be.visible');
+
+            // Click through instructions
+            cy.get('esm-instruction button')
+                .contains('Okay')
+                .should('be.visible')
+                .click();
+        });
+
+        for(let i = 0; i < 5; i++) {
+            q++;
+
+            it('Runs block 2 (TEST) Q' + i + ' [Q' + q + ']',
+                function() {doTrial();});
         }
 
         it('Pauses between blocks', function () {
