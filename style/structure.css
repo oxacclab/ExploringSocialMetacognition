@@ -1049,7 +1049,7 @@ span.redo-link {
 }
 .grid .overlay {
     grid-column: span 3;
-    grid-row: span 4;
+    grid-row: span 5;
 }
 
 /* Modifications by experiment */

@@ -493,48 +493,6 @@
                     advisors: [advisors[0]],
                     advisorsPerTrial: 1
                 }),
-                // Feedback + no confidence info - train
-                new Block({
-                    trialCount: 10,
-                    blockType: "core",
-                    feedback: true,
-                    showAdvisorConfidence: false,
-                    advisors: [advisors[1]],
-                    advisorsPerTrial: 1,
-                    forceRefreshAdvisor: true
-                }),
-                // Test
-                new Block({
-                    trialCount: 5,
-                    blockType: "core",
-                    feedback: false,
-                    showAdvisorConfidence: false,
-                    advisors: [advisors[1]],
-                    advisorsPerTrial: 1,
-                    introduceAdvisors: false,
-                    forceRefreshAdvisor: true
-                }),
-                // Feedback + no confidence info - train
-                new Block({
-                    trialCount: 10,
-                    blockType: "core",
-                    feedback: true,
-                    showAdvisorConfidence: false,
-                    advisors: [advisors[2]],
-                    advisorsPerTrial: 1,
-                    forceRefreshAdvisor: true
-                }),
-                // Test
-                new Block({
-                    trialCount: 5,
-                    blockType: "core",
-                    feedback: false,
-                    showAdvisorConfidence: false,
-                    advisors: [advisors[2]],
-                    advisorsPerTrial: 1,
-                    introduceAdvisors: false,
-                    forceRefreshAdvisor: true
-                }),
                 // Feedback + confidence info - train
                 new Block({
                     trialCount: 10,

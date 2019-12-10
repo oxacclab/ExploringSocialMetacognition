@@ -1669,13 +1669,113 @@ class DatesStudy extends Study {
         };
     }
 
+    /**
+     * Simulate a set of results for testing the results display
+     * @return {Array}
+     * @protected
+     */
+    _simulateResults() {
+        const trialList = [];
+
+        for(let t = 0; t < this.trials.length; t++) {
+            this.trials[t].data.responseMarkerWidthFinal =
+                utils.shuffle([3, 9, 27])[0];
+            this.trials[t].data.responseEstimateLeftFinal =
+                1900 +
+                Math.floor(Math.random() *
+                    (100 - this.trials[t].data.responseMarkerWidthFinal));
+            trialList.push(this.trials[t].toTable());
+        }
+
+        return trialList;
+    }
+
+    /**
+     * Fetch results from the server
+     * @return {Promise<*>}
+     * @protected
+     */
+    async _fetchResults() {
+        let trialList = null;
+
+        let idCode = "";
+        let version = "";
+        if(utils.getQueryStringValue("fb")) {
+            idCode = utils.getQueryStringValue("fb").split("-")[0];
+            this.id = idCode;
+            version = utils.getQueryStringValue("fb").split("-")[1];
+            this.studyVersion = version;
+        } else {
+            idCode = this.id;
+            version = this.studyVersion;
+        }
+
+        // Look up trials according to the core trial type
+        const trialClass = this.blocks.filter(b => b.blockType === "core")[0].trialClass;
+        const trialClassName = trialClass? trialClass.name : "AdvisedTrial";
+
+        await fetch("../readSerial.php?tbl=" + trialClassName,
+            {method: "POST", body: JSON.stringify(
+                    { idCode, version, studyId: this.studyName})})
+            .then(async (r) => await r.text())
+            .then((txt) => JSON.parse(txt))
+            .then((o) => trialList = JSON.parse(o.content));
+
+        return trialList;
+    }
+
+    /**
+     * Handle click event for the result icons
+     * @param e {Event}
+     * @protected
+     */
+    _playMarker(e) {
+        e.stopPropagation();
+
+        const marker = e.currentTarget;
+        const detail = /true/i.test(utils.getQueryStringValue("detail"));
+
+        // show confidence guides
+        document.querySelectorAll(".marker.target").forEach((elm) => {
+            elm.classList.remove("detail");
+        });
+
+        if(marker.classList.contains("marker"))
+            marker.classList.add("detail");
+
+        // show correct answer
+        const targetId = "estimate" + marker.dataset.number;
+        document.querySelectorAll(".marker.estimate").forEach((elm) => {
+            if(/(estimate[0-9]+)/.exec(elm.id)[0] === targetId)
+                elm.style.display = "block";
+            else
+                elm.style.display = "";
+        });
+
+        // show prompt in the prompt area
+        if(marker.classList.contains("marker"))
+            document.querySelector(".feedback-wrapper .prompt").innerHTML =
+                marker.dataset.prompt + " (" + marker.dataset.target + ")";
+        else
+            document.querySelector(".feedback-wrapper .prompt").innerHTML =
+                "Click a marker for more info...";
+
+        if(detail) {
+            // Show some debugging info at the top
+            const p = document.querySelector(".timeline .debug");
+            p.innerHTML = "";
+            for(let k in marker.dataset) {
+                p.innerHTML += "<strong>" + k + "</strong>: " +
+                    marker.dataset[k] + "<br/>";
+            }
+        }
+    }
+
     async results() {
 
         // leave fullscreen
         if(document.fullscreenElement)
             Study.unlockFullscreen(document.fullscreenElement);
-
-        const detail = /true/i.test(utils.getQueryStringValue("detail"));
 
         // Protect against weird-looking-ness when resizing
         const me = this;
@@ -1686,90 +1786,16 @@ class DatesStudy extends Study {
             window.resizeTimeout = setTimeout(() => me.results(), 50);
         });
 
-        let trialList = [];
+        let trialList = null;
 
         // Simulate results if we're testing feedback
         if(DEBUG.level >= 1 && utils.getQueryStringValue("fb"))
-            for(let t = 0; t < this.trials.length; t++) {
-                this.trials[t].data.responseMarkerWidthFinal =
-                    utils.shuffle([3, 9, 27])[0];
-                this.trials[t].data.responseEstimateLeftFinal =
-                    1900 +
-                    Math.floor(Math.random() *
-                        (100 - this.trials[t].data.responseMarkerWidthFinal));
-                trialList.push(this.trials[t].toTable());
-            }
-        else {
-            let idCode = "";
-            let version = "";
-            if(utils.getQueryStringValue("fb")) {
-                idCode = utils.getQueryStringValue("fb").split("-")[0];
-                this.id = idCode;
-                version = utils.getQueryStringValue("fb").split("-")[1];
-                this.studyVersion = version;
-            } else {
-                idCode = this.id;
-                version = this.studyVersion;
-            }
+            trialList = this._simulateResults();
+        else
+            trialList = await this._fetchResults();
 
-            // Look up trials according to the core trial type
-            const trialClass = this.blocks.filter(b => b.blockType === "core")[0].trialClass;
-            const trialClassName = trialClass? trialClass.name : "AdvisedTrial";
-
-            await fetch("../readSerial.php?tbl=" + trialClassName,
-                {method: "POST", body: JSON.stringify(
-                        { idCode, version, studyId: this.studyName})})
-                .then(async (r) => await r.text())
-                .then((txt) => JSON.parse(txt))
-                .then((o) => trialList = JSON.parse(o.content));
-        }
-
+        // Remove attention checks
         trialList = trialList.filter(t => t.isAttentionCheck !== 1);
-
-        const playMarker = function() {
-            const e = window.event;
-
-            e.stopPropagation();
-
-            const marker = e.currentTarget;
-
-            // show confidence guides
-            document.querySelectorAll(".marker.target").forEach((elm) => {
-                elm.classList.remove("detail");
-            });
-
-            if(marker.classList.contains("marker"))
-                marker.classList.add("detail");
-
-            // show correct answer
-            const targetId = "estimate" + marker.dataset.number;
-            document.querySelectorAll(".marker.estimate").forEach((elm) => {
-                if(/(estimate[0-9]+)/.exec(elm.id)[0] === targetId)
-                    elm.style.display = "block";
-                else
-                    elm.style.display = "";
-
-
-            });
-
-            // show prompt in the prompt area
-            if(marker.classList.contains("marker"))
-                document.querySelector(".feedback-wrapper .prompt").innerHTML =
-                    marker.dataset.prompt + " (" + marker.dataset.target + ")";
-            else
-                document.querySelector(".feedback-wrapper .prompt").innerHTML =
-                    "Click a marker for more info...";
-
-            if(detail) {
-                // Show some debugging info at the top
-                const p = document.querySelector(".timeline .debug");
-                p.innerHTML = "";
-                for(let k in marker.dataset) {
-                    p.innerHTML += "<strong>" + k + "</strong>: " +
-                        marker.dataset[k] + "<br/>";
-                }
-            }
-        };
 
         const content = document.querySelector("#content");
         content.innerHTML = "";
