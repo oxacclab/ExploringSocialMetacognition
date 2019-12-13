@@ -51,7 +51,8 @@ body:not(.Trial-any) #response-panel {
 }
 
 /* Training adjustments */
-.Study-training:not(.Trial-showFeedback) #training-instructions {
+.Study-training:not(.Trial-showFeedback) #training-instructions,
+.Study-training .grid #training-instructions {
     display: unset;
 }
 .Study-training .progress-bar .outer {
@@ -81,6 +82,9 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 /* Hide response panel until it's first needed */
 .Study-training:not(.Trial-getResponse) #response-panel {
     opacity: 0;
+}
+.Study-training.Trial-showFeedback .grid #response-panel {
+    opacity: 1;
 }
 
 /* Show fully-opaque response panel when it should be the focus of attention. */

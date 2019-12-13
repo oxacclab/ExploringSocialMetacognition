@@ -78,6 +78,7 @@ customElements.define('esm-response-binary-conf',
             // Graphical update
             me.querySelector(".response-column-inner:not(.ghost)").style.height =
                 percent.toString() + "%";
+
             // Store data
             this.responseData.confidence = percent;
             this.responseData.answer = parent.querySelector(".response-answer").innerHTML;
@@ -224,6 +225,7 @@ customElements.define('esm-response-binary-conf',
                 slider: null,
                 labels: "",
                 answer: "",
+                confidence: "",
                 timeEstimate: null,
 
                 complete: false
@@ -283,6 +285,7 @@ customElements.define('esm-response-binary-conf',
          * Move the feedback marker
          * @param value {number} correct answer value
          * @param anchor {number} anchor value
+         * @return {HTMLElement} feedback marker
          */
         feedbackMarker(value, anchor) {
             let marker = this.querySelector(".response-marker.correct.feedback");
@@ -297,9 +300,11 @@ customElements.define('esm-response-binary-conf',
             if(!correct)
                 marker.classList.add("participantWrong");
 
-            marker.innerHTML = "&starf;";
+            marker.innerHTML = "&starf;<span class='text'>" + value + "</span>";
             this.querySelector(".response-panel:" +
                 (side? "last-of-type" : "first-of-type")).appendChild(marker);
+
+            return marker;
         }
     }
 );

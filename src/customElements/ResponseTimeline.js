@@ -531,6 +531,8 @@ customElements.define('esm-response-timeline',
                 this.querySelector(".response-line").appendChild(marker);
             }
             marker.style.left = (this.valueToPixels(value + .5)) + "px";
+
+            return marker;
         }
     }
 );

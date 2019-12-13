@@ -544,6 +544,7 @@ class Study extends ControlObject {
             };
 
             let T = new Trial(study.trialBlueprint);
+            T.displayFeedback = study.trainingFeedback;
 
             let help = Study._showHelp(
                 document.querySelector(".progress-bar esm-help"));
@@ -582,10 +583,11 @@ class Study extends ControlObject {
             await T.nextPhase("getResponse");
 
             Study._hideHelp(help);
-            instr.innerHTML = "";
+            instr.innerHTML = "Click or touch the tooltip to continue...";
 
             // finish the trial
             await T.run("showFeedback");
+            instr.innerHTML = "";
 
             // Reset progress bar
             study.updateProgressBar(false);
@@ -774,6 +776,10 @@ class Study extends ControlObject {
         return new Promise((resolve) => {
             setTimeout(resolve, feedbackDuration);
         });
+    }
+
+    get trainingFeedback() {
+        return this.displayFeedback;
     }
 
     async core() {
@@ -1729,7 +1735,7 @@ class DatesStudy extends Study {
      * @param e {Event}
      * @protected
      */
-    _playMarker(e) {
+    static _playMarker(e) {
         e.stopPropagation();
 
         const marker = e.currentTarget;
@@ -1771,59 +1777,12 @@ class DatesStudy extends Study {
         }
     }
 
-    async results() {
-
-        // leave fullscreen
-        if(document.fullscreenElement)
-            Study.unlockFullscreen(document.fullscreenElement);
-
-        // Protect against weird-looking-ness when resizing
-        const me = this;
-        window.addEventListener("resize", () => {
-            if(window.resizeTimeout)
-                clearTimeout(window.resizeTimeout);
-
-            window.resizeTimeout = setTimeout(() => me.results(), 50);
-        });
-
-        let trialList = null;
-
-        // Simulate results if we're testing feedback
-        if(DEBUG.level >= 1 && utils.getQueryStringValue("fb"))
-            trialList = this._simulateResults();
-        else
-            trialList = await this._fetchResults();
-
-        // Remove attention checks
-        trialList = trialList.filter(t => t.isAttentionCheck !== 1);
-
-        const content = document.querySelector("#content");
-        content.innerHTML = "";
-        content.appendChild(
-            document.importNode(
-                document.getElementById("feedback").content, true
-            ));
-
-        // Update the permalink
-        let link = window.location.origin + window.location.pathname;
-        link = /localhost/.test(link)? link :
-            link.replace(
-                "https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/",
-                "http://tinyurl.com/acclab-ac2/");
-        let code = this.id + "-" + this.studyVersion;
-        document.querySelector(".feedback-wrapper .display span.permalink")
-            .innerHTML = link + "?fb=" + code;
-        // Update redo link
-        document.querySelector(".feedback-wrapper .display span.redo-link")
-            .innerText = link + "?PROLIFIC_PID=" + code + encodeURIComponent("_+1");
-
-        // Hide payment link for revisits
-        if(utils.getQueryStringValue("fb"))
-            document.querySelector(".payment-link").style.display = "none";
-        else
-            document.querySelector(".payment-link").innerHTML =
-                "Payment code: <a href='https://app.prolific.ac/submissions/complete?cc=" + code + "' target='_blank'>" + code + "</a>";
-
+    /**
+     * Create the detailed display of results
+     * @param trialList {Trial[]} trials to display results for
+     * @param [detail=false] {boolean} whether to use detailed displays
+     */
+    static resultsTimeline(trialList, detail=false) {
         // Update the score spans
         let n = 0;
         let nCorrect = 0;
@@ -1833,19 +1792,19 @@ class DatesStudy extends Study {
             n++;
             if(parseInt(t.responseEstimateLeftFinal) <=
                 parseInt(t.correctAnswer) &&
-            parseInt(t.responseEstimateLeftFinal) +
+                parseInt(t.responseEstimateLeftFinal) +
                 parseInt(t.responseMarkerWidthFinal) >=
                 parseInt(t.correctAnswer)) {
                 // Check whether the score is saved in the data
                 if(t.responseMarkerValueFinal)
                     score += parseInt(t.responseMarkerValueFinal);
                 else
-                    if(t.responseMarkerValue)
-                        score += parseInt(t.responseMarkerValue);
-                    else
-                        score +=
-                            scoreFactor /
-                            parseInt(t.responseMarkerWidthFinal);
+                if(t.responseMarkerValue)
+                    score += parseInt(t.responseMarkerValue);
+                else
+                    score +=
+                        scoreFactor /
+                        parseInt(t.responseMarkerWidthFinal);
                 nCorrect++;
             }
         });
@@ -1857,7 +1816,7 @@ class DatesStudy extends Study {
 
         const TL = content.querySelector(".line");
 
-        TL.parentElement.addEventListener("click", playMarker);
+        TL.parentElement.addEventListener("click", DatesStudy._playMarker);
 
         // Draw timeline labels
         let min = Infinity;
@@ -1975,7 +1934,7 @@ class DatesStudy extends Study {
             ans.title = t.correctAnswer;
             ans.dataset.target = t.correctAnswer;
             ans.dataset.number = x.toString();
-            ans.addEventListener("click", playMarker);
+            ans.addEventListener("click", DatesStudy._playMarker);
             ans.classList.add("marker", "target");
             ans.style.left = ((t.correctAnswer - min) / (max - min) *
                 TL.clientWidth + year / 2) +
@@ -2034,6 +1993,78 @@ class DatesStudy extends Study {
                 my = ans.getBoundingClientRect();
             }
         });
+    }
+
+    /**
+     * Load the template from the #feedback element and fix links/payment detail display as necessary
+     */
+    importResultsTemplate() {
+        const content = document.querySelector("#content");
+        content.innerHTML = "";
+        content.appendChild(
+            document.importNode(
+                document.getElementById("feedback").content, true
+            ));
+
+        // Update the permalink
+        let link = window.location.origin + window.location.pathname;
+        link = /localhost/.test(link)? link :
+            link.replace(
+                "https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/",
+                "http://tinyurl.com/acclab-ac2/");
+        let code = this.id + "-" + this.studyVersion;
+
+        const permalink = document.querySelector(".feedback-wrapper span.permalink");
+        if(permalink)
+            permalink.innerHTML = link + "?fb=" + code;
+        // Update redo link
+        const redoLink = document.querySelector(".feedback-wrapper span.redo-link");
+        if(redoLink)
+            redoLink.innerText = link + "?PROLIFIC_PID=" + code + encodeURIComponent("_+1");
+
+        // Hide payment link for revisits
+        const paymentLink = document.querySelector(".payment-link");
+        if(paymentLink) {
+            if(utils.getQueryStringValue("fb"))
+                paymentLink.style.display = "none";
+            else
+                paymentLink.innerHTML =
+                    "Payment code: <a href='https://app.prolific.ac/submissions/complete?cc=" + code + "' target='_blank'>" + code + "</a>";
+        }
+    }
+
+    async results() {
+
+        // leave fullscreen
+        if(document.fullscreenElement)
+            Study.unlockFullscreen(document.fullscreenElement);
+
+        // Protect against weird-looking-ness when resizing
+        const me = this;
+        window.addEventListener("resize", () => {
+            if(window.resizeTimeout)
+                clearTimeout(window.resizeTimeout);
+
+            window.resizeTimeout = setTimeout(() => me.results(), 50);
+        });
+
+        // Permalinks, thanks text, etc.
+        this.importResultsTemplate();
+
+        let trialList = null;
+
+        // Simulate results if we're testing feedback
+        if(DEBUG.level >= 1 && utils.getQueryStringValue("fb"))
+            trialList = this._simulateResults();
+        else
+            trialList = await this._fetchResults();
+
+        // Remove attention checks
+        trialList = trialList.filter(t => t.isAttentionCheck !== 1);
+
+        const detail = /true/i.test(utils.getQueryStringValue("detail"));
+
+        DatesStudy.resultsTimeline(trialList, detail);
     }
 
     /**
@@ -2114,13 +2145,16 @@ class NoFeedbackContexts extends NoFeedbackStudy {
         ];
     }
 
+    async setupTrials() {
+        await super.setupTrials();
+        this.fillAdvisorNames();
+    }
+
     /**
      * Add cosmetic renaming of advisors to make them appear to be from different groups
      * @return {void}
      */
-    setCondition(condition) {
-        super.setCondition(condition);
-
+    fillAdvisorNames() {
         // Make individual advisors for each trial from the individual advisors
         let numbers = utils.shuffle(utils.getSequence(10, 99));
 
@@ -2148,6 +2182,7 @@ class NoFeedbackContexts extends NoFeedbackStudy {
             }
             T.advisors = advisors;
         }
+
     }
 
     /**
@@ -2577,7 +2612,7 @@ class DatesStudyBinary extends DatesStudy {
     }
 
     /**
-     * Default year difference function. Sample an answer from a normal distribution around the correct answer with SD=10yrs.
+     * Default year difference function. Sample an answer from a normal distribution around the correct answer with SD=5yrs.
      * @param correctAnswer {int}
      * @param [limits=[-Infinity, Infinity]] {[int, int]} limits within which to keep the answer
      * @protected
@@ -2591,7 +2626,7 @@ class DatesStudyBinary extends DatesStudy {
             if(cycle++ > maxCycles)
                 this.error("Exceeded maximum cycles in _yearDifference(" + correctAnswer + ", " + limits.toString() + ")");
 
-            answer = Math.round(utils.sampleNormal(1, correctAnswer, 10));
+            answer = Math.round(utils.sampleNormal(1, correctAnswer, 5));
         }
 
         return answer;
@@ -2620,6 +2655,39 @@ class DatesStudyBinary extends DatesStudy {
         this._trialBlueprint = bp;
     }
 
+    get trainingFeedback() {
+        return async (trial) => {
+            const correctAnswer = trial.data.correctAnswer;
+            document.getElementById("prompt").innerHTML = "";
+
+            // Draw marker
+            const marker = document.getElementById("response-panel").feedbackMarker(correctAnswer, trial.data.anchorDate || null);
+
+            if(!marker)
+                return;
+
+            // Inject a help panel describing the feedback
+            const help = document.createElement("esm-help");
+            help.dataset.group = "interface";
+            help.classList.add(parseInt(correctAnswer) < parseInt(trial.data.anchorDate)? "right" : "left");
+            help.innerHTML = "The correct answer and actual date are shown on the side corresponding to the correct answer. The colour will change depending upon whether your answer was correct. You won't always get feedback, but when you do it will look like this.";
+            marker.closest(".response-panel").appendChild(help);
+
+            Study._showHelp(help);
+
+            // Await a click on the marker
+            return new Promise((resolve) => {
+                help.addEventListener("click", e => {
+                    Study._hideHelp(help);
+                    help.remove();
+                    document.getElementById("prompt").innerText = "";
+                    document.querySelector("#response-panel").reset();
+                    resolve();
+                });
+            });
+        }
+    }
+
     /**
      * Fetch the data for the study in a flat format suitable for CSVing
      * @return {object} key-value pairs
@@ -2632,9 +2700,186 @@ class DatesStudyBinary extends DatesStudy {
         };
     }
 
-    async results() {
-        throw("Feedback not yet implemented!")
+    /**
+     * Update the results pane to show overview
+     * @param e {Event}
+     */
+    static resultsOverview(e) {
+        document.querySelector(".result .overall").classList.remove("cloak");
     }
+
+    /**
+     * Update the specific result inspection area
+     * @param e {Event}
+     */
+    static inspectResult(e) {
+        if(!e)
+            return;
+
+        const me = e.currentTarget;
+        const pane = document.querySelector(".results .result .specific");
+
+        if(!me || !me.selectedOptions || !me.selectedOptions.length > 0 || !pane)
+            return DatesStudyBinary.resultsOverview(e);
+
+        const opt = me.selectedOptions[0];
+
+        if(!opt)
+            return;
+
+        const ds = opt.dataset;
+
+        if(!ds)
+            return;
+
+        // Assign values and classes as necessary
+        pane.querySelector(".stimulus-reminder p").innerText = opt.innerText;
+        pane.querySelector(".anchor-date").innerHTML = ds.anchorHTML;
+
+        pane.querySelectorAll(".initial, .advice, .final, .answer").forEach(elm => elm.classList.remove("left", "right"));
+
+        pane.querySelector(".initial").classList.add(ds.responseAns === "0"? "left" : "right");
+        pane.querySelector(".initial .confidence-value").innerText = ds.responseConfidence;
+
+        pane.querySelector(".advice").classList.add(ds.advisor0adviceSide === "0"? "left" : "right");
+        pane.querySelector(".advice .advisor-portrait").src =
+            Advisor.imgSrcFromString(
+                sha1.sha1(ds.advisor0name),
+                {size: 300, format: 'svg'}
+                );
+        if(ds.advisor0adviceConfidence !== "undefined") {
+            pane.querySelector(".advice .confidence").classList.remove("cloak");
+            pane.querySelector(".advice .confidence-value").innerText = ds.advisor0adviceConfidence;
+        } else
+            pane.querySelector(".advice .confidence").classList.add("cloak");
+
+        pane.querySelector(".final").classList.add(ds.responseAnsFinal === "0"? "left" : "right");
+        pane.querySelector(".final .confidence-value").innerText = ds.responseConfidenceFinal;
+
+        pane.querySelector(".answer").classList.add(parseInt(ds.correctAnswer) < parseInt(ds.anchorDate)? "left" : "right");
+        pane.querySelector(".answer-value").innerText = ds.correctAnswer;
+        if(ds.correct === "true")
+            pane.querySelector(".star").classList.add("correct");
+        else
+            pane.querySelector(".star").classList.remove("correct");
+
+        // Show the specific info pane
+        document.querySelector(".result .overall").classList.add("cloak");
+    }
+
+    async results() {
+
+        // leave fullscreen
+        if (document.fullscreenElement)
+            Study.unlockFullscreen(document.fullscreenElement);
+
+        // Generic results components.
+        this.importResultsTemplate();
+
+        let trialList = await this._fetchResults();
+
+        const qDiv = document.querySelector("select#questions");
+
+        if(!qDiv)
+            throw("No questions area found.");
+
+        // Unpack trial list to the response column and store overall stats
+        const stats = {
+            i: {
+                name: "initial",
+                correct: 0,
+                n: 0,
+                conf: 0,
+                confRight: 0,
+                confWrong: 0
+            },
+            f: {
+                name: "final",
+                correct: 0,
+                n: 0,
+                conf: 0,
+                confRight: 0,
+                confWrong: 0
+            },
+            a: {
+                name: "advice",
+                correct: 0,
+                n: 0,
+                conf: 0,
+                confRight: 0,
+                confWrong: 0
+            }
+        };
+
+        trialList.forEach(t => {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = t.stimHTML;
+            const txt = tmp.textContent || tmp.innerText;
+            tmp.remove();
+
+            const opt = qDiv.appendChild(document.createElement("option"));
+
+            opt.innerText = txt;
+            opt.title = txt;
+
+            const fields = [
+                'advisor0adviceConfidence',
+                'advisor0name',
+                'advisor0adviceSide',
+                'anchorHTML',
+                'anchorDate',
+                'correctAnswer',
+                'responseAns',
+                'responseAnsFinal',
+                'responseConfidence',
+                'responseConfidenceFinal'
+            ];
+            for(const f of fields)
+                opt.dataset[f] = t[f];
+
+            opt.dataset.correct = t.responseAnsFinal ===
+                (parseInt(t.correctAnswer) > parseInt(t.anchorDate)? "1" : "0");
+
+            // Record summary stats
+            const correctSide = t.correctAnswer < t.anchorDate? "0" : "1";
+            stats.a.n++;
+            stats.i.n++;
+            stats.f.n++;
+            stats.i.correct += t.responseAns === correctSide? 1 : 0;
+            stats.i.conf += parseInt(t.responseConfidence);
+            stats.i[t.responseAns === correctSide?
+                "confRight" : "confWrong"] += parseInt(t.responseConfidence);
+            stats.f.correct += t.responseAnsFinal === correctSide? 1 : 0;
+            stats.f.conf += parseInt(t.responseConfidenceFinal);
+            stats.f[t.responseAnsFinal === correctSide?
+                "confRight" : "confWrong"] += parseInt(t.responseConfidenceFinal);
+            stats.a.correct += t.advisor0adviceSide === correctSide? 1 : 0;
+            if(t.advisor0adviceConfidence !== "undefined") {
+                stats.a.conf += parseInt(t.advisor0adviceConfidence);
+                stats.a[t.advisor0adviceSide === correctSide?
+                    "confRight" : "confWrong"] += parseInt(t.advisor0adviceConfidence);
+            }
+        });
+
+        qDiv.addEventListener("change", DatesStudyBinary.inspectResult);
+
+        // Fill in the overall results
+        for(const s in stats) {
+            const x = stats[s];
+            document.querySelector(".overall ." + x.name + " .accuracy").innerText =
+                (x.correct / x.n * 100).toFixed(2);
+            document.querySelector(".overall ." + x.name + " .confidence").innerText =
+                (x.conf / x.n).toFixed(1);
+            document.querySelector(".overall ." + x.name + " .confidence-correct").innerText =
+                (x.confRight / x.correct).toFixed(1);
+            document.querySelector(".overall ." + x.name + " .confidence-wrong").innerText =
+                (x.confWrong / (x.n - x.correct)).toFixed(1);
+        }
+
+        // Event listener for overview button
+        document.querySelector(".grid .feedback-wrapper .results .question-list p").addEventListener("click", DatesStudyBinary.resultsOverview);
+    }
+
 }
 
 /**

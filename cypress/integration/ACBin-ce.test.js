@@ -179,6 +179,11 @@ for(let run = 0; run < runs; run++) {
 
             // Fill in a response
             respond({x: 50, y: 15});
+
+            // Now we get told what feedback means
+            cy.get('.esm-help-show > esm-help')
+                .should('be.visible')
+                .click();
         });
 
         it('Gives instructions before practice', function () {
@@ -368,7 +373,7 @@ for(let run = 0; run < runs; run++) {
                 .invoke('text').then((txt) => {
                 cy.visit(txt);
 
-                cy.get('.timeline')
+                cy.get('.results .result .overall')
                     .should('be.visible');
             });
         });

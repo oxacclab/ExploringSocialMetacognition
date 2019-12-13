@@ -57,19 +57,23 @@ class Advisor extends BaseObject {
         return this.marker;
     }
 
+    static imgSrcFromString(s, options) {
+        const data = new Identicon(s, options).toString();
+        return "data:image/svg+xml;base64," + data;
+    }
+
     get svg() {
         if(!this._image) {
 
             this.info("Generating identicon");
 
             // sha1 included in main body
-            const data = new Identicon(sha1.sha1(this.name),
+            this._image = Advisor.imgSrcFromString(
+                sha1.sha1(this.name),
                 {
                     size: 300,
-                    format: 'svg',
-                    // background: [255, 255, 255, 0]
-                }).toString();
-            this._image = "data:image/svg+xml;base64," + data;
+                    format: 'svg'
+                });
         }
         return this._image;
     }
@@ -166,8 +170,8 @@ class Advisor extends BaseObject {
 
     drawBinaryConfAdvice() {
         // Which side is advice on?
-        const side = this.getAdvice(false).side;
-        const confidence = this.getAdvice(false).confidence;
+        const side = this.getAdvice(false).adviceSide;
+        const confidence = this.getAdvice(false).adviceConfidence;
         const panel = document.querySelector("esm-response-binary-conf .response-panel:" + (side? "last-of-type" : "first-of-type"));
 
         if(!panel)
@@ -366,7 +370,7 @@ class AdviceProfile extends BaseObject {
      * Return the centre of the advice for a trial
      * @param trial {Trial}
      * @param advisor {Advisor}
-     * @return {{validTypeFlags: int[], nominalTypeFlag: int, nominalType: string, validTypes: string[], actualTypeFlag: int, actualType: string, adviceCentre: number, adviceWidth: number, advice: number, side: number|null, confidence: number|null}} centre for the advice
+     * @return {{validTypeFlags: int[], nominalTypeFlag: int, nominalType: string, validTypes: string[], actualTypeFlag: int, actualType: string, adviceCentre: number, adviceWidth: number, advice: number, adviceSide: number|null, adviceConfidence: number|null}} centre for the advice
      */
     getAdvice(trial, advisor) {
         const out = {
@@ -379,8 +383,8 @@ class AdviceProfile extends BaseObject {
             adviceCentre: null,
             adviceWidth: null,
             advice: null,
-            side: null,
-            confidence: null
+            adviceSide: null,
+            adviceConfidence: null
         };
         let aT = null;
 
@@ -478,15 +482,15 @@ class AdviceProfile extends BaseObject {
 
         // Advice for binary options is thresholded by the anchor
         if(trial.anchorDate)
-            out.side = (out.advice >= trial.anchorDate)? 1 : 0;
+            out.adviceSide = (out.advice >= trial.anchorDate)? 1 : 0;
 
         if(trial.showAdvisorConfidence) {
             // More confident each year, up to 100% confident at confidence boundary
-            out.confidence =
+            out.adviceConfidence =
                 Math.abs(out.advice - trial.anchorDate) /
                 advisor.confidence * 100;
-            out.confidence = Math.max(
-                0, Math.min(100, Math.round(out.confidence))
+            out.adviceConfidence = Math.max(
+                0, Math.min(100, Math.round(out.adviceConfidence))
             );
         }
 

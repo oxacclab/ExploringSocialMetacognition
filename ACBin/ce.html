@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.1">
+<head data-version="0.0.2">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -158,15 +158,17 @@
     </template>
     <template id="feedback">
         <div class="feedback-wrapper overlay">
-            <div class="debrief">
-                <p class="payment-link">
+            <div class="payment-link">
+                <p>
                     Payment code: <a href="https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4" target="_blank">MX5PC2Z4</a>
                 </p>
-                <p>Overall you got <span class="nCorrect"></span>/<span class="n"></span> (<span class="percentCorrect"></span>%) correct (filled stars), giving you a total of <span class="score"></span> points.</p>
             </div>
-            <div class="display">
-                <p>Your answers are shown below. Click/touch a marker to see the correct answer and your confidence interval. When you are finished you may close your browser.</p>
-                <p>When you're finished you can close the browser window to end the study.</p>
+            <div class="thank-you">
+                <div class="text">
+                    <h3>Thank you for completing the study</h3>
+                    <p>You can explore your performance on this page. Select a question to see details about that question, or select 'overview' to see a summary of your performance on all questions.</p>
+                    <p>When you're finished you can close the browser window to end the study.</p>
+                </div>
                 <div class="legend permalink">
                     link
                     <div><span class="permalink" title="Direct link to these results" onclick="document.execCommand('copy')"></span></div>
@@ -179,11 +181,74 @@
                             <span class="redo-link" title="Begin the study again" onclick="document.execCommand('copy')"></span></p>
                     </div>
                 </div>
-                <div class="timeline">
-                    <div class="debug"></div>
-                    <div class="line"></div>
+            </div>
+            <div class="results">
+                <div class="question-list">
+                    <select id="questions" class="questions" multiple>
+
+                    </select>
+                    <p>Overview</p>
                 </div>
-                <p class="prompt">Click a marker for more info...</p>
+                <div class="result">
+                    <div class="overall">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th></th>
+                                <th>% correct</th>
+                                <th>Overall confidence</th>
+                                <th>Confidence when <em>correct</em></th>
+                                <th>Confidence when <em>wrong</em></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr class="initial">
+                                <td>Initial answer</td>
+                                <td class="accuracy"></td>
+                                <td class="confidence"></td>
+                                <td class="confidence-correct"></td>
+                                <td class="confidence-wrong"></td>
+                            </tr>
+                            <tr class="final">
+                                <td>Final answer</td>
+                                <td class="accuracy"></td>
+                                <td class="confidence"></td>
+                                <td class="confidence-correct"></td>
+                                <td class="confidence-wrong"></td>
+                            </tr>
+                            <tr class="advice">
+                                <td>Advice</td>
+                                <td class="accuracy"></td>
+                                <td class="confidence"></td>
+                                <td class="confidence-correct"></td>
+                                <td class="confidence-wrong"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="specific">
+                        <div class="stimulus-reminder">
+                            <p></p>
+                        </div>
+                        <div class="anchor">
+                            <p>Before or after</p>
+                            <div class="anchor-date"></div>
+                        </div>
+                        <div class="initial">
+                            <p>Initial answer<span class="confidence"> (<span class="confidence-value"></span>% sure)</span></p>
+                        </div>
+                        <div class="advice">
+                            <img class="advisor-portrait identicon" src="" alt="Advisor"/>
+                            <p>Advice<span class="confidence"> (<span class="confidence-value"></span>% sure)</span></p>
+                        </div>
+                        <div class="final">
+                            <p>Final answer<span class="confidence"> (<span class="confidence-value"></span>% sure)</span></p>
+                        </div>
+                        <div class="answer">
+                            <p><span class="star">&starf;</span> The correct answer (<span class="answer-value"></span>)</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </template>
@@ -391,7 +456,7 @@
                     id: 0,
                     position: 0,
                     idDescription: "Practice",
-                    introText: "During this block of questions you will be given advice to consider before making a final decision.",
+                    introText: "<p>During this block of questions you will be given advice to consider before making a final decision.</p><p>The advice will <strong>indicate confidence</strong> as well as an answer.</p>",
                     group: 0,
                     name: "Practice advisor ###",
                     templateId: "advisor-key",
@@ -406,40 +471,6 @@
                 new Advisor({
                     id: 1,
                     position: 1,
-                    idDescription: "mass, no-conf",
-                    introText: "During this block of questions you will get advice from <strong>different</strong> advisors each time.",
-                    group: 0,
-                    name: "Advisor ###",
-                    isGroup: true,
-                    templateId: "advisor-key",
-                    confidence: 11,
-                    confidenceVariation: 11,
-                    adviceProfile: new AdviceProfile({
-                        adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
-                        ]
-                    })
-                }),
-                new Advisor({
-                    id: 2,
-                    position: 2,
-                    idDescription: "single, no-conf",
-                    isGroup: false,
-                    introText: "During this block of questions you will get advice from <strong>the same</strong> advisor every time.",
-                    group: 0,
-                    name: "Advisor ###",
-                    templateId: "advisor-key",
-                    confidence: 11,
-                    confidenceVariation: 11,
-                    adviceProfile: new AdviceProfile({
-                        adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
-                        ]
-                    })
-                }),
-                new Advisor({
-                    id: 3,
-                    position: 3,
                     idDescription: "mass, conf",
                     isGroup: true,
                     introText: "<p>During this block of questions you will get advice from <strong>different</strong> advisors each time.</p><p>These advisors will <strong>indicate their confidence</strong> in their advice.</p>",
@@ -455,8 +486,8 @@
                     })
                 }),
                 new Advisor({
-                    id: 4,
-                    position: 4,
+                    id: 2,
+                    position: 2,
                     idDescription: "single, conf",
                     isGroup: false,
                     introText: "<p>During this block of questions you will get advice from <strong>the same</strong> advisor every time.</p><p>This advisor will <strong>indicate their confidence</strong> in their advice.</p>",
@@ -489,7 +520,7 @@
                     trialCount: 3,
                     blockType: "practiceAdvisor",
                     feedback: true,
-                    showAdvisorConfidence: false,
+                    showAdvisorConfidence: true,
                     advisors: [advisors[0]],
                     advisorsPerTrial: 1
                 }),
@@ -499,7 +530,7 @@
                     blockType: "core",
                     feedback: true,
                     showAdvisorConfidence: true,
-                    advisors: [advisors[3]],
+                    advisors: [advisors[1]],
                     advisorsPerTrial: 1,
                     forceRefreshAdvisor: true
                 }),
@@ -509,7 +540,7 @@
                     blockType: "core",
                     feedback: false,
                     showAdvisorConfidence: true,
-                    advisors: [advisors[3]],
+                    advisors: [advisors[1]],
                     advisorsPerTrial: 1,
                     introduceAdvisors: false,
                     forceRefreshAdvisor: true
@@ -520,7 +551,7 @@
                     blockType: "core",
                     feedback: true,
                     showAdvisorConfidence: true,
-                    advisors: [advisors[4]],
+                    advisors: [advisors[2]],
                     advisorsPerTrial: 1,
                     forceRefreshAdvisor: true
                 }),
@@ -530,7 +561,7 @@
                     blockType: "core",
                     feedback: false,
                     showAdvisorConfidence: true,
-                    advisors: [advisors[4]],
+                    advisors: [advisors[2]],
                     advisorsPerTrial: 1,
                     introduceAdvisors: false,
                     forceRefreshAdvisor: true

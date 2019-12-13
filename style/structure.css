@@ -587,7 +587,19 @@ esm-response-binary-conf#response-panel {
 }
 .grid .response-marker.feedback {
     font-size: 10em;
+    line-height: 1em;
     place-self: center;
+    background-color: white;
+}
+.grid .response-marker.feedback .text {
+    position: absolute;
+    font-size: .5em;
+    line-height: 1em;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    overflow: visible;
+    background-color: white;
 }
 #content:not(.grid) .response-marker.feedback {
     transform: translateX(calc(-50% - 2px)) scale(3);
@@ -914,6 +926,12 @@ form .invalid {
     width: fit-content;
     width: -moz-fit-content;
 }
+.grid .legend.permalink:hover,
+.grid .legend.redo-link:hover,
+.grid .legend.permalink:focus,
+.grid .legend.redo-link:focus {
+    width: 300%;
+}
 .legend > div {
     display: none;
 }
@@ -1052,7 +1070,194 @@ span.redo-link {
     grid-row: span 5;
 }
 
-/* Modifications by experiment */
+/* Grid results display */
+.grid .feedback-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 2em 1fr 3fr;
+    grid-template-areas:
+        "payment"
+        "links"
+        "results";
+    grid-gap: 0;
+    gap: 0;
+}
+
+.grid .feedback-wrapper .payment-link {
+    grid-area: payment;
+}
+.grid .feedback-wrapper .thank-you {
+    grid-area: links;
+
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas:
+        "permalink text invite";
+}
+.grid .feedback-wrapper .thank-you .permalink {
+    grid-area: permalink;
+}
+.grid .feedback-wrapper .thank-you .text {
+    grid-area: text;
+}
+.grid .feedback-wrapper .thank-you .text h3 {
+    margin: 0;
+}
+.grid .feedback-wrapper .thank-you .redo-link {
+    grid-area: invite;
+}
+.grid .feedback-wrapper .results {
+    grid-area: results;
+
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    grid-template-rows: 100%;
+    grid-template-areas:
+        "question-list result";
+    overflow: hidden;
+    border-top: 1px solid black;
+}
+.grid .feedback-wrapper .results .question-list {
+    grid-area: question-list;
+}
+.grid .feedback-wrapper .results .question-list p {
+    cursor: pointer;
+    background-color: gainsboro;
+}
+.grid .feedback-wrapper .results .question-list p:hover {
+    background-color: lightgray;
+    color: white;
+    font-weight: bold;
+}
+.grid .feedback-wrapper .results .question-list select {
+    display: block;
+    height: calc(100% - 2em);
+    width: 100%;
+    overflow-y: auto;
+}
+.grid .feedback-wrapper .results .question-list select > option {
+    height: 1.5em;
+}
+.grid .feedback-wrapper .results .result {
+    --initial-color: aliceblue;
+    --advice-color: whitesmoke;
+    --final-color: lightskyblue;
+    --answer-color: gold;
+    grid-area: result;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.grid .feedback-wrapper .results .result .overall {
+    height: 100%;
+    width: 100%;
+}
+.grid .feedback-wrapper .results .result .overall table {
+    border-spacing: 2px;
+    height: 100%;
+    width: 100%;
+}
+.grid .feedback-wrapper .results .result .overall tr {
+    min-height: 2em;
+}
+.grid .feedback-wrapper .results .result .overall .initial {
+    background-color: var(--initial-color);
+}
+.grid .feedback-wrapper .results .result .overall .advice {
+    background-color: var(--advice-color);
+}
+.grid .feedback-wrapper .results .result .overall .final {
+    background-color: var(--final-color);
+}
+.grid .feedback-wrapper .results .result .overall .advice {
+    font-style: italic;
+}
+.grid .feedback-wrapper .results .result .overall.cloak,
+.grid .feedback-wrapper .results .result .overall:not(.cloak) ~ .specific,
+.grid .feedback-wrapper .results .result .specific .advice .confidence.cloak {
+    display: none;
+}
+.grid .feedback-wrapper .results .result .specific {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(6, 1fr);
+    grid-template-areas:
+        "stimulus stimulus"
+        "anchor anchor"
+        "initial-left initial-right"
+        "advice-left advice-right"
+        "final-left final-right"
+        "answer-left answer-right";
+    max-height: 100%;
+}
+.grid .feedback-wrapper .results .result .specific > div:not(.anchor) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 1em;
+    margin: 0.3em 1em;
+}
+.grid .feedback-wrapper .results .result .specific .stimulus-reminder {
+    grid-area: stimulus;
+}
+.grid .feedback-wrapper .results .result .specific .anchor {
+    grid-area: anchor;
+}
+.grid .feedback-wrapper .results .result .specific .anchor .anchor-date {
+    font-weight: bold;
+    min-height: 1em;
+}
+.grid .feedback-wrapper .results .result .specific .anchor .anchor-date::after {
+     content: close-quote;
+     border: 2px dashed black;
+     height: 100vh;
+     width: 0;
+     position: absolute;
+ }
+.grid .feedback-wrapper .results .result .specific .left {
+    grid-column-start: initial-left;
+    grid-column-end: initial-left;
+}
+.grid .feedback-wrapper .results .result .specific .right {
+    grid-column-start: initial-right;
+    grid-column-end: initial-right;
+}
+.grid .feedback-wrapper .results .result .specific .initial {
+    grid-row-start: initial-left;
+    grid-row-end: initial-right;
+    background-color: var(--initial-color);
+}
+.grid .feedback-wrapper .results .result .specific .advice.advice {
+    grid-row-start: advice-left;
+    grid-row-end: advice-right;
+    justify-content: space-evenly;
+    background-color: var(--advice-color);
+}
+.grid .feedback-wrapper .results .result .specific .advice .identicon {
+    height: 1.6em;
+    width: 1.6em;
+}
+.grid .feedback-wrapper .results .result .specific .final {
+    grid-row-start: final-left;
+    grid-row-end: final-right;
+    background-color: var(--final-color);
+}
+.grid .feedback-wrapper .results .result .specific .answer {
+    grid-row-start: answer-left;
+    grid-row-end: answer-right;
+    background-color: var(--answer-color);
+}
+.grid .feedback-wrapper .results .result .specific .answer .star {
+    color: grey;
+    font-size: 1.6em;
+    vertical-align: middle;
+}
+.grid .feedback-wrapper .results .result .specific .answer .star.correct {
+    color: #ffe96e;
+}
+
+    /* Modifications by experiment */
 .NoFeedbackContexts .advisor-key-row .advisor-group {
     display: none;
 }
