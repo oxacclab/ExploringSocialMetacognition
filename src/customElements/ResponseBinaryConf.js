@@ -256,9 +256,9 @@ customElements.define('esm-response-binary-conf',
             const ans = Math.random() < .5? 0 : 1;
             const conf = Math.random() >= .5;
 
-            const q = "for this question pick the '" +
-                answers[ans] + "' answer with " +
-                (conf? "high" : "low") + " confidence";
+            const q = "for this question answer that you are quite " +
+                (conf? "sure" : "unsure") +  " the answer is '" +
+                answers[ans] + "'";
 
             return {
                 question: q,

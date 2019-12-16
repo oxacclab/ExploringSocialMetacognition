@@ -99,6 +99,10 @@
                 <p>During the main study you will get advice about the correct answer. You will now answer a few questions where you'll receive practice advice so you can get used to it.</p>
                 <p>Once you give your <strong>initial answer</strong> you will see an advisor's estimate. You will then be able to provide your <strong>final answer</strong>.</p>
             </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Confidence</h1>
+                <p>The advisors indicate their confidence in a similar way to you, by placing their marker higher on the scale if they are more sure.</p>
+            </esm-instruction-page>
         </esm-instruction>
     </template>
     <template id="instr-final">
@@ -107,10 +111,6 @@
                 <h1>Main experiment</h1>
                 <p>You are now ready to begin the main experiment.</p>
                 <p>Please make sure you are in a quiet environment where you can concentrate properly.</p>
-            </esm-instruction-page>
-            <esm-instruction-page>
-                <h1>Main experiment</h1>
-                <p>From now on, you won't always get to see the correct answer after each question. You'll get to see all the answers at the end of the study, though!</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
@@ -473,7 +473,7 @@
                     position: 1,
                     idDescription: "mass, conf",
                     isGroup: true,
-                    introText: "<p>During this block of questions you will get advice from <strong>different</strong> advisors each time.</p><p>These advisors will <strong>indicate their confidence</strong> in their advice.</p>",
+                    introText: "<p>During this block of questions you will get advice from <strong>different</strong> advisors each time.</p>",
                     group: 0,
                     name: "Advisor ###",
                     templateId: "advisor-key",
@@ -490,7 +490,7 @@
                     position: 2,
                     idDescription: "single, conf",
                     isGroup: false,
-                    introText: "<p>During this block of questions you will get advice from <strong>the same</strong> advisor every time.</p><p>This advisor will <strong>indicate their confidence</strong> in their advice.</p>",
+                    introText: "<p>During this block of questions you will get advice from <strong>the same</strong> advisor every time.</p>",
                     group: 0,
                     name: "Advisor ###",
                     templateId: "advisor-key",
@@ -539,6 +539,7 @@
                     trialCount: 5,
                     blockType: "core",
                     feedback: false,
+                    introText: "For the next few questions you won't get feedback on your final answers until the end of the study.",
                     showAdvisorConfidence: true,
                     advisors: [advisors[1]],
                     advisorsPerTrial: 1,
@@ -560,6 +561,7 @@
                     trialCount: 5,
                     blockType: "core",
                     feedback: false,
+                    introText: "For the next few questions you won't get feedback on your final answers until the end of the study.",
                     showAdvisorConfidence: true,
                     advisors: [advisors[2]],
                     advisorsPerTrial: 1,

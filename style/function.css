@@ -109,10 +109,10 @@ body:not(.Study-practice):not(.Study-advisorPractice):not(.Study-core) #report-b
 }
 
 /* interactable markers should look interactable */
-.Trial-getResponse #response-panel .response-marker:not(.advisor),
-.Trial-showAdvice #response-panel .response-marker:not(.advisor),
-.Trial-getFinalResponse #response-panel .response-marker:not(.advisor),
-.Trial-showFeedback #response-panel .response-marker:not(.advisor) {
+.Trial-getResponse #response-panel .response-marker:not(.advisor):not(.feedback),
+.Trial-showAdvice #response-panel .response-marker:not(.advisor):not(.feedback),
+.Trial-getFinalResponse #response-panel .response-marker:not(.advisor):not(.feedback),
+.Trial-showFeedback #response-panel .response-marker:not(.advisor):not(.feedback) {
     cursor: pointer;
 }
 

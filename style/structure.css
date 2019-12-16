@@ -589,7 +589,6 @@ esm-response-binary-conf#response-panel {
     font-size: 10em;
     line-height: 1em;
     place-self: center;
-    background-color: white;
 }
 .grid .response-marker.feedback .text {
     position: absolute;
@@ -599,7 +598,6 @@ esm-response-binary-conf#response-panel {
     left: 50%;
     transform: translateX(-50%);
     overflow: visible;
-    background-color: white;
 }
 #content:not(.grid) .response-marker.feedback {
     transform: translateX(calc(-50% - 2px)) scale(3);
@@ -1291,6 +1289,9 @@ span.redo-link {
     }
     esm-response-binary-conf#response-panel .response-panel .response-answer {
         font-size: 1.5em;
+    }
+    .grid .response-marker.feedback {
+        font-size: 5em;
     }
     .grid img.identicon {
         width: 3em;

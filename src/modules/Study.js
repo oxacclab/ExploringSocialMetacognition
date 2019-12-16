@@ -663,7 +663,9 @@ class Study extends ControlObject {
                 intro = block.introText;
             else
                 intro = "<esm-instruction><esm-instruction-page>" + block.introText + "</esm-instruction-page></esm-instruction>";
-            document.getElementById("block-intro").querySelector(".intro").innerHTML = intro;
+            document.getElementById("block-intro")
+                .content
+                .querySelector(".intro").innerHTML = intro;
 
             await new Promise(function(resolve) {
                 let data = [];
