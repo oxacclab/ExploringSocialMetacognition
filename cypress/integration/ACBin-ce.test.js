@@ -28,7 +28,7 @@ function doTrial() {
 
     // Branch based on whether Q is attention check
     cy.get('body').then(($body) => {
-        if ($body.find('#stimulus p').text().includes('for this question pick the')) {
+        if ($body.find('#stimulus p').text().includes('for this question')) {
             // Cheat attention checks
             let study = cy.state('window').study;
             const ans = study.trials[study.currentTrial].correctAnswer;
@@ -223,10 +223,14 @@ for(let run = 0; run < runs; run++) {
         it('Introduces advice', function () {
 
             cy.get('#instructions h1')
-                .should('have.text', 'Practice with Advice')
                 .should('be.visible');
 
             // Click through instructions
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+
             cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
@@ -252,12 +256,6 @@ for(let run = 0; run < runs; run++) {
 
             cy.get('#instructions')
                 .should('be.visible');
-
-            // Click through instructions
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
 
             // Click through instructions
             cy.get('esm-instruction button')
@@ -292,6 +290,14 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible');
 
             // Click through instructions
+            cy.get('esm-instruction button')
+                .contains('Okay')
+                .should('be.visible')
+                .click();
+
+            cy.wait(200);
+
+            // No feedback for next few trials prompt
             cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
@@ -339,6 +345,14 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible');
 
             // Click through instructions
+            cy.get('esm-instruction button')
+                .contains('Okay')
+                .should('be.visible')
+                .click();
+
+            cy.wait(200);
+
+            // No feedback for next few trials prompt
             cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
