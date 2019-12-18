@@ -196,30 +196,61 @@ getAdvisorDetails <- function(x) {
 }
 
 #' Calculate variables detailing the quality of a response
-#' @param a answer
-#' @param e estimate lower bound
-#' @param w estimate width
-#' @param s estimate marker value
+#' @param ca correct answer
+#' @param elb estimate lower bound
+#' @param ew estimate width
+#' @param mv estimate marker value
+#' @param cas correct answer side
+#' @param ra response answer (side)
+#' @param rc response confidence
 #' @param suffix to append to each variable name
-#' 
+#'
+#' The first 4 variables are used in the timeline response tasks, the ra and
+#' rc variables are used for the binary response scale.
+#'
 #' @return data frame with columns for response correctness, error, and score
-getResponseVars <- function(a, e, w, s, suffix = NULL) {
-  if (is.null(s)) {
-    s <- 27 / w
+getResponseVars <- function(ca, elb, ew, mv, cas, ra, rc, suffix = NULL) {
+  # Detect the correct mode to be in
+  if (!is.null(cas) && !is.null(ra) && !is.null(rc))
+    return(getResponseVars.binary(cas, ra, rc, suffix = suffix))
+  
+  if (is.null(mv)) {
+    mv <- 27 / ew
   }
   
-  n <- length(a)
+  n <- length(ca)
   
-  if (length(e) != n || length(w) != n) {
+  if (length(elb) != n || length(ew) != n) {
     stop("Lengths of all input vectors must be the same.")
   }
   
   x <- data.frame(
-    responseCorrect = a >= e & a <= e + w,
-    responseError = abs(a - e + (w / 2))
+    responseCorrect = ca >= elb & ca <= elb + ew,
+    responseError = abs(ca - elb + (ew / 2))
   )
   
-  x$responseScore <- ifelse(x$responseCorrect, s, 0)
+  x$responseScore <- ifelse(x$responseCorrect, mv, 0)
+  
+  if (!is.null(suffix)) {
+    names(x) <- paste0(names(x), suffix)
+  }
+  
+  x
+}
+
+#' Binary case for \code{getResponseVars()}
+getResponseVars.binary <- function(cas, ra, rc, suffix = NULL) {
+  n <- length(cas)
+  
+  if (length(ra) != n || length(rc) != n) {
+    stop("Lengths of all input vectors must be the same.")
+  }
+  
+  x <- data.frame(
+    responseCorrect = cas == ra,
+    responseError = ifelse(cas == ra, 100 - rc, 100 + rc),
+    responseScore = ifelse(cas == ra, rc, -rc)
+  )
   
   if (!is.null(suffix)) {
     names(x) <- paste0(names(x), suffix)
@@ -281,13 +312,19 @@ getDerivedVariables <- function(x, name, opts = list()) {
       x <- cbind(x, getResponseVars(x$correctAnswer,
                                     x$responseEstimateLeft,
                                     x$responseMarkerWidth,
-                                    x$responseMarkerValue))
+                                    x$responseMarkerValue,
+                                    x$correctAnswerSide,
+                                    x$responseAns,
+                                    x$responseConfidence))
       
       x <- cbind(x, getResponseVars(x$correctAnswer,
                                     x$responseEstimateLeftFinal,
                                     x$responseMarkerWidthFinal,
                                     x$responseMarkerValueFinal,
-                                    "Final"))
+                                    x$correctAnswerSide,
+                                    x$responseAnsFinal,
+                                    x$responseConfidenceFinal,
+                                    suffix = "Final"))
       
       x <- as.tibble(x)
       
@@ -304,14 +341,22 @@ getDerivedVariables <- function(x, name, opts = list()) {
       
       x$scoreChange <- x$responseScoreFinal - x$responseScore
       
-      x$estimateLeftChange <- abs(x$responseEstimateLeftFinal -
-                                    x$responseEstimateLeft)
+      if (!is.null(x$responseEstimateLeft)) {
+        x$estimateLeftChange <- abs(x$responseEstimateLeftFinal -
+                                      x$responseEstimateLeft)
+        x$changed <- x$estimateLeftChange > 0
       
-      x$changed <- x$estimateLeftChange > 0
-      
-      x$confidenceChange <- 
-        (4 - as.numeric(x$responseMarkerFinal)) -
-        (4 - as.numeric(x$responseMarker))
+        x$confidenceChange <- 
+          (4 - as.numeric(x$responseMarkerFinal)) -
+          (4 - as.numeric(x$responseMarker))
+      }
+      if (!is.null(x$responseConfidence)) {
+        x$confidenceChange <- 
+          ifelse(x$responseAns == x$responseAnsFinal,
+                 x$responseConfidenceFinal - x$responseConfidence,
+                 x$responseConfidenceFinal + x$responseConfidence)
+        x$changed <- x$confidenceChange != 0
+      }
       
       
       tmp <- x[order(x$number), ]
@@ -376,48 +421,99 @@ getDerivedVariables <- function(x, name, opts = list()) {
       
       # Trials - advisor-specific variables
       for (a in advisorNames) {
-        # Accuracy
-        x[, paste0(a, ".accurate")] <- 
-          (x[, paste0(a, ".advice")] - 
-             (x[, paste0(a, ".adviceWidth")] / 2)) <= x[, "correctAnswer"] &
-          (x[, paste0(a, ".advice")] + 
-             (x[, paste0(a, ".adviceWidth")] / 2)) >= x[, "correctAnswer"]
-        
-        # Error
-        x[, paste0(a, ".error")] <- 
-          abs(x[, paste0(a, ".advice")] - x[, "correctAnswer"])
         
         # Weight on Advice
-        i <- x[, "responseEstimateLeft"] + (x[, "responseMarkerWidth"] - 1) / 2
-        f <- x[, "responseEstimateLeftFinal"] + 
-          (x[, "responseMarkerWidthFinal"] - 1) / 2
-        adv <- x[, paste0(a, ".advice")]
-        
-        z <- ((f - i) / (adv - i))
-        x[, paste0(a, ".woaRaw")] <- z
-        
-        z[z < 0] <- 0
-        z[z > 1] <- 1
-        
-        x[, paste0(a, ".woa")] <- z
-        
-        # Agreement
-        for (d in c("", "Final")) {
-          minA <- x[, paste0(a, ".advice")] - 
-            (x[, paste0(a, ".adviceWidth")] / 2)
-          maxA <- x[, paste0(a, ".advice")] + 
-            (x[, paste0(a, ".adviceWidth")] / 2)
+        if (!is.null(x$responseEstimateLeft)) {
+          # Accuracy
+          x[, paste0(a, ".accurate")] <- 
+            (x[, paste0(a, ".advice")] - 
+               (x[, paste0(a, ".adviceWidth")] / 2)) <= x[, "correctAnswer"] &
+            (x[, paste0(a, ".advice")] + 
+               (x[, paste0(a, ".adviceWidth")] / 2)) >= x[, "correctAnswer"]
           
-          minP <- x[, paste0("responseEstimateLeft", d)]
-          maxP <- minP + x[, paste0("responseMarkerWidth", d)]
-          
-          x[, paste0(a, ".agree", d)] <- 
-            ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP))  
-          
-          # Distance
-          reMid <- minP + (maxP - minP) / 2
+          # Error
+          x[, paste0(a, ".error")] <- 
+            abs(x[, paste0(a, ".advice")] - x[, "correctAnswer"])
+          i <- x[, "responseEstimateLeft"] + (x[, "responseMarkerWidth"] - 1) / 2
+          f <- x[, "responseEstimateLeftFinal"] + 
+            (x[, "responseMarkerWidthFinal"] - 1) / 2
           adv <- x[, paste0(a, ".advice")]
-          x[, paste0(a, ".distance", d)] <- abs(reMid - adv)
+          
+          z <- ((f - i) / (adv - i))
+          x[, paste0(a, ".woaRaw")] <- z
+          
+          z[z < 0] <- 0
+          z[z > 1] <- 1
+          
+          x[, paste0(a, ".woa")] <- z
+          
+          for (d in c("", "Final")) {
+            minA <- x[, paste0(a, ".advice")] - 
+              (x[, paste0(a, ".adviceWidth")] / 2)
+            maxA <- x[, paste0(a, ".advice")] + 
+              (x[, paste0(a, ".adviceWidth")] / 2)
+            
+            # Timeline responses
+            if (!is.null(x$responseEstimateLeft)) {
+              minP <- x[, paste0("responseEstimateLeft", d)]
+              maxP <- minP + x[, paste0("responseMarkerWidth", d)]
+              
+              x[, paste0(a, ".agree", d)] <- 
+                ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP)) 
+              
+              # Distance
+              reMid <- minP + (maxP - minP) / 2
+              adv <- x[, paste0(a, ".advice")]
+              x[, paste0(a, ".distance", d)] <- abs(reMid - adv)
+            } 
+            
+            # Binary responses
+            if (!is.null(x$responseAns)) {
+              
+              
+            }
+            
+          }
+        }
+        if (!is.null(x$responseAns)) {
+          aa <- x[, paste0(a, ".adviceSide")]
+          ac <- x[, paste0(a, ".adviceConfidence")]
+          pa <- x$responseAns
+          paf <- x$responseAnsFinal
+          pc <- x$responseConfidence
+          pcf <- x$responseConfidenceFinal
+          
+          # Accuracy
+          x[, paste0(a, ".accurate")] <- aa == x$correctAnswerSide
+          
+          # Error
+          x[, paste0(a, ".error")] <- ifelse(aa == x$correctAnswerSide,
+                                             100 - ac, 100 + ac)
+          
+          # Influence
+          influence <- ifelse(pa == paf, # amount original answer reinforced
+                              pcf - pc, 
+                              pcf + pc)
+          # inverse if disagreeing
+          m <- as.logical(!is.na(aa != paf) & aa != paf)
+          influence[m] <- -influence[m]
+          x[, paste0(a, ".influence")] <- influence
+          
+          for (d in c("", "Final")) {
+            if (d == "Final") {
+              p <- paf
+              conf <- pcf
+            } else {
+              p <- pa
+              conf <- pc
+            }
+
+            x[, paste0(a, ".agree", d)] <- aa == p
+            
+            x[, paste0(a, ".distance", d)] <- ifelse(aa == p,
+                                                     abs(conf - ac), 
+                                                     conf + ac)
+          }
         }
         
         # Agreement change
@@ -428,24 +524,28 @@ getDerivedVariables <- function(x, name, opts = list()) {
       
       # backfilling advisor0 properties -----------------------------------------
       
-      x$woa <- NA
-      
-      low <- 0
-      high <- 1
-      n <- 11
-      
-      for (z in c("woa", "woaRaw")) {
-        x[, paste0("advisor0", z)] <- 
-          sapply(1:nrow(x), function(i)
-            unlist(
-              x[i, paste0(as.character(x$advisor0idDescription[i]), ".", z)]))
+      if (paste0(as.character(x$advisor0idDescription[1]), ".woa") 
+          %in% 
+          names(x)) {
+        x$woa <- NA
+        
+        low <- 0
+        high <- 1
+        n <- 11
+        
+        for (z in c("woa", "woaRaw")) {
+          x[, paste0("advisor0", z)] <- 
+            sapply(1:nrow(x), function(i)
+              unlist(
+                x[i, paste0(as.character(x$advisor0idDescription[i]), ".", z)]))
+        }
+        
+        x$woa[x$advisor0woaRaw >= 1] <- ">=1"
+        for (z in rev(seq(low, high, length.out = n))) {
+          x$woa[x$advisor0woaRaw < z] <- paste0("<", z)
+        }
+        x$woa <- factor(x$woa)
       }
-      
-      x$woa[x$advisor0woaRaw >= 1] <- ">=1"
-      for (z in rev(seq(low, high, length.out = n))) {
-        x$woa[x$advisor0woaRaw < z] <- paste0("<", z)
-      }
-      x$woa <- factor(x$woa)
       
       x
     },
@@ -462,7 +562,10 @@ getDerivedVariables <- function(x, name, opts = list()) {
       x <- cbind(x, getResponseVars(x$correctAnswer,
                                     x$responseEstimateLeft,
                                     x$responseMarkerWidth,
-                                    x$responseMarkerValue))
+                                    x$responseMarkerValue,
+                                    x$correctAnswerSide,
+                                    x$responseAns,
+                                    x$responseConfidence))
       
       as.tibble(x)
     },

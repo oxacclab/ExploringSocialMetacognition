@@ -1,4 +1,4 @@
-const runs = 1;
+const runs = 10;
 
 function respond(position = null) {
     position = position || {x: 0, y: Math.random() * 100};
@@ -295,7 +295,7 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            cy.wait(200);
+            cy.wait(1200);
 
             // No feedback for next few trials prompt
             cy.get('esm-instruction button')
@@ -350,7 +350,7 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            cy.wait(200);
+            cy.wait(1200);
 
             // No feedback for next few trials prompt
             cy.get('esm-instruction button')

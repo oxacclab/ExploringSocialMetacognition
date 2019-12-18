@@ -1,0 +1,441 @@
+---
+title: "Confidence estimation"
+author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+December 2019
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(tidyverse)
+
+library(BayesFactor)
+
+library(prettyMD)
+
+library(knitr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20191216)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+```
+
+```{r loadData, include = F}
+
+rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
+testData <- T
+
+studyVersion <- "0-0-4"
+studyName <- "confidenceExploration"
+
+overrideMarkerList <- c(11) # Someone managed to get marker width 8 for one question, not sure how
+
+exclude <- list(
+  maxAttnCheckFails = 0, # pass all attn checks
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1,    # some advice taken on 10%+ of trials
+  multipleAttempts = T   # exclude multiple attempts
+  ) 
+
+skipLoadData <- F
+
+source("src/01_Load-data.R")
+source("src/02_Exclusions.R")
+
+# Re-order factor levels for advice ratings
+AdvisedTrial <- AdvisedTrial %>%
+  mutate(advisor0questionnaireHonestyLabel = 
+           factor(advisor0questionnaireHonestyLabel, 
+                  levels = 
+                    levels(advisor0questionnaireHonestyLabel)[c(1, 3, 2)]))
+
+```
+
+# Introduction
+
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors cannot be clear on how advisors' expressed confidence relates to their actual confidence. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of known versus unknown confidence representations, we manipulated whether participants believed advice to come from a consistent advisor or from one of a number of advisors on each trial in a judge-advisor system. Participants had two experimental blocks: in one the advice they received was always labelled as coming from a consistent individual, while in the other the advice was labelled as coming from a different advisor each time. All advice was drawn from the same distribution, which was centred on the correct answer (i.e. all of the advice was helpful on avereage). 
+
+After 10 trials in each block in which feedback on the correct answers was provided so participants could learn about the advisor/s, participants performed 5 trials without feedback. 
+
+We hypothesised that participants would place greater weight on the advice of the consistent advisor, presumably because they are able to learn about the calibration of the individual advisor while they cannot do likewise for the population of advisors.
+
+# Method
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
+## Exclusions
+
+```{r exclusions}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+
+tmp$condition <- factor(tmp$condition, labels = c("SingleFirst",
+                                                  "GroupFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+```
+
+Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each.
+
+## Task performance
+
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
+
+### Decisions
+
+Participants offered estimates of whether various events took place before or after a given year. The correct answers were always between 1900 and 2000. Participants answered by selecting a point on one of two confidence bars, with the choice of bar indicating the chosen answer. 
+
+#### Correctness
+
+```{r accuracy}
+
+tmp <- markerBreakdown(responseCorrect, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r accuracyGraph}
+
+ggplot(aggregate(responseCorrect ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, y = responseCorrect)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) +
+  scale_color_discrete(guide = 'none') + 
+  labs(x = "decision", 
+       y = "p(response correct)")
+
+```
+
+### Timing
+
+We can look at the response time - the difference between the time the response is opened and the time the response is received.  
+
+```{r time}
+
+decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
+
+tmp <- markerBreakdown(rt, decisions, hideTotals = T)
+tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+
+num2str.tibble(tmp, isProportion = T, precision = 3)
+
+```
+
+```{r timeGraph}
+
+ggplot(aggregate(rt ~ 
+                   responseMarker + decision + pid,
+                 decisions, mean), 
+       aes(x = decision, 
+           y = rt / 1000)) +
+  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
+  geom_boxplot(fill = NA, outlier.color = NA) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_linetype_manual(values = c("dashed")) +
+  scale_color_discrete(guide = 'none') + 
+  labs(x = "decision", 
+       y = "response time (s)")
+
+```
+
+### Summary {.summary}
+
+!TODO[summary of task performance]
+
+## Advisor performance
+
+The advice offered should be equivalent between single/group advisors.
+
+### Accuracy
+
+```{r adviceAccuracy}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0("cbind(", a, ".accurate, ", 
+                          a, ".error) ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "accuracy", "error")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(cbind(accuracy, error) ~ advisor, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+
+tmp <- gather(tmp, key = "var", value = "value", c("accuracy", "error"))
+
+for (v in unique(tmp$var)) 
+  print(
+    ggplot(tmp[tmp$var == v, ], aes(x = advisor, y = value, colour = pid)) +
+      geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+      geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+      geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+      geom_point(alpha = .5, aes(colour = pid)) +
+      stat_summary(geom = "line", fun.y = mean,
+                   aes(group = 1, linetype = "mean"), size = 1.5) +
+      labs(y = v) +
+      scale_color_discrete(guide = 'none')
+  )
+
+```
+
+### Agreement
+
+```{r adviceAgreement}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".agree ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "agreement")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(agreement ~ advisor, 
+                             tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceAgreementGraph}
+
+ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_color_discrete(guide = 'none')
+
+```
+
+### Distance
+
+Distance is the continuous version of agreement - the difference along the confidence scale between the advice and the initial estimate. Where different scales are endorsed, the difference is the combination of how sure the participant was on one scale plus how sure the advisor was on the other.
+
+```{r adviceDistance}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".distance ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "distance")
+  r$advisor = a
+  
+  tmp <- rbind(tmp, as.tibble(r))
+}
+
+prop2str(as.tibble(aggregate(distance ~ advisor, 
+                             tmp, 
+                             mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r adviceDistanceGraph}
+
+ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_color_discrete(guide = 'none')
+
+```
+
+### Summary {.summary}
+
+!TODO[Advisor performance summary]
+
+### Influence
+
+The measure of influence is the extent to which a participant's confidence moves in the expected direction as a function of the advice (increasing when agreed with, decreasing when disagreed with).
+
+Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
+
+```{r woa}
+
+tmp <- NULL
+for (a in advisorNames) {
+  eq <- as.formula(paste0(a, ".woa ~ pid"))
+  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+  
+  colnames(r) <- c("pid", "WoA")
+  r$advisor <- a
+  tmp <- rbind(tmp, r)
+}
+
+prop2str(as.tibble(aggregate(WoA ~ advisor, tmp, mean, na.rm = T)), 
+         precision = 3)
+
+```
+
+```{r woaGraph}
+
+ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
+  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
+  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
+  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
+  geom_point(alpha = .5, aes(colour = pid)) +
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_discrete(guide = 'none')
+
+```
+
+##### Influence distribution
+
+It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
+
+```{r woaDistribution}
+
+ggplot(AdvisedTrial, aes(woa)) + 
+  geom_histogram(stat = "count") +
+  facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
+
+```
+
+```{r percentage of participants with expected pattern}
+
+tmp <- AdvisedTrial %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  spread(advisor0idDescription, woa) %>%
+  dplyr::filter_all(all_vars(!is.na(.))) %>%
+  mutate(asExpected = honest > deceptive)
+
+```
+
+### Summary {.summary}
+
+!TODO[Influence summary]
+
+## Hypothesis testing
+
+The hypotheses being tested here are:  
+
+1. Participants will place higher weight on the advice of the single consistent advisor.
+
+```{r h1, results='asis'}
+
+tmp <- AdvisedTrial %>%
+  dplyr::filter(advisor0questionnaireHonestyLabel == 'Honest') %>%
+  group_by(pid, advisor0idDescription) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  spread(advisor0idDescription, woa) %>%
+  dplyr::filter_all(all_vars(!is.na(.)))
+  
+
+r <- md.ttest(tmp$honest, tmp$deceptive, 
+              c("*M*|honest", "*M*|deceptive"), paired = T)
+cat(r)
+
+```
+
+### Summary {.summary}
+
+!TODO[Hypothesis summary]
+
+## Exploration
+
+# Conclusions {.summary}
+
+!TODO[Conclusions]
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```
