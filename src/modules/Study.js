@@ -2441,16 +2441,20 @@ class DatesStudyBinary extends DatesStudy {
         advisorOrder[0] = x + 1;
         advisorOrder[1] = 3 - advisorOrder[0];
 
-        const coreBlocks = this.blocks.filter(
-            b => b.blockType === "core" && b.feedback
-        );
         const advisors = [];
 
-        // Repeat advisorOrder as many times as needed to index all advisors
-        for(let i = 0; i < coreBlocks.length / advisorOrder.length; i++)
-            advisors.push(...advisorOrder.map(x => x + (advisorOrder.length * i)));
+        // Repeat the same advisor for train and test blocks
+        const reps = 2;
+        advisorOrder.forEach(a => {
+            for (let i = 0; i < reps; i++)
+                advisors.push(a);
+        });
 
         const me = this;
+
+        const coreBlocks = this.blocks.filter(
+            b => b.blockType === "core"
+        );
 
         coreBlocks.forEach(b => {
                 const i = advisors.shift();

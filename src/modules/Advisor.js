@@ -113,6 +113,8 @@ class Advisor extends BaseObject {
                 break;
         }
 
+        this._markerSafariFix();
+
         await this.wait(1000);
         // Collect questionnaire about advice if necessary
         await this.offerQuestionnaire();
@@ -160,12 +162,17 @@ class Advisor extends BaseObject {
         this.marker.style.width = TL.valueToPixels(this.getAdvice(false).adviceWidth, true) + "px";
         this.marker.style.height = this.marker.style.width;
 
-        // Safari fix - flicker the marker so it draws in the correct place;
+        this.debug(this.getAdvice(false));
+    }
+
+    /**
+     * Safari fix - flicker the marker so it draws in the correct place;
+     * @protected
+     */
+    _markerSafariFix() {
         const d = this.marker.style.display;
         this.marker.style.display = "none";
-        setTimeout((m)=>m.style.display = "", 0, this.marker);
-
-        this.debug(this.getAdvice(false));
+        setTimeout((m) => m.style.display = "", 0, this.marker);
     }
 
     drawBinaryConfAdvice() {

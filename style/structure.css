@@ -312,6 +312,10 @@ esm-response-binary-conf#response-panel {
     padding: 1em;
     margin: 0;
 }
+.grid .advisor-key-row.advisor-key-row,
+.grid .group-info-row.group-info-row {
+    background: none;
+}
 .grid .advisor-key-row .advisor-intro {
     left: unset;
     top: 100%;
