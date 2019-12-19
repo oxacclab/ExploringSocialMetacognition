@@ -2776,8 +2776,10 @@ class DatesStudyBinary extends DatesStudy {
     async results() {
 
         // leave fullscreen
-        if (document.fullscreenElement)
-            Study.unlockFullscreen(document.fullscreenElement);
+        if (document.fullscreenElement || document.webkitFullscreenElement)
+            Study.unlockFullscreen(
+                document.fullscreenElement || document.webkitFullscreenElement
+            );
 
         // Generic results components.
         this.importResultsTemplate();

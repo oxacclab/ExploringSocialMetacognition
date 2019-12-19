@@ -315,6 +315,8 @@ esm-response-binary-conf#response-panel {
 .grid .advisor-key-row.advisor-key-row,
 .grid .group-info-row.group-info-row {
     background: none;
+    text-align: center;
+
 }
 .grid .advisor-key-row .advisor-intro {
     left: unset;
@@ -1035,6 +1037,11 @@ span.redo-link {
         "left-cell controls right-cell";
     grid-gap: 0;
     gap: 0;
+}
+body:not(.Study-results) #content.grid {
+    height: 100%;
+    width: 100%;
+    border: none;
 }
 
 .grid .progress-bar {
