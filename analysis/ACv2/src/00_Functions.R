@@ -341,7 +341,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
       
       x$scoreChange <- x$responseScoreFinal - x$responseScore
       
-      if (!is.null(x$responseEstimateLeft)) {
+      if ("responseEstimateLeft" %in% names(x)) {
         x$estimateLeftChange <- abs(x$responseEstimateLeftFinal -
                                       x$responseEstimateLeft)
         x$changed <- x$estimateLeftChange > 0
@@ -423,7 +423,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
       for (a in advisorNames) {
         
         # Weight on Advice
-        if (!is.null(x$responseEstimateLeft)) {
+        if ("responseEstimateLeft" %in% names(x)) {
           # Accuracy
           x[, paste0(a, ".accurate")] <- 
             (x[, paste0(a, ".advice")] - 
@@ -454,7 +454,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
               (x[, paste0(a, ".adviceWidth")] / 2)
             
             # Timeline responses
-            if (!is.null(x$responseEstimateLeft)) {
+            if ("responseEstimateLeft" %in% names(x)) {
               minP <- x[, paste0("responseEstimateLeft", d)]
               maxP <- minP + x[, paste0("responseMarkerWidth", d)]
               
@@ -488,7 +488,8 @@ getDerivedVariables <- function(x, name, opts = list()) {
           
           # Error
           x[, paste0(a, ".error")] <- ifelse(aa == x$correctAnswerSide,
-                                             100 - ac, 100 + ac)
+                                             pull(100 - ac), 
+                                             pull(100 + ac))
           
           # Influence
           influence <- ifelse(pa == paf, # amount original answer reinforced
@@ -511,8 +512,8 @@ getDerivedVariables <- function(x, name, opts = list()) {
             x[, paste0(a, ".agree", d)] <- aa == p
             
             x[, paste0(a, ".distance", d)] <- ifelse(aa == p,
-                                                     abs(conf - ac), 
-                                                     conf + ac)
+                                                     pull(abs(conf - ac)), 
+                                                     pull(conf + ac))
           }
         }
         
@@ -877,6 +878,35 @@ markerBreakdown <- function(v,
   
   out
 }
+
+#' Output of a function (usually mean_cl_*) applied to participant means.
+#' Results shown for first and last decisions, as well as a total.
+#'
+#' tbl should probably be decisions dataframe, and columns pid and decision are
+#' expected to exist
+#'
+#' @param tbl tibble with data
+#' @param colName column to apply the function to
+#' @param f function to run
+#' @param ... passed on to f
+peek <- function(tbl, colName, f = mean_cl_normal, ...) {
+  v <- substitute(colName)
+  byD <- tbl %>% group_by(pid, decision) %>%
+    summarise(x = mean(!!v)) %>%
+    group_by(decision) %>%
+    do(x = f(.$x, ...)) %>%
+    unnest(x) 
+  
+  allDF <- tbl %>% group_by(pid) %>%
+    summarise(x = mean(!!v)) %>%
+    do(x = f(.$x, ...)) %>%
+    unnest(x)
+  
+  allDF <- tibble(decision = "Overall") %>% cbind(allDF)
+  
+  rbind(byD, allDF)
+  
+} 
 
 #' Number of points a marker is worth
 #' @param width of the marker

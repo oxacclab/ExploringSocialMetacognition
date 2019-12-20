@@ -77,13 +77,15 @@ if (!is.null(exclude$maxAttnCheckFails) && !is.na(exclude$maxAttnCheckFails)) {
       exclusions$excluded[exclusions$pid == p] <- 
         addExclusion(exclusions$excluded[exclusions$pid == p], "attnCheckYear")
     
-    smallest <- min(Trial$responseMarkerWidth[Trial$studyVersion == 
-                                                tmp$studyVersion[1]])
-    
-    if (sum(tmp$responseMarkerWidth != smallest) > 
-        exclude$maxAttnCheckFails)
-      exclusions$excluded[exclusions$pid == p] <- 
-        addExclusion(exclusions$excluded[exclusions$pid == p], "attnCheckWidth")
+    if ("responseMarkerWidth" %in% names(tmp)) {
+      smallest <- min(Trial$responseMarkerWidth[Trial$studyVersion == 
+                                                  tmp$studyVersion[1]])
+      
+      if (sum(tmp$responseMarkerWidth != smallest) > 
+          exclude$maxAttnCheckFails)
+        exclusions$excluded[exclusions$pid == p] <- 
+          addExclusion(exclusions$excluded[exclusions$pid == p], "attnCheckWidth")
+    }
   }
   
   # Drop excluded participants' trials
@@ -200,8 +202,15 @@ if (!is.null(exclude$minChangeRate) &&
       next()
     }
     
-    x <- mean(tmp$responseEstimateLeft != tmp$responseEstimateLeftFinal |
-                tmp$responseMarkerWidth != tmp$responseMarkerWidthFinal)
+    if ("responseEstimateLeft" %in% names(tmp)) {
+      x <- mean(tmp$responseEstimateLeft != tmp$responseEstimateLeftFinal |
+                  tmp$responseMarkerWidth != tmp$responseMarkerWidthFinal)
+    } 
+    if ("responseConfidence" %in% names(tmp)) {
+      x <- mean(tmp$responseConfidence != tmp$responseConfidenceFinal |
+                  tmp$responseAns != tmp$responseAnsFinal)
+    }
+    
     
     changes$pChange[changes$pid %in% p] <- x
     
@@ -372,7 +381,10 @@ if (!is.null(exclude$maxPerCondition) &&
 mainDF <- mainDF[mainDF$pid %in% exclusions$pid[exclusions$excluded == F], ]
 assign(mainDFName, mainDF)
 decisions <- byDecision(mainDF)
-PP <- participantSummary(decisions)
+
+if ("responseEstimateLeft" %in% names(mainDF)) {
+  PP <- participantSummary(decisions)
+}
 
 # Drop extraneous factor levels
 for (n in ls()) {

@@ -68,7 +68,7 @@ class Trial extends ControlObject {
         this.data.anchorDate = this.anchorDate;
         this.data.correctAnswer = typeof this.correctAnswer === "function"?
             this.correctAnswer() : this.correctAnswer;
-        this.data.correctAnswerSide = !this.anchorHTML? null :
+        this.data.correctAnswerSide = !this.data.anchorHTML? null :
             parseInt(this.anchorDate) < parseInt(this.correctAnswer)? 0 : 1;
 
         // Expand the prompt shorthand blueprint

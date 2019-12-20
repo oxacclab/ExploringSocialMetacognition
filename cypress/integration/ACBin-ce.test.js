@@ -323,6 +323,13 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
+            cy.wait(400);
+            // You will now get feedback again
+            cy.get('esm-instruction button')
+                .contains('Okay')
+                .should('be.visible')
+                .click();
+
             // Acknowledge new context
             cy.wait(1200);
             cy.get('.advisor-intro .esm-instruction-button')

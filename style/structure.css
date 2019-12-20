@@ -1037,11 +1037,16 @@ span.redo-link {
         "left-cell controls right-cell";
     grid-gap: 0;
     gap: 0;
-}
-body:not(.Study-results) #content.grid {
     height: 100%;
     width: 100%;
+}
+body:not(.Study-results) #content.grid {
     border: none;
+}
+.Study-results #content.grid {
+    margin: 2em;
+    height: calc(100% - 4em);
+    width: calc(100% - 4em);
 }
 
 .grid .progress-bar {

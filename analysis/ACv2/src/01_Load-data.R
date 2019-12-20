@@ -133,7 +133,9 @@ mainDF <- if (isSet('AdvisedTrialWithConf'))
 # additional framing of data ----------------------------------------------
 decisions <- byDecision(mainDF)
 
-PP <- participantSummary(decisions)
+if ("responseEstimateLeft" %in% names(mainDF)) {
+  PP <- participantSummary(decisions)
+}
 
 # Hoist key variables -----------------------------------------------------
 
