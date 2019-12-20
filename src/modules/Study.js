@@ -2632,7 +2632,7 @@ class DatesStudyBinary extends DatesStudy {
             if(cycle++ > maxCycles)
                 this.error("Exceeded maximum cycles in _yearDifference(" + correctAnswer + ", " + limits.toString() + ")");
 
-            answer = Math.round(utils.sampleNormal(1, correctAnswer, 5));
+            answer = Math.round(utils.sampleNormal(1, correctAnswer, 8));
         }
 
         return answer;

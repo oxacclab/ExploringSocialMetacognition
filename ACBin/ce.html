@@ -460,8 +460,8 @@
                     group: 0,
                     name: "Practice advisor ###",
                     templateId: "advisor-key",
-                    confidence: 30,
-                    confidenceVariation: 11,
+                    confidence: 20,
+                    confidenceVariation: 8,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
@@ -473,12 +473,12 @@
                     position: 1,
                     idDescription: "mass, conf",
                     isGroup: true,
-                    introText: "<p>During this block of questions you will get advice from <strong>different</strong> advisors each time.</p>",
+                    introText: "<p>During this block of questions you will get advice from a <strong>different</strong> advisor each time.</p>",
                     group: 0,
                     name: "Advisor ###",
                     templateId: "advisor-key",
-                    confidence: 30,
-                    confidenceVariation: 11,
+                    confidence: 20,
+                    confidenceVariation: 8,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
@@ -494,8 +494,8 @@
                     group: 0,
                     name: "Advisor ###",
                     templateId: "advisor-key",
-                    confidence: 30,
-                    confidenceVariation: 11,
+                    confidence: 20,
+                    confidenceVariation: 8,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
@@ -551,6 +551,7 @@
                     trialCount: 10,
                     blockType: "core",
                     feedback: true,
+                    introText: "You will now get feedback on your final answers again.",
                     showAdvisorConfidence: true,
                     advisors: [advisors[2]],
                     advisorsPerTrial: 1,

@@ -1145,9 +1145,6 @@ body:not(.Study-results) #content.grid {
     width: 100%;
     overflow-y: auto;
 }
-.grid .feedback-wrapper .results .question-list select > option {
-    height: 1.5em;
-}
 .grid .feedback-wrapper .results .result {
     --initial-color: aliceblue;
     --advice-color: whitesmoke;
