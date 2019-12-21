@@ -256,9 +256,9 @@ customElements.define('esm-response-binary-conf',
             const ans = Math.random() < .5? 0 : 1;
             const conf = Math.random() >= .5;
 
-            const q = "for this question answer that you are quite " +
-                (conf? "sure" : "unsure") +  " the answer is '" +
-                answers[ans] + "'";
+            const q = "for this question answer towards the " +
+                (conf? "top" : "bottom") +  " of the '" +
+                answers[ans] + "' bar";
 
             return {
                 question: q,

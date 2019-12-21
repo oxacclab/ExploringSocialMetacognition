@@ -407,15 +407,19 @@ class Study extends ControlObject {
 
     /**
      * Exit fullscreen mode
-     * @return {Promise<void>}
      */
-    static async exitFullscreen() {
-        if(document.exitFullscreen)
-            return document.exitFullscreen();
-        if(document.mozCancelFullScreen)
-            return document.mozCancelFullScreen();
-        if(document.webkitExitFullscreen)
-            return document.webkitExitFullscreen();
+    static exitFullscreen() {
+        try {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        } catch(e) {console.log({caughtError: e})}
     }
 
     /**
@@ -434,7 +438,13 @@ class Study extends ControlObject {
             true);
     }
 
-    static async unlockFullscreen(element) {
+    static unlockFullscreen() {
+        const element =
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement;
+
         document.body.classList.remove("fullscreen-error");
         const warning = document.querySelector('#fullscreen-warning.open');
         if(warning)
@@ -442,7 +452,7 @@ class Study extends ControlObject {
 
         clearTimeout(element.fullscreenTimeOut);
 
-        await Study.exitFullscreen();
+        Study.exitFullscreen();
     }
 
     static _navGuard() {
@@ -745,8 +755,7 @@ class Study extends ControlObject {
     async debrief() {
 
         // leave fullscreen
-        if(document.fullscreenElement)
-            Study.unlockFullscreen(document.fullscreenElement);
+        Study.unlockFullscreen();
 
         Study._updateInstructions("instr-debrief");
         await this.save(console.log);
@@ -1496,8 +1505,7 @@ class DatesStudy extends Study {
             document.body.classList.add("fatal-error");
 
             // leave fullscreen
-            if(document.fullscreenElement)
-                Study.unlockFullscreen(document.fullscreenElement);
+            Study.unlockFullscreen();
 
             // save the trial so there's a record of the failure
             let table = trial.saveTableName?
@@ -2038,8 +2046,7 @@ class DatesStudy extends Study {
     async results() {
 
         // leave fullscreen
-        if(document.fullscreenElement)
-            Study.unlockFullscreen(document.fullscreenElement);
+        Study.unlockFullscreen();
 
         // Protect against weird-looking-ness when resizing
         const me = this;
@@ -2776,10 +2783,7 @@ class DatesStudyBinary extends DatesStudy {
     async results() {
 
         // leave fullscreen
-        if (document.fullscreenElement || document.webkitFullscreenElement)
-            Study.unlockFullscreen(
-                document.fullscreenElement || document.webkitFullscreenElement
-            );
+        Study.unlockFullscreen();
 
         // Generic results components.
         this.importResultsTemplate();
