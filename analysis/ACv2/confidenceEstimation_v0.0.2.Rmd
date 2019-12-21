@@ -49,30 +49,23 @@ theme_set(theme_light() +
 rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
 testData <- T
 
-studyVersion <- "0-0-4"
+studyVersion <- "0-0-7"
 studyName <- "confidenceExploration"
 
-overrideMarkerList <- c(11) # Someone managed to get marker width 8 for one question, not sure how
-
 exclude <- list(
-  maxAttnCheckFails = 0, # pass all attn checks
   maxTrialRT = 60000,    # trials take < 1 minute
   minTrials = 11,        # at least 11 trials completed
-  minChangeRate = .1,    # some advice taken on 10%+ of trials
-  multipleAttempts = T   # exclude multiple attempts
+  minChangeRate = .1     # some advice taken on 10%+ of trials
   ) 
 
 skipLoadData <- F
 
-source("src/01_Load-data.R")
 source("src/02_Exclusions.R")
 
-# Re-order factor levels for advice ratings
-AdvisedTrial <- AdvisedTrial %>%
-  mutate(advisor0questionnaireHonestyLabel = 
-           factor(advisor0questionnaireHonestyLabel, 
-                  levels = 
-                    levels(advisor0questionnaireHonestyLabel)[c(1, 3, 2)]))
+if (testData) {
+  # randomise the confidence of test data
+  decisions$responseConfidence <- runif(nrow(decisions), 0, 100)
+}
 
 ```
 
@@ -103,7 +96,7 @@ table(tmp$excluded, tmp$condition)
 
 ```
 
-Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each.
+Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each, of which an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial[!AdvisedTrial$feedback, ], length)$advisor0))` had no feedback.
 
 ## Task performance
 
@@ -117,29 +110,37 @@ Participants offered estimates of whether various events took place before or af
 
 ```{r accuracy}
 
-tmp <- markerBreakdown(responseCorrect, decisions, hideTotals = T)
-tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
+decisions %>% peek(responseCorrect, decision) %>%
+  num2str.tibble(isProportion = T, precision = 3)
 
-num2str.tibble(tmp, isProportion = T, precision = 3)
+decisions %>% filter(feedback == T) %>% 
+  peek(responseCorrect, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(feedback = T)
 
 ```
 
 ```{r accuracyGraph}
 
-ggplot(aggregate(responseCorrect ~ 
-                   responseMarker + decision + pid,
-                 decisions, mean), 
-       aes(x = decision, y = responseCorrect)) +
-  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
-  geom_boxplot(fill = NA, outlier.color = NA) +
-  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid)) +
-  stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5) +
-  scale_linetype_manual(values = c("dashed")) +
-  scale_color_discrete(guide = 'none') + 
+tmp <- decisions %>% group_by(pid, decision, feedback) %>%
+  do(correct = mean_cl_normal(.$responseCorrect)) %>%
+  unnest(correct) %>%
+  transmute(pid, decision,
+            pCorrect = y, 
+            ciLow = ymin,
+            ciHigh = ymax,
+            feedback = if_else(feedback, "With Feedback", "No feedback"))
+
+ggplot(tmp, 
+       aes(x = decision, y = pCorrect)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  geom_point(alpha = .25) +
   labs(x = "decision", 
-       y = "p(response correct)")
+       y = "p(response correct)") +
+  facet_grid(~feedback)
 
 ```
 
@@ -151,36 +152,85 @@ We can look at the response time - the difference between the time the response 
 
 decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
 
-tmp <- markerBreakdown(rt, decisions, hideTotals = T)
-tmp <- rbind(tmp$first, tmp$last)[, c(1, 3)]
-
-num2str.tibble(tmp, isProportion = T, precision = 3)
+decisions %>% peek(rt, decision) %>% 
+  mutate_if(is.numeric, round)
 
 ```
 
 ```{r timeGraph}
 
-ggplot(aggregate(rt ~ 
-                   responseMarker + decision + pid,
-                 decisions, mean), 
-       aes(x = decision, 
-           y = rt / 1000)) +
-  geom_violin(alpha = .25, colour = NA, fill = "grey75") +
-  geom_boxplot(fill = NA, outlier.color = NA) +
-  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid)) +
-  stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5) +
-  scale_linetype_manual(values = c("dashed")) +
-  scale_color_discrete(guide = 'none') + 
+tmp <- decisions %>% group_by(pid, decision) %>% 
+  summarise(rt = mean(rt))
+
+ggplot(tmp, 
+       aes(x = decision, y = rt)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  geom_point(alpha = .25) +
   labs(x = "decision", 
-       y = "response time (s)")
+       y = "response time (ms)") 
 
 ```
 
 ### Summary {.summary}
 
 !TODO[summary of task performance]
+
+## Metacognitive performance
+
+Participants indicated the confidence in their decisions simultaneously with the decisions themselves. We can thus explore how well a participant's confidence signals their accuracy.
+
+The first step in this process is to normalise confidence within that participant's responses. This is done separately for first and last decisions.
+
+```{r confidence normalisation}
+
+decisions <- decisions %>% 
+  group_by(pid, decision) %>% 
+  dplyr::mutate(zConf = scale(responseConfidence)) %>%
+  ungroup()
+
+```
+
+### High/low split
+
+We split confidence into simple high/low (above/below mean confidence) and explore the pCorrect for each side.
+
+```{r confidence binary split}
+
+tmp <- decisions %>% 
+  mutate(highConf = zConf > 0) %>%
+  group_by(pid, decision, highConf) %>%
+  summarise(pCorrect = mean(responseCorrect)) %>%
+  group_by(pid, decision) %>%
+  spread(highConf, pCorrect) %>%
+  mutate(pCorrectDiff = `TRUE` - `FALSE`)
+
+tmp %>% 
+  peek(pCorrectDiff, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3)
+
+ttestBF(tmp$pCorrectDiff[tmp$decision == "first"])
+ttestBF(tmp$pCorrectDiff[tmp$decision == "last"])
+
+```
+
+```{r confidence binary split plot}
+
+ggplot(tmp, aes(x = decision, y = pCorrectDiff)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  geom_point(alpha = .25) +
+  labs(x = "decision", 
+       y = "p(Correct | sure) - p(Correct | unsure)") +
+  scale_y_continuous(limits = c(-1, 1))     
+ 
+```
+
+## Perhaps more confidence stuff - Brier score/ROC {.summary}
 
 ## Advisor performance
 
@@ -190,75 +240,51 @@ The advice offered should be equivalent between single/group advisors.
 
 ```{r adviceAccuracy}
 
-tmp <- NULL
-for (a in advisorNames) {
-  eq <- as.formula(paste0("cbind(", a, ".accurate, ", 
-                          a, ".error) ~ pid"))
-  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
-  
-  colnames(r) <- c("pid", "accuracy", "error")
-  r$advisor = a
-  
-  tmp <- rbind(tmp, as.tibble(r))
-}
+AdvisedTrial$advisor0accurate <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".accurate")])
+)
 
-prop2str(as.tibble(aggregate(cbind(accuracy, error) ~ advisor, 
-                             tmp, 
-                             mean, na.rm = T)), 
-         precision = 3)
+AdvisedTrial$advisor0agree <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".agree")])
+)
+
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(advisorAccuracy = mean(advisor0accurate),
+            advisorAgree = mean(advisor0agree)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, feedback) %>%
+  summarise(advisorAccuracy = mean(advisorAccuracy),
+            advisorAgree = mean(advisorAgree)) %>%
+  num2str.tibble(isProportion = T, precision = 3)
 
 ```
 
 ```{r adviceAccuracyGraph}
 
-tmp <- gather(tmp, key = "var", value = "value", c("accuracy", "error"))
-
-for (v in unique(tmp$var)) 
-  print(
-    ggplot(tmp[tmp$var == v, ], aes(x = advisor, y = value, colour = pid)) +
-      geom_violin(colour = NA, fill = "grey75", alpha = .25) +
-      geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-      geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-      geom_point(alpha = .5, aes(colour = pid)) +
-      stat_summary(geom = "line", fun.y = mean,
-                   aes(group = 1, linetype = "mean"), size = 1.5) +
-      labs(y = v) +
-      scale_color_discrete(guide = 'none')
-  )
-
-```
-
-### Agreement
-
-```{r adviceAgreement}
-
-tmp <- NULL
-for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".agree ~ pid"))
-  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
+tmp %>% 
+  dplyr::rename(advisor = advisor0idDescription,
+                `p(correct)` = advisorAccuracy,
+                `p(agree)` = advisorAgree) %>%
+  mutate(feedback = if_else(feedback, "With Feedback", "No Feedback")) %>%
+  gather("var", "value", `p(correct)`:`p(agree)`) %>%
+  ggplot(aes(x = advisor, y = value)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  geom_point(alpha = .25) +
+  labs(x = "advisor", 
+       y = "mean") +
+  scale_y_continuous(limits = c(0, 1)) +
+  facet_grid(var ~ feedback)
   
-  colnames(r) <- c("pid", "agreement")
-  r$advisor <- a
-  tmp <- rbind(tmp, r)
-}
-
-prop2str(as.tibble(aggregate(agreement ~ advisor, 
-                             tmp, mean, na.rm = T)), 
-         precision = 3)
-
-```
-
-```{r adviceAgreementGraph}
-
-ggplot(tmp, aes(x = advisor, y = agreement, colour = pid)) +
-  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
-  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid)) +
-  stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5) +
-  scale_color_discrete(guide = 'none')
-
+  
 ```
 
 ### Distance
@@ -267,34 +293,39 @@ Distance is the continuous version of agreement - the difference along the confi
 
 ```{r adviceDistance}
 
-tmp <- NULL
-for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".distance ~ pid"))
-  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
-  
-  colnames(r) <- c("pid", "distance")
-  r$advisor = a
-  
-  tmp <- rbind(tmp, as.tibble(r))
-}
+AdvisedTrial$advisor0distance <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".distance")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".distance")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".distance")])
+)
+AdvisedTrial$advisor0distanceFinal <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".distanceFinal")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".distanceFinal")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".distanceFinal")])
+)
 
-prop2str(as.tibble(aggregate(distance ~ advisor, 
-                             tmp, 
-                             mean, na.rm = T)), 
-         precision = 3)
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(adviceDistance = mean(advisor0distance)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, feedback) %>%
+  summarise(adviceDistance = mean(adviceDistance)) %>%
+  num2str.tibble(precision = 1)
 
 ```
 
 ```{r adviceDistanceGraph}
 
-ggplot(tmp, aes(x = advisor, y = distance, colour = pid)) +
-  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
-  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid)) +
-  stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5) +
-  scale_color_discrete(guide = 'none')
+tmp %>% 
+  rename(advisor = advisor0idDescription) %>%
+  ggplot(aes(x = advisor, y = adviceDistance)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  geom_point(alpha = .25) +
+  scale_y_continuous(limits = c(0, 200))
 
 ```
 
@@ -308,34 +339,36 @@ The measure of influence is the extent to which a participant's confidence moves
 
 Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
 
-```{r woa}
+```{r influence}
 
-tmp <- NULL
-for (a in advisorNames) {
-  eq <- as.formula(paste0(a, ".woa ~ pid"))
-  r <- aggregate(eq, AdvisedTrial, mean, na.rm = T)
-  
-  colnames(r) <- c("pid", "WoA")
-  r$advisor <- a
-  tmp <- rbind(tmp, r)
-}
+AdvisedTrial$advisor0influence <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".influence")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".influence")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".influence")])
+)
 
-prop2str(as.tibble(aggregate(WoA ~ advisor, tmp, mean, na.rm = T)), 
-         precision = 3)
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(advisorInfluence = mean(advisor0distance)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, feedback) %>%
+  summarise(advisorInfluence = mean(advisorInfluence)) %>%
+  num2str.tibble(precision = 1)
 
 ```
 
-```{r woaGraph}
+```{r influenceGraph}
 
-ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
-  geom_violin(colour = NA, fill = "grey75", alpha = .25) +
-  geom_boxplot(outlier.colour = NA, fill = NA, aes(group = advisor)) +
-  geom_line(alpha = .5, aes(colour = pid, group = pid)) + 
-  geom_point(alpha = .5, aes(colour = pid)) +
-  stat_summary(geom = "line", fun.y = mean,
-               aes(group = 1, linetype = "mean"), size = 1.5) +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_discrete(guide = 'none')
+tmp %>% 
+  rename(advisor = advisor0idDescription) %>%
+  ggplot(aes(x = advisor, y = advisorInfluence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  geom_point(alpha = .25) +
+  scale_y_continuous(limits = c(-200, 200))
 
 ```
 
@@ -343,22 +376,11 @@ ggplot(tmp, aes(x = advisor, y = WoA, colour = pid)) +
 
 It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
 
-```{r woaDistribution}
+```{r influenceDistribution}
 
-ggplot(AdvisedTrial, aes(woa)) + 
+ggplot(AdvisedTrial, aes(advisor0influence)) + 
   geom_histogram(stat = "count") +
   facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
-
-```
-
-```{r percentage of participants with expected pattern}
-
-tmp <- AdvisedTrial %>%
-  group_by(pid, advisor0idDescription) %>%
-  summarise(woa = mean(advisor0woa)) %>%
-  spread(advisor0idDescription, woa) %>%
-  dplyr::filter_all(all_vars(!is.na(.))) %>%
-  mutate(asExpected = honest > deceptive)
 
 ```
 
@@ -374,16 +396,17 @@ The hypotheses being tested here are:
 
 ```{r h1, results='asis'}
 
-tmp <- AdvisedTrial %>%
-  dplyr::filter(advisor0questionnaireHonestyLabel == 'Honest') %>%
-  group_by(pid, advisor0idDescription) %>%
-  summarise(woa = mean(advisor0woa)) %>%
-  spread(advisor0idDescription, woa) %>%
-  dplyr::filter_all(all_vars(!is.na(.)))
-  
+tmp <- AdvisedTrial %>% 
+  dplyr::filter(feedback == F) %>%
+  group_by(pid, advisor0idDescription) %>% 
+  summarise(influence = mean(advisor0influence)) %>% 
+  mutate(
+    advisor0idDescription = str_extract(advisor0idDescription, "mass|single")
+    ) %>%
+  spread(advisor0idDescription, influence)
 
-r <- md.ttest(tmp$honest, tmp$deceptive, 
-              c("*M*|honest", "*M*|deceptive"), paired = T)
+r <- md.ttest(tmp$single, tmp$mass, 
+              c("*M*|single", "*M*|mass"), paired = T)
 cat(r)
 
 ```

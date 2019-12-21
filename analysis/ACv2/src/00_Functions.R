@@ -466,16 +466,9 @@ getDerivedVariables <- function(x, name, opts = list()) {
               adv <- x[, paste0(a, ".advice")]
               x[, paste0(a, ".distance", d)] <- abs(reMid - adv)
             } 
-            
-            # Binary responses
-            if (!is.null(x$responseAns)) {
-              
-              
-            }
-            
           }
         }
-        if (!is.null(x$responseAns)) {
+        if ("responseAns" %in% names(x)) {
           aa <- x[, paste0(a, ".adviceSide")]
           ac <- x[, paste0(a, ".adviceConfidence")]
           pa <- x$responseAns
@@ -887,17 +880,22 @@ markerBreakdown <- function(v,
 #'
 #' @param tbl tibble with data
 #' @param colName column to apply the function to
+#' @param groupCol column to use for grouping
+#' @param idCol participant identifier column
 #' @param f function to run
 #' @param ... passed on to f
-peek <- function(tbl, colName, f = mean_cl_normal, ...) {
+peek <- function(tbl, colName, groupCol, 
+                 idCol = as.symbol("pid"), f = mean_cl_normal, ...) {
   v <- substitute(colName)
-  byD <- tbl %>% group_by(pid, decision) %>%
+  g <- substitute(groupCol)
+  
+  byD <- tbl %>% group_by(!!idCol, !!g) %>%
     summarise(x = mean(!!v)) %>%
-    group_by(decision) %>%
+    group_by(!!g) %>%
     do(x = f(.$x, ...)) %>%
     unnest(x) 
   
-  allDF <- tbl %>% group_by(pid) %>%
+  allDF <- tbl %>% group_by(!!idCol) %>%
     summarise(x = mean(!!v)) %>%
     do(x = f(.$x, ...)) %>%
     unnest(x)
