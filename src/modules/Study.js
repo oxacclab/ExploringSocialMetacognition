@@ -2751,7 +2751,7 @@ class DatesStudyBinary extends DatesStudy {
 
         pane.querySelectorAll(".initial, .advice, .final, .answer").forEach(elm => elm.classList.remove("left", "right"));
 
-        pane.querySelector(".initial").classList.add(ds.responseAns === "0"? "left" : "right");
+        pane.querySelector(".initial").classList.add(ds.responseAnswerSide === "0"? "left" : "right");
         pane.querySelector(".initial .confidence-value").innerText = ds.responseConfidence;
 
         pane.querySelector(".advice").classList.add(ds.advisor0adviceSide === "0"? "left" : "right");
@@ -2766,7 +2766,7 @@ class DatesStudyBinary extends DatesStudy {
         } else
             pane.querySelector(".advice .confidence").classList.add("cloak");
 
-        pane.querySelector(".final").classList.add(ds.responseAnsFinal === "0"? "left" : "right");
+        pane.querySelector(".final").classList.add(ds.responseAnswerSideFinal === "0"? "left" : "right");
         pane.querySelector(".final .confidence-value").innerText = ds.responseConfidenceFinal;
 
         pane.querySelector(".answer").classList.add(parseInt(ds.correctAnswer) < parseInt(ds.anchorDate)? "left" : "right");
@@ -2841,15 +2841,15 @@ class DatesStudyBinary extends DatesStudy {
                 'anchorHTML',
                 'anchorDate',
                 'correctAnswer',
-                'responseAns',
-                'responseAnsFinal',
+                'responseAnswerSide',
+                'responseAnswerSideFinal',
                 'responseConfidence',
                 'responseConfidenceFinal'
             ];
             for(const f of fields)
                 opt.dataset[f] = t[f];
 
-            opt.dataset.correct = t.responseAnsFinal ===
+            opt.dataset.correct = t.responseAnswerSideFinal ===
                 (parseInt(t.correctAnswer) > parseInt(t.anchorDate)? "1" : "0");
 
             // Record summary stats
@@ -2857,13 +2857,13 @@ class DatesStudyBinary extends DatesStudy {
             stats.a.n++;
             stats.i.n++;
             stats.f.n++;
-            stats.i.correct += t.responseAns === correctSide? 1 : 0;
+            stats.i.correct += t.responseAnswerSide === correctSide? 1 : 0;
             stats.i.conf += parseInt(t.responseConfidence);
-            stats.i[t.responseAns === correctSide?
+            stats.i[t.responseAnswerSide === correctSide?
                 "confRight" : "confWrong"] += parseInt(t.responseConfidence);
-            stats.f.correct += t.responseAnsFinal === correctSide? 1 : 0;
+            stats.f.correct += t.responseAnswerSideFinal === correctSide? 1 : 0;
             stats.f.conf += parseInt(t.responseConfidenceFinal);
-            stats.f[t.responseAnsFinal === correctSide?
+            stats.f[t.responseAnswerSideFinal === correctSide?
                 "confRight" : "confWrong"] += parseInt(t.responseConfidenceFinal);
             stats.a.correct += t.advisor0adviceSide === correctSide? 1 : 0;
             if(t.advisor0adviceConfidence !== "undefined") {

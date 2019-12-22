@@ -208,7 +208,7 @@ if (!is.null(exclude$minChangeRate) &&
     } 
     if ("responseConfidence" %in% names(tmp)) {
       x <- mean(tmp$responseConfidence != tmp$responseConfidenceFinal |
-                  tmp$responseAns != tmp$responseAnsFinal)
+                  tmp$responseAnswerSide != tmp$responseAnswerSideFinal)
     }
     
     

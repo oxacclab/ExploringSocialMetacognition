@@ -274,7 +274,7 @@ customElements.define('esm-response-binary-conf',
          * @return {boolean}
          */
         isAttentionCheckCorrect(trial) {
-            if(trial.data.responseAns !== trial.correctAnswer ||
+            if(trial.data.responseAnswerSide !== trial.correctAnswer ||
                 (trial.data.responseConfidence > (this.dataset.confMax - this.dataset.confMin) / 2) !== trial.attentionCheckHighConf)
                 return false;
 

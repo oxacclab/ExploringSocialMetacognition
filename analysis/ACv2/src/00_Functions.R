@@ -314,7 +314,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
                                     x$responseMarkerWidth,
                                     x$responseMarkerValue,
                                     x$correctAnswerSide,
-                                    x$responseAns,
+                                    x$responseAnswerSide,
                                     x$responseConfidence))
       
       x <- cbind(x, getResponseVars(x$correctAnswer,
@@ -322,7 +322,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
                                     x$responseMarkerWidthFinal,
                                     x$responseMarkerValueFinal,
                                     x$correctAnswerSide,
-                                    x$responseAnsFinal,
+                                    x$responseAnswerSideFinal,
                                     x$responseConfidenceFinal,
                                     suffix = "Final"))
       
@@ -352,7 +352,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
       }
       if (!is.null(x$responseConfidence)) {
         x$confidenceChange <- 
-          ifelse(x$responseAns == x$responseAnsFinal,
+          ifelse(x$responseAnswerSide == x$responseAnswerSideFinal,
                  x$responseConfidenceFinal - x$responseConfidence,
                  x$responseConfidenceFinal + x$responseConfidence)
         x$changed <- x$confidenceChange != 0
@@ -468,11 +468,11 @@ getDerivedVariables <- function(x, name, opts = list()) {
             } 
           }
         }
-        if ("responseAns" %in% names(x)) {
+        if ("responseAnswerSide" %in% names(x)) {
           aa <- x[, paste0(a, ".adviceSide")]
           ac <- x[, paste0(a, ".adviceConfidence")]
-          pa <- x$responseAns
-          paf <- x$responseAnsFinal
+          pa <- x$responseAnswerSide
+          paf <- x$responseAnswerSideFinal
           pc <- x$responseConfidence
           pcf <- x$responseConfidenceFinal
           
@@ -558,7 +558,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
                                     x$responseMarkerWidth,
                                     x$responseMarkerValue,
                                     x$correctAnswerSide,
-                                    x$responseAns,
+                                    x$responseAnswerSide,
                                     x$responseConfidence))
       
       as.tibble(x)
