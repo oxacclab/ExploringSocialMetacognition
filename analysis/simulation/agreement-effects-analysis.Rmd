@@ -223,7 +223,7 @@ The above results have the same pattern whether or not the models use metacognit
 set.seed(20191127)
   
 mdlConf <- runSimulation(
-  n = list(p = 50, d = 200),
+  n = list(p = 50, d = 1000),
   conf = T,
   biasMean = 2,
   biasSD = 1,
@@ -232,7 +232,7 @@ mdlConf <- runSimulation(
   )
 
 mdlNoConf <- runSimulation(
-  n = list(p = 50, d = 200),
+  n = list(p = 50, d = 1000),
   conf = F, 
   biasMean = 2, 
   biasSD = 1,
@@ -240,9 +240,27 @@ mdlNoConf <- runSimulation(
   learningRate = .1
 )
 
+gC <- biasGraph(mdlConf)
+
+# duplicate bias calculation for mdlNoConf
+cors <- .biasCorrelation(mdlNoConf)
+
+gC +
+  geom_point(data = cors) +
+  geom_errorbar(data = cors, width = 0) + 
+  geom_line(data = rbind(cors %>% mutate(model = "mdlNoConf"), 
+                         .biasCorrelation(mdlConf) %>% mutate(model = "mdlConf")),
+            aes(linetype = model), colour = "black") +
+  labs(subtitle = "Contrasting confidence-weighted vs agreement-only updating")
+  
+
 ```
 
-!TODO[superimpose the two graphs to highlight differences]
+The two models have different trajectories for the evolution of the bias-weight correlations: the weighted model has an initially steeper incline, but the unweighted model eventually reaches a higher level. 
+
+We should explore whether the derivatives, as well as the asymptotes, are functions of the bias strength, and especially whether the relationship between them changes as so. 
+
+Likewise, the learning rate may affect these conclusions.
 
 ### Unbiased agents
 

@@ -320,8 +320,8 @@ networkGraph <- function(model) {
   invisible(NULL)
 }
 
-# Correlation between bias and tie strength
-biasGraph = function(model) {
+# Calculation of bias-tie strength correlations
+.biasCorrelation <- function(model) {
   cors <- NULL
   for (d in 1:model$parameters$n$d) {
     tmp <- model$model$graphs[[d]]
@@ -335,6 +335,13 @@ biasGraph = function(model) {
                                ciL = test$conf.int[1],
                                ciH = test$conf.int[2]))
   }
+  
+  cors
+}
+
+# Correlation between bias and tie strength
+biasGraph <- function(model) {
+  cors <- .biasCorrelation(model)
   
   # Plot correlation
   cors %>% ggplot(aes(x = decision, 

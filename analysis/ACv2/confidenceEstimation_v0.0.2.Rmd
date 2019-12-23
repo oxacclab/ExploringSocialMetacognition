@@ -138,6 +138,7 @@ ggplot(tmp,
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
   geom_point(alpha = .25) +
+  scale_y_continuous(limits = c(0, 1)) +
   labs(x = "decision", 
        y = "p(response correct)") +
   facet_grid(~feedback)
