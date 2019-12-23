@@ -49,7 +49,7 @@ theme_set(theme_light() +
 rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
 testData <- T
 
-studyVersion <- "0-0-8"
+studyVersion <- "0-0-9"
 studyName <- "confidenceExploration"
 
 exclude <- list(

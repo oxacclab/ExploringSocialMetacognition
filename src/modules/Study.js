@@ -450,7 +450,8 @@ class Study extends ControlObject {
         if(warning)
             warning.classList.remove('open');
 
-        clearTimeout(element.fullscreenTimeOut);
+        if(element)
+            clearTimeout(element.fullscreenTimeOut);
 
         Study.exitFullscreen();
     }

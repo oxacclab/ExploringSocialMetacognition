@@ -96,7 +96,7 @@ customElements.define('esm-response-binary-conf',
             const columns = document.querySelectorAll(".response-column");
             for(let i = 0; i < columns.length; i++)
                 if(columns[i] === me) {
-                    this.responseData.ans = i;
+                    this.responseData.answerSide = i;
                     break;
                 }
 
@@ -225,6 +225,7 @@ customElements.define('esm-response-binary-conf',
                 slider: null,
                 labels: "",
                 answer: "",
+                answerSide: "",
                 confidence: "",
                 timeEstimate: null,
 
@@ -293,7 +294,7 @@ customElements.define('esm-response-binary-conf',
                 marker.remove();
 
             const side = value < anchor? 0 : 1;
-            const correct = this.responseData.ans === side;
+            const correct = this.responseData.answerSide === side;
 
             marker = document.createElement("div");
             marker.classList.add("response-marker", "correct", "feedback");
