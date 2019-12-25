@@ -1,9 +1,7 @@
 # Nick's feedback
 * Centre advisor portrait 
-    * done?
 * ~~Remove blue advisor background~~
 * Fix advisor indicator on Mac (height of invisible element?)
-    * done?
 * ~~Make advisor change the only salient between trial change (remove fading stuff on the response markers)~~
 * ~~Make advisors less sure (increase distance needed to achieve 100% confident)~~
 

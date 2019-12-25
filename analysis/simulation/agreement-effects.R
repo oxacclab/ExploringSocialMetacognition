@@ -4,7 +4,7 @@
 
 library(tidyverse)
 library(igraph)
-library(animation)
+# library(animation)
 
 #' Run the simulation
 #' @param n list of numbers (participants and decisions) to simulate
@@ -24,6 +24,16 @@ runSimulation <- function(
   sensitivitySD = 1,
   learningRate = .1
   ) {
+  
+  # print(paste0(
+  #   "Running simulation: ",
+  #   "; AgentCount = ", n$p,
+  #   "; DecisionCount = ", n$d,
+  #   "; BiasMean = ", biasMean,
+  #   " (SD = ", biasSD, ")",
+  #   "; sensitivitySD = ", sensitivitySD,
+  #   "; learningRate = ", learningRate
+  # ))
   
   out <- list(
     times = list(
@@ -55,6 +65,44 @@ runSimulation <- function(
   
   detailGraphs(out)
   
+}
+
+#' Run a suite of simulations defined by params
+#' @param params dataframe of parameters for simulations (see \code{runSimulation()} for details)
+#' @param seed random seed to use for each simulation, or list of seeds to use for each simulation (recycled as necessary)
+#' 
+#' @details NA for any parameter or the seed will result in default values being used. For the seed the default is not to set one.
+runSimulations <- function(
+  params, 
+  seed = NA
+) {
+  out <- list()
+  
+  for (i in 1:nrow(params)) {
+    args <- list()
+    p <- params[i, ]
+    
+    for (a in names(p)) {
+      if (!(is.null(p[[a]]) | is.na(p[[a]]))) {
+        if (is_list(p[[a]]) & length(p[[a]]) == 1) {
+          args[[a]] <- p[[a]][[1]]
+        } else {
+          args[[a]] <- p[[a]]
+        }
+      }
+    }
+    
+    n <- i %% length(seed)
+    if (n != 0 & is.na(seed[i])) {
+      set.seed(seed[i])
+    }
+    
+    # print(args)
+    
+    out[[length(out) + 1]] <- do.call(runSimulation, args)
+  }
+  
+  out
 }
 
 # Agent construction ------------------------------------------------------

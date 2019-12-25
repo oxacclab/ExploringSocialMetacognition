@@ -260,7 +260,95 @@ The two models have different trajectories for the evolution of the bias-weight 
 
 We should explore whether the derivatives, as well as the asymptotes, are functions of the bias strength, and especially whether the relationship between them changes as so. 
 
+```{r}
+
+params <- tibble(
+  biasMean = seq(1, 10, 2),
+  p = 50, 
+  d = 500
+) %>% 
+  nest(-biasMean) %>%
+  rename(n = data) %>%
+  mutate(
+    biasSD = 1,
+    sensitivitySD = .1,
+    learningRate = .1
+  )
+
+mdlsConf <- runSimulations(params, seed = 20191127)
+mdlsNoConf <- runSimulations(params %>% mutate(conf = F), seed = 20191127)
+
+coefs <- NULL
+
+for (m in c(mdlsConf, mdlsNoConf)) {
+  tmp <- .biasCorrelation(m)
+  coefs <- rbind(coefs, 
+                 tmp %>% mutate(conf = m$parameters$conf, 
+                                biasMean = m$parameters$biasMean))
+}
+
+coefs %>% ggplot(aes(x = decision, 
+                     y = r, ymin = ciL, ymax = ciH,
+                     colour = factor(biasMean),
+                     linetype = conf)) +
+  geom_line() + 
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = 'Shared bias x Advice weight',
+       subtitle = ifelse(model$parameters$conf,
+                         'Confidence-weighted advisor updating',
+                         'Agreement-only advisor updating'),
+       caption = paste0(
+         "Model1 settings:\n",
+         settingsStr(mdlsConf[[1]])
+         )) 
+
+```
+
 Likewise, the learning rate may affect these conclusions.
+
+```{r}
+
+params <- tibble(
+  learningRate = c(.1, .5, .9),
+  p = 50, 
+  d = 500
+) %>% 
+  nest(-learningRate) %>%
+  rename(n = data) %>%
+  mutate(
+    biasMean = 2,
+    biasSD = 1,
+    sensitivitySD = .1
+  )
+
+mdlsConf <- runSimulations(params, seed = 20191127)
+mdlsNoConf <- runSimulations(params %>% mutate(conf = F), seed = 20191127)
+
+coefs <- NULL
+
+for (m in c(mdlsConf, mdlsNoConf)) {
+  tmp <- .biasCorrelation(m)
+  coefs <- rbind(coefs, 
+                 tmp %>% mutate(conf = m$parameters$conf, 
+                                learningRate = m$parameters$learningRate))
+}
+
+coefs %>% ggplot(aes(x = decision, 
+                     y = r, ymin = ciL, ymax = ciH,
+                     colour = factor(learningRate),
+                     linetype = conf)) +
+  geom_line() + 
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = 'Shared bias x Advice weight',
+       subtitle = ifelse(model$parameters$conf,
+                         'Confidence-weighted advisor updating',
+                         'Agreement-only advisor updating'),
+       caption = paste0(
+         "Model1 settings:\n",
+         settingsStr(mdlsConf[[1]])
+         )) 
+
+```
 
 ### Unbiased agents
 
