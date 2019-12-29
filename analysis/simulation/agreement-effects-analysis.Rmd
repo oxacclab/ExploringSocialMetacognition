@@ -216,6 +216,8 @@ Qualitatively identical results are obtained without using confidence weighting.
 
 ## Comparison of non/metacognitive models
 
+### Temporal evolution of bias correlation
+
 The above results have the same pattern whether or not the models use metacognitive weighting. It is possible that metacognition alters the timeline, speeding up or slowing down the rate at which the positive feedback processes function to produce strong associations between sensitivity or bias similarity and advice weight. A first step for investigating this is to chart the evolution of the correlation coefficient until it peaks and measure the time taken to reach that peak.
 
 ```{r}
@@ -258,12 +260,14 @@ gC +
 
 The two models have different trajectories for the evolution of the bias-weight correlations: the weighted model has an initially steeper incline, but the unweighted model eventually reaches a higher level. 
 
+### Effect of bias strength
+
 We should explore whether the derivatives, as well as the asymptotes, are functions of the bias strength, and especially whether the relationship between them changes as so. 
 
 ```{r}
 
 params <- tibble(
-  biasMean = seq(1, 10, 2),
+  biasMean = c(1, 3, 7),
   p = 50, 
   d = 500
 ) %>% 
@@ -294,15 +298,16 @@ coefs %>% ggplot(aes(x = decision,
   geom_line() + 
   scale_y_continuous(limits = c(0, 1)) +
   labs(title = 'Shared bias x Advice weight',
-       subtitle = ifelse(model$parameters$conf,
-                         'Confidence-weighted advisor updating',
-                         'Agreement-only advisor updating'),
        caption = paste0(
          "Model1 settings:\n",
          settingsStr(mdlsConf[[1]])
          )) 
 
 ```
+
+The higher the mean bias, the higher faster the correlation reaches its plateau, both with and without confidence weighting. Increased mean bias also increases the level of the correlation at which the plateau occurs. The effect on the temporal evolution appears to be fairly similar whether or not confidence weighting is included. 
+
+### Effect of learning rate
 
 Likewise, the learning rate may affect these conclusions.
 
@@ -350,9 +355,57 @@ coefs %>% ggplot(aes(x = decision,
 
 ```
 
-### Unbiased agents
+!TODO[Not an obvious pattern - should run this a few times and investigate.]
 
+### Temporal evolution of sensitivity correlation
 
+The patterns we see for the differential temporal evolution of the shared bias x advice weight correlation depending upon the presence of metacognitive weighting may also be evident for the relationship between sensitivity and advice weight. We explore that possibility here.
+
+Note: the confidence intervals in the sensitivity x advice weight correlations are quite wide. See the graphs in the earlier sections to get a sense of this.
+
+```{r}
+
+params <- tibble(
+  sensitivitySD = c(1, 3, 7),
+  p = 50, 
+  d = 500
+) %>% 
+  nest(-sensitivitySD) %>%
+  rename(n = data) %>%
+  mutate(
+    biasMean = 0,
+    biasSD = 1,
+    learningRate = .1
+  )
+
+mdlsConf <- runSimulations(params, seed = 20191127)
+mdlsNoConf <- runSimulations(params %>% mutate(conf = F), seed = 20191127)
+
+sens <- NULL
+
+for (m in c(mdlsConf, mdlsNoConf)) {
+  tmp <- .sensitivityCorrelation(m)
+  sens <- rbind(sens, 
+                 tmp %>% mutate(conf = m$parameters$conf, 
+                                sensitivitySD = m$parameters$sensitivitySD))
+}
+
+sens %>% ggplot(aes(x = decision, 
+                    y = r, ymin = ciL, ymax = ciH,
+                    colour = factor(sensitivitySD),
+                    linetype = conf)) +
+  geom_line() + 
+  scale_y_continuous(limits = c(-.5, 1)) +
+  labs(title = 'Sensitivity x Mean advice weight',
+       caption = paste0(
+         "Model1 settings:\n",
+         settingsStr(mdlsConf[[1]])
+         ))  +
+  facet_grid(direction ~ .)
+
+```
+
+!TODO[Not an obvious pattern - should run this a few times and investigate.]
 
 <!--
 ## Bayesian updating of bias

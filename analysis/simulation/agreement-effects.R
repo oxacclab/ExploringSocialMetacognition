@@ -406,8 +406,8 @@ biasGraph <- function(model) {
          caption = settingsStr(model)) 
 }
 
-# Correlation between sensitivity and tie strength
-sensitivityGraph <- function(model) {
+# Calculate the strength of the sensitivity-advice weight correlation for in- and out-degree
+.sensitivityCorrelation <- function(model) {
   sens <- NULL
   for (d in 1:model$parameters$n$d) {
     tmp <- model$model$graphs[[d]]
@@ -445,19 +445,26 @@ sensitivityGraph <- function(model) {
                                ciH = testOut$conf.int[2]))
   }
   
+  sens
+}
+
+# Correlation between sensitivity and tie strength
+sensitivityGraph <- function(model) {
+  sens <- .sensitivityCorrelation(model)
+  
   sens %>% ggplot(aes(x = decision, 
-                                         y = r, ymin = ciL, ymax = ciH,
-                                         fill = direction, colour = direction)) +
+                      y = r, ymin = ciL, ymax = ciH,
+                      fill = direction, colour = direction)) +
     geom_hline(yintercept = 0, linetype = 'dashed') +
     geom_ribbon(alpha = .25, colour = NA) +
     geom_line() + 
     # rug plots to show significant divergences from 0 
     geom_rug(data = sens %>% 
-               dplyr::filter(p < .05, direction == 'In'), 
+             dplyr::filter(p < .05, direction == 'In'), 
              sides = 't', size = model$parameters$n$d / 100 + 1) +
-  geom_rug(data = sens %>% 
-             dplyr::filter(p < .05, direction == 'Out'), 
-           sides = 'b', size = model$parameters$n$d / 100 + 1) +
+    geom_rug(data = sens %>% 
+             dplyr::filter(p < .05, direction == 'Out'),
+             sides = 'b', size = model$parameters$n$d / 100 + 1) +
     scale_y_continuous(limits = c(-1, 1)) +
     labs(title = 'Sensitivity x Mean advice weight',
          subtitle = paste0(ifelse(model$parameters$conf, 
