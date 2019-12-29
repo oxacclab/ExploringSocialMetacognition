@@ -275,7 +275,7 @@ settingsStr <- function(model) {
          'Agents = ', model$parameters$n$p, 
          '; Decision = ', model$parameters$n$d, '; ',
          'ConfidenceWeighted = ', model$parameters$conf, '; \n',
-         'Sensitivity SD = ', model$sensitivitySD, '; ',
+         'Sensitivity SD = ', model$parameters$sensitivitySD, '; ',
          'Bias mean (SD) = +/-', model$parameters$biasMean, 
          ' (', model$parameters$biasSD, '); ',
          'Learning rate = ', model$parameters$learningRate, '\n',
