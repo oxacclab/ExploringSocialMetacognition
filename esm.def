@@ -57,9 +57,9 @@ From: ubuntu:18.04
     done
     
     # Look up GIT argument if a date and extract most recent commit given that date
-    if [ $TIME != "" ]
+    if [ "$TIME" != "" ]
     then
-        if [ $GIT != "" ]
+        if (( "$GIT" != "" ))
         then
             echo "You cannot specify both a -t and -g argument."
             exit 1
@@ -71,13 +71,13 @@ From: ubuntu:18.04
     fi
     
     
-    if [ $GIT != "" ]
+    if [ "$GIT" != "" ]
     then
         git checkout $GIT
         echo "GIT:    $GIT"
     fi
       
-    if [ $TIME != "" ]
+    if [ "$TIME" != "" ]
     then
         echo "(By TIME:   ${TIME})"
     fi
@@ -88,7 +88,7 @@ From: ubuntu:18.04
         echo "VERBOSE:    TRUE"
     fi
     
-    if [ $FILE != "" ]
+    if [ "$FILE" != "" ]
     then
         # Knit and return a specific file
     
