@@ -28,7 +28,7 @@ From: ubuntu:18.04
     # Parse arguments
     GIT=""
     TIME=""
-    FILE="ACv2/directBenevolenceContexts_v0.0.1.Rmd"
+    FILE="ACv2/directBenevolenceContext_v0.0.1"
     VERBOSE=$false
     
     while getopts ":g:t:f:v" opt; do
@@ -70,8 +70,13 @@ From: ubuntu:18.04
         GIT=git rev-list -n 1 --before="$TIME" master
     fi
     
-    echo "GIT:    $GIT"
     
+    if [ $GIT != "" ]
+    then
+        git checkout $GIT
+        echo "GIT:    $GIT"
+    fi
+      
     if [ $TIME != "" ]
     then
         echo "(By TIME:   ${TIME})"
@@ -88,7 +93,7 @@ From: ubuntu:18.04
         # Knit and return a specific file
     
         echo "Knitting analysis script..."
-        r -e 'rmarkdown::render("/ESM/analysis/${FILE}")'
+        r -e 'rmarkdown::render("/ESM/analysis/${FILE}.Rmd")'
     
         cat /ESM/analysis/${FILE}.html
     fi
