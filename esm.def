@@ -95,7 +95,7 @@ From: ubuntu:18.04
         echo "Knitting analysis script..."
         r -e 'rmarkdown::render("/ESM/analysis/${FILE}.Rmd")'
     
-        cat /ESM/analysis/${FILE}.html
+        # cat /ESM/analysis/${FILE}.html
     fi
     
 %test
