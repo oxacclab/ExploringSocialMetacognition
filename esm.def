@@ -2,43 +2,105 @@ Bootstrap: library
 From: ubuntu:18.04
 
 %post
-	# Here we put scripts to run immediatley after initialisation of the OS
+    # Here we put scripts to run immediatley after initialisation of the OS
 
-	# Update Ubuntu package repos
-	echo "deb http://gb.archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
-	echo "deb http://gb.archive.ubuntu.com/ubuntu bionic universe" >> /etc/apt/sources.list
-	echo "deb http://gb.archive.ubuntu.com/ubuntu bionic-updates multiverse" >> /etc/apt/sources.list
-	echo "deb http://gb.archive.ubuntu.com/ubuntu bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list
-	echo "deb http://gb.archive.ubuntu.com/ubuntu bionic-security main restricted" >> /etc/apt/sources.list
+    # Update Ubuntu package repos
+    echo "deb http://gb.archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
+    echo "deb http://gb.archive.ubuntu.com/ubuntu bionic universe" >> /etc/apt/sources.list
+    echo "deb http://gb.archive.ubuntu.com/ubuntu bionic-updates multiverse" >> /etc/apt/sources.list
+    echo "deb http://gb.archive.ubuntu.com/ubuntu bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list
+    echo "deb http://gb.archive.ubuntu.com/ubuntu bionic-security main restricted" >> /etc/apt/sources.list
 
-  # Install packages
-  apt-get update
-  apt-get install -y libssl-dev libgsl-dev libxml2-dev libcurl4-openssl-dev git r-base r-base-dev r-cran-littler r-cran-rjags r-cran-curl r-cran-car r-cran-mvtnorm r-cran-mcmcpack r-cran-openssl r-cran-xml2 pandoc
+    # Install packages
+    apt-get update
+    apt-get install -y libssl-dev libgsl-dev libxml2-dev libcurl4-openssl-dev git r-base r-base-dev r-cran-littler r-cran-rjags r-cran-curl r-cran-car r-cran-mvtnorm r-cran-mcmcpack r-cran-openssl r-cran-xml2 pandoc
   
-  # Clone git repository
-  git clone https://github.com/oxacclab/ExploringSocialMetacognition ESM
-  
-  # Run setup R script
-  r /ESM/analysis/ACv2/src/install-packages.R
+    # Clone git repository
+    git clone https://github.com/oxacclab/ExploringSocialMetacognition ESM
+    
+    # Run setup R script
+    r /ESM/analysis/ACv2/src/install-packages.R
   
 %runscript
-  # Commands to run when called
-  echo "Container created $NOW"
-  echo "Arguments: $*"
-  exec echo "$@"
-  echo "Knitting analysis script..."
-  r -e 'rmarkdown::render("/ESM/analysis/ACv2/directBenevolenceContext_v0.0.1.Rmd")'
-  
-  cat /ESM/analysis/ACv2/directBenevolenceContext_v0.0.1.html
-  
+    # Commands to run when called
+    echo "Container created $NOW"
+    
+    # Parse arguments
+    GIT=""
+    TIME=""
+    FILE="ACv2/directBenevolenceContexts_v0.0.1.Rmd"
+    VERBOSE=$false
+    
+    while getopts ":g:t:f:v" opt; do
+        case ${opt} in
+            g ) 
+                GIT=$OPTARG
+                ;;
+            t )
+                TIME=$OPTARG
+                ;;
+            f )
+                FILE=$OPTARG
+                ;;
+            v )
+                VERBOSE=$true
+                ;;
+            \? )
+                echo "Invalid Option: -$OPTARG" 1>&2
+                exit 1
+                ;;
+            : )
+                echo "Invalid Option: $OPTARG requires an argument" 1>&2
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Look up GIT argument if a date and extract most recent commit given that date
+    if [ $TIME != "" ]
+    then
+        if [ $GIT != "" ]
+        then
+            echo "You cannot specify both a -t and -g argument."
+            exit 1
+        fi
+        
+        # TIME=date --date="$TIME" --iso-8601=seconds
+        echo "Finding first commit made prior to $TIME"
+        GIT=git rev-list -n 1 --before="$TIME" master
+    fi
+    
+    echo "GIT:    $GIT"
+    
+    if [ $TIME != "" ]
+    then
+        echo "(By TIME:   ${TIME})"
+    fi
+    
+    echo "FILE:   $FILE"
+    if [ $VERBOSE ]
+    then
+        echo "VERBOSE:    TRUE"
+    fi
+    
+    if [ $FILE != "" ]
+    then
+        # Knit and return a specific file
+    
+        echo "Knitting analysis script..."
+        r -e 'rmarkdown::render("/ESM/analysis/${FILE}")'
+    
+        cat /ESM/analysis/${FILE}.html
+    fi
+    
 %test
-  # Check whether R installed properly
+    # Check whether R installed properly
   
 %labels
-  Author matt.jaquiery@psy.ox.ac.uk
-  Version v0.0.2
-  Date 2019-12-29
+    Author matt.jaquiery@psy.ox.ac.uk
+    Version v0.0.2
+    Date 2019-12-29
   
 %help
-  This container should provide a reproducible version of the study at a given point in its history. It should provide a useable version of the study on a local webserver, and access to the analysis scripts run in an environment identical to the one used for the write-up of the project. 
-  By default it will print out an HTML file freshly generated from Rmarkdown code.
+    This container should provide a reproducible version of the study at a given point in its history. It should provide a useable version of the study on a local webserver, and access to the analysis scripts run in an environment identical to the one used for the write-up of the project. 
+    By default it will print out an HTML file freshly generated from Rmarkdown code.
