@@ -22,7 +22,7 @@ From: ubuntu:18.04
     r /ESM/analysis/ACv2/src/install-packages.R
   
 %runscript
-    NOW=date
+    NOW=$(date)
     # Commands to run when called
     echo "Container created $NOW"
     
@@ -60,10 +60,11 @@ From: ubuntu:18.04
     echo "Arguments parsed with getopts"
     
     # Look up GIT argument if a date and extract most recent commit given that date
-    if [ "$TIME" != "" ]
-    then
+    if [ "$TIME" != "" ]; then
+        echo "TIME variable set"
         if (( "$GIT" != "" ))
         then
+            echo "GIT variable set"
             echo "You cannot specify both a -t and -g argument."
             exit 1
         fi
@@ -75,26 +76,22 @@ From: ubuntu:18.04
     fi
     
     
-    if [ "$GIT" != "" ]
-    then
+    if [ "$GIT" != "" ]; then
         cd /ESM
         git checkout $GIT
         echo "GIT:    $GIT"
     fi
       
-    if [ "$TIME" != "" ]
-    then
+    if [ "$TIME" != "" ]; then
         echo "(By TIME:   ${TIME})"
     fi
     
     echo "FILE:   $FILE"
-    if [ $VERBOSE ]
-    then
+    if [ $VERBOSE ]; then
         echo "VERBOSE:    TRUE"
     fi
     
-    if [ "$FILE" != "" ]
-    then
+    if [ "$FILE" != "" ]; then
         # Knit and return a specific file
     
         echo "Knitting analysis script..."
