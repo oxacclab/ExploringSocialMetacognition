@@ -62,8 +62,7 @@ From: ubuntu:18.04
     # Look up GIT argument if a date and extract most recent commit given that date
     if [ "$TIME" != "" ]; then
         echo "TIME variable set"
-        if (( "$GIT" != "" ))
-        then
+        if [ "$GIT" != "" ]; then
             echo "GIT variable set"
             echo "You cannot specify both a -t and -g argument."
             exit 1
@@ -72,7 +71,7 @@ From: ubuntu:18.04
         # TIME=date --date="$TIME" --iso-8601=seconds
         echo "Finding first commit made prior to $TIME"
         cd /ESM
-        GIT=git rev-list -n 1 --before="$TIME" master
+        GIT=$(git rev-list -n 1 --before="$TIME" master)
     fi
     
     
