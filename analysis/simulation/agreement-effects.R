@@ -93,13 +93,21 @@ runSimulations <- function(
     }
     
     n <- i %% length(seed)
-    if (n != 0 & is.na(seed[i])) {
-      set.seed(seed[i])
+    if (n != 0 && is.na(seed[n])) {
+      seed <- seed[n]
+      set.seed(seed)
+      seedSet <- F
+    } else {
+      seed <- NA
+      seedSet <- T
     }
     
     # print(args)
     
     out[[length(out) + 1]] <- do.call(runSimulation, args)
+    out[[length(out)]]$random$customSeed <- seedSet
+    out[[length(out)]]$random$set.seed <- seed
+    out[[length(out)]]$random$seed <- .Random.seed
   }
   
   out

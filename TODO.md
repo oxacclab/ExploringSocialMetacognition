@@ -40,8 +40,8 @@
 * RR stage 2
 
 ## Confidence mapping study
-* Devise confidence mapping manipulation
-* Design study
+* ~~Devise confidence mapping manipulation~~
+* ~~Design study~~
 * Pilot
 * Preregistration
 
