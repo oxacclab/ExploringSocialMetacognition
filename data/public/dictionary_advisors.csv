@@ -1,0 +1,16 @@
+﻿variable,type,description
+clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+confidence,int,The width of the advisor's marker
+confidenceVariation,int,The amount the advisor's confidence can vary on a trial-by-trial basis
+group,int,The group to which the advisor belongs
+id,int,ID of the advisor
+idDescription,string,Description of the advisor's advice style. Can be considered the advisor's name
+introText,string,Text with which the advisor is introduced to the participant
+name,string,Name displayed to the participant
+pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
+pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
+position,int,Position of the advisor in the experimental advisor list
+questionnaire,NA,Unused
+sameGroup,boolean|NA,Whether the advisor belongs to the same group as the participant
+studyId,string,Study title
+studyVersion,string,Major.minor.revision version number

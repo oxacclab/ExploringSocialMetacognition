@@ -1,0 +1,23 @@
+﻿variable,type,description
+blocks,int,"Number of blocks, including training and practice"
+clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+condition,int,Experimental condition to which the participant has been assigned
+contentHeight,string,Height of the window contents on the participant's screen (###px)
+contentWidth,string,Width of the window contents on the participant's screen (###px)
+coreBlocks,int,Number of blocks containing experimental trials
+coreTrials,int,Number of experimental trials
+countdownTime,int,Time in seconds that the pre-block countdown is displayed
+isRepeat,boolean|NA,Whether the paticipant's ProlificId has been used for this experiment before
+pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
+pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
+prolific,boolean|NA,Whether the participant comes from Prolific
+studyId,string,Study title
+studyVersion,string,Major.minor.revision version number
+screenHeight,int,Height of the participant's screen
+screenWidth,int,Width of the participant's screen
+tags,string,Comma-separated list of tags returned when the server processes the participant's PROLIFIC_PID search string parameter
+trial,int,Number of trials in total
+userAgent,string,The user agent string supplied by the participant's computer
+windowHeight,int,Height of the window on the participant's screen
+windowWidth,int,Width of the window on the participant's screen
+yearDifference,string,Javascript function returning an anchor date when given a correct answer and range limits. Used to define the difficulty of the binary task.

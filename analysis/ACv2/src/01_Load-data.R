@@ -80,7 +80,7 @@ for (study in studies) {
     # convert CSV files to tibbles
     for (f in files) {
       
-      tmp <- as.tibble(read.csv(f))
+      tmp <- as_tibble(read.csv(f))
       
       # screen out non-okay ids
       if ("pid" %in% names(tmp))
@@ -110,12 +110,25 @@ for (study in studies) {
       if ("responseMarkerWidthFinal" %in% names(tmp))
         tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
       
-      # assign to workspace
       name <- reFirstMatch("([^_]+)\\.csv", f)
+      # Make name r-safe
       name <- sub("-", ".", name)
+      
+      # add labels to the columns from the associated data dictionaries
+      tmp <- getLabels(tmp, str_replace(name, '\\.', '-'), 
+                       rDir = rDir, warnOnMissing = 'variable')
       
       tmp <- getDerivedVariables(tmp, name, vars[[name]])
       
+      # Check all variables have labels
+      for (variable in names(tmp)) {
+        if (label(tmp[variable]) == "") {
+          print(paste(name, '-', variable))
+          warning(paste0("Empty label for variable '", variable, "'\n"))
+        }
+      }
+      
+      # assign to workspace
       if (max(length(studies), length(versions)) > 1 & 
           any(grepl(paste0('^', name, '$'), ls()) == T)) {
         assign(name, safeBind(list(get(name), tmp)))

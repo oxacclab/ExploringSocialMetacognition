@@ -1,0 +1,7 @@
+﻿variable,type,description
+clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+comment,string,Participant's answer to the open debrief question
+pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
+pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
+studyId,string,Study title
+studyVersion,string,Major.minor.revision version number

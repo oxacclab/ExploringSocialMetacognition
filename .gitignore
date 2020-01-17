@@ -13,7 +13,8 @@ analysis/data
 *.Rhistory
 analysis/spss
 data/public/raw/*.JSON
-data/*/*.csv
+data/public/*.csv
+!data/public/dictionary_*.csv
 */data/*/*.JSON
 data/private/*
 .htaccess

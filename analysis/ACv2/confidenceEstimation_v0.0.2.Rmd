@@ -1,6 +1,6 @@
 ---
 title: "Confidence estimation"
-author: "Matt Jaquiery (matt.jaquiery@psy.ox.ac.uk)"
+author: "[Matt Jaquiery](https://github.com/mjaquiery) ([matt.jaquiery@psy.ox.ac.uk](mailto:matt.jaquiery@psy.ox.ac.uk))"
 output:
   html_document:
     df_print: paged
@@ -27,11 +27,9 @@ December 2019
 ```{r prematter, include = F}
 
 library(tidyverse)
-
+library(broom)
 library(BayesFactor)
-
 library(prettyMD)
-
 library(knitr)
 
 opts_chunk$set('echo' = F)
@@ -49,7 +47,7 @@ theme_set(theme_light() +
 rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
 testData <- T
 
-studyVersion <- "0-0-9"
+studyVersion <- "0-0-10"
 studyName <- "confidenceExploration"
 
 exclude <- list(
@@ -64,7 +62,19 @@ source("src/02_Exclusions.R")
 
 if (testData) {
   # randomise the confidence of test data
-  decisions$responseConfidence <- runif(nrow(decisions), 0, 100)
+  source("src/sim-confidence-estimation.R")
+  model <- simulateCE(
+    AdvisedTrial,
+    agentInsensitivitySD = 8,
+    agentConfidence = 2,
+    agentConfidenceSD = 4,
+    agentEgoBias = .7, 
+    agentEgoBiasSD = .2,
+    agentEffectSize = .1,
+    agentEffectSizeSD = .1
+    )
+  AdvisedTrial <- model$trials
+  decisions <- byDecision(AdvisedTrial)
 }
 
 ```
@@ -86,6 +96,10 @@ The experimental code is available on [GitHub](https://github.com/oxacclab/Explo
 ## Exclusions
 
 ```{r exclusions}
+
+if (testData) {
+  print("NOTE: Testing (simulated) data!!!!")
+}
 
 tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
 
@@ -137,7 +151,6 @@ ggplot(tmp,
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  geom_point(alpha = .25) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(x = "decision", 
        y = "p(response correct)") +
@@ -169,7 +182,6 @@ ggplot(tmp,
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  geom_point(alpha = .25) +
   labs(x = "decision", 
        y = "response time (ms)") 
 
@@ -190,7 +202,7 @@ The first step in this process is to normalise confidence within that participan
 decisions <- decisions %>% 
   group_by(pid, decision) %>% 
   dplyr::mutate(zConf = scale(responseConfidence)) %>%
-  ungroup()
+  ungroup() 
 
 ```
 
@@ -212,7 +224,9 @@ tmp %>%
   peek(pCorrectDiff, decision) %>% 
   num2str.tibble(isProportion = T, precision = 3)
 
+print("p(correct|high confidence) - p(correct|low confidence) for initial estimates")
 ttestBF(tmp$pCorrectDiff[tmp$decision == "first"])
+print("p(correct|high confidence) - p(correct|low confidence) for final decisions")
 ttestBF(tmp$pCorrectDiff[tmp$decision == "last"])
 
 ```
@@ -224,7 +238,6 @@ ggplot(tmp, aes(x = decision, y = pCorrectDiff)) +
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  geom_point(alpha = .25) +
   labs(x = "decision", 
        y = "p(Correct | sure) - p(Correct | unsure)") +
   scale_y_continuous(limits = c(-1, 1))     
@@ -232,6 +245,8 @@ ggplot(tmp, aes(x = decision, y = pCorrectDiff)) +
 ```
 
 ## Perhaps more confidence stuff - Brier score/ROC {.summary}
+
+!TODO[Decide/implement]
 
 ## Advisor performance
 
@@ -279,7 +294,6 @@ tmp %>%
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  geom_point(alpha = .25) +
   labs(x = "advisor", 
        y = "mean") +
   scale_y_continuous(limits = c(0, 1)) +
@@ -325,8 +339,8 @@ tmp %>%
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  geom_point(alpha = .25) +
-  scale_y_continuous(limits = c(0, 200))
+  scale_y_continuous(limits = c(0, 200)) +
+  facet_grid(~feedback, labeller = label_both)
 
 ```
 
@@ -342,15 +356,16 @@ Influence is the primary outcome measure, and is thus expected to differ between
 
 ```{r influence}
 
-AdvisedTrial$advisor0influence <- ifelse(
-  is.na(AdvisedTrial[, paste0(advisorNames[1], ".influence")]),
-  pull(AdvisedTrial[, paste0(advisorNames[2], ".influence")]),
-  pull(AdvisedTrial[, paste0(advisorNames[1], ".influence")])
-)
+AdvisedTrial$advisor0influence <- 
+  unlist(sapply(1:nrow(AdvisedTrial),
+                function(i) 
+                  AdvisedTrial[i, 
+                               paste0(AdvisedTrial$advisor0idDescription[i], 
+                                      ".influence")]))
 
 tmp <- AdvisedTrial %>% 
   group_by(pid, advisor0idDescription, feedback) %>%
-  summarise(advisorInfluence = mean(advisor0distance)) 
+  summarise(advisorInfluence = mean(advisor0influence)) 
 
 tmp %>% 
   group_by(advisor0idDescription, feedback) %>%
@@ -368,20 +383,48 @@ tmp %>%
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  geom_point(alpha = .25) +
-  scale_y_continuous(limits = c(-200, 200))
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_grid(~feedback, labeller = label_both)
 
 ```
 
-##### Influence distribution
+#### Influence distribution
 
 It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
 
 ```{r influenceDistribution}
 
 ggplot(AdvisedTrial, aes(advisor0influence)) + 
-  geom_histogram(stat = "count") +
+  geom_histogram() +
   facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
+
+```
+
+#### Is initial accuracy or initial confidence a better predictor of influence?
+
+```{r influence correlations}
+
+tmp <- AdvisedTrial %>% 
+  select(pid, responseCorrect, responseConfidence, advisor0influence) %>%
+  nest(-pid) %>%
+  mutate(
+    accBF = map(data, ~ correlationBF(.x$responseCorrect, 
+                                    .x$advisor0influence)),
+    conBF = map(data, ~ correlationBF(.x$responseConfidence, 
+                                    .x$advisor0influence)),
+    acc = map(data, ~ cor.test(as.numeric(.x$responseCorrect), 
+                               .x$advisor0influence)), 
+    acc = map(acc, tidy),
+    con = map(data, ~ cor.test(.x$responseConfidence, .x$advisor0influence)), 
+    con = map(con, tidy)
+  ) %>% 
+  unnest(acc, .sep = ".") %>%
+  unnest(con, .sep = ".")
+
+tmp %>% 
+  select_if(is.numeric) %>% 
+  summarise_if(is.numeric, mean, na.rm = T) %>% 
+  t() 
 
 ```
 

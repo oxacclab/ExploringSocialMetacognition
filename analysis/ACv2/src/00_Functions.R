@@ -15,6 +15,7 @@ if (!isSet("studyOffBrandTypeNames")) {
 
 # libraries ---------------------------------------------------------------
 
+library(Hmisc) # variable labels
 library(testthat) # unit tests
 library(curl) # fetching files from server
 library(beepr) # beeps for error/complete
@@ -80,6 +81,58 @@ listServerFiles <- function(study = "datesStudy", version = "all",
   close(con)
   
   out
+}
+
+#' Fetch labels for the designated tbl by looking up the data dictionary
+#' @param tbl tbl to attach column labels to
+#' @param tblname name of the tbl for searching the server for a dictionary
+#' @param rDir remote directory housing dictionaries
+#' @param warnOnMissing issue a warning if unable to find a "variable"
+#'   associated with a colname, or a "colname" associated with a variable
+#'
+#' @return tbl with labels from the associated dictionary attached
+getLabels <- function(
+  tbl, 
+  tblname,
+  rDir = "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/",
+  warnOnMissing = c("colname", "variable")
+  ) {
+  
+  # find dictionary
+  dictName <- paste0('dictionary_', tblname, '.csv')
+  dict <- NULL
+  suppressMessages(
+    try({
+      dict <- read_csv(paste0(rDir, dictName)) %>%
+        as_tibble() %>%
+        mutate(completed = F)
+      },
+      silent = T)
+    )
+  
+  if (is.null(dict)) {
+    stop(paste0("Could not retrieve dictionary from '", rDir, dictName, "'"))
+  }
+  
+  for (n in names(tbl)) {
+    lab <- dict %>% 
+      filter(!is.na(str_match(n, paste0('^', variable, '$'))))
+    
+    if (!nrow(lab) && 'variable' %in% warnOnMissing) {
+      warning(paste0("Column ", n, " missing associated dictionary variable\n"))
+    } else if (nrow(lab)) {
+      # mark variable as completed in dict
+      dict$completed[dict$variable == lab$variable] <- T
+      label(tbl[n], self = F) <- lab$description
+    }
+  }
+  
+  if ('colname' %in% warnOnMissing && sum(!dict$completed)) {
+    for (v in dict %>% dplyr::filter(!completed) %>% pull(variable)) 
+      warning(paste0("Dictionary variable ", v, " not found in ", tblname, "\n"))
+  }
+  
+  tbl
 }
 
 getMarkerList <- function() {
@@ -212,8 +265,27 @@ getAdvisorDetails <- function(x) {
 getResponseVars <- function(ca, elb, ew, mv, cas, ra, rc, suffix = NULL) {
   # Detect the correct mode to be in
   if (!is.null(cas) && !is.null(ra) && !is.null(rc))
-    return(getResponseVars.binary(cas, ra, rc, suffix = suffix))
+    x <- getResponseVars.binary(cas, ra, rc, suffix = suffix)
+  else 
+    x <- getResponseVars.continuous(ca, elb, ew, mv, suffix = NULL)
   
+  # labels
+  label(x[paste0('responseCorrect', suffix)], self = F) <-
+    paste(c("Whether the participant's ", "answer was correct"),
+          collapse = if (!is.null(suffix)) paste0(suffix, " ") else "")
+  label(x[paste0('responseError', suffix)], self = F) <-
+    paste(c("Distance from the participant's ", "answer to the correct answer"),
+          collapse = if (!is.null(suffix)) paste0(suffix, " ") else "")
+  label(x[paste0('responseScore', suffix)], self = F) <-
+    paste(c("Points awarded for participant's ", "answer"),
+          collapse = if (!is.null(suffix)) paste0(suffix, " ") else "")
+  
+  x
+}
+
+#' Continuous case for \code{getResponseVars()}
+getResponseVars.continuous <- function(ca, elb, ew, mv, suffix = NULL) {
+    
   if (is.null(mv)) {
     mv <- 27 / ew
   }
@@ -300,42 +372,71 @@ getDerivedVariables <- function(x, name, opts = list()) {
       # Check trials which are supposed to have feedback actually have it
       if (!("feedback" %in% names(x))) {
         x$feedback <- !is.na(x$timeFeedbackOn)
+        
+        label(x$feedback, self = F) <- 
+          "Whether the trial has feedback after the final decision"
       }
       
+      L <- label(x$feedback)
       x$feedback[is.na(x$feedback)] <- 0
       x$feedback <- as.logical(x$feedback)
+      label(x$feedback, self = F) <- L
       
       if (is.null(opts$skipFeedbackCheck) || !opts$skipFeedbackCheck)  {
-        expect_equal(!is.na(x$timeFeedbackOn), x$feedback)
+        expect_equal(!is.na(x$timeFeedbackOn), as.logical(x$feedback))
       }
       
-      x <- cbind(x, getResponseVars(x$correctAnswer,
-                                    x$responseEstimateLeft,
-                                    x$responseMarkerWidth,
-                                    x$responseMarkerValue,
-                                    x$correctAnswerSide,
-                                    x$responseAnswerSide,
-                                    x$responseConfidence))
+      x <- bind_cols(
+        x, 
+        getResponseVars(
+          if ('correctAnswer' %in% names(x))
+            x$correctAnswer else NULL,
+          if ('responseEstimateLeft' %in% names(x))
+            x$responseEstimateLeft else NULL,
+          if ('responseMarkerWidth' %in% names(x))
+            x$responseMarkerWidth else NULL,
+          if ('responseMarkerValue' %in% names(x))
+            x$responseMarkerValue else NULL,
+          if ('correctAnswerSide' %in% names(x))
+            x$correctAnswerSide else NULL,
+          if ('responseAnswerSide' %in% names(x))
+            x$responseAnswerSide else NULL,
+          if ('responseConfidence' %in% names(x))
+            x$responseConfidence else NULL
+        )
+      )
       
-      x <- cbind(x, getResponseVars(x$correctAnswer,
-                                    x$responseEstimateLeftFinal,
-                                    x$responseMarkerWidthFinal,
-                                    x$responseMarkerValueFinal,
-                                    x$correctAnswerSide,
-                                    x$responseAnswerSideFinal,
-                                    x$responseConfidenceFinal,
-                                    suffix = "Final"))
-      
-      x <- as.tibble(x)
+      x <- bind_cols(
+        x, 
+        getResponseVars(
+          if ('correctAnswer' %in% names(x))
+            x$correctAnswer else NULL,
+          if ('responseEstimateLeftFinal' %in% names(x))
+            x$responseEstimateLeftFinal else NULL,
+          if ('responseMarkerWidthFinal' %in% names(x))
+            x$responseMarkerWidthFinal else NULL,
+          if ('responseMarkerValueFinal' %in% names(x))
+            x$responseMarkerValueFinal else NULL,
+          if ('correctAnswerSide' %in% names(x))
+            x$correctAnswerSide else NULL,
+          if ('responseAnswerSideFinal' %in% names(x))
+            x$responseAnswerSideFinal else NULL,
+          if ('responseConfidenceFinal' %in% names(x))
+            x$responseConfidenceFinal else NULL,
+          suffix = "Final"
+        )
+      )
       
       x$errorReduction <- x$responseError - 
         x$responseErrorFinal
       
-      x$responseScore <- 
-        ifelse(x$responseCorrect, 27 / x$responseMarkerWidth, 0)
-      
-      x$responseScoreFinal <- 
-        ifelse(x$responseCorrectFinal, 27 / x$responseMarkerWidthFinal, 0)
+      if (hasName(x, 'responseMarkerWidth')) {
+        x$responseScore <- 
+          ifelse(x$responseCorrect, 27 / x$responseMarkerWidth, 0)
+        
+        x$responseScoreFinal <- 
+          ifelse(x$responseCorrectFinal, 27 / x$responseMarkerWidthFinal, 0)
+      }
       
       x$accuracyChange <- x$responseCorrectFinal - x$responseCorrect
       
@@ -344,6 +445,10 @@ getDerivedVariables <- function(x, name, opts = list()) {
       if ("responseEstimateLeft" %in% names(x)) {
         x$estimateLeftChange <- abs(x$responseEstimateLeftFinal -
                                       x$responseEstimateLeft)
+        
+        label(x$estimateLeftChange, self = F) <- 
+          "The change of position of the left of the participant's marker between initial and final responses"
+        
         x$changed <- x$estimateLeftChange > 0
       
         x$confidenceChange <- 
@@ -357,6 +462,11 @@ getDerivedVariables <- function(x, name, opts = list()) {
                  x$responseConfidenceFinal + x$responseConfidence)
         x$changed <- x$confidenceChange != 0
       }
+        
+      label(x$changed, self = F) <- 
+        "Whether the participant's initial and final responses are different"
+      label(x$confidenceChange, self = F) <-
+        "The participant's final confidence minus their initial confidence"
       
       
       tmp <- x[order(x$number), ]
@@ -366,7 +476,13 @@ getDerivedVariables <- function(x, name, opts = list()) {
                                         tmp[tmp$pid == id,
                                             "advisor0idDescription"][1, ]))
       
+      label(x$firstAdvisor, self = F) <- 
+        "The idDescription of the first advisor the participant encountered in the trial"
+      
       x$advisor0offBrand <- x$advisor0actualType %in% studyOffBrandTypeNames
+      
+      label(x$advisor0offBrand, self = F) <- 
+        "Whether advisor0 offered off-brand (uncharacteristic) advice"
       
       
       # by advisor name variables -----------------------------------------------
@@ -387,6 +503,8 @@ getDerivedVariables <- function(x, name, opts = list()) {
               reFirstMatch('advisor([0-9]+)idDescription', rn)
           })
           )
+        label(x[[paste0(a, '.index')]], self = F) <- 
+          paste("The index (position) of the", a, "advisor")
       }
       
       # Use the index to patch in the advisor's value
@@ -416,6 +534,13 @@ getDerivedVariables <- function(x, name, opts = list()) {
           if (f) {
             x[[s]] <- patchFactor(x[[s]], x[[paste0('advisor0', suffix)]])
           }
+          
+          # add label from original
+          label(x[[s]], self = F) <- 
+            gsub('advisor [0-9]+',
+                 paste(a, 'advisor'),
+                 label(x[[paste0('advisor0', suffix)]]), 
+                 fixed = T)
         }
       }
       
@@ -431,6 +556,9 @@ getDerivedVariables <- function(x, name, opts = list()) {
             (x[, paste0(a, ".advice")] + 
                (x[, paste0(a, ".adviceWidth")] / 2)) >= x[, "correctAnswer"]
           
+          label(x[, paste0(a, ".accurate")], self = F) <- 
+            paste("Whether the", a, "advisor was correct")
+          
           # Error
           x[, paste0(a, ".error")] <- 
             abs(x[, paste0(a, ".advice")] - x[, "correctAnswer"])
@@ -439,13 +567,24 @@ getDerivedVariables <- function(x, name, opts = list()) {
             (x[, "responseMarkerWidthFinal"] - 1) / 2
           adv <- x[, paste0(a, ".advice")]
           
+          label(x[, paste0(a, ".error")], self = F) <- 
+            paste("How far the centre of ", a, 
+                  "advisor's advice was from the correct answer")
+          
           z <- ((f - i) / (adv - i))
           x[, paste0(a, ".woaRaw")] <- z
+          
+          label(x[, paste0(a, ".woaRaw")], self = F) <- 
+            paste("The participant's weight-on-advice for the", a, "advisor")
           
           z[z < 0] <- 0
           z[z > 1] <- 1
           
           x[, paste0(a, ".woa")] <- z
+          
+          label(x[, paste0(a, ".woaRaw")], self = F) <- 
+            paste("The participant's weight-on-advice for the", a, 
+                  "advisor capped at 0 and 1")
           
           for (d in c("", "Final")) {
             minA <- x[, paste0(a, ".advice")] - 
@@ -461,10 +600,18 @@ getDerivedVariables <- function(x, name, opts = list()) {
               x[, paste0(a, ".agree", d)] <- 
                 ((minA >= minP) & (minA <= maxP)) | ((maxA >= minP) & (maxA <= minP)) 
               
+              label(x[, paste0(a, ".agree", d)], self = F) <- 
+                paste("Whether the", a, 
+                      "advisor agreed with the participant's initial estimate")
+              
               # Distance
               reMid <- minP + (maxP - minP) / 2
               adv <- x[, paste0(a, ".advice")]
               x[, paste0(a, ".distance", d)] <- abs(reMid - adv)
+              
+              label(x[, paste0(a, ".distance", d)], self = F) <- 
+                paste("Difference between the centres of the", a,
+                      "advisor's marker and the participant's initial estimate")
             } 
           }
         }
@@ -479,10 +626,17 @@ getDerivedVariables <- function(x, name, opts = list()) {
           # Accuracy
           x[, paste0(a, ".accurate")] <- aa == x$correctAnswerSide
           
+          label(x[, paste0(a, ".accurate")], self = F) <- 
+            paste("Whether the", a, "advisor was correct")
+          
           # Error
           x[, paste0(a, ".error")] <- ifelse(aa == x$correctAnswerSide,
                                              pull(100 - ac), 
                                              pull(100 + ac))
+          
+          label(x[, paste0(a, ".error")], self = F) <- 
+            paste("How far the centre of ", a, 
+                  "advisor's advice was from the correct answer")
           
           # Influence
           influence <- ifelse(pa == paf, # amount original answer reinforced
@@ -492,6 +646,10 @@ getDerivedVariables <- function(x, name, opts = list()) {
           m <- as.logical(!is.na(aa != paf) & aa != paf)
           influence[m] <- -influence[m]
           x[, paste0(a, ".influence")] <- influence
+          
+          label(x[, paste0(a, ".influence")], self = F) <- 
+            paste("How much the participant's initial confidence changes in the direction of the", 
+                  a, "advisor's advice")
           
           for (d in c("", "Final")) {
             if (d == "Final") {
@@ -504,9 +662,17 @@ getDerivedVariables <- function(x, name, opts = list()) {
 
             x[, paste0(a, ".agree", d)] <- aa == p
             
+            label(x[, paste0(a, ".agree", d)], self = F) <- 
+              paste("Whether the", a, 
+                    "advisor agreed with the participant's initial estimate")
+            
             x[, paste0(a, ".distance", d)] <- ifelse(aa == p,
                                                      pull(abs(conf - ac)), 
                                                      pull(conf + ac))
+            
+            label(x[, paste0(a, ".distance", d)], self = F) <- 
+              paste("Difference between the confidences of the", a,
+                    "advisor's marker and the participant's initial estimate, respecting different answer sides if appropriate")
           }
         }
         
@@ -539,6 +705,11 @@ getDerivedVariables <- function(x, name, opts = list()) {
           x$woa[x$advisor0woaRaw < z] <- paste0("<", z)
         }
         x$woa <- factor(x$woa)
+        
+        label(x$advisor0woa, self = F) <- 
+          "The participant's weight-on-advice for the advisor"
+        label(x$advisor0woaRaw, self = F) <- 
+          "The participant's weight-on-advice for the advisor capped at 0 and 1"
       }
       
       x
@@ -553,19 +724,55 @@ getDerivedVariables <- function(x, name, opts = list()) {
     
     Trial = {
       
-      x <- cbind(x, getResponseVars(x$correctAnswer,
-                                    x$responseEstimateLeft,
-                                    x$responseMarkerWidth,
-                                    x$responseMarkerValue,
-                                    x$correctAnswerSide,
-                                    x$responseAnswerSide,
-                                    x$responseConfidence))
-      
-      as.tibble(x)
+      x <- bind_cols(
+        x, 
+        getResponseVars(
+          if ('correctAnswer' %in% names(x))
+            x$correctAnswer else NULL,
+          if ('responseEstimateLeft' %in% names(x))
+            x$responseEstimateLeft else NULL,
+          if ('responseMarkerWidth' %in% names(x))
+            x$responseMarkerWidth else NULL,
+          if ('responseMarkerValue' %in% names(x))
+            x$responseMarkerValue else NULL,
+          if ('correctAnswerSide' %in% names(x))
+            x$correctAnswerSide else NULL,
+          if ('responseAnswerSide' %in% names(x))
+            x$responseAnswerSide else NULL,
+          if ('responseConfidence' %in% names(x))
+            x$responseConfidence else NULL
+        )
+      )
     },
     
     x
   )
+}
+
+#' Fill in missing columns from dictionary
+#' @param tbl to pad columns of
+#' @param vars additional variable names to fill
+#' @param value to fill the padded columns with
+#' @param valueByColname named list of "colname" = "fill value"
+backfillVars <- function(
+  tbl, 
+  vars = c(),
+  value = NA, 
+  valueByColname = list()
+  ) {
+  for (v in vars) {
+    if (!any(str_detect(names(tbl), paste0('^', v, '$')))) {
+      if (v %in% names(valueByColname)) {
+        val <- valueByColname[[v]]
+      } else {
+        val <- value 
+      }
+      
+      tbl[, v] <- val
+    }
+  }
+  
+  tbl
 }
 
 
