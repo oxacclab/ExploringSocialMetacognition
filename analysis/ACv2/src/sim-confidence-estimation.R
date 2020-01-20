@@ -13,6 +13,9 @@
 #'   compliance. There is no differential influence effect of dis/agreement.
 #'
 #' @param AdvisedTrial tibble of CE task answers.
+#' @param nAgents NA to use the agents supplied in AdvisedTrial (but recalculate
+#'   their answers). A number to produce that many agents by bootstrapping from
+#'   the trials in AdvisedTrial
 #' @param agentInsensitivitySD sd of agent error distribution (always positive)
 #' @param agentConfidence mean of distribution of increase in agent confidence
 #'   for each year between best guess and anchor date (always positive)
@@ -27,6 +30,7 @@
 #' @return AdvisedTrial modified to use simulated answers
 simulateCE <- function(
   AdvisedTrial,
+  nAgents = NA,
   agentInsensitivitySD = 8,
   agentConfidence = 2,
   agentConfidenceSD = 4,
@@ -35,12 +39,19 @@ simulateCE <- function(
   agentEffectSize = .1,
   agentEffectSizeSD = .05
   ) {
+  require(tidyverse)
+  
+  if (is.na(nAgents)) {
+    pids <- unique(AdvisedTrial$pid)
+  } else {
+    pids <- paste0('simAgent_', sprintf('%03d', 1:nAgents))
+  }
   
   # Simulated answers will assume that each agent has a sensitivity, and that 
   # this sensitivity is affected by the objective difficulty of the question, 
   # i.e. the distance between the anchor and the correct answer. 
   agents <- tibble(
-    pid = unique(AdvisedTrial$pid),
+    pid = pids,
     error = abs(rnorm(length(pid), sd = agentInsensitivitySD)),
     confidence = abs(rnorm(length(pid), agentConfidence, agentConfidenceSD)),
     egoBias = rnorm(length(pid), agentEgoBias, agentEgoBiasSD),
@@ -55,6 +66,22 @@ simulateCE <- function(
   for (a in agents$pid) {
     agent <- agents %>% dplyr::filter(pid == a)
     tmp <- AdvisedTrial %>% dplyr::filter(pid == a)
+    
+    if (!nrow(tmp)) {
+      # bootstrap new trial set modelled on the first participant
+      qs <- sample(unique(AdvisedTrial$stimHTML),
+                   nrow(AdvisedTrial %>% 
+                          dplyr::filter(pid == unique(pid)[1]))
+                   )
+
+      tmp <- map_dfr(lapply(qs, 
+                            function(x) AdvisedTrial %>% 
+                              dplyr::filter(stimHTML == x) %>%
+                              sample_n(1)),
+                     rbind)
+      
+      tmp$pid <- a
+    }
     
     tmp <- tmp %>% 
       mutate(
@@ -160,4 +187,67 @@ getAdjustedConfidence <- function(initial,
                     agent$egoBias)
   final <- initial + advice * (1 - egoBias)
   final
+}
+
+#' Power analysis for Confidence Estimation task.
+#'
+#' @param AdvisedTrial tibble of CE task answers used for simulating data.
+#' @param parameters tibble of parameters settings to explore
+#' @param nCores number of cores to use in parallel processing
+#' 
+#' @return list with input, calculated data, and summary stats
+powerAnalysisCE <- function(
+  AdvisedTrial, 
+  parameters, 
+  nCores = detectCores() - 2
+  ) {
+  
+  out <- list(
+    seedData = AdvisedTrial,
+    parameters = parameters,
+    models = list(
+      data = NULL,
+      analysis = NULL
+    ),
+    nCores = nCores
+  )
+  
+  cl <- makeCluster(nCores)
+  
+  #' Unpack arguments into a neat list from a singleton and a vector
+  unpacker <- function(vec, df) {
+    do.call(simulateCE, c(list(AdvisedTrial = df), vec))
+  }
+
+  # out$models$data <- apply(parameters, 1, unpacker, 
+  #                          x = AdvisedTrial, f = simulateCE)
+  
+  clusterExport(cl, c("getAdjustedConfidence", "simulateCE"))
+  out$models$data <- parRapply(cl, x = parameters, unpacker,
+                               df = AdvisedTrial)
+  
+  stopCluster(cl)
+  
+  # Analyse the data
+  for (i in 1:length(out$models$data)) {
+    x <- out$models$data[[i]]
+    tmp <- x$trials %>% 
+      filter(feedback == F) %>%
+      select(pid, advisor0idDescription, mass.influence, single.influence) %>%
+      mutate(advisor0influence = if_else(advisor0idDescription == 'single',
+                                         single.influence, mass.influence)) %>%
+      group_by(pid, advisor0idDescription) %>%
+      summarise(influence = mean(advisor0influence)) %>%
+      spread(advisor0idDescription, influence) 
+    
+    t <- t.test(tmp$single, tmp$mass, paired = T)
+    tryCatch({bf <- ttestBF(tmp$single, tmp$mass, paired = T)},
+             error = {bf <- NA})
+    # bf <- ttestBF(tmp$single, tmp$mass, paired = T)
+    out$models$analysis[[i]] <- tidy(t)
+    try({out$models$analysis[[i]]$BF <- exp(bf@bayesFactor$bf)}, silent = T)
+    out$models$analysis[[i]]$BF <- exp(bf@bayesFactor$bf)
+  }
+  
+  out
 }
