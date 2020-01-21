@@ -68,17 +68,25 @@ simulateCE <- function(
     tmp <- AdvisedTrial %>% dplyr::filter(pid == a)
     
     if (!nrow(tmp)) {
-      # bootstrap new trial set modelled on the first participant
-      qs <- sample(unique(AdvisedTrial$stimHTML),
-                   nrow(AdvisedTrial %>% 
-                          dplyr::filter(pid == unique(pid)[1]))
-                   )
-
-      tmp <- map_dfr(lapply(qs, 
-                            function(x) AdvisedTrial %>% 
-                              dplyr::filter(stimHTML == x) %>%
-                              sample_n(1)),
-                     rbind)
+      # bootstrap new trial set modelled on the first participant, split by each
+      # advisor
+      n <- AdvisedTrial %>% 
+        dplyr::filter(pid == unique(pid)[1]) %>%
+        group_by(advisor0idDescription, feedback) %>%
+        summarise(n = n())
+      
+      for (i in 1:nrow(n)) {
+        tmp <- bind_rows(
+          tmp,
+          AdvisedTrial %>% 
+            dplyr::filter(
+              advisor0idDescription == n$advisor0idDescription[i],
+              feedback == n$feedback[i],
+              !(stimHTML %in% tmp$stimHTML)
+            ) %>%
+            sample_n(n$n[i])
+          )
+      }
       
       tmp$pid <- a
     }
@@ -228,10 +236,24 @@ powerAnalysisCE <- function(
   
   stopCluster(cl)
   
+  out$models$analysis <- analyseCE(out$models$data)
+  
+  out
+}
+
+#' Analysis of effects for model data
+#' @param x list of model data
+#' @return tibble of t-test output plus BayesFactor for single vs mass advisor
+#'   influence on no-feedback trials
+analyseCE <- function(x) {
+  out <- list()
+  
   # Analyse the data
-  for (i in 1:length(out$models$data)) {
-    x <- out$models$data[[i]]
-    tmp <- x$trials %>% 
+  for (i in 1:length(x)) {
+    d <- x[i][[1]]
+    
+    # prep data
+    tmp <- d$trials %>% 
       filter(feedback == F) %>%
       select(pid, advisor0idDescription, mass.influence, single.influence) %>%
       mutate(advisor0influence = if_else(advisor0idDescription == 'single',
@@ -240,13 +262,12 @@ powerAnalysisCE <- function(
       summarise(influence = mean(advisor0influence)) %>%
       spread(advisor0idDescription, influence) 
     
+    # ttests
     t <- t.test(tmp$single, tmp$mass, paired = T)
-    tryCatch({bf <- ttestBF(tmp$single, tmp$mass, paired = T)},
-             error = {bf <- NA})
-    # bf <- ttestBF(tmp$single, tmp$mass, paired = T)
-    out$models$analysis[[i]] <- tidy(t)
-    try({out$models$analysis[[i]]$BF <- exp(bf@bayesFactor$bf)}, silent = T)
-    out$models$analysis[[i]]$BF <- exp(bf@bayesFactor$bf)
+    bf <- ttestBF(tmp$single, tmp$mass, paired = T)
+    
+    out[[i]] <- tidy(t)
+    out[[i]]$BF <- exp(bf@bayesFactor$bf)
   }
   
   out

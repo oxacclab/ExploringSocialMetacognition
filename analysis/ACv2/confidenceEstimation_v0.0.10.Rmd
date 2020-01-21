@@ -1,0 +1,511 @@
+---
+title: "Confidence estimation"
+author: "[Matt Jaquiery](https://github.com/mjaquiery) ([matt.jaquiery@psy.ox.ac.uk](mailto:matt.jaquiery@psy.ox.ac.uk))"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+December 2019
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(tidyverse)
+library(broom)
+library(BayesFactor)
+library(prettyMD)
+library(knitr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20191216)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+```
+
+```{r loadData, include = F}
+
+# rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
+# testData <- T
+
+studyVersion <- "0-0-10"
+studyName <- "confidenceExploration"
+
+exclude <- list(
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1     # some advice taken on 10%+ of trials
+  ) 
+
+skipLoadData <- F
+
+source("src/02_Exclusions.R")
+
+if (testData) {
+  # randomise the confidence of test data
+  source("src/sim-confidence-estimation.R")
+  model <- simulateCE(
+    AdvisedTrial,
+    agentInsensitivitySD = 8,
+    agentConfidence = 2,
+    agentConfidenceSD = 4,
+    agentEgoBias = .7, 
+    agentEgoBiasSD = .2,
+    agentEffectSize = .1,
+    agentEffectSizeSD = .1
+    )
+  AdvisedTrial <- model$trials
+  decisions <- byDecision(AdvisedTrial)
+}
+
+```
+
+# Introduction
+
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors cannot be clear on how advisors' expressed confidence relates to their actual confidence. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of known versus unknown confidence representations, we manipulated whether participants believed advice to come from a consistent advisor or from one of a number of advisors on each trial in a judge-advisor system. Participants had two experimental blocks: in one the advice they received was always labeled as coming from a consistent individual, while in the other the advice was labeled as coming from a different advisor each time. All advice was drawn from the same distribution, which was centred on the correct answer (i.e. all of the advice was helpful on average). 
+
+After 10 trials in each block in which feedback on the correct answers was provided so participants could learn about the advisor/s, participants performed 5 trials without feedback. 
+
+We hypothesised that participants would place greater weight on the advice of the consistent advisor, presumably because they are able to learn about the calibration of the individual advisor while they cannot do likewise for the population of advisors.
+
+# Method
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiment can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
+## Exclusions
+
+```{r exclusions}
+
+if (testData) {
+  print("NOTE: Testing (simulated) data!!!!")
+}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+
+tmp$condition <- factor(tmp$condition, labels = c("SingleFirst",
+                                                  "GroupFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+```
+
+Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each, of which an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial[!AdvisedTrial$feedback, ], length)$advisor0))` had no feedback.
+
+## Task performance
+
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
+
+### Decisions
+
+Participants offered estimates of whether various events took place before or after a given year. The correct answers were always between 1900 and 2000. Participants answered by selecting a point on one of two confidence bars, with the choice of bar indicating the chosen answer. 
+
+#### Correctness
+
+```{r accuracy}
+
+decisions %>% peek(responseCorrect, decision) %>%
+  num2str.tibble(isProportion = T, precision = 3)
+
+decisions %>% filter(feedback == T) %>% 
+  peek(responseCorrect, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(feedback = T)
+
+```
+
+```{r accuracyGraph}
+
+tmp <- decisions %>% group_by(pid, decision, feedback) %>%
+  do(correct = mean_cl_normal(.$responseCorrect)) %>%
+  unnest(correct) %>%
+  transmute(pid, decision,
+            pCorrect = y, 
+            ciLow = ymin,
+            ciHigh = ymax,
+            feedback = if_else(feedback, "With Feedback", "No feedback"))
+
+ggplot(tmp, 
+       aes(x = decision, y = pCorrect)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(x = "decision", 
+       y = "p(response correct)") +
+  facet_grid(~feedback)
+
+```
+
+### Timing
+
+We can look at the response time - the difference between the time the response is opened and the time the response is received.  
+
+```{r time}
+
+decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
+
+decisions %>% peek(rt, decision) %>% 
+  mutate_if(is.numeric, round)
+
+```
+
+```{r timeGraph}
+
+tmp <- decisions %>% group_by(pid, decision) %>% 
+  summarise(rt = mean(rt))
+
+ggplot(tmp, 
+       aes(x = decision, y = rt)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(x = "decision", 
+       y = "response time (ms)") 
+
+```
+
+### Summary {.summary}
+
+!TODO[summary of task performance]
+
+## Metacognitive performance
+
+Participants indicated the confidence in their decisions simultaneously with the decisions themselves. We can thus explore how well a participant's confidence signals their accuracy. We provide only a brief examination here where normalised responses are split into high and low confidence for each participant, and the accuracies of the two categories are compared. This is done separately for first and last decisions.
+
+```{r confidence normalisation}
+
+decisions <- decisions %>% 
+  group_by(pid, decision) %>% 
+  dplyr::mutate(zConf = scale(responseConfidence)) %>%
+  ungroup() 
+
+```
+
+```{r confidence binary split}
+
+tmp <- decisions %>% 
+  mutate(highConf = zConf > 0) %>%
+  group_by(pid, decision, highConf) %>%
+  summarise(pCorrect = mean(responseCorrect)) %>%
+  group_by(pid, decision) %>%
+  spread(highConf, pCorrect) %>%
+  mutate(pCorrectDiff = `TRUE` - `FALSE`)
+
+tmp %>% 
+  peek(pCorrectDiff, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3)
+
+print("p(correct|high confidence) - p(correct|low confidence) for initial estimates")
+ttestBF(tmp$pCorrectDiff[tmp$decision == "first"])
+print("p(correct|high confidence) - p(correct|low confidence) for final decisions")
+ttestBF(tmp$pCorrectDiff[tmp$decision == "last"])
+
+```
+
+```{r confidence binary split plot}
+
+ggplot(tmp, aes(x = decision, y = pCorrectDiff)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(x = "decision", 
+       y = "p(Correct | sure) - p(Correct | unsure)") +
+  scale_y_continuous(limits = c(-1, 1))     
+ 
+```
+
+## Advisor performance
+
+The advice offered should be equivalent between single/group advisors.
+
+### Accuracy
+
+```{r adviceAccuracy}
+
+AdvisedTrial$advisor0accurate <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".accurate")])
+)
+
+AdvisedTrial$advisor0agree <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".agree")])
+)
+
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(advisorAccuracy = mean(advisor0accurate),
+            advisorAgree = mean(advisor0agree)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, feedback) %>%
+  summarise(advisorAccuracy = mean(advisorAccuracy),
+            advisorAgree = mean(advisorAgree)) %>%
+  num2str.tibble(isProportion = T, precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+
+tmp %>% 
+  dplyr::rename(advisor = advisor0idDescription,
+                `p(correct)` = advisorAccuracy,
+                `p(agree)` = advisorAgree) %>%
+  mutate(feedback = if_else(feedback, "With Feedback", "No Feedback")) %>%
+  gather("var", "value", `p(correct)`:`p(agree)`) %>%
+  ggplot(aes(x = advisor, y = value)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(x = "advisor", 
+       y = "mean") +
+  scale_y_continuous(limits = c(0, 1)) +
+  facet_grid(var ~ feedback)
+  
+  
+```
+
+### Distance
+
+Distance is the continuous version of agreement - the difference along the confidence scale between the advice and the initial estimate. Where different scales are endorsed, the difference is the combination of how sure the participant was on one scale plus how sure the advisor was on the other.
+
+```{r adviceDistance}
+
+AdvisedTrial$advisor0distance <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".distance")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".distance")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".distance")])
+)
+AdvisedTrial$advisor0distanceFinal <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".distanceFinal")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".distanceFinal")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".distanceFinal")])
+)
+
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(adviceDistance = mean(advisor0distance)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, feedback) %>%
+  summarise(adviceDistance = mean(adviceDistance)) %>%
+  num2str.tibble(precision = 1)
+
+```
+
+```{r adviceDistanceGraph}
+
+tmp %>% 
+  rename(advisor = advisor0idDescription) %>%
+  ggplot(aes(x = advisor, y = adviceDistance)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 200)) +
+  facet_grid(~feedback, labeller = label_both)
+
+```
+
+### Summary {.summary}
+
+!TODO[Advisor performance summary]
+
+### Influence
+
+The measure of influence is the extent to which a participant's confidence moves in the expected direction as a function of the advice (increasing when agreed with, decreasing when disagreed with).
+
+Influence is the primary outcome measure, and is thus expected to differ between advisors and feedback conditions.
+
+```{r influence}
+
+AdvisedTrial$advisor0influence <- 
+  unlist(sapply(1:nrow(AdvisedTrial),
+                function(i) 
+                  AdvisedTrial[i, 
+                               paste0(AdvisedTrial$advisor0idDescription[i], 
+                                      ".influence")]))
+
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, feedback) %>%
+  summarise(advisorInfluence = mean(advisorInfluence)) %>%
+  num2str.tibble(precision = 1)
+
+```
+
+```{r influenceGraph}
+
+tmp %>% 
+  rename(advisor = advisor0idDescription) %>%
+  ggplot(aes(x = advisor, y = advisorInfluence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_grid(~feedback, labeller = label_both)
+
+```
+
+#### Influence distribution
+
+It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
+
+```{r influenceDistribution}
+
+ggplot(AdvisedTrial, aes(advisor0influence)) + 
+  geom_histogram() +
+  facet_grid(feedback ~ advisor0idDescription, labeller = label_both)
+
+```
+
+#### Is initial accuracy or initial confidence a better predictor of influence?
+
+```{r influence correlations}
+
+tmp <- AdvisedTrial %>% 
+  select(pid, responseCorrect, responseConfidence, advisor0influence) %>%
+  nest(-pid) %>%
+  mutate(
+    accBF = map(data, ~ correlationBF(.x$responseCorrect, 
+                                    .x$advisor0influence)),
+    acc.BF = map(accBF, ~ exp(.@bayesFactor$bf)),
+    conBF = map(data, ~ correlationBF(.x$responseConfidence, 
+                                    .x$advisor0influence)),
+    con.BF = map(conBF, ~ exp(.@bayesFactor$bf)),
+    acc = map(data, ~ cor.test(as.numeric(.x$responseCorrect), 
+                               .x$advisor0influence)), 
+    acc = map(acc, tidy),
+    con = map(data, ~ cor.test(.x$responseConfidence, .x$advisor0influence)), 
+    con = map(con, tidy)
+  ) %>% 
+  unnest(acc, .sep = ".") %>%
+  unnest(con, .sep = ".") %>%
+  unnest(acc.BF, con.BF)
+
+tmp <- bind_rows(
+  tmp %>% 
+    select_at(vars(starts_with('acc'))) %>%
+    rename_all(~ str_replace(., 'acc\\.(.+)', '\\1')) %>%
+    mutate(property = 'accuracy'),
+  tmp %>% 
+    select_at(vars(starts_with('con'))) %>%
+    rename_all(~ str_replace(., 'con\\.(.+)', '\\1')) %>%
+    mutate(property = 'confidence')
+)
+
+tmp %>% 
+  group_by(property) %>%
+  summarise_if(is.numeric, mean, na.rm = T)
+
+```
+
+### Summary {.summary}
+
+!TODO[Influence summary]
+
+## Hypothesis testing
+
+The hypotheses being tested here are:  
+
+1. Participants will place higher weight on the advice of the single consistent advisor.
+
+```{r h1, results='asis'}
+
+tmp <- AdvisedTrial %>% 
+  dplyr::filter(feedback == F) %>%
+  group_by(pid, advisor0idDescription) %>% 
+  summarise(influence = mean(advisor0influence)) %>% 
+  mutate(
+    advisor0idDescription = str_extract(advisor0idDescription, "mass|single")
+    ) %>%
+  spread(advisor0idDescription, influence)
+
+r <- md.ttest(tmp$single, tmp$mass, 
+              c("*M*|single", "*M*|mass"), paired = T)
+cat(r)
+
+```
+
+### Summary {.summary}
+
+!TODO[Hypothesis summary]
+
+## Exploration
+
+# Conclusions {.summary}
+
+!TODO[Conclusions]
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```

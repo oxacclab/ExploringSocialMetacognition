@@ -1090,9 +1090,13 @@ markerBreakdown <- function(v,
 #' @param groupCol column to use for grouping
 #' @param idCol participant identifier column
 #' @param f function to run
+#' @param newNames will rename the calculated columns if possible (fails with a
+#'   warning)
 #' @param ... passed on to f
-peek <- function(tbl, colName, groupCol, 
-                 idCol = as.symbol("pid"), f = mean_cl_normal, ...) {
+peek <- function(tbl, colName, groupCol, idCol = as.symbol("pid"), 
+                 f = mean_cl_normal, 
+                 newNames = c('mean', 'CL95.Low', 'CL95.High'), 
+                 ...) {
   v <- substitute(colName)
   g <- substitute(groupCol)
   
@@ -1109,8 +1113,14 @@ peek <- function(tbl, colName, groupCol,
   
   allDF <- tibble(decision = "Overall") %>% cbind(allDF)
   
-  rbind(byD, allDF)
+  out <- rbind(byD, allDF)
   
+  tryCatch(
+    {names(out)[-1] <- newNames},
+    error = function(e) warning(paste("Unable to assign names (", e, ")"))
+  )
+  
+  out
 } 
 
 #' Number of points a marker is worth
