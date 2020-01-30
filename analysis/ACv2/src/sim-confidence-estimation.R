@@ -38,7 +38,7 @@ simulateCE <- function(
   agentEgoBiasSD = .2,
   agentEffectSize = .1,
   agentEffectSizeSD = .05
-  ) {
+) {
   require(tidyverse)
   
   if (is.na(nAgents)) {
@@ -76,7 +76,7 @@ simulateCE <- function(
         summarise(n = n())
       
       for (i in 1:nrow(n)) {
-        tmp <- bind_rows(
+        tmp <- rbind(
           tmp,
           AdvisedTrial %>% 
             dplyr::filter(
@@ -85,7 +85,7 @@ simulateCE <- function(
               !(stimHTML %in% tmp$stimHTML)
             ) %>%
             sample_n(n$n[i])
-          )
+        )
       }
       
       tmp$pid <- a
@@ -111,12 +111,25 @@ simulateCE <- function(
           advisor0idDescription,
           agent
         ),
+        responseConfidenceFinalAvg = getAdjustedConfidence(
+          responseConfidence, 
+          advisor0adviceConfidence,
+          agree,
+          advisor0idDescription,
+          agent,
+          'avg'
+        ),
         # negative confidence indicates a switch of sides
         responseAnswerSideFinal = if_else(responseConfidenceFinal > 0,
                                           responseAnswerSide,
                                           1 - responseAnswerSide),
+        responseAnswerSideFinalAvg = if_else(responseConfidenceFinalAvg > 0,
+                                             responseAnswerSide,
+                                             1 - responseAnswerSide),
         responseConfidenceFinal = abs(responseConfidenceFinal),
         responseConfidenceFinal = pmax(0, pmin(100, responseConfidenceFinal)),
+        responseConfidenceFinalAvg = abs(responseConfidenceFinalAvg),
+        responseConfidenceFinalAvg = pmax(0, pmin(100, responseConfidenceFinalAvg)),
         # marking
         responseCorrect = responseAnswerSide == correctAnswerSide,
         responseCorrectFinal = responseAnswerSideFinal == correctAnswerSide
@@ -148,7 +161,7 @@ simulateCE <- function(
                                       responseConfidenceFinal + 
                                         adv.adviceConfidence)
         ) %>%
-      select(-bestAns, -agree, -switch, -nudge)
+        select(-bestAns, -agree, -switch, -nudge)
       
       names(x) <- str_replace(names(x), "adv\\.", paste0(adv, "\\."))
       out <- rbind(out, x)
@@ -176,6 +189,7 @@ simulateCE <- function(
 #' @param agree whether answers are on the same side of the scale
 #' @param advisor name of the advisor
 #' @param agent responsible for initial estimate
+#' @param strategy whether to 'add' or 'avg' advice and initial estimate
 #'
 #' @details Final confidence is an average of initial confidence on one side,
 #'   and advice (signed by agreement) on the other. The average is weighted by
@@ -188,12 +202,16 @@ getAdjustedConfidence <- function(initial,
                                   advice, 
                                   agree,  
                                   advisor, 
-                                  agent) {
+                                  agent, 
+                                  strategy = 'add') {
   advice <- ifelse(agree, advice, -advice)
   egoBias <- ifelse(advisor == "single", 
                     agent$egoBias - agent$es, 
                     agent$egoBias)
-  final <- initial + advice * (1 - egoBias)
+  if (strategy == 'avg') 
+    final <- (initial * egoBias) + (advice * (1 - egoBias))
+  else
+    final <- initial + (advice * (1 - egoBias))
   final
 }
 
@@ -208,7 +226,7 @@ powerAnalysisCE <- function(
   AdvisedTrial, 
   parameters, 
   nCores = detectCores() - 2
-  ) {
+) {
   
   out <- list(
     seedData = AdvisedTrial,
@@ -226,7 +244,7 @@ powerAnalysisCE <- function(
   unpacker <- function(vec, df) {
     do.call(simulateCE, c(list(AdvisedTrial = df), vec))
   }
-
+  
   # out$models$data <- apply(parameters, 1, unpacker, 
   #                          x = AdvisedTrial, f = simulateCE)
   

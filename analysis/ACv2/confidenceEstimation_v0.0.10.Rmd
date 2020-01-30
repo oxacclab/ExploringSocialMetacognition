@@ -27,10 +27,12 @@ December 2019
 ```{r prematter, include = F}
 
 library(tidyverse)
+library(scales)
 library(broom)
 library(BayesFactor)
 library(prettyMD)
 library(knitr)
+library(parallel)
 
 opts_chunk$set('echo' = F)
 
@@ -45,7 +47,7 @@ theme_set(theme_light() +
 ```{r loadData, include = F}
 
 # rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
-# testData <- T
+testData <- F
 
 studyVersion <- "0-0-10"
 studyName <- "confidenceExploration"
@@ -189,9 +191,51 @@ ggplot(tmp,
 
 ### Summary {.summary}
 
-!TODO[summary of task performance]
+Participants' initial decisions were only slightly better than chance. Their final decisions were substantially better, indicating a reasonably high rate of switching from one answer to the other following advice. The time taken to answer each question was consistent with previous experiments.
 
 ## Metacognitive performance
+
+### Confidence
+
+Each answer bar allowed the participant to express their confidence in that answer by selecting a higher point on the bar for a higher confidence, in a range of 0-100% for each decision.
+
+```{r confidence}
+
+decisions %>% peek(responseConfidence, decision) %>%
+  num2str.tibble(isProportion = T, precision = 1)
+
+decisions %>% filter(feedback == T) %>% 
+  peek(responseConfidence, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(feedback = T)
+
+```
+
+```{r confidence graph}
+
+tmp <- decisions %>% group_by(pid, decision, feedback) %>%
+  do(confidence = mean_cl_normal(.$responseConfidence)) %>%
+  unnest(confidence) %>%
+  transmute(pid, decision,
+            confidence = y, 
+            ciLow = ymin,
+            ciHigh = ymax,
+            feedback = if_else(feedback, "With Feedback", "No feedback"))
+
+ggplot(tmp, 
+       aes(x = decision, y = confidence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(x = "decision", 
+       y = "confidence") +
+  facet_grid(~feedback)
+
+```
+
+### Relationship between confidence and p(correct)
 
 Participants indicated the confidence in their decisions simultaneously with the decisions themselves. We can thus explore how well a participant's confidence signals their accuracy. We provide only a brief examination here where normalised responses are split into high and low confidence for each participant, and the accuracies of the two categories are compared. This is done separately for first and last decisions.
 
@@ -237,6 +281,12 @@ ggplot(tmp, aes(x = decision, y = pCorrectDiff)) +
   scale_y_continuous(limits = c(-1, 1))     
  
 ```
+
+### Summary {.summary}
+
+Participants' answers were generally around the midpoint on the scale, with a fair amount of variation between participants. Confidence in final decisions did not appear to be consistently higher than initial estimates, although this is unsurprising given the final decisions are not split by whether the advisor agreed with the initial decision.
+
+The relationship between confidence and the probability of being correct is essentially zero for initial estimates, indicating that participants are guessing on initial decisions. Final decisions did show a relationship where higher confidence in decisions was indicative of a greater probability of being correct, presumably because participants' confidence was readily affected by advice.
 
 ## Advisor performance
 
@@ -336,7 +386,7 @@ tmp %>%
 
 ### Summary {.summary}
 
-!TODO[Advisor performance summary]
+The advisors' performances were within the expected ranges for both the probability and extent of agreement with the participants and the objective accuracy of their advice. The advisors didn't differ substantially from one another in any of these aspects.
 
 ### Influence
 
@@ -433,7 +483,7 @@ tmp %>%
 
 ### Summary {.summary}
 
-!TODO[Influence summary]
+The influence of the advisors (formally tested below) did not show obvious differences between the advisors. while many participants were slightly more influenced by the single advisor, the participants with the largest differences between advisors were influenced more by the mass advisor. As usual, the vast majority of individual trials showed almost no influence of advice; this is somewhat surprising given that participants' initial answers were barely more accurate than guessing.
 
 ## Hypothesis testing
 
@@ -460,9 +510,309 @@ cat(r)
 
 ### Summary {.summary}
 
-!TODO[Hypothesis summary]
+The null model in which the advisors' advice is the same is 5x more likely than the alternative given the data observed. It would be appropriate to conclude that this manipulation does not produce a meaningful difference in advice processing.
 
 ## Exploration
+
+### Do people interpret lower-confidence agreement as supportive or counter?
+
+According to a rational integration of advice, agreement, no matter how low in confidence, ought to increase one's confidence in one's decision. Nevertheless, when presented visually with two markers on a bar, participants may instinctively average within the bar, rather than adding the advisor's confidence to their own. We can test these two models of behaviour in our data.
+
+_Note:_ we only plot a few graphs for an overview; we don't need 30 of them here.
+
+```{r add or average}
+
+capConf <- function(fc, ic) {
+  ifelse(fc < 0, pmax(fc, -100), pmin(100, fc))
+}
+
+#' Model a participant as adding a weighted version of agreeing advice to their 
+#' initial confidence. 
+#' @param is initial side
+#' @param ic initial confidence 
+#' @param as advice side
+#' @param ac advice confidence
+#' @param w weighting of the advice relative to the decisions (0 for ignored; .5
+#'   for even)
+#'
+#' @return vector of final decision confidence, where -ve values represent 
+#'   switching side
+add <- function(is, ic, as, ac, w) {
+  # compensate for disagreement
+  ac <- ifelse(is == as, ac, -ac)
+  capConf(ic + (ac * w), ic)
+}
+avg <- function(is, ic, as, ac, w) {
+  # compensate for disagreement
+  ac <- ifelse(is == as, ac, -ac)
+  capConf(((1 - w) * ic) + (ac * w), ic)
+}
+
+pidModel <- function(p, tbl) {
+  require(tidyverse)
+  d <- tbl %>%
+    filter(pid == p) %>% 
+    select(is = responseAnswerSide, ic = responseConfidence,
+           as = advisor0adviceSide, ac = advisor0adviceConfidence,
+           fs = responseAnswerSideFinal, fc = responseConfidenceFinal) %>%
+    mutate(f = if_else(is == as, fc, -fc))
+  
+  tmp <- tibble(pid = p, x = seq(-10, 20, .01))
+  tmp$add <- sapply(tmp$x, function(w) mean((d$f - add(d$is, d$ic, d$as, d$ac, w)) ^ 2))
+  tmp$avg <- sapply(tmp$x, function(w) mean((d$f - avg(d$is, d$ic, d$as, d$ac, w)) ^ 2))
+  
+  tmp %>% gather("model", "mse", c(add, avg))
+}
+
+modelPlot <- function(m) {
+  low <- m %>% 
+    group_by(model) %>% 
+    filter(mse == min(mse)) %>%
+    group_by(pid, model) %>%
+    summarise_all(mean) %>%
+    mutate(mse = mse ^ .5)
+  
+  ggplot(m, aes(x, mse ^ .5, colour = model)) + 
+    geom_rect(fill = 'grey', colour = NA, xmin = -Inf, xmax = 0, ymin = -Inf, ymax = Inf) +
+    geom_rect(fill = 'grey', colour = NA, xmin = 1, xmax = Inf, ymin = -Inf, ymax = Inf) +
+    geom_vline(aes(xintercept = x, colour = model), data = low, size = 1,
+               linetype = 'dashed') +
+    geom_hline(aes(yintercept = mse, colour = model), data = low, size = 1, 
+               linetype = 'dashed') +
+    geom_line(size = 1) + 
+    geom_label(aes(label = sprintf('%.02f', x), x = x, 
+                   y = -(max(m$mse ^ .5) / 10) * (model == 'avg')), 
+               data = low, nudge_y = max(m$mse ^ .5)) +
+    geom_label(aes(label = sprintf('%.02f', mse), y = mse, 
+                   x = -(max(m$x) / 6) * (model == 'avg')),
+               data = low, nudge_x = max(m$x)) +
+    labs(caption = paste0("Participant ", unique(m$pid)),
+         y = "Root mean squared error from model",
+         x = "Weight of advice relative to initial estimate") 
+}
+
+cl <- makeCluster(detectCores() - 4)
+clusterExport(cl, c("add", "avg", "capConf"))
+
+fits <- parLapply(cl, unique(AdvisedTrial$pid), pidModel, tbl = AdvisedTrial)
+
+stopCluster(cl)
+
+fits %>% head(30) %>% walk(~ modelPlot(.) %>% print())
+
+```
+
+```{r add or average model property analysis}
+
+fits <- bind_rows(fits)
+
+tmp <- fits %>% 
+  group_by(pid, model) %>%
+  filter(mse == min(mse)) %>%
+  summarise_all(mean)
+
+tmp %>% 
+  group_by(model) %>%
+  summarise(okx = mean(x >= 0 & x <= 1))
+
+tmp %>% 
+  group_by(pid) %>%
+  mutate(ok = x >= 0 & x <= 1,
+         okboth = all(ok),
+         okneither = all(!ok)) %>%
+  select(-x, -ok) %>%
+  spread(model, mse) %>%
+  mutate(avgBest = if_else(avg <= add, T, F)) %>%
+  ungroup() %>%
+  summarise_if(is.logical, mean)
+
+```
+
+```{r show best fit models by participant}
+
+ws <- tmp %>% 
+  select(-mse) %>%
+  spread(model, x)
+
+d <- AdvisedTrial %>% 
+  mutate(agree = if_else(is.na(single.agree | mass.agree), F, T)) %>%
+  select(
+    pid,
+    agree,
+    stim = stimHTML,
+    anchor = anchorDate,
+    ans = correctAnswer,
+    side = correctAnswerSide,
+    is = responseAnswerSide,
+    ic = responseConfidence,
+    as = advisor0adviceSide,
+    ac = advisor0adviceConfidence,
+    fs = responseAnswerSideFinal,
+    fc = responseConfidenceFinal
+    ) %>%
+  left_join(ws, by = 'pid') %>%
+  mutate(
+    fc.target = if_else(is == fs, fc, -fc),
+    fc.add = add(is, ic, as, ac, add),
+    fc.avg = avg(is, ic, as, ac, avg)
+  )
+
+d
+
+d %>% gather('model', 'prediction', c(fc.add, fc.avg, ic)) %>%
+  group_by(pid) %>%
+  group_map(
+    ~ ggplot(data = .x, aes(x = fc.target, y = prediction, colour = model)) +
+      geom_abline(intercept = 0, slope = 1, linetype = 'dashed', colour = 'black') +
+      geom_point() +
+      geom_smooth(method = 'lm', se = F) +
+      scale_x_continuous(limits = c(-100, 100), expand = c(0, 0)) +
+      scale_y_continuous(limits = c(-100, 100), expand = c(0, 0)) +
+      scale_color_manual(values = c(hue_pal()(2), 'black')) +
+      coord_fixed() +
+      labs(caption = paste0('Participant ', .y$pid[1], 
+                            '; w.add = ', round(.x$add[1], 2), 
+                            '; w.avg = ', round(.x$avg[1], 2)))
+  )
+
+```
+
+This pattern may be dominated by disagreeing trials, which have a more intuitive presentation where averaging produces a more add-like final answer. So let's just look at agreement trials. We also only want those trials where the participant didn't (rather inexplicably given agreement) change their mind. Again, we plot a few graphs to see how things look.
+
+```{r add or average agree only}
+
+cl <- makeCluster(detectCores() - 4)
+clusterExport(cl, c("add", "avg", "capConf"))
+
+tmp <- AdvisedTrial %>%
+  mutate(agree = if_else(is.na(single.agree | mass.agree), F, T)) %>%
+  filter(agree, responseAnswerSide == responseAnswerSideFinal)
+
+fitsAgree <- parLapply(cl, unique(AdvisedTrial$pid), pidModel, 
+                  tbl = tmp)
+
+stopCluster(cl)
+
+fitsAgree %>% head(30) %>% walk(~ modelPlot(.) %>% print())
+
+fitsAgree <- bind_rows(fitsAgree)
+
+tmp <- fitsAgree %>% 
+  group_by(pid, model) %>%
+  filter(mse == min(mse)) %>%
+  summarise_all(mean)
+
+tmp %>% 
+  group_by(model) %>%
+  summarise(okx = mean(x >= 0 & x <= 1))
+
+compare <- tmp %>% 
+  group_by(pid) %>%
+  mutate(ok = x >= 0 & x <= 1,
+         okboth = all(ok),
+         okneither = all(!ok)) %>%
+  select(-x, -ok) %>%
+  spread(model, mse) %>%
+  mutate(
+    `avg-add` = avg - add,
+    avgBest = if_else(avg <= add, T, F)
+    )
+
+compare %>%
+  ungroup() %>%
+  summarise_if(is.logical, mean)
+
+```
+
+```{r best fit models by participant}
+
+ws <- tmp %>% 
+  select(-mse) %>%
+  spread(model, x)
+
+d <- d %>%
+  left_join(ws, by = 'pid', suffix = c('', '.agrOnly')) %>%
+  mutate(
+    fc.add.agrOnly = add(is, ic, as, ac, add.agrOnly),
+    fc.avg.agrOnly = avg(is, ic, as, ac, avg.agrOnly)
+  )
+
+d %>% gather('model', 'prediction', c(fc.add.agrOnly, fc.avg.agrOnly, ic)) %>%
+  filter(agree, is == fs) %>% 
+  group_by(pid) %>%
+  group_map(
+    ~ ggplot(data = .x, aes(x = fc.target, y = prediction, colour = model)) +
+      geom_abline(intercept = 0, slope = 1, linetype = 'dashed', colour = 'black') +
+      geom_point() +
+      geom_smooth(method = 'lm', se = F) +
+      scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
+      scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) +
+      scale_colour_manual(values = c(hue_pal()(2), 'black')) +
+      coord_fixed() +
+      labs(caption = paste0('Participant ', .y$pid[1], 
+                            '; w.add = ', round(.x$add.agrOnly[1], 2), 
+                            '; w.avg = ', round(.x$avg.agrOnly[1], 2)))
+  )
+
+```
+
+Another way we can look at this is to ask what the probability of increasing your confidence is, given you answer in the same direction and the advisor agreed with you. Rationally, you should always increase your confidence, but if you're doing visual averaging you'll always decrease your confidence. 
+
+```{r rational response}
+
+tmp <- d %>% filter(agree, is == fs, ic != fc) %>% 
+  mutate(ihigh = ic > ac,
+         increase = fc > ic) 
+
+tmp %>%
+  group_by(pid, ihigh) %>%
+  summarise(increase = mean(increase)) %>%
+  spread(ihigh, increase, sep = "=") %>%
+  rename_at(vars(2:3), ~ paste0('p(increase|', ., ')'))
+
+tmp %>%
+  filter(ihigh) %>%
+  group_by(pid) %>%
+  summarise(increase = mean(increase)) %>%
+  ggplot(aes(x = "", y = increase)) +
+  geom_violin(colour = NA, fill = 'lightgrey', size = 0) +
+  geom_boxplot(outlier.color = NA, width = .1, size = 2) +
+  geom_point(aes(x = 1.12), size = 2, alpha = .5, 
+             position = position_jitter(.02)) +
+  labs(x = "", y = "p(confidence increases)")
+
+tmp %>% 
+  mutate(adviceConf = cut(ac, breaks = c(-1, 25, 50, 75, 101))) %>%
+  ggplot(aes(x = ic, y = fc, colour = adviceConf)) +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed') +
+  geom_smooth(aes(linetype = ihigh), method = 'lm', se = F) +
+  geom_point(aes(shape = ihigh), size = 2) +
+  scale_colour_discrete(name = "Advice confidence") +
+  scale_shape_manual(values = c(4, 16), 
+                     name = "Initial confidence > advice confidence") +
+  scale_linetype_discrete(name = "Initial confidence > advice confidence") + 
+  coord_fixed() +
+  labs(x = "Initial estimate confidence",
+       y = "Final decision confidence") +
+  theme(legend.position = "top",
+        panel.grid = element_blank())
+
+tmp %>% 
+  filter(ihigh) %>%
+  mutate(difference = as.numeric((ic - ac) / ic)) %>%
+  ggplot(aes(x = ic, y = fc, colour = difference)) +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed') +
+  geom_smooth(method = 'lm', se = F) +
+  geom_point(size = 4) +
+  scale_colour_continuous(name = "(initial confidence - advice confidence) / initial confidence",
+                          type = 'viridis') +
+  coord_fixed() +
+  labs(x = "Initial estimate confidence",
+       y = "Final decision confidence") +
+  theme(legend.position = "top",
+        panel.grid = element_blank())
+
+```
 
 # Conclusions {.summary}
 

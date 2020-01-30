@@ -81,7 +81,7 @@ if (testData) {
 
 # Introduction
 
-Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors cannot be clear on how advisors' expressed confidence relates to their actual confidence. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of known versus unknown confidence representations, we manipulated whether participants believed advice to come from a consistent advisor or from one of a number of advisors on each trial in a judge-advisor system. Participants had two experimental blocks: in one the advice they received was always labelled as coming from a consistent individual, while in the other the advice was labelled as coming from a different advisor each time. All advice was drawn from the same distribution, which was centred on the correct answer (i.e. all of the advice was helpful on avereage). 
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors cannot be clear on how advisors' expressed confidence relates to their actual confidence. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of known versus unknown confidence representations, we manipulated whether participants believed advice to come from a consistent advisor or from one of a number of advisors on each trial in a judge-advisor system. Participants had two experimental blocks: in one the advice they received was always labeled as coming from a consistent individual, while in the other the advice was labeled as coming from a different advisor each time. All advice was drawn from the same distribution, which was centred on the correct answer (i.e. all of the advice was helpful on average). 
 
 After 10 trials in each block in which feedback on the correct answers was provided so participants could learn about the advisor/s, participants performed 5 trials without feedback. 
 
@@ -89,7 +89,7 @@ We hypothesised that participants would place greater weight on the advice of th
 
 # Method
 
-The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiement can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html?PROLIFIC_PID=WriteUp). 
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiment can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html?PROLIFIC_PID=WriteUp). 
 
 # Results
 
@@ -193,9 +193,7 @@ ggplot(tmp,
 
 ## Metacognitive performance
 
-Participants indicated the confidence in their decisions simultaneously with the decisions themselves. We can thus explore how well a participant's confidence signals their accuracy.
-
-The first step in this process is to normalise confidence within that participant's responses. This is done separately for first and last decisions.
+Participants indicated the confidence in their decisions simultaneously with the decisions themselves. We can thus explore how well a participant's confidence signals their accuracy. We provide only a brief examination here where normalised responses are split into high and low confidence for each participant, and the accuracies of the two categories are compared. This is done separately for first and last decisions.
 
 ```{r confidence normalisation}
 
@@ -205,10 +203,6 @@ decisions <- decisions %>%
   ungroup() 
 
 ```
-
-### High/low split
-
-We split confidence into simple high/low (above/below mean confidence) and explore the pCorrect for each side.
 
 ```{r confidence binary split}
 
@@ -243,10 +237,6 @@ ggplot(tmp, aes(x = decision, y = pCorrectDiff)) +
   scale_y_continuous(limits = c(-1, 1))     
  
 ```
-
-## Perhaps more confidence stuff - Brier score/ROC {.summary}
-
-!TODO[Decide/implement]
 
 ## Advisor performance
 
@@ -410,8 +400,10 @@ tmp <- AdvisedTrial %>%
   mutate(
     accBF = map(data, ~ correlationBF(.x$responseCorrect, 
                                     .x$advisor0influence)),
+    acc.BF = map(accBF, ~ exp(.@bayesFactor$bf)),
     conBF = map(data, ~ correlationBF(.x$responseConfidence, 
                                     .x$advisor0influence)),
+    con.BF = map(conBF, ~ exp(.@bayesFactor$bf)),
     acc = map(data, ~ cor.test(as.numeric(.x$responseCorrect), 
                                .x$advisor0influence)), 
     acc = map(acc, tidy),
@@ -419,12 +411,23 @@ tmp <- AdvisedTrial %>%
     con = map(con, tidy)
   ) %>% 
   unnest(acc, .sep = ".") %>%
-  unnest(con, .sep = ".")
+  unnest(con, .sep = ".") %>%
+  unnest(acc.BF, con.BF)
+
+tmp <- bind_rows(
+  tmp %>% 
+    select_at(vars(starts_with('acc'))) %>%
+    rename_all(~ str_replace(., 'acc\\.(.+)', '\\1')) %>%
+    mutate(property = 'accuracy'),
+  tmp %>% 
+    select_at(vars(starts_with('con'))) %>%
+    rename_all(~ str_replace(., 'con\\.(.+)', '\\1')) %>%
+    mutate(property = 'confidence')
+)
 
 tmp %>% 
-  select_if(is.numeric) %>% 
-  summarise_if(is.numeric, mean, na.rm = T) %>% 
-  t() 
+  group_by(property) %>%
+  summarise_if(is.numeric, mean, na.rm = T)
 
 ```
 

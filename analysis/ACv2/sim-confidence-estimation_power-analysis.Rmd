@@ -5,7 +5,7 @@ date: "20/01/2020"
 output: html_document
 ---
 
-```{r echo = F}
+```{r echo = F, include = F}
 library(tidyverse)
 library(ggpubr)
 library(broom)
@@ -62,11 +62,11 @@ params <- tibble(
   agentConfidenceSD = 4,
   agentEgoBias = .7, 
   agentEgoBiasSD = .2,
-  agentEffectSize = seq(.0, .2, by = .025),
+  agentEffectSize = seq(.0, .2, by = .005),
   agentEffectSizeSD = .05
 )
 
-params <- crossing(tibble(nAgents = seq(10, 50, 5)), params)
+params <- crossing(tibble(nAgents = seq(10, 50, 10)), params)
 
 params
 
@@ -84,7 +84,8 @@ sim <- powerAnalysisCE(AdvisedTrial, params)
 peek <- cbind(
   sim$parameters,
   map_dfr(sim$models$analysis, rbind)
-)
+) %>%
+  mutate(parameter = factor(parameter))
 
 peek
 
@@ -97,7 +98,7 @@ peek
 ggplot(peek, aes(x = agentEffectSize, y = BF, colour = parameter)) +
   geom_hline(yintercept = 3) + 
   geom_hline(yintercept = 1/3) +
-  geom_smooth(method = 'lm') +
+  geom_smooth(method = 'lm', alpha = .1) +
   stat_cor() + 
   geom_point() +
   scale_y_log10() +
@@ -106,11 +107,57 @@ ggplot(peek, aes(x = agentEffectSize, y = BF, colour = parameter)) +
 
 ggplot(peek, aes(x = agentEffectSize, y = p.value, colour = parameter)) +
   geom_hline(yintercept = .05) + 
-  geom_smooth(method = 'lm') +
+  geom_smooth(method = 'lm', alpha = .1) +
   stat_cor() + 
   geom_point() +
   scale_y_continuous(limits = c(0, 1)) +
   labs(title = "p-value for influence t-test",
        subtitle = paste0("N = ", length(unique(AdvisedTrial$pid))))
+
+```
+
+A better way to look at this is probably a heatmap. For this we'll want a few repetitions at each parameter set. This may take a long time to run!
+
+```{r}
+
+
+paramReps <- crossing(tibble(reps = 1:10), params)
+
+paramReps <- paramReps %>% select(-reps)
+
+simReps <- powerAnalysisCE(AdvisedTrial, paramReps)
+
+peek <- cbind(
+  simReps$parameters,
+  map_dfr(simReps$models$analysis, rbind)
+) %>%
+  mutate(parameter = factor(parameter)) 
+
+peek <- peek %>%
+  group_by_at(vars(names(simReps$parameters))) %>%
+  summarise(
+    `p(p<.05)` = mean(p.value < .05),
+    `p(BF>3)-p(BF<.3)` = mean(BF > 3) - mean(BF < 1/3) 
+  )
+
+peek
+
+```
+
+```{r}
+peek %>% 
+  mutate(p = sprintf('%.1f', `p(p<.05)`)) %>%
+  ggplot(aes(x = nAgents, y = agentEffectSize, fill = `p(p<.05)`)) +
+  geom_tile() +
+  geom_text(aes(label = p)) + 
+  coord_fixed(max(peek$nAgents) / max(peek$agentEffectSize))
+
+peek %>% 
+  mutate(p = sprintf('%-.1f', `p(BF>3)-p(BF<.3)`)) %>%
+  ggplot(aes(x = nAgents, y = agentEffectSize, fill = `p(BF>3)-p(BF<.3)`)) +
+  geom_tile() +
+  geom_text(aes(label = p)) + 
+  coord_fixed(max(peek$nAgents) / max(peek$agentEffectSize)) +
+  scale_fill_viridis_c(limits = c(-1, 1), option = 'plasma')
 
 ```

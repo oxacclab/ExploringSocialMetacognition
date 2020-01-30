@@ -1,0 +1,281 @@
+---
+title: "Effects of low confidence agreement on metacognition indices"
+author: "Matt Jaquiery"
+date: "27/01/2020"
+output: html_document
+---
+
+```{r echo = F, include = F}
+library(Hmisc)
+library(tidyverse)
+library(ggpubr)
+library(broom)
+library(BayesFactor)
+library(prettyMD)
+library(knitr)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20191216)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid.major.x = element_blank()))
+
+testData <- T
+
+studyVersion <- "0-0-10"
+studyName <- "confidenceExploration"
+
+exclude <- list(
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1     # some advice taken on 10%+ of trials
+  ) 
+
+skipLoadData <- F
+
+source("src/02_Exclusions.R")
+
+```
+
+## Introduction
+
+Imagine you have some (binary) decision you're pretty confident about. You get advice which agrees with you, but is given with low confidence. What should you do?
+a) increase your confidence in your decision
+b) decrease your confidence in your decision
+Why?
+
+This is the problem we're trying to address. Is there a normative answer? We'll investigate by using simulations. First, we'll use questions and advice presented to human participants in an experiment to generate responses from artificial agents which engage with the advice in one of two ways: adding or averaging. When the agents add they increase their confidence in proportion to the confidence of (agreeing) advice. When they average, their final decision confidence is a weighted average of their confidence and the confidence of (agreeing) advice. 
+
+## Data 
+
+We modify a version of the data collected from a previous experiment. Use the questions and the advice from the experimental data, but we fit in simulations of initial estimates based on the question and final decisions based on the initial estimates and advice. We need to set up some parameters for the population of agents who'll provide the simulated trials.
+
+```{r}
+source('src/sim-confidence-estimation.R')
+
+sim <- simulateCE(
+  AdvisedTrial,
+  nAgents = 100,
+  agentInsensitivitySD = 8,
+  agentConfidence = 2,
+  agentConfidenceSD = 4,
+  agentEgoBias = .7, 
+  agentEgoBiasSD = .2,
+  agentEffectSize = .1,
+  agentEffectSizeSD = .05
+)
+
+d <- sim$trials %>% 
+  select(
+    pid,
+    stim = stimHTML,
+    anchor = anchorDate,
+    ans = correctAnswer,
+    side = correctAnswerSide,
+    is = responseAnswerSide,
+    ic = responseConfidence,
+    as = advisor0adviceSide,
+    ac = advisor0adviceConfidence,
+    fs.add = responseAnswerSideFinal,
+    fc.add = responseConfidenceFinal,
+    fs.avg = responseAnswerSideFinalAvg,
+    fc.avg = responseConfidenceFinalAvg
+    ) %>%
+  mutate(agree = is == as)
+
+```
+
+```{r}
+
+tmp <- d %>% 
+  filter(agree, 
+         is == fs.add,
+         is == fs.avg, 
+         ic != fc.add,
+         ic != fc.avg) %>% 
+  mutate(ihigh = ic > ac) %>%
+  gather("model", "fc", c(fc.add, fc.avg)) %>%
+  mutate(model = factor(model, labels = c('Adding', 'Averaging')))
+
+tmp %>% 
+  filter(ihigh) %>%
+  mutate(difference = as.numeric((ac - ic) / ic)) %>%
+  ggplot(aes(x = ic, y = fc, colour = difference)) +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed') +
+  geom_point(size = 4) +
+  scale_colour_continuous(name = "(advice confidence - initial confidence) / initial confidence",
+                          type = 'viridis') +
+  scale_x_continuous(limits = c(0, 100)) +
+  scale_y_continuous(limits = c(0, 100)) +
+  coord_fixed() +
+  facet_wrap(~model) +
+  labs(x = "Initial estimate confidence",
+       y = "Final decision confidence") +
+  theme(legend.position = "top",
+        panel.grid = element_blank())
+
+```
+
+We see the two strategies have some recognisable properties. First, they always result in increasing (decreasing) confidence for the adding (averaging) strategy. As the advice confidence increases (bluer dots) the amount added increases, while the confidence decrease from averaging shrinks. Thus both strategies perform rationally such that more confidence agreement results in relatively more confident final decisions. 
+
+Next we ask Whether final decisions **should** be more or less confident than initial estimates.
+
+```{r}
+
+tmp <- d %>%
+  group_by(pid) %>%
+  nest() %>%
+  mutate(
+    cor.add = map(data, ~rcorr(.$fc.add, .$fs.add == .$side)),
+    cor.avg = map(data, ~rcorr(.$fc.avg, .$fs.avg == .$side)),
+    r.add = map(cor.add, ~ tidy(.)),
+    r.avg = map(cor.avg, ~ tidy(.))
+  ) %>%
+  unnest(cols = c(r.add, r.avg), names_sep = ".")
+
+tmp <- tmp %>% 
+  mutate(avgBest = r.avg.estimate > r.add.estimate) %>%
+  pivot_longer(cols = tidyselect::matches('r\\.(add|avg)\\.estimate'), 
+               names_to = "model",
+               names_pattern = '(add|avg)',
+               values_to = "r") %>%
+  select(pid, model, r, avgBest) %>%
+  filter_if(is.numeric, all_vars(!is.na(.))) %>%
+  filter(!is.na(avgBest))
+
+tt <- t.test(r ~ model, data = tmp, paired = T) %>% tidy()
+
+tmp %>%
+  ggplot(aes(x = model, y = r)) +
+  geom_line(aes(group = pid, colour = avgBest), alpha = .25) +
+  geom_violin(size = 2, fill = NA) +
+  geom_boxplot(width = .1, size = 2, fill = NA, outlier.color = NA) +
+  annotate(geom = 'text', y = 1, x = 1.5, 
+           label = paste0('t(', tt$parameter, ') = ',
+                          round(tt$statistic, 2), '; ',
+                          'p = ', round(tt$p.value, 3))) +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme(legend.position = "top",
+        panel.grid = element_blank()) 
+
+```
+
+Comparing the models' performance in terms of the correlation between the final decision confidence and whether the final decision was actually correct (by agent) shows no pattern: no strategy produces systematically tighter correlations overall. This is not because the strategies are the same - they make quite large differences for some agents. 
+
+Perhaps we get a different pattern if we look at the final correctness correlation with confidence change rather than absolute confidence.
+
+```{r}
+
+tmp <- d %>%
+  group_by(pid) %>%
+  nest() %>%
+  mutate(
+    cor.add = map(data, ~rcorr(.$fc.add - .$ic, .$fs.add == .$side)),
+    cor.avg = map(data, ~rcorr(.$fc.avg - .$ic, .$fs.avg == .$side)),
+    r.add = map(cor.add, ~ tidy(.)),
+    r.avg = map(cor.avg, ~ tidy(.))
+  ) %>%
+  unnest(cols = c(r.add, r.avg), names_sep = ".")
+
+tmp <- tmp %>% 
+  mutate(avgBest = r.avg.estimate > r.add.estimate) %>%
+  pivot_longer(cols = tidyselect::matches('r\\.(add|avg)\\.estimate'), 
+               names_to = "model",
+               names_pattern = '(add|avg)',
+               values_to = "r") %>%
+  select(pid, model, r, avgBest) %>%
+  filter_if(is.numeric, all_vars(!is.na(.))) %>%
+  filter(!is.na(avgBest))
+
+tt <- t.test(r ~ model, data = tmp, paired = T) %>% tidy()
+
+tmp %>%
+  ggplot(aes(x = model, y = r)) +
+  geom_line(aes(group = pid, colour = avgBest), alpha = .25) +
+  geom_violin(size = 2, fill = NA) +
+  geom_boxplot(width = .1, size = 2, fill = NA, outlier.color = NA) +
+  annotate(geom = 'text', y = 1, x = 1.5, 
+           label = paste0('t(', tt$parameter, ') = ',
+                          round(tt$statistic, 2), '; ',
+                          'p = ', round(tt$p.value, 3),
+                          '; Madd - Mavg = ', round(tt$estimate, 3))) +
+  scale_y_continuous(limits = c(-1, 1)) +
+  theme(legend.position = "top",
+        panel.grid = element_blank()) 
+
+```
+
+The change in confidence differentiates the strategies. While both strategies show that a greater increase (or lower decrease) in confidence is more strongly associated with being correct than being wrong, this relationship is more pronounced under the adding strategy. This is true both in terms of overall averages, and the frequency with which each strategy emerges as the best for an individual participant. 
+
+Next we can pretend that our agents bet a number of credits equal to their confidence on each trial, and look at the sums ammassed under each strategy.
+
+```{r}
+
+tmp <- d %>%
+  group_by(pid) %>%
+  mutate(
+    score.add = if_else(fs.add == side, fc.add, -fc.add),
+    score.avg = if_else(fs.avg == side, fc.avg, -fc.avg)
+  ) %>%
+  summarise(
+    score.add = mean(score.add),
+    score.avg = mean(score.avg)
+  )
+
+tmp <- tmp %>% 
+  mutate(avgBest = score.avg > score.add) %>%
+  pivot_longer(cols = tidyselect::matches('score\\.(add|avg)'), 
+               names_to = "model",
+               names_pattern = '(add|avg)',
+               values_to = "score") %>%
+  select(pid, model, score, avgBest) %>%
+  filter_if(is.numeric, all_vars(!is.na(.))) %>%
+  filter(!is.na(avgBest))
+
+tt <- t.test(score ~ model, data = tmp, paired = T) %>% tidy()
+
+tmp %>%
+  ggplot(aes(x = model, y = score)) +
+  geom_hline(yintercept = 0, colour = 'lightgrey', size = 2) +
+  geom_line(aes(group = pid, colour = avgBest), alpha = .25) +
+  geom_violin(size = 2, fill = NA) +
+  geom_boxplot(width = .1, size = 2, fill = NA, outlier.color = NA) +
+  annotate(geom = 'text', x = 1.5, y = max(tmp$score) * 1.1, 
+           label = paste0('t(', tt$parameter, ') = ',
+                          round(tt$statistic, 2), '; ',
+                          'p = ', round(tt$p.value, 3),
+                          '; Madd - Mavg = ', round(tt$estimate, 3))) +
+  theme(legend.position = "top",
+        panel.grid = element_blank()) 
+
+```
+
+Using this important outcome measure (Bayesians love bets...) we see a distinct and consistent advantage for the adding strategy. Again, this is true both overall and for almost all agents individually. 
+
+## Relationship between confidence in binary decisions and confidence in point estimates
+
+Part of the reason why this problem seems so problematic is that the optimal behaviour for confidence appears to be counter to the optimal behaviour for point estimates. Let's see if we can integrate these two different perspectives to see if we can produce agents which use a mixture of strategies.
+
+Agents will have their own idea of when an event occurred, including a **confidence in that estimate**, yielding a probability distribution for the date. The ratio of the integrals of this distribution bisected at the anchor date gives the **confidence in the binary decision**. 
+
+Agents will attempt to model advice as if it had come from themselves (i.e. what point-estimate/confidence combos would lead to the integral giving the ratio required for the observed confidence in the binary decision), and then use a weighted combination of their own internal estimate plus the inferred advice estimate to produce a final estimate probability distribution, whose ratio of integrals can be used to calculate the final decision confidence.
+
+The process looks like this:
+```{r}
+tmp <- tibble(
+  date = 1900:2000,
+  confidence = dnorm(date, 1980, 5)
+)
+
+ggplot(tmp, aes(x = date, y = confidence)) +
+  geom_line() + 
+  geom_vline(xintercept = 1969, linetype = 'dashed') +
+  annotate(geom = 'label', x = 1969, y = max(tmp$confidence) * 1.1,
+           label = "Anchor date") +
+  labs(title = "First Mini goes on sale (1959)") 
+
+```
+
+So let's do that. And then look at whether agents switch strategies depending on their various confidences/estimates of advisor confidence.
