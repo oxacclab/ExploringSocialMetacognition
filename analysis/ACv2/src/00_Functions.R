@@ -116,7 +116,7 @@ getLabels <- function(
   
   for (n in names(tbl)) {
     lab <- dict %>% 
-      filter(!is.na(str_match(n, paste0('^', variable, '$'))))
+      dplyr::filter(!is.na(str_match(n, paste0('^', variable, '$'))))
     
     if (!nrow(lab) && 'variable' %in% warnOnMissing) {
       warning(paste0("Column ", n, " missing associated dictionary variable\n"))
