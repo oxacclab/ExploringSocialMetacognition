@@ -154,3 +154,297 @@ ggplot(d, aes(x = s, y = pCorrect, group = s)) +
   annotate(geom = "text", x = 15, y = .9, label = "Anchor SD = 8.0") +
   annotate(geom = "label", x = 3, y = .7, label = "70% accuracy")
 ```
+
+# Confidence
+
+We want to provide advisors who are equally accurate, and whose confidence is equally useful at determining p(correct) when known, while differing in their absolute confidence. The first question is whether we can do this by simply varying the SD of the advisors.
+
+## Confidence of advisor with SD = Anchor SD
+
+An advisor's confidence is taken with reference to a limit. The limit defines the year distance between guess and anchor at which the advisor is 100% confidence. The advisor's confidence increases linearly as the distance between guess and anchor grows towards the limit. 
+
+```{r}
+
+n <- 1000
+limit <- 30
+
+x <- tibble(
+  i = 1:n,
+  anchor = rnorm(n, sd = 8),
+  guess = rnorm(n, sd = 8),
+  correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor),
+  confidence = pmin(100, pmax(0, abs(guess - anchor) / limit * 100))
+)
+
+ggplot(x, aes(x = anchor, y = guess, colour = confidence)) + 
+  geom_point() +
+  coord_fixed()
+
+ggplot(x, aes(x = confidence)) + 
+  geom_histogram(bins = 10)
+
+f <- function(binRight, binWidth, data) {
+  data %>% 
+    filter(confidence > binRight - binWidth, confidence <= binRight) %>%
+    pull(correct) %>%
+    mean()
+}
+
+pCorrect <- tibble(
+  bin = seq(10, 100, 10),
+  pCor = map(bin, ~ f(., 10, x))
+) %>% unnest_legacy()
+
+ggplot(pCorrect, aes(x = bin / 100, y = pCor)) +
+  geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
+  geom_point(shape = 4) +
+  geom_line() +
+  coord_fixed() +
+  scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+  scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
+  labs(x = 'confidence / 100', y = 'p(correct)')
+
+x <- x %>%
+  mutate(bin = map(confidence, ~ 10 * min(which(seq(10, 100, 10) >= .)))) %>%
+  unnest_legacy() %>%
+  left_join(pCorrect, by = 'bin')
+
+```
+
+The advisors are thus pretty neatly distributed with a half-normal distribution of confidence centred on 0 and an SD dependent on both the limit and the advisor's accuracy. We'll now see how these distributions behave given differences in the limit and advisor accuracy.
+
+## Change in confidence given change in SD ratio
+
+```{r}
+limits <- c(20, 30, 40, 50)
+sds <- c(2, 4, 8, 16)
+
+n <- 1000
+
+x <- crossing(
+  i = 1:n,
+  limit = limits,
+  sd = sds
+)
+
+x <- x %>%
+  mutate(
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = sd),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor),
+    confidence = round(pmin(100, pmax(0, abs(guess - anchor) / limit * 100)))
+)
+
+ggplot(x, aes(x = anchor, y = guess, colour = confidence)) + 
+  geom_point() +
+  coord_fixed() +
+  scale_x_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_grid(sd ~ limit, labeller = label_both)
+
+ggplot(x, aes(x = confidence)) + 
+  geom_histogram(bins = 10) +
+  facet_grid(sd ~ limit, labeller = label_both, scales = 'free_y')
+
+x <- x %>%
+  mutate(bin = map(confidence, ~ 10 * min(which(seq(10, 100, 10) >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = c(-bin, -limit, -sd)) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy()
+
+x %>%
+  select(bin, limit, sd, pCor) %>%
+  unique() %>%
+  ggplot(aes(x = bin / 100, y = pCor)) +
+  geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
+  geom_point(shape = 4) +
+  geom_line() +
+  coord_fixed() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  labs(x = 'confidence / 100', y = 'p(correct)') +
+  facet_grid(sd ~ limit, labeller = label_both)
+
+```
+
+## Advisor confidence adjustment
+
+There appear to be two reasonable strategies for modifying advice confidence while maintaining metacognitive characteristics: a) shifting the distribution by adding a constant and b) using more of the scale.
+
+### Shifting the distribution
+
+```{r}
+
+agents <- c('lowConf', 'highConf')
+biases <- c(0, 30)
+limit <- 30
+
+n <- 1000
+
+x <- crossing(
+  i = 1:n,
+  agent = agents
+)
+
+x <- x %>%
+  mutate(
+    bias = if_else(agent == 'lowConf', biases[1], biases[2]),
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = 8),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor),
+    confidence = round(
+      pmin(100, pmax(0, abs(guess - anchor) / limit * 100 + bias))
+      )
+)
+
+ggplot(x, aes(x = anchor, y = guess, colour = confidence)) + 
+  geom_point() +
+  coord_fixed() +
+  scale_x_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_wrap(~agent, labeller = label_both)
+
+ggplot(x, aes(x = confidence, fill = agent)) + 
+  geom_histogram(bins = 10, alpha = .5, position = position_identity())
+
+x <- x %>%
+  mutate(bin = map(confidence, ~ 10 * min(which(seq(10, 100, 10) >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = c(-bin, -agent)) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy()
+
+x %>%
+  select(bin, agent, pCor) %>%
+  unique() %>%
+  ggplot(aes(x = bin / 100, y = pCor, colour = agent)) +
+  geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
+  geom_point(shape = 4) +
+  geom_line() +
+  coord_fixed() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  labs(x = 'confidence / 100', y = 'p(correct)')
+
+```
+
+### Using more of the scale
+
+This is achieved by changing the limit for an advisor.
+
+```{r}
+agents <- c('lowConf', 'highConf')
+limits <- c(25, 40)
+
+n <- 1000
+
+x <- crossing(
+  i = 1:n,
+  agent = agents
+)
+
+x <- x %>%
+  mutate(
+    limit = if_else(agent == 'lowConf', limits[1], limits[2]),
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = 8),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor),
+    confidence = round(
+      pmin(100, pmax(0, abs(guess - anchor) / limit * 100))
+      )
+)
+
+ggplot(x, aes(x = anchor, y = guess, colour = confidence)) + 
+  geom_point() +
+  coord_fixed() +
+  scale_x_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_wrap(~agent, labeller = label_both)
+
+ggplot(x, aes(x = confidence, fill = agent)) + 
+  geom_histogram(bins = 10, alpha = .5, position = position_identity())
+
+x <- x %>%
+  mutate(bin = map(confidence, ~ 10 * min(which(seq(10, 100, 10) >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = c(-bin, -agent)) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy()
+
+x %>%
+  select(bin, agent, pCor) %>%
+  unique() %>%
+  ggplot(aes(x = bin / 100, y = pCor, colour = agent)) +
+  geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
+  geom_point(shape = 4) +
+  geom_line() +
+  coord_fixed() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  labs(x = 'confidence / 100', y = 'p(correct)')
+```
+
+## Crush and shift
+
+Another option for modifying confidence judgements is to have advisors make them on a smaller scale and then shift the resulting confidence judgements by some amount.
+
+```{r}
+
+agents <- c('lowConf', 'highConf')
+biases <- c(0, 30)
+crush <- 30
+limit <- 30
+
+n <- 1000
+
+x <- crossing(
+  i = 1:n,
+  agent = agents
+)
+
+x <- x %>%
+  mutate(
+    bias = if_else(agent == 'lowConf', biases[1], biases[2]),
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = 8),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor),
+    confidence = round(
+      pmin(100, pmax(0, abs(guess - anchor) / limit * (100 - crush) + bias))
+      )
+)
+
+ggplot(x, aes(x = anchor, y = guess, colour = confidence)) + 
+  geom_point() +
+  coord_fixed() +
+  scale_x_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_wrap(~agent, labeller = label_both)
+
+ggplot(x, aes(x = confidence, fill = agent)) + 
+  geom_histogram(bins = 10, alpha = .5, position = position_identity())
+
+x <- x %>%
+  mutate(bin = map(confidence, ~ 10 * min(which(seq(10, 100, 10) >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = c(-bin, -agent)) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy()
+
+x %>%
+  select(bin, agent, pCor) %>%
+  unique() %>%
+  ggplot(aes(x = bin / 100, y = pCor, colour = agent)) +
+  geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
+  geom_point(shape = 4) +
+  geom_line() +
+  coord_fixed() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  labs(x = 'confidence / 100', y = 'p(correct)')
+
+```
