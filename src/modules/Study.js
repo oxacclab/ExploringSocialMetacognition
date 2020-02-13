@@ -1319,18 +1319,21 @@ class DatesStudy extends Study {
                     // Ids of advisors in the block
                     const block = this.blocks[b];
 
-                    if(!block.advisors)
-                        return this.info("No block advisors to process.");
+                    if(!block.advisors) {
+                        this.info("No block advisors to process.");
+                        continue;
+                    }
+
 
                     const ids = block.advisors.map(a => a.id);
 
                     // Skip if no shuffling needed
                     if(ids.length <= 1 ||
                         ids.length === block.advisorsPerTrial)
-                        return;
+                        continue;
 
                     if(!block.advisorsPerTrial)
-                        return;
+                        continue;
 
                     // Count valid trials (core, non attn check)
                     const validTrials = this.trials.filter(
@@ -1340,18 +1343,25 @@ class DatesStudy extends Study {
                     // Make drop lists for advisors to be removed from the trial advisors.
                     // First one is balanced, thereafter done randomly.
                     // I.e. this is only balanced for nAdvisors = nOptions - 1
-                    const mix = utils.shuffleShoe(ids,
+                    const mix = utils.shuffleShoe(block.advisors,
                         Math.ceil(validTrials.length / ids.length));
 
+                    // Special case for balancing where we want 1 advisor/trial
+                    if(block.advisorsPerTrial === 1) {
+                        mix.map((advisor, i) =>
+                            validTrials[i].advisors = [advisor]);
+                        return;
+                    }
+
                     // remove advisors by id
-                    mix.map((id, i) =>
+                    mix.map((advisor, i) =>
                         validTrials[i].advisors =
-                            [validTrials[i].advisors.filter(
-                                a => a.id !== id
-                            )]);
+                            validTrials[i].advisors.filter(
+                                a => a !== advisor
+                            ));
 
                     for(let i = 1;
-                        i < ids.length - b.advisorsPerTrial;
+                        i < ids.length - block.advisorsPerTrial;
                         i++) {
                         // Remove advisors at random
                         validTrials.forEach(t => {
@@ -1359,7 +1369,6 @@ class DatesStudy extends Study {
                             t.advisors.pop();
                         });
                     }
-
                 }
             });
 
@@ -2452,7 +2461,7 @@ class DatesStudyBinary extends DatesStudy {
         const advisors = [];
 
         // Repeat the same advisor for train and test blocks
-        const reps = 2;
+        const reps = this.advisorBlockReps || 1;
         advisorOrder.forEach(a => {
             for (let i = 0; i < reps; i++)
                 advisors.push(a);
@@ -2465,12 +2474,15 @@ class DatesStudyBinary extends DatesStudy {
         );
 
         coreBlocks.forEach(b => {
-                const i = advisors.shift();
-                if(b.advisorChoice)
-                    b.advisors = me.advisors.filter(a => a.id > 0);
-                else
-                    b.advisors = [me.advisors[i]];
-            });
+            if(b.allAdvisors)
+                return;
+
+            const i = advisors.shift();
+            if(b.advisorChoice)
+                b.advisors = me.advisors.filter(a => a.id > 0);
+            else
+                b.advisors = [me.advisors[i]];
+        });
     }
 
     /**
@@ -2569,7 +2581,7 @@ class DatesStudyBinary extends DatesStudy {
             if(verbose)
                 console.log({coreBlockNum: i, advisorId: b.advisors[0].id, block: b, isGroup: b.advisors[0].isGroup});
 
-            if(b.advisors[0].isGroup === x)
+            if(b.advisors[0].isGroup === x && typeof x !== "undefined")
                 me.raise(
                     "Advisors have same isGroup status in consecutive block sets",
                     errorOnFail,
@@ -2590,12 +2602,23 @@ class DatesStudyBinary extends DatesStudy {
      */
     async _introduceAdvisor(advisor, resolve) {
 
+        let nodeName = "advisor-intro-text";
+        if(advisor.introImage)
+            nodeName += "-" + advisor.introImage;
+
         document.querySelector('#stimulus').innerHTML =
-            document.querySelector('#advisor-intro-text')
+            document.querySelector('#' + nodeName)
                 .content.querySelector('.advisor-intro').outerHTML;
 
         document.querySelector('.advisor-intro .text').innerHTML =
             advisor.introText;
+
+        if(advisor.introImage === "speech")
+            document.querySelector('.advisor-intro .text').classList.add("group-" + advisor.group);
+
+        const img = document.querySelector(".advisor-intro .image");
+        if(img)
+            img.innerHTML = advisor.getInfoTab().outerHTML;
 
         await new Promise((r) => {
             // Add a slight delay to the button press
@@ -2757,6 +2780,7 @@ class DatesStudyBinary extends DatesStudy {
 
         pane.querySelector(".advice").classList.add(ds.advisor0adviceSide === "0"? "left" : "right");
         pane.querySelector(".advice .advisor-portrait").src =
+            ds.advisor0svg ||
             Advisor.imgSrcFromString(
                 sha1.sha1(ds.advisor0name),
                 {size: 300, format: 'svg'}
@@ -2839,6 +2863,7 @@ class DatesStudyBinary extends DatesStudy {
                 'advisor0adviceConfidence',
                 'advisor0name',
                 'advisor0adviceSide',
+                'advisor0svg',
                 'anchorHTML',
                 'anchorDate',
                 'correctAnswer',

@@ -744,6 +744,57 @@ esm-response-timeline .response-timeline {
     transform: translate(-50%, -50%);
 }
 
+/* Advisor introductions */
+.advisor-intro.flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.advisor-intro-speech {
+    display: flex;
+}
+.advisor-intro-speech .text {
+    --bubble-border-width: .2em;
+    border-width: var(--bubble-border-width);
+    border-style: solid;
+    border-radius: 1em;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    place-items: center;
+    padding: .5em;
+}
+.advisor-intro-speech .text::before {
+    content: '';
+    position: absolute;
+    left: calc(-2em - var(--bubble-border-width) / 2);
+    top: 37%;
+    transform: translateY(-50%);
+    border-width: calc(1em);
+    border-style: solid;
+    border-right-color: var(--group-secondary);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+    border-top-color: transparent;
+}
+.advisor-intro-speech .text::after {
+    content: '';
+    position: absolute;
+    left: calc(-2em + 2 * var(--bubble-border-width));
+    top: 37%;
+    transform: translateY(-50%);
+    border-width: calc(1em - var(--bubble-border-width));
+    border-style: solid;
+    border-right-color: var(--background);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+    border-top-color: transparent;
+}
+.advisor-intro-speech .text p {
+    margin: 0.2em;
+}
+
 /* Questionnaires */
 @keyframes formIn {
     0% {

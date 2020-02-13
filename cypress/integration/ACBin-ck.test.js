@@ -1,4 +1,4 @@
-const runs = 1;
+const runs = 15;
 
 function respond(position = null) {
     position = position || {x: 0, y: Math.random() * 100};
@@ -60,10 +60,10 @@ function doTrial() {
 
 for(let run = 0; run < runs; run++) {
 
-    describe('ACBin/CE (run=' + run + ')', function () {
+    describe('ACBin/CK (run=' + run + ')', function () {
 
         it('Checks browser compatibility', function () {
-            cy.visit('localhost/ExploringSocialMetacognition/ACBin/ce.html?PROLIFIC_PID=CypressTest');
+            cy.visit('localhost/ExploringSocialMetacognition/ACBin/ck.html?PROLIFIC_PID=CypressTest');
 
             cy.get('h1')
                 .should('be.visible')
@@ -298,41 +298,7 @@ for(let run = 0; run < runs; run++) {
             cy.wait(1200);
 
             // No feedback for next few trials prompt
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
-        });
-
-        for(let i = 0; i < 5; i++) {
-            q++;
-
-            it('Runs block 2 (TEST) Q' + i + ' [Q' + q + ']',
-                function() {doTrial();});
-        }
-
-        it('Pauses between blocks', function () {
-
-            cy.get('#instructions h1')
-                .should('have.text', 'Break')
-                .should('be.visible');
-
-            // Click through instructions
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
-
-            cy.wait(400);
-            // You will now get feedback again
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
-
-            // Acknowledge new context
-            cy.wait(1200);
-            cy.get('.advisor-intro .esm-instruction-button')
+            cy.get('.confirm .esm-instruction-button')
                 .should('be.visible')
                 .click();
         });
@@ -340,7 +306,7 @@ for(let run = 0; run < runs; run++) {
         for (let i = 0; i < 10; i++) {
             q++;
 
-            it('Runs block 3 Q' + i + ' [Q' + q + ']', function () {
+            it('Runs block 2 Q' + i + ' [Q' + q + ']', function () {
                 doTrial();
             });
         }
@@ -361,15 +327,15 @@ for(let run = 0; run < runs; run++) {
 
             // No feedback for next few trials prompt
             cy.get('esm-instruction button')
-                .contains('Okay')
+                .contains('Okay!')
                 .should('be.visible')
                 .click();
         });
 
-        for(let i = 0; i < 5; i++) {
+        for(let i = 0; i < 22; i++) {
             q++;
 
-            it('Runs block 4 (TEST) Q' + i + ' [Q' + q + ']',
+            it('Runs block 3 (TEST) Q' + i + ' [Q' + q + ']',
                 function() {doTrial();});
         }
 

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.3">
+<head data-version="0.0.6">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -9,12 +9,17 @@
     <!--Custom HTML components-->
     <script src="../src/customElements/InstructionDiv.js"></script>
     <script src="../src/customElements/HelpDiv.js"></script>
-    <script src="../src/customElements/ResponseTimeline.js" type="module"></script>
+    <script src="../src/customElements/ResponseBinaryConf.js" type="module"></script>
+    <script src="../src/customElements/QuestionnaireWidget.js" type="module"></script>
     <!--/ Custom HTML components-->
 
     <link rel="stylesheet" type="text/css" href="../style/structure.css"/>
     <link rel="stylesheet" type="text/css" href="../style/function.css"/>
+    <!--colour scheme definitions-->
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
+    <!--minimal groups experiment-->
+    <link rel="stylesheet" type="text/css" href="../style/minimalGroups.css"/>
+
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
     <!--/ FontAwesome -->
@@ -33,9 +38,25 @@
     </template>
     <template id="advisor-key">
         <div class="advisor-key-row">
-            <div class="avatar"></div>
-            <span class="advisor-name">Advisor Name</span>
-            <div class="response-marker advisor size2 static"></div>
+            <div class="advisor-avatar"></div>
+            <div class="advisor-details">
+                <span class="advisor-name">Advisor Name</span>
+                <span class="advisor-group">Advisor Group</span>
+            </div>
+            <div class="response-marker advisor size0 static"></div>
+        </div>
+    </template>
+    <template id="advisor-intro-text-speech">
+        <div class="advisor-intro flex">
+            <div class="advisor-intro-speech">
+                <div class="image"></div>
+                <div class="text group-border">
+                    This advisor will give you advice during this block of questions.
+                </div>
+            </div>
+            <div class="confirm">
+                <button class="esm-instruction-button">&check;</button>
+            </div>
         </div>
     </template>
 
@@ -51,18 +72,13 @@
         <esm-instruction>
             <esm-instruction-page>
                 <h1>About the study</h1>
-                <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. Your task is to identify the year in which that event occurred. You will do this by dragging a marker onto a timeline.</p>
+                <p>In this study you will see a series of events that occurred between <strong>1890</strong> and <strong>2010</strong>. You will be given an event and a year, and your task is to determine whether the event happened before or after the given year. You will also indicate your confidence in your decision.</p>
                 <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. You will get to see the answers at the end of the study.</p>
             </esm-instruction-page>
             <esm-instruction-page>
-                <h1>Scoring</h1>
-                <p>You will have several markers to choose from. The markers are worth different numbers of points. When your score is calculated, you will get the number of points the marker is worth for all the questions where a marker touches the correct year.</p>
-                <p>The thinner the marker is, the fewer years it covers, but the more points you get if you get the answer right. This means you will do better if you use different markers depending upon how confident you are that you know the answer.</p>
-            </esm-instruction-page>
-            <esm-instruction-page>
                 <h1>Advice</h1>
-                <p>To help you complete the task, you will receive advice from advisors. You will see the advisors who are giving you advice on the left of your screen. One or more of those advisors may give you advice on each question.</p>
-                <p>The advisors will mark their advice on the timeline by adding their own marker. The advisors aren't always correct, but they are quite good at the task. Part of your job is to identify which advisors are best and to weigh their advice accordingly.</p>
+                <p>To help you complete the task, you will receive advice from advisors. You will see the advisors who are giving you advice in the middle of your screen.</p>
+                <p>Sometimes the advisors will let you know how confident they are in their answers by indicating a place on the confidence scale. At other times, they will simply indicate which answer is correct. The advisors aren't always correct, but they are quite good at the task. Part of your job is to identify which advisors are best and to weigh their advice accordingly.</p>
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Summary</h1>
@@ -76,7 +92,6 @@
             <esm-instruction-page>
                 <h1>Practice</h1>
                 <p>You will now have an opportunity to practice the task and get a sense of the kind of questions we ask and how well you can estimate the answers.</p>
-                <p>You will get feedback on your performance while you are doing the practice.</p>
                 <p>Throughout the practice you can use the ? in the top-right to see the help for any part of the screen again.</p>
                 <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>. The feedback will tell you what the answer was for each question.</p>
             </esm-instruction-page>
@@ -86,13 +101,12 @@
         <esm-instruction>
             <esm-instruction-page>
                 <h1>Practice with Advice</h1>
-                <p>During the main study you will get advice on the answers you give. You will now do a few questions where you'll receive practice advice so you can get used to it.</p>
+                <p>During the main study you will get advice about the correct answer. You will now answer a few questions where you'll receive practice advice so you can get used to it.</p>
                 <p>Once you give your <strong>initial answer</strong> you will see an advisor's estimate. You will then be able to provide your <strong>final answer</strong>.</p>
             </esm-instruction-page>
             <esm-instruction-page>
-                <p>The advisor will give advice by highlighting a region of the timeline, similar to how you cover parts of it with your markers.</p>
-                <p>Once again, you will get feedback on each question as you go. Remember this will tell you about how well the advisor does, as well as how well you do.</p>
-                <p>It is <strong>very important</strong> that you <strong>do not look up the answers</strong>.</p>
+                <h1>Confidence</h1>
+                <p>The advisors indicate their confidence in a similar way to you, by placing their marker higher on the scale if they are more sure.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -105,10 +119,13 @@
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
-                <p>From now on you will have multiple advisors who might give you advice. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
-                <p>If you're happy with how it works, let's go!</p>
+                <p>You will have various advisors who will give you advice about each question. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
             </esm-instruction-page>
         </esm-instruction>
+    </template>
+    <template id="block-intro">
+        <div class="intro">
+        </div>
     </template>
     <template id="block-break">
         <esm-instruction>
@@ -118,42 +135,13 @@
             </esm-instruction-page>
         </esm-instruction>
     </template>
-    <template id="debrief-advisors">
-        <form class="questionnaire advisors overlay">
-            <div class="question">
-                <p>Please indicate how you felt about this advisor:</p>
-                <div class="subject"></div>
-            </div>
-            <div class="items">
-                <div class="item">
-                    <label class="label" for="know">ignorant</label>
-                    <input type="range" name="knowledge" id="know"/>
-                    <label class="label" for="know">knowledgeable</label>
-                </div>
-                <div class="item">
-                    <label class="label" for="help">unhelpful</label>
-                    <input type="range" name="helpfulness" id="help"/>
-                    <label class="label" for="help">helpful</label>
-                </div>
-                <div class="item">
-                    <label class="label" for="like">unlikeable</label>
-                    <input type="range" name="likability" id="like"/>
-                    <label class="label" for="like">likable</label>
-                </div>
-            </div>
-            <div class="bottom">
-                <textarea name="comment" placeholder="Any particular comments about this advisor? (optional, public)" title="Your answer will be included in the public dataset, so please do not include personal information."></textarea>
-                <button name="submit" class="confirm esm-instruction-button questionnaire">&check;</button>
-            </div>
-        </form>
-    </template>
     <template id="debrief">
         <form class="questionnaire general overlay">
             <h1>Finally...</h1>
             <div class="question">
                 <p>On the next screen you will see your results. Before you do, please answer these final questions:</p>
             </div>
-            <textarea name="advisorDifference" class="mandatory" placeholder="There was a difference between the advisors. What do you think it was? (mandatory, public)" title="Your answers will be included in the public dataset, so please do not include personal information."></textarea>
+            <textarea name="advisorDifference" class="mandatory" placeholder="What do you think was the difference between the advisors? (mandatory, public)" title="Your answers will be included in the public dataset, so please do not include personal information."></textarea>
             <textarea name="generalComments" placeholder="Are there any other questions or comments you'd like to leave about the experiment? (optional, private)" title="Your answer to this question will only be visible to the experimenter and colleagues."></textarea>
             <div class="bottom">
                 <button name="submit" class="confirm esm-instruction-button questionnaire">&check;</button>
@@ -175,14 +163,17 @@
     </template>
     <template id="feedback">
         <div class="feedback-wrapper overlay">
-            <div class="debrief">
-                <p class="payment-link">
+            <div class="payment-link">
+                <p>
                     Payment code: <a href="https://app.prolific.ac/submissions/complete?cc=MX5PC2Z4" target="_blank">MX5PC2Z4</a>
                 </p>
-                <p>Overall you got <span class="nCorrect"></span>/<span class="n"></span> (<span class="percentCorrect"></span>%) correct (filled stars), giving you a total of <span class="score"></span> points.</p>
             </div>
-            <div class="display">
-                <p>Your answers are shown below. Click/touch a marker to see the correct answer and your confidence interval. When you are finished you may close your browser.</p>
+            <div class="thank-you">
+                <div class="text">
+                    <h3>Thank you for completing the study</h3>
+                    <p>You can explore your performance on this page. Select a question to see details about that question, or select 'overview' to see a summary of your performance on all questions.</p>
+                    <p>When you're finished you can close the browser window to end the study.</p>
+                </div>
                 <div class="legend permalink">
                     link
                     <div><span class="permalink" title="Direct link to these results" onclick="document.execCommand('copy')"></span></div>
@@ -195,11 +186,74 @@
                             <span class="redo-link" title="Begin the study again" onclick="document.execCommand('copy')"></span></p>
                     </div>
                 </div>
-                <div class="timeline">
-                    <div class="debug"></div>
-                    <div class="line"></div>
+            </div>
+            <div class="results">
+                <div class="question-list">
+                    <select id="questions" class="questions" multiple>
+
+                    </select>
+                    <p>Overview</p>
                 </div>
-                <p class="prompt">Click a marker for more info...</p>
+                <div class="result">
+                    <div class="overall">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th></th>
+                                <th>% correct</th>
+                                <th>Overall confidence</th>
+                                <th>Confidence when <em>correct</em></th>
+                                <th>Confidence when <em>wrong</em></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr class="initial">
+                                <td>Initial answer</td>
+                                <td class="accuracy"></td>
+                                <td class="confidence"></td>
+                                <td class="confidence-correct"></td>
+                                <td class="confidence-wrong"></td>
+                            </tr>
+                            <tr class="final">
+                                <td>Final answer</td>
+                                <td class="accuracy"></td>
+                                <td class="confidence"></td>
+                                <td class="confidence-correct"></td>
+                                <td class="confidence-wrong"></td>
+                            </tr>
+                            <tr class="advice">
+                                <td>Advice</td>
+                                <td class="accuracy"></td>
+                                <td class="confidence"></td>
+                                <td class="confidence-correct"></td>
+                                <td class="confidence-wrong"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="specific">
+                        <div class="stimulus-reminder">
+                            <p></p>
+                        </div>
+                        <div class="anchor">
+                            <p>Before or after</p>
+                            <div class="anchor-date"></div>
+                        </div>
+                        <div class="initial">
+                            <p>Initial answer<span class="confidence"> (<span class="confidence-value"></span>% sure)</span></p>
+                        </div>
+                        <div class="advice">
+                            <img class="advisor-portrait identicon" src="" alt="Advisor"/>
+                            <p>Advice<span class="confidence"> (<span class="confidence-value"></span>% sure)</span></p>
+                        </div>
+                        <div class="final">
+                            <p>Final answer<span class="confidence"> (<span class="confidence-value"></span>% sure)</span></p>
+                        </div>
+                        <div class="answer">
+                            <p><span class="star">&starf;</span> The correct answer (<span class="answer-value"></span>)</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </template>
@@ -240,9 +294,9 @@
         </esm-instruction>
     </template>
 </head>
-<body tabindex="0">
+<body tabindex="0" class="group-1">
 <div class="content-wrapper">
-    <div id="content">
+    <div id="content" class="grid">
         <div class="progress-bar">
             <div class="outer">
                 <div class="inner"></div>
@@ -252,81 +306,76 @@
             </esm-help>
         </div>
         <div id="prompt" class="prompt">Prompt text</div>
-        <div class="middle">
-            <div class="sidebar">
-                <div class="advisor-key"></div>
-                <esm-help data-group="interface" class="right">
-                    This area of the screen will display the advisors who might give you advice on a question.<br/>
-                    At the moment you don't have any advisors so the area is empty.
-                </esm-help>
-            </div>
-            <div class="stimulus">
-                <div id="stimulus"></div>
-                <esm-help data-group="interface" class="bottom wide">
-                    This is the <em>question</em> you have to answer.
-                </esm-help>
-            </div>
+        <div class="advisor-key"></div>
+        <div class="stimulus">
+            <div id="stimulus"></div>
+            <div id="date">2020</div>
+            <esm-help data-group="interface" class="bottom wide">
+                Your task is to decide whether this <em>event</em> happened <em>before</em> or <em>after</em> this <em>date</em> shown.
+            </esm-help>
         </div>
         <div class="response">
-            <esm-response-timeline id="response-panel" data-min="1890"
-                                 data-max="2010" data-prefix=""
-                                 data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="10" data-marker-widths="1, 3, 11, 21" data-marker-values="100, 35, 10, 5">
-                <div class="response-timeline">
-                    <div class="response-line"></div>
+            <esm-response-binary-conf
+                    id="response-panel"
+                    data-min="1890"
+                    data-max="2010"
+                    data-conf-min="0"
+                    data-conf-max="100"
+                    data-prefix=""
+                    data-suffix=""
+                    data-decimals="0"
+                    data-no-confidence="false">
+                <div class="response-panel response-left">
+                    <div class="response-answer">Before</div>
+                    <div class="response-label">
+                        <div class="response-label-text">sure</div>
+                        <div class="response-label-text">unsure</div>
+                    </div>
+                    <div class="response-line">
+                        <div id="before" class="response-column">
+                            <div class="response-column-inner"></div>
+                        </div>
+                    </div>
                 </div>
-                <esm-help data-group="interface" class="top wide">
-                    You indicate your answer by dragging one of the <em>markers</em> onto this <em>timeline</em>.
+                <div class="response-controls">
+                </div>
+                <div class="response-panel response-right">
+                    <div class="response-line">
+                        <div id="after" class="response-column">
+                            <div class="response-column-inner"></div>
+                        </div>
+                    </div>
+                    <div class="response-label">
+                        <div class="response-label-text">sure</div>
+                        <div class="response-label-text">unsure</div>
+                    </div>
+                    <div class="response-answer">After</div>
+                </div>
+                <esm-help data-group="interface" data-parent-click-closes="true" class="">
+                    This <em>response panel</em> allows you to indicate your
+                    answer. Pick one of the columns depending on your answer, and click or drag the inside higher to indicate that you are more sure of your answer.
                 </esm-help>
-                <div class="response-panel">
-                    <div class="response-marker-pool">
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> year (<span class="points"></span>pts)</div>
-                            <div class="response-marker size0">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> year (<span class="points"></span>pts)</div>
-                            <div class="response-marker size1">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> years (<span class="points"></span>pts)</div>
-                            <div class="response-marker size2">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="label">&plusmn;<span class="year"></span> years (<span class="points"></span>pts)</div>
-                            <div class="response-marker size3">
-                                <div class="clickhandler"></div>
-                            </div>
-                        </div>
+            </esm-response-binary-conf>
+        </div>
+        <esm-questionnaire-widget id="questionnaire-widget" data-button-classes="esm-instruction-button" data-mandatory="1">
+            <div class="esm-qw-question">
+                <h2 class="esm-qw-prompt">I think this advice is...</h2>
+                <div class="esm-qw-items">
+                    <div class="esm-qw-item">
+                        <label for="DeceptiveAdvice">Deceptive</label>
+                        <input type="radio" name="honesty" value="0" id="DeceptiveAdvice"/>
                     </div>
-                    <esm-help data-group="interface" class="top wide">
-                        Here you see the <em>markers</em> you have available.<br/>The wider a marker is, the more years it covers, but the fewer points it's worth.
-                    </esm-help>
-                    <div>
-                        <div class="buttons">
-                            <button class="confirm esm-instruction-button" title="confirm response">&check;
-                            </button>
-                            <!--<button class="comment" title="write a note or complaint about this question">!?
-                            </button>-->
-                        </div>
-                        <esm-help data-group="interface" class="left">
-                            Once you have made a response, use this button to confirm your <em>marker</em> placement.<br/>Try entering a response now; any date will do.
-                        </esm-help>
+                    <div class="esm-qw-item">
+                        <label for="NeutralAdvice">Possibly Deceptive</label>
+                        <input type="radio" name="honesty" value="1" id="NeutralAdvice"/>
+                    </div>
+                    <div class="esm-qw-item">
+                        <label for="HonestAdvice">Honest</label>
+                        <input type="radio" name="honesty" value="2" id="HonestAdvice"/>
                     </div>
                 </div>
-
-            </esm-response-timeline>
-            <!--<esm-help data-group="interface" data-parent-click-closes="false" class="top wide">
-                This <em>response panel</em> allows you to indicate your
-                answer. When enabled, you will pick up one of the markers and drag it to the desired place on the timeline. A correct answer is one where the marker covers the actual year of the event. Try entering a response now.
-            </esm-help>-->
-        </div>
+            </div>
+        </esm-questionnaire-widget>
         <button id="help-button" onclick="toggleHelp()">?</button>
         <button id="report-button" onclick="study.reportIssue()" title="Leave a question, comment, or report"><!--By . - Yellow version of Image:Achtung.svg, Public Domain, https://commons.wikimedia.org/w/index.php?curid=3590760--><svg xmlns="http://www.w3.org/2000/svg" version="1.0" viewBox="0 0 627.769 550.45" id="Layer_3" xml:space="preserve">
             <path d="M 614.574,504.94 L 335.167,20.996 C 330.788,13.412 322.696,8.738 313.938,8.738 C 305.179,8.738 297.087,13.412 292.708,20.996 L 13.303,504.94 C 8.925,512.524 8.925,521.87 13.303,529.456 C 17.682,537.04 25.775,541.712 34.533,541.712 L 593.344,541.712 C 602.102,541.712 610.196,537.04 614.574,529.456 C 618.953,521.87 618.951,512.524 614.574,504.94 z" id="outline"></path>
@@ -365,9 +414,9 @@
 <script type="module">
     "use strict";
 
-    import {Study, DatesStudy, Block} from "../src/modules/Study.js";
-    import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_AGREEISH, ADVICE_CORRECTISH, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
+    import {DatesStudyBinary, Block} from "../src/modules/Study.js";
+    import {AdvisedTrial} from "../src/modules/Trial.js";
+    import {Advisor, AdvisorHybrid, AdviceProfile, ADVICE_CORRECTISH} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
 
     // Procedural stuff
@@ -389,7 +438,7 @@
             "../" +
             window.location.search +
             (/\?/.test(window.location.search)? "&" : "?") +
-            "study=ACv2";
+            "study=ACBin";
 
         let page = window.location.pathname.split("/").pop();
         if(page.length)
@@ -399,7 +448,6 @@
     } else {
 
         // Run trial
-
         AdvisedTrial.reset();
 
         window.DEBUG = {};
@@ -413,119 +461,128 @@
                     id: 0,
                     position: 0,
                     idDescription: "Practice",
+                    introImage: "speech",
+                    introText: "<p>I'm going to show you how the advisors in the experiment work. Once you've answered a question I'll give you advice to consider, and then you'll make a final decision.</p>",
                     group: 0,
-                    name: "Practice advisor",
+                    name: "Practice advisor ###",
                     templateId: "advisor-key",
-                    confidence: 8,
-                    confidenceVariation: 3,
+                    confidence: 20, // max confidence at X years distant
+                    confidenceVariation: 8,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECT.copy(1)
+                            ADVICE_CORRECTISH.copy(1)
                         ]
                     })
                 }),
                 new Advisor({
                     id: 1,
-                    position: 0,
-                    idDescription: "Accurate",
+                    position: 1,
+                    idDescription: "lowConf",
+                    introImage: "speech",
+                    introText: "<p>I'm cautious and careful.</p><p>I try to consider all the points of view and change my mind if there's good reason to.</p>",
                     group: 0,
-                    name: "Advisor #" + parseInt(10 + Math.random() * 50),
+                    name: "Advisor ###",
                     templateId: "advisor-key",
-                    confidence: 6,
-                    confidenceVariation: 5,
+                    confidence: 20,
+                    confidenceVariation: 8,
+                    confidenceAddition: 0,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(10),
-                            ADVICE_INCORRECT_REFLECTED.copy(3),
-                            // fallbacks
-                            ADVICE_INCORRECT_REVERSED.copy(0)
+                            ADVICE_CORRECTISH.copy(1)
                         ]
                     })
                 }),
                 new Advisor({
                     id: 2,
-                    position: 1,
-                    idDescription: "Agreeing",
+                    position: 2,
+                    idDescription: "highConf",
+                    introImage: "speech",
+                    introText: "<p>I'm confident and outgoing.</p><p>I tend to make up my mind and stick with it.</p>",
                     group: 0,
-                    name: "Advisor #" + (10 + Math.random() * 50).toFixed(0),
+                    name: "Advisor ###",
                     templateId: "advisor-key",
-                    confidence: 6,
-                    confidenceVariation: 5,
+                    confidence: 20,
+                    confidenceVariation: 8,
+                    confidenceAddition: 25,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_AGREEISH.copy(10),
-                            ADVICE_INCORRECT_REFLECTED.copy(3),
-                            // fallbacks
-                            ADVICE_INCORRECT_REVERSED.copy(0)
+                            ADVICE_CORRECTISH.copy(1)
                         ]
                     })
                 })
             ];
-        while (advisors[1].name === advisors[2].name)
-            advisors[1].name = "Advisor #" + (10 + Math.random() * 50).toFixed(0);
+
+        advisors.push(new AdvisorHybrid({
+            blueprints: [advisors[1], advisors[2]],
+            name: '?'
+        }));
+        advisors.push(new AdvisorHybrid({
+            blueprints: [advisors[2], advisors[1]],
+            name: '?'
+        }));
 
         let studyBlueprint = {
-            studyName: "advisorChoice",
+            studyName: "calibrationKnowledge",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [16, 34],
+            attentionCheckTrials: [17, 25, 33, 45],
             blocks: [
                 new Block({
-                    trialCount: 1,
+                    trialCount: 7,
                     blockType: "practice",
                     advisors: [],
                     advisorsPerTrial: 0,
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 2,
+                    trialCount: 3,
                     blockType: "practiceAdvisor",
+                    feedback: true,
+                    showAdvisorConfidence: true,
                     advisors: [advisors[0]],
-                    advisorsPerTrial: 1,
-                    feedback: true
+                    advisorsPerTrial: 1
                 }),
+                // Feedback + confidence info - train
                 new Block({
-                    trialCount: 3,
+                    trialCount: 10,
                     blockType: "core",
+                    feedback: true,
+                    showAdvisorConfidence: true,
+                    advisors: [advisors[1]],
                     advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    forceRefreshAdvisor: true
                 }),
+                // Feedback + confidence info - train
                 new Block({
-                    trialCount: 3,
+                    trialCount: 10,
                     blockType: "core",
+                    feedback: true,
+                    showAdvisorConfidence: true,
+                    advisors: [advisors[2]],
                     advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    forceRefreshAdvisor: true
                 }),
+                // Test
                 new Block({
-                    trialCount: 2,
+                    trialCount: 22,
                     blockType: "core",
-                    advisorsPerTrial: 2,
-                    advisorChoice: true,
-                    adviceTypeOverride: (aP)=>aP.mainAdviceType
+                    feedback: false,
+                    introText: "<p>From now on you may get advice from either of the advisors you met before. Sometimes you will know which advisor is giving you advice, and sometimes the advice could come from either advisor.</p><p>You will not get to see the answers to these questions until the end of the study.</p>",
+                    showAdvisorConfidence: true,
+                    advisors: advisors.filter(a => a.id > 0),
+                    allAdvisors: true,
+                    advisorsPerTrial: 1,
+                    introduceAdvisors: false,
+                    forceRefreshAdvisor: true
                 })
             ],
             questionsXML: "assets/etc/questions.xml",
             advisors,
             participantCount: 20,
-            conditionCount: 4
+            conditionCount: 2,
+            countdownTime: 0
         };
 
-        // shorter study in debug mode
-        if (DEBUG.level >= 1 && !utils.getQueryStringValue("fb"))
-            studyBlueprint.blockLength = [2, 2];
-        if (DEBUG.qCount > 1 && !utils.getQueryStringValue("fb"))
-            studyBlueprint.blockLength = [1, DEBUG.qCount];
-
-        window.study = new DatesStudy(studyBlueprint);
+        window.study = new DatesStudyBinary(studyBlueprint);
 
         if (utils.getQueryStringValue("fb")) {
             study.awaitTrialLoading()
@@ -538,11 +595,6 @@
     }
 
     // Hoist for debugging
-    window.Study = Study;
-    window.DatesStudy = DatesStudy;
-    window.Trial = Trial;
-    window.AdvisedTrial = AdvisedTrial;
-    window.Advisor = Advisor;
     window.utils = utils;
 
 </script>

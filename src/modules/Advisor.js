@@ -329,14 +329,139 @@ class Advisor extends BaseObject {
             "id",
             "position",
             "idDescription",
+            "introImage",
             "introText",
             "group",
             "name",
             "confidence",
+            "confidenceAddition",
             "confidenceVariation",
             "sameGroup",
-            "questionnaire"
+            "questionnaire",
+            "hybridIds",
+            "hybridDescriptions",
+            "svg"
         ];
+    }
+}
+
+/**
+ * @class AdvisorHybrid
+ * @extends Advisor
+ * @classdesc Hybrids allow advice to be presented from one of a list of advisors while being labelled as coming from an ambiguous source.
+ */
+class AdvisorHybrid extends Advisor {
+    /**
+     * @param blueprint {object} Options used to construct the class
+     * @param blueprint.blueprints {Advisor[]|object[]} Advisors or advisor representations to stitch together to form the hybrid
+     * @param
+     */
+    constructor(blueprint) {
+
+        super(blueprint.blueprints[0]);
+
+        const hybridIds = [];
+        const hybridDescriptions = [];
+
+        for(let bp of blueprint.blueprints) {
+            hybridIds.push(bp.id);
+            hybridDescriptions.push(bp.idDescription);
+        }
+
+        this._readBlueprint(blueprint);
+
+        this.hybridBlueprints = blueprint.blueprints;
+
+        this.hybridIds = hybridIds.join('|');
+        this.hybridDescriptions = hybridDescriptions.join('|');
+
+        this.name = this.name || '?';
+    }
+
+    /**
+     * Construct an SVG made up of slices of the SVGs of the blueprinted advisors
+     * @return {null|*}
+     */
+    get svg() {
+        if(!this._image) {
+            this.info("Generating hybrid identicon");
+
+            // Sort blueprints by ids to ensure same hybrid has same look regardless of who is actually giving the advice
+            const blueprints = this.hybridBlueprints
+                .sort((a, b) => a.id < b.id? 1 : -1);
+
+            const base64toSVG = (s) => {
+                // Sychronous XHTTP requests are depreciated but really useful here!
+                const request = new XMLHttpRequest();
+                request.open('GET', s, false);
+                request.send(null);
+
+                if (request.status === 200)
+                    return new DOMParser().parseFromString(request.responseText, 'text/xml');
+
+                return null;
+            };
+
+            const svgToBase64 = (svg) => {
+                let xml = svg.querySelector('svg').outerHTML;
+                xml = xml.replace(/clippath/g, 'clipPath');
+                xml = xml.replace(/<defs[^>]+/, '<defs');
+                return btoa(xml);
+            };
+
+            const images = [];
+            for(let bp of this.hybridBlueprints) {
+                images.push(new Advisor(bp).svg);
+            }
+
+            const theta = Math.PI * 2 / images.length;
+            const offset = Math.PI * 2 * 3 / 8;
+            const width = 150;
+            const r = Math.sqrt(2 * Math.pow(width, 2)); // radius
+            const tweak = width;
+
+            for(let i = 0; i < images.length; i++) {
+                const img = images[i];
+                // Add a clipPath to obscure unwanted pieces
+                let start = [
+                    tweak + Math.cos(offset + theta * i) * r,
+                    tweak + Math.sin(offset + theta * i) * r
+                ];
+                let end = [
+                    tweak + Math.cos(offset + theta * (i + 1)) * r,
+                    tweak + Math.sin(offset + theta * (i + 1)) * r
+                ];
+
+                const clipId = "clip-path-" + i.toString();
+
+                let svg = base64toSVG(img);
+
+                // Apply clip mask
+                const pathAttr = document.createAttribute('clip-path');
+                pathAttr.value = "url(#" + clipId + ")";
+                svg.querySelector('svg g').attributes.setNamedItem(pathAttr);
+                svg.querySelector('svg').insertBefore(document.createElement('defs'), svg.querySelector('svg').firstChild);
+                const clip = svg.querySelector('defs').appendChild(document.createElement('clippath'));
+                clip.id = clipId;
+                clip.innerHTML =
+                    `<path d="M ${start[0]} ${start[1]} A 1 1 0 0 0 ${end[0]} ${end[1]} Z"/>`;
+
+                if(!i)
+                    this._image = svg;
+                else {
+                    this._image.querySelector('svg')
+                        .appendChild(svg.querySelector('g'));
+                    this._image.querySelector('defs')
+                        .appendChild(svg.querySelector('clippath'));
+                    // Add lines showing the divide
+                    this._image.querySelector('svg')
+                        .innerHTML += `<g><line x1="${start[0]}" y1="${start[1]}" x2="${width}" y2="${width}" style="stroke:rgb(0,0,0);stroke-width:4"/><line x1="${end[0]}" y1="${end[1]}" x2="${width}" y2="${width}" style="stroke:rgb(0,0,0);stroke-width:4"/></g>`;
+                }
+            }
+
+            this._image = "data:image/svg+xml;base64," + svgToBase64(this._image);
+        }
+        return this._image;
     }
 }
 
@@ -496,6 +621,8 @@ class AdviceProfile extends BaseObject {
             out.adviceConfidence =
                 Math.abs(out.advice - trial.anchorDate) /
                 advisor.confidence * 100;
+            if(advisor.confidenceAddition)
+                out.adviceConfidence += advisor.confidenceAddition;
             out.adviceConfidence = Math.max(
                 0, Math.min(100, Math.round(out.adviceConfidence))
             );
@@ -975,4 +1102,4 @@ const ADVICE_AGREE_OFFSET = Object.freeze(new AdviceType({
 }));
 
 
-export {Advisor, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED, ADVICE_CORRECTISH, ADVICE_AGREEISH, ADVICE_AGREE_BY_CONF, ADVICE_AGREE_OFFSET};
+export {Advisor, AdvisorHybrid, AdviceProfile, ADVICE_AGREE, ADVICE_CORRECT, ADVICE_INCORRECT_REFLECTED, ADVICE_CORRECT_AGREE, ADVICE_CORRECT_DISAGREE, ADVICE_INCORRECT_REVERSED, ADVICE_CORRECTISH, ADVICE_AGREEISH, ADVICE_AGREE_BY_CONF, ADVICE_AGREE_OFFSET};

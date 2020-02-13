@@ -8,10 +8,14 @@ advisor[0-9]+adviceConfidence,int|NA,The confidence associated with the advisor'
 advisor[0-9]+adviceSide,int|NA,"The side marked as the advisor's answer (0=left, 1=right)"
 advisor[0-9]+adviceWidth,int,The width of the advice marker placed by advisor [0-9]+
 advisor[0-9]+confidence,int,The width of the advice marker placed by advisor [0-9]+
+advisor[0-9]+confidenceAddition,int|NA,Amount of confidence added to the advisor[0-9]+'s calculated confidence before capping
 advisor[0-9]+confidenceVariation,int,The amount of variation around the centre of the advice distribution characterising advisor [0-9]+'s advice
 advisor[0-9]+group,int,The group to which advisor [0-9]+ belongs
+advisor[0-9]+hybridDescriptions,string|NA,Pipe-separated list of advisor [0-9]+'s descriptions encompassed if a hybrid
+advisor[0-9]+hybridIds,string|NA,Pipe-separated list of advisor [0-9]+'s ids encompassed if a hybrid
 advisor[0-9]+id,int,The id of advisor [0-9]+
 advisor[0-9]+idDescription,string,The desciption of advisor [0-9]+'s advice style
+advisor[0-9]+introImage,string|NA,"Whether and how advisor [0-9]+'s image is shown alongside their introText. NA=no image; ""speech""=image with text in speech bubble"
 advisor[0-9]+introText,string,The text with which advisor [0-9]+ is introduced to the participant
 advisor[0-9]+name,string,The name advisor [0-9]+ displays to the participant
 advisor[0-9]+nominalType,string,Advice type selected by advisor [0-9]+ for this trial
@@ -24,6 +28,7 @@ advisor[0-9]+questionnaireHonestyValue,int,The option selected by the participan
 advisor[0-9]+questionnaireTimeOpen,int,Milliseconds from the beginning of the trial to the opening of the advice questionnaire window for advisor [0-9]+'s advice
 advisor[0-9]+questionnaireTimeSubmitted,int,Milliseconds from the beginning of the trial to the participant's submission of the advice questionnaire window for advisor [0-9]+'s advice
 advisor[0-9]+sameGroup,boolean,Whether advisor [0-9]+ is in the same group as the participant
+advisor[0-9]+svg,string|NA,The img element src field containing base64-encoded svg file for advisor [0-9]+'s portrait
 advisor[0-9]+validTypeFlags,int,Binary flag representation of the above
 advisor[0-9]+validTypes,string,Comma-separated list of advice types which advisor [0-9]+ may select for this trial
 anchorDate,int|NA,Year given as the anchor
