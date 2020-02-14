@@ -62,6 +62,8 @@ responseEstimateLeft,int,The left-hand edge of the response marker in years
 responseEstimateLeftFinal,int,The left-hand edge of the response marker in years for the final response
 responseLabels,string,"Comma-separated list of labels attached to the response options (left, right)"
 responseLabelsFinal,string,"Comma-separated list of labels attached to the final response options (left, right)"
+responseMarker,int|NA,Width of the marker used in the response
+responseMarkerFinal,int|NA,Width of the marker used in the final response
 responseMarkerValue,int,The points to be awarded for a correct response using the selected marker
 responseMarkerValueFinal,int,The points to be awarded for a correct response using the selected marker for the final response
 responseMarkerWidth,int,The width of the response marker in years

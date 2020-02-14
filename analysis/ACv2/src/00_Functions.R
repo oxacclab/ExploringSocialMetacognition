@@ -267,7 +267,7 @@ getResponseVars <- function(ca, elb, ew, mv, cas, ra, rc, suffix = NULL) {
   if (!is.null(cas) && !is.null(ra) && !is.null(rc))
     x <- getResponseVars.binary(cas, ra, rc, suffix = suffix)
   else 
-    x <- getResponseVars.continuous(ca, elb, ew, mv, suffix = NULL)
+    x <- getResponseVars.continuous(ca, elb, ew, mv, suffix = suffix)
   
   # labels
   label(x[paste0('responseCorrect', suffix)], self = F) <-
@@ -455,7 +455,7 @@ getDerivedVariables <- function(x, name, opts = list()) {
           (4 - as.numeric(x$responseMarkerFinal)) -
           (4 - as.numeric(x$responseMarker))
       }
-      if (!is.null(x$responseConfidence)) {
+      if (hasName(x, 'responseConfidence')) {
         x$confidenceChange <- 
           ifelse(x$responseAnswerSide == x$responseAnswerSideFinal,
                  x$responseConfidenceFinal - x$responseConfidence,

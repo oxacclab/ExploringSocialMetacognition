@@ -19,6 +19,7 @@ responseEstimateLabelLeft,string,"The text of the label the participant sees, sh
 responseEstimateLabelRight,string,"The text of the right-hand label the participant sees, should match responseEstimateLeft+responseMarkerWidth"
 responseEstimateLeft,int,The left-hand edge of the response marker in years
 responseLabels,string,"Comma-separated list of labels attached to the response options (left, right)"
+responseMarker,int|NA,Width of the marker used in the response
 responseMarkerValue,int,The points to be awarded for a correct response using the selected marker
 responseMarkerWidth,int,The width of the response marker in years
 responseSlider,int|NA,Whether the slider used in the response was on the left (0) or right (1)
