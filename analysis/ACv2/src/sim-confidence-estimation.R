@@ -27,6 +27,7 @@
 #'   influenced by advisors whose confidence calibration they know (single
 #'   advisors). This alters the agent's egoBias
 #' @param agentEffectSizeSD standard deviation of above
+#' @param strategy strategy to use as the default answer
 #' @return AdvisedTrial modified to use simulated answers
 simulateCE <- function(
   AdvisedTrial,
@@ -37,7 +38,8 @@ simulateCE <- function(
   agentEgoBias = .7, 
   agentEgoBiasSD = .2,
   agentEffectSize = .1,
-  agentEffectSizeSD = .05
+  agentEffectSizeSD = .05,
+  strategy = 'Add'
 ) {
   require(tidyverse)
   
@@ -62,34 +64,37 @@ simulateCE <- function(
       es = pmax(0, pmin(1, es))
     )
   
+  trials <- simulateAgentAnswers(AdvisedTrial, agents, 
+                                 getAdjustedConfidence, strategy)
+  
+  list(
+    trials = trials, 
+    agents = agents,
+    params = list(
+      agentInsensitivitySD = agentInsensitivitySD,
+      agentConfidence = agentConfidence,
+      agentConfidenceSD = agentConfidenceSD,
+      agentEgoBias = agentEgoBias,
+      agentEgoBiasSD = agentEgoBiasSD,
+      agentEffectSize = agentEffectSize,
+      agentEffectSizeSD = agentEffectSizeSD
+    )
+  )
+}
+
+#' Simulate answers and confidence
+#' @param AdvisedTrial tbl of trials
+#' @param agents tbl of agents to complete the trials
+#' @param finalAnswerFun function used to compute final answers and confidence
+#' @param strategy strategy to use for calculating the default advice variables
+simulateAgentAnswers <- function(AdvisedTrial, agents, 
+                                 finalAnswerFun, strategy) {
+  AdvisedTrial <- expandForN(AdvisedTrial, agents)
+  
   out <- NULL
   for (a in agents$pid) {
     agent <- agents %>% dplyr::filter(pid == a)
     tmp <- AdvisedTrial %>% dplyr::filter(pid == a)
-    
-    if (!nrow(tmp)) {
-      # bootstrap new trial set modelled on the first participant, split by each
-      # advisor
-      n <- AdvisedTrial %>% 
-        dplyr::filter(pid == unique(pid)[1]) %>%
-        group_by(advisor0idDescription, feedback) %>%
-        summarise(n = n())
-      
-      for (i in 1:nrow(n)) {
-        tmp <- rbind(
-          tmp,
-          AdvisedTrial %>% 
-            dplyr::filter(
-              advisor0idDescription == n$advisor0idDescription[i],
-              feedback == n$feedback[i],
-              !(stimHTML %in% tmp$stimHTML)
-            ) %>%
-            sample_n(n$n[i])
-        )
-      }
-      
-      tmp$pid <- a
-    }
     
     tmp <- tmp %>% 
       mutate(
@@ -101,39 +106,21 @@ simulateCE <- function(
         # advice
         agree = advisor0adviceSide == responseAnswerSide,
         nudge = if_else(agree & advisor0adviceConfidence >= responseConfidence,
-                        rnorm(1, sd = agent$es), -rnorm(1, sd = agent$es)),
-        # final response
-        # average confidence
-        responseConfidenceFinal = getAdjustedConfidence(
-          responseConfidence, 
-          advisor0adviceConfidence,
-          agree,
-          advisor0idDescription,
-          agent
-        ),
-        responseConfidenceFinalAvg = getAdjustedConfidence(
-          responseConfidence, 
-          advisor0adviceConfidence,
-          agree,
-          advisor0idDescription,
-          agent,
-          'avg'
-        ),
-        # negative confidence indicates a switch of sides
-        responseAnswerSideFinal = if_else(responseConfidenceFinal > 0,
-                                          responseAnswerSide,
-                                          1 - responseAnswerSide),
-        responseAnswerSideFinalAvg = if_else(responseConfidenceFinalAvg > 0,
-                                             responseAnswerSide,
-                                             1 - responseAnswerSide),
-        responseConfidenceFinal = abs(responseConfidenceFinal),
-        responseConfidenceFinal = pmax(0, pmin(100, responseConfidenceFinal)),
-        responseConfidenceFinalAvg = abs(responseConfidenceFinalAvg),
-        responseConfidenceFinalAvg = pmax(0, pmin(100, responseConfidenceFinalAvg)),
-        # marking
-        responseCorrect = responseAnswerSide == correctAnswerSide,
-        responseCorrectFinal = responseAnswerSideFinal == correctAnswerSide
-      ) 
+                        rnorm(1, sd = agent$es), -rnorm(1, sd = agent$es))
+      ) %>% 
+      finalAnswerFun(agent, strategy) 
+    
+    for (n in grep('responseConfidenceFinal', names(tmp), value = T)) {
+      suffix <- reFirstMatch('responseAnswerSideFinal([\\w\\W]*)$', n)
+      tmp[, paste0('responseAnswerSideFinal', suffix)] <-
+        if_else(pull(tmp, paste0('responseConfidenceFinal', suffix)) > 0,
+                pull(tmp, paste0('responseAnswerSide', suffix)),
+                1 - pull(tmp, paste0('responseAnswerSide', suffix)))
+      tmp[, paste0('responseConfidenceFinal', suffix)] <-
+        pmin(100, pmax(0, abs(pull(tmp, paste0('responseConfidenceFinal', suffix)))))
+      tmp[, paste0('responseCorrectFinal', suffix)] <- 
+        pull(tmp, paste0('responseAnswerSideFinal', suffix)) == tmp$correctAnswerSide
+    }
     
     # backfilling key derived advisor properties
     for (adv in unique(tmp$advisor0idDescription)) {
@@ -168,51 +155,79 @@ simulateCE <- function(
     }
   }
   
-  list(
-    trials = out, 
-    agents = agents,
-    params = list(
-      agentInsensitivitySD = agentInsensitivitySD,
-      agentConfidence = agentConfidence,
-      agentConfidenceSD = agentConfidenceSD,
-      agentEgoBias = agentEgoBias,
-      agentEgoBiasSD = agentEgoBiasSD,
-      agentEffectSize = agentEffectSize,
-      agentEffectSizeSD = agentEffectSizeSD
-    )
-  )
+  out
+}
+
+#' Add rows to trial dataframe to simulate the necessary number of agents
+expandForN <- function(AdvisedTrial, agents) {
+  out <- NULL
+  for (a in agents$pid) {
+    tmp <- AdvisedTrial %>% dplyr::filter(pid == a)
+    
+    if (!nrow(tmp)) {
+      # bootstrap new trial set modelled on the first participant, split by each
+      # advisor
+      n <- AdvisedTrial %>% 
+        dplyr::filter(pid == unique(pid)[1]) %>%
+        group_by(advisor0idDescription, feedback) %>%
+        summarise(n = n())
+      
+      for (i in 1:nrow(n)) {
+        tmp <- rbind(
+          tmp,
+          AdvisedTrial %>% 
+            dplyr::filter(
+              advisor0idDescription == n$advisor0idDescription[i],
+              feedback == n$feedback[i],
+              !(stimHTML %in% tmp$stimHTML)
+            ) %>%
+            sample_n(n$n[i])
+        )
+      }
+      
+      tmp$pid <- a
+    }
+    out <- rbind(out, tmp)
+  }
+  out
 }
 
 #' Confidence adjusted by advice
-#' @param initial estimate confidence
-#' @param advice confidence
-#' @param agree whether answers are on the same side of the scale
-#' @param advisor name of the advisor
-#' @param agent responsible for initial estimate
-#' @param strategy whether to 'add' or 'avg' advice and initial estimate
+#' @param AdvisedTrialSubset tbl of trials for agent
+#' @param agent tbl of agent's properties
+#' @param strategy which strategy to promote to the main result
 #'
 #' @details Final confidence is an average of initial confidence on one side,
 #'   and advice (signed by agreement) on the other. The average is weighted by
 #'   the agent's egoBias. Where the advisor is a single advisor, the egocentric
 #'   discounting is reduced by the agent's effectSize.
 #'
-#' @return vector of final confidence judgements, where negative numbers
-#'   indicate a switch in answer side
-getAdjustedConfidence <- function(initial, 
-                                  advice, 
-                                  agree,  
-                                  advisor, 
-                                  agent, 
-                                  strategy = 'add') {
+#' @return tbl of trials for agent with appropriate responseConfidenceFinal
+getAdjustedConfidence <- function(AdvisedTrialSubset, agent, strategy = 'Add') {
+  initial <- AdvisedTrialSubset$responseConfidence
+  advice <- AdvisedTrialSubset$advisor0adviceConfidence
+  agree <- AdvisedTrialSubset$agree
+  advisor <- AdvisedTrialSubset$advisor0idDescription
+  
   advice <- ifelse(agree, advice, -advice)
   egoBias <- ifelse(advisor == "single", 
                     agent$egoBias - agent$es, 
                     agent$egoBias)
-  if (strategy == 'avg') 
-    final <- (initial * egoBias) + (advice * (1 - egoBias))
-  else
-    final <- initial + (advice * (1 - egoBias))
-  final
+  
+  AdvisedTrialSubset$responseConfidenceFinalAvg <- 
+    (initial * egoBias) + (advice * (1 - egoBias))
+  AdvisedTrialSubset$responseConfidenceFinalAdd <- 
+    initial + (advice * (1 - egoBias))
+  
+  if (has_name(AdvisedTrialSubset, paste0('responseConfidenceFinal', strategy))) {
+    AdvisedTrialSubset$responseConfidenceFinal <- 
+      pull(AdvisedTrialSubset, paste0('responseConfidenceFinal', strategy))
+  } else {
+    AdvisedTrialSubset$responseConfidenceFinal <-
+      AdvisedTrialSubset$responseConfidenceFinalAdd
+  }
+  
+  AdvisedTrialSubset
 }
 
 #' Power analysis for Confidence Estimation task.
@@ -289,4 +304,154 @@ analyseCE <- function(x) {
   }
   
   out
+}
+
+
+# Simulate initial and final answers in calibration knowledge task --------
+
+#' Simulate confidence from existing CK task data. This
+#' allows for the JS task to generate advice as it would for participants while
+#' replacing the random integration testing answers with simulated ones.
+#'
+#' @param AdvisedTrial tibble of CK task answers.
+#' @param nAgents NA to use the agents supplied in AdvisedTrial (but recalculate
+#'   their answers). A number to produce that many agents by bootstrapping from
+#'   the trials in AdvisedTrial
+#' @param agentInsensitivitySD sd of agent error distribution (always positive)
+#' @param agentConfidence mean of distribution of increase in agent confidence
+#'   for each year between best guess and anchor date (always positive)
+#' @param agentConfidenceSD standard deviation of above
+#' @param agentEgoBias mean of distribution for how heavily agents discount
+#'   advice
+#' @param agentEgoBiasSD standard deviation of above
+#' @param agentEffectSize mean of distribution of how much more agents are
+#'   influenced by advisors whose confidence calibration they know (single
+#'   advisors). This alters the agent's egoBias
+#' @param agentEffectSizeSD standard deviation of above
+#' @param strategy to use for calculating the default response variables
+#' @return AdvisedTrial modified to use simulated answers
+simulateCK <- function(
+  AdvisedTrial,
+  nAgents = NA,
+  agentInsensitivitySD = 8,
+  agentConfidence = 2,
+  agentConfidenceSD = 4,
+  agentEgoBias = .7, 
+  agentEgoBiasSD = .2,
+  agentEffectSize = .1,
+  agentEffectSizeSD = .05,
+  strategy = 'LeastPref'
+) {
+  require(tidyverse)
+  
+  if (is.na(nAgents)) {
+    pids <- unique(AdvisedTrial$pid)
+  } else {
+    pids <- paste0('simAgent_', sprintf('%03d', 1:nAgents))
+  }
+  
+  # Simulated answers will assume that each agent has a sensitivity, and that 
+  # this sensitivity is affected by the objective difficulty of the question, 
+  # i.e. the distance between the anchor and the correct answer. 
+  agents <- tibble(
+    pid = pids,
+    error = abs(rnorm(length(pid), sd = agentInsensitivitySD)),
+    confidence = abs(rnorm(length(pid), agentConfidence, agentConfidenceSD)),
+    egoBias = rnorm(length(pid), agentEgoBias, agentEgoBiasSD),
+    es = rnorm(length(pid), agentEffectSize, agentEffectSizeSD),
+    preferredAdvisor = sample(unique(AdvisedTrial$advisor0id), length(pid), replace = T)
+  ) %>%
+    mutate(
+      egoBias = pmax(0, pmin(1, egoBias)),
+      es = pmax(0, pmin(1, es))
+    )
+  
+  trials <- simulateAgentAnswers(AdvisedTrial, agents, 
+                                 getAdjustedConfidence.CK, strategy)
+  
+  list(
+    trials = trials, 
+    agents = agents,
+    params = list(
+      agentInsensitivitySD = agentInsensitivitySD,
+      agentConfidence = agentConfidence,
+      agentConfidenceSD = agentConfidenceSD,
+      agentEgoBias = agentEgoBias,
+      agentEgoBiasSD = agentEgoBiasSD,
+      agentEffectSize = agentEffectSize,
+      agentEffectSizeSD = agentEffectSizeSD
+    )
+  )
+}
+
+#' Confidence adjusted by advice
+#' @param AdvisedTrialSubset tbl of trials for agent
+#' @param agent tbl of agent's properties
+#' @param strategy to use for calculating the default response variables
+#'
+#' @details Final confidence is an average of initial confidence on one side,
+#'   and advice (signed by agreement) on the other. The average is weighted by
+#'   the agent's egoBias. Where the advisor is a single advisor, the egocentric
+#'   discounting is reduced by the agent's effectSize.
+#'
+#' @return tbl of trials for agent with appropriate responseConfidenceFinal
+getAdjustedConfidence.CK <- function(AdvisedTrialSubset, agent, strategy) {
+  initial <- AdvisedTrialSubset$responseConfidence
+  advice <- AdvisedTrialSubset$advisor0adviceConfidence
+  agree <- AdvisedTrialSubset$agree
+  advisor <- AdvisedTrialSubset$advisor0id
+  hybrid <- AdvisedTrialSubset$advisor0hybridIds != ""
+  
+  # correct advice for agreement
+  advice <- ifelse(agree, advice, -advice)
+  
+  # Treat the hybrid as the least preferred advisor
+  egoBias <- ifelse(advisor == agent$preferredAdvisor & !hybrid,
+                    agent$egoBias - agent$es,
+                    agent$egoBias)
+  AdvisedTrialSubset$responseConfidenceFinalLeastPref <- 
+    initial + (advice * (1 - egoBias))
+  
+  # Prefer the least preferred advisor to the hybrid
+  # Hybrid = egoBias, non-preferred = egoBias - es, preferred = egoBias - 2es
+  egoBias <- agent$egoBias + 
+    (hybrid * agent$es) -
+    (advisor == agent$preferredAdvisor) * agent$es * !hybrid
+  AdvisedTrialSubset$responseConfidenceFinalPreferWorst <-  
+    initial + (advice * (1 - egoBias))
+  
+  # Weighted average of advisors' influence by likelihood they gave the advice
+  # Break the scale into thirds and calculate p(advisor|confidence) for each 
+  # third based on training trials.
+  tmp <- AdvisedTrialSubset %>% 
+    ungroup() %>%
+    mutate(
+      confCat = 
+        map_int(advisor0adviceConfidence, ~ min(which(c(25, 75, Inf) >= .)))
+    ) 
+  
+  confCat <- tmp %>% pull(confCat)
+  pPreferred <- tmp %>% 
+    dplyr::filter(feedback) %>%
+    group_by(confCat) %>%
+    summarise(x = mean(advisor0id == agent$preferredAdvisor)) %>%
+    pull(x)
+  
+  egoBias <- ifelse(
+    hybrid,
+    (agent$egoBias * (1 - pPreferred[confCat]) + (agent$egoBias - agent$es) * pPreferred[confCat]) / 2,
+    ifelse(advisor == agent$preferredAdvisor, agent$egoBias - agent$es, agent$egoBias)
+    )
+  AdvisedTrialSubset$responseConfidenceFinalLikelihoodWeighted <- 
+    initial + (advice * (1 - egoBias))
+  
+  if (has_name(AdvisedTrialSubset, paste0('responseConfidenceFinal', strategy))) {
+    AdvisedTrialSubset$responseConfidenceFinal <- 
+      pull(AdvisedTrialSubset, paste0('responseConfidenceFinal', strategy))
+  }  else {
+    AdvisedTrialSubset$responseConfidenceFinal <-
+      AdvisedTrialSubset$responseConfidenceFinalLeastPref
+  }
+  
+  AdvisedTrialSubset
 }

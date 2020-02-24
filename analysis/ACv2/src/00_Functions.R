@@ -944,7 +944,10 @@ byDecision <- function(df) {
     # fill in final responses in the initial response columns for final decisions
     for (v in names(out)[grepl("^response", names(out), perl = T)]) {
       old <- out[[v]][i]
-      new <- df[[paste0(v, "Final")]][i - n]
+      if (has_name(df, paste0(v, "Final")))
+        new <- df[[paste0(v, "Final")]][i - n]
+      else
+        new <- old
       
       if (is.factor(old)) {
         if (!(new %in% levels(old))) {
