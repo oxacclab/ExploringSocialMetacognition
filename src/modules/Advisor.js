@@ -313,9 +313,24 @@ class Advisor extends BaseObject {
             if(h === "questionnaire" && this.questionnaire) {
                 for(let n in this.questionnaire)
                     out[n] = this.questionnaire[n];
-            } else
+            }
+            else if(h === "confidenceFunction")
+                if(typeof this[h] !== "undefined")
+                    out[h] = this[h].name;
+                else
+                    out[h] = null;
+            else if(h === "confidenceFunctionParams")
+                if(typeof this[h] !== "undefined")
+                    out[h] = JSON.stringify(this[h]);
+                else
+                    out[h] = null;
+            else if(h === "pCorFunction")
+                if(typeof this[h] !== "undefined")
+                    out[h] = this[h].toString();
+                else
+                    out[h] = null;
+            else
                 out[h] = typeof this[h] === "undefined"? null : this[h];
-
         }
 
         return out;
@@ -335,11 +350,14 @@ class Advisor extends BaseObject {
             "name",
             "confidence",
             "confidenceAddition",
+            "confidenceFunction",
+            "confidenceFunctionParams",
             "confidenceVariation",
             "sameGroup",
             "questionnaire",
             "hybridIds",
             "hybridDescriptions",
+            "pCorFunction",
             "svg"
         ];
     }
@@ -617,18 +635,64 @@ class AdviceProfile extends BaseObject {
             out.adviceSide = (out.advice >= trial.anchorDate)? 1 : 0;
 
         if(trial.showAdvisorConfidence) {
-            // More confident each year, up to 100% confident at confidence boundary
-            out.adviceConfidence =
-                Math.abs(out.advice - trial.anchorDate) /
-                advisor.confidence * 100;
-            if(advisor.confidenceAddition)
-                out.adviceConfidence += advisor.confidenceAddition;
+            if(advisor.confidenceFunction)
+                out.adviceConfidence = advisor.confidenceFunction(out, trial, advisor);
+            else
+                out.adviceConfidence = Advisor.getConfidence(out, trial, advisor);
+
             out.adviceConfidence = Math.max(
                 0, Math.min(100, Math.round(out.adviceConfidence))
             );
         }
 
         return out;
+    }
+
+    static getConfidence(answer, trial, advisor) {
+        // More confident each year, up to 100% confident at confidence boundary
+        let adviceConfidence =
+            Math.abs(answer.advice - trial.anchorDate) /
+            advisor.confidence * 100;
+        if(advisor.confidenceAddition)
+            adviceConfidence += advisor.confidenceAddition;
+
+        return adviceConfidence;
+    }
+
+    static getConfidenceByPCorrect(answer, trial, advisor) {
+        // calculate p(correct) from estimate-anchor difference
+        // This is a cubic function with parameters empirically estimated for
+        // advisor with confidenceVariation = anchor distribution SD
+        const d = Math.abs(trial.anchorDate - answer.advice);
+        let pCor;
+        if(advisor.pCorFunction)
+            pCor = advisor.pCorFunction(d);
+        else  // derived from simulations in dates-binary-advice-accuracy.Rmd
+            pCor = .4670 +
+                d * .04426 +
+                Math.pow(d, 2) * -.00121 +
+                Math.pow(d, 3) * .00001;
+
+        // confidence comes from function of p(correct) in confidence space
+        let slope = 1.25;
+        let nudge = -.5;
+        let noise_sd = .05;
+        if(advisor.confidenceFunctionParams) {
+            slope = advisor.confidenceFunctionParams.slope || slope;
+            nudge = advisor.confidenceFunctionParams.nudge || nudge;
+            noise_sd = advisor.confidenceFunctionParams.noise_sd || noise_sd;
+        }
+
+        let conf = slope * (pCor + nudge);
+        // add a little random noise
+        conf += utils.sampleNormal(1, 0, noise_sd);
+
+        conf *= 100;
+
+        if(advisor.confidenceAddition)
+            conf += advisor.confidenceAddition;
+
+        return conf;
     }
 
     get mainAdviceType() {

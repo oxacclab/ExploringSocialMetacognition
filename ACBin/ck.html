@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.6">
+<head data-version="0.0.8">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -468,6 +468,8 @@
                     templateId: "advisor-key",
                     confidence: 20, // max confidence at X years distant
                     confidenceVariation: 8,
+                    confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
+                    confidenceAddition: 25,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
@@ -485,7 +487,8 @@
                     templateId: "advisor-key",
                     confidence: 20,
                     confidenceVariation: 8,
-                    confidenceAddition: 0,
+                    confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
+                    confidenceAddition: 10,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)
@@ -503,7 +506,8 @@
                     templateId: "advisor-key",
                     confidence: 20,
                     confidenceVariation: 8,
-                    confidenceAddition: 25,
+                    confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
+                    confidenceAddition: 40,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
                             ADVICE_CORRECTISH.copy(1)

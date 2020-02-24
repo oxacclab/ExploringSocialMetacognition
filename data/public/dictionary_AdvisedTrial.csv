@@ -9,6 +9,8 @@ advisor[0-9]+adviceSide,int|NA,"The side marked as the advisor's answer (0=left,
 advisor[0-9]+adviceWidth,int,The width of the advice marker placed by advisor [0-9]+
 advisor[0-9]+confidence,int,The width of the advice marker placed by advisor [0-9]+
 advisor[0-9]+confidenceAddition,int|NA,Amount of confidence added to the advisor[0-9]+'s calculated confidence before capping
+advisor[0-9]+confidenceFunction,string|NA,Name of the function used to derive the confidence of advisor[0-9]+
+advisor[0-9]+confidenceFunctionParams,string|NA,JSON representation of optional parameters specified for advisor[0-9]+'s confidenceFunction
 advisor[0-9]+confidenceVariation,int,The amount of variation around the centre of the advice distribution characterising advisor [0-9]+'s advice
 advisor[0-9]+group,int,The group to which advisor [0-9]+ belongs
 advisor[0-9]+hybridDescriptions,string|NA,Pipe-separated list of advisor [0-9]+'s descriptions encompassed if a hybrid
@@ -20,6 +22,7 @@ advisor[0-9]+introText,string,The text with which advisor [0-9]+ is introduced t
 advisor[0-9]+name,string,The name advisor [0-9]+ displays to the participant
 advisor[0-9]+nominalType,string,Advice type selected by advisor [0-9]+ for this trial
 advisor[0-9]+nominalTypeFlag,int,Binary flag representation of the above
+advisor[0-9]+pCorFunction,string|NA,String representation of the function used to derive advisor[0-9]+'s p(correct) from the absolute difference between anchor and their advice
 advisor[0-9]+position,int,The position of advisor [0-9]+
 advisor[0-9]+questionnaire,object,"The questionnaire associated with the advice, expanded in advisor[0-9]+questionnaire.+ variables"
 advisor[0-9]+questionnaireHonestyLabel,string,The text of the option above
