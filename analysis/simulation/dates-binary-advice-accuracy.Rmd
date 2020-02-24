@@ -29,7 +29,7 @@ library(tidyverse)
 theme_set(
   theme_light() + 
     theme(panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank())
+          panel.grid.major = element_blank())
   )
 ```
 
@@ -195,14 +195,14 @@ pCorrect <- tibble(
   pCor = map(bin, ~ f(., 10, x))
 ) %>% unnest_legacy()
 
-ggplot(pCorrect, aes(x = bin / 100, y = pCor)) +
+ggplot(pCorrect, aes(y = bin / 100, x = pCor)) +
   geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
   geom_point(shape = 4) +
   geom_line() +
   coord_fixed() +
   scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
   scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
-  labs(x = 'confidence / 100', y = 'p(correct)')
+  labs(y = 'confidence / 100', x = 'p(correct)')
 
 x <- x %>%
   mutate(bin = map(confidence, ~ 10 * min(which(seq(10, 100, 10) >= .)))) %>%
@@ -257,14 +257,14 @@ x <- x %>%
 x %>%
   select(bin, limit, sd, pCor) %>%
   unique() %>%
-  ggplot(aes(x = bin / 100, y = pCor)) +
+  ggplot(aes(y = bin / 100, x = pCor)) +
   geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
   geom_point(shape = 4) +
   geom_line() +
   coord_fixed() +
   scale_y_continuous(limits = c(0, 1)) +
   scale_x_continuous(limits = c(0, 1)) +
-  labs(x = 'confidence / 100', y = 'p(correct)') +
+  labs(y = 'confidence / 100', x = 'p(correct)') +
   facet_grid(sd ~ limit, labeller = label_both)
 
 ```
@@ -320,14 +320,14 @@ x <- x %>%
 x %>%
   select(bin, agent, pCor) %>%
   unique() %>%
-  ggplot(aes(x = bin / 100, y = pCor, colour = agent)) +
+  ggplot(aes(y = bin / 100, x = pCor, colour = agent)) +
   geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
   geom_point(shape = 4) +
   geom_line() +
   coord_fixed() +
   scale_y_continuous(limits = c(0, 1)) +
   scale_x_continuous(limits = c(0, 1)) +
-  labs(x = 'confidence / 100', y = 'p(correct)')
+  labs(y = 'confidence / 100', x = 'p(correct)')
 
 ```
 
@@ -378,14 +378,14 @@ x <- x %>%
 x %>%
   select(bin, agent, pCor) %>%
   unique() %>%
-  ggplot(aes(x = bin / 100, y = pCor, colour = agent)) +
+  ggplot(aes(y = bin / 100, x = pCor, colour = agent)) +
   geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
   geom_point(shape = 4) +
   geom_line() +
   coord_fixed() +
   scale_y_continuous(limits = c(0, 1)) +
   scale_x_continuous(limits = c(0, 1)) +
-  labs(x = 'confidence / 100', y = 'p(correct)')
+  labs(y = 'confidence / 100', x = 'p(correct)')
 ```
 
 ## Crush and shift
@@ -438,13 +438,176 @@ x <- x %>%
 x %>%
   select(bin, agent, pCor) %>%
   unique() %>%
-  ggplot(aes(x = bin / 100, y = pCor, colour = agent)) +
+  ggplot(aes(y = bin / 100, x = pCor, colour = agent)) +
   geom_abline(linetype = 'dashed', intercept = 0, slope = 1) +
   geom_point(shape = 4) +
   geom_line() +
   coord_fixed() +
   scale_y_continuous(limits = c(0, 1)) +
   scale_x_continuous(limits = c(0, 1)) +
-  labs(x = 'confidence / 100', y = 'p(correct)')
+  labs(y = 'confidence / 100', x = 'p(correct)')
 
 ```
+
+## Functions in confidence space
+
+Nick had the great idea of calculating advisor confidence in confidence space, i.e. producing the desired functions on the confidence/p(correct) graph and then using p(correct) for the advisor to look up the confidence they should express. 
+
+The first task for this is to figure out a couple of functions in confidence space which portray the desired confidence of the advisors. 
+
+Next, we need to translate these functions such that they map onto the area of confidence space in which the advisors actual p(correct) clusters.
+
+### Functions
+
+Reflected $y = x^z$ ($y = x ^{1/z}$) curves look pretty good. Plotted here for $z$ = 4.
+
+```{r}
+
+ggplot(tibble(x = seq(.01, 1, .01)), aes(x)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  stat_function(fun = ~ . ^ (1/4), aes(colour = 'High conf')) +
+  stat_function(fun = ~ . ^ 4, aes(colour = 'Low conf')) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  coord_fixed() +
+  labs(x = 'p(correct)', y = 'confidence')
+```
+
+Better, however, may well be straight lines in confidence space. Here we use $y = s(x - .5) + c$ where $s$ is the slope (titrated to 1.25 here) and $c$ is a constant used to differentiate low and high confidence advisors (here set to .1 and .4, respectively):
+
+```{r}
+
+ggplot(tibble(x = seq(.01, 1, .01)), aes(x)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  stat_function(fun = ~ .4 + (. - .5) * 1.25, aes(colour = 'High conf')) +
+  stat_function(fun = ~ .1 + (. - .5) * 1.25, aes(colour = 'Low conf')) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  coord_fixed() +
+  labs(x = 'p(correct)', y = 'confidence')
+```
+
+Although they look a little awkward, when taken in the space of observed p(correct) values (see below) they work pretty well.
+
+### Target part of confidence space
+
+We should plot some information about the p(correct) of the advisors.
+
+```{r}
+n <- 100000
+
+x <- tibble(q = 1:n) %>%
+  mutate(
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = 8),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor)
+    ) %>%
+  mutate(bin = map(abs(guess - anchor), ~ min(which(1:100 >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = -bin) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy()
+
+ggplot(x, aes(x = bin)) + 
+  geom_histogram(binwidth = 1) +
+  labs(x = 'abs(guess - anchor)')
+
+x %>% 
+  group_by(bin) %>% 
+  summarise(pCor = mean(pCor)) %>%
+  ggplot(aes(x = bin, y = pCor)) +
+  stat_summary(geom = 'point', aes(group = bin), fun.y = mean)  +
+  labs(x = 'abs(guess - anchor)')
+
+x %>% 
+  group_by(bin) %>% 
+  summarise(pCor = mean(pCor)) %>% 
+  lm(pCor ~ bin + I(bin^2) + I(bin^3), data = .)
+
+x %>%
+  group_by(pCor) %>%
+  summarise(n = n() / nrow(x) * 100) %>%
+  ggplot(aes(x = pCor, y = n)) +
+  geom_point() +
+  labs(y = '%')
+```
+
+Advisors have a half-normal distribution on the p(correct) which they can subjectively estimate from the (absolute) difference between their guess and the anchor.
+
+### Linear function in confidence space
+
+Taking the linear function and adding a little random noise to each confidence judgement (SD = .05) means we get the following patterns (100,000 trials per agent):
+
+```{r}
+n <- 100000
+f <- function(x, c) c + (x - .5) * 1.25
+
+x <- tibble(q = 1:n) %>%
+  mutate(
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = 8),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor)
+    ) %>%
+  mutate(bin = map(abs(guess - anchor), ~ min(which(1:100 >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = -bin) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy()
+
+highConf <- x %>%
+  mutate(
+    agent = 'HighConf',
+    conf = map_dbl(pCor, ~f(., .4)) + rnorm(n(), sd = .05)
+  ) 
+lowConf <- x %>%
+  mutate(
+    agent = 'LowConf',
+    conf = map_dbl(pCor, ~f(., .1)) + rnorm(n(), sd = .05)
+  )
+
+data <- rbind(highConf, lowConf) %>%
+  mutate(conf = pmin(1, pmax(0, conf))) %>%
+  group_by(bin, agent, pCor, conf) %>%
+  summarise(correct = mean(correct))
+
+data %>%
+  ggplot(aes(x = pCor, y = conf, colour = agent)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  geom_point(alpha = .1) +
+  stat_summary(geom = 'line', aes(group = agent), fun.y = mean) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  coord_fixed() +
+  labs(x = 'p(correct)', y = 'confidence')
+  
+```
+
+#### Simulated advice properties
+
+What is the distribution of confidence scale use for each advisor?
+
+```{r}
+ggplot(data, aes(x = conf, fill = agent)) + 
+  geom_histogram(bins = 100, alpha = .5, position = position_identity())
+```
+
+That actually looks pretty much like what we're after! We may wonder, though, what the probability the advice came from the Low vs High conf advisor is as we observe a mystery confidence rating. This is basically what participants will have to do in the task.
+
+```{r}
+
+data %>% 
+  mutate(conf = round(conf, 2)) %>%
+  group_by(conf) %>%
+  summarise(pHighConf = mean(agent == 'HighConf'), prop = n()/nrow(data)) %>%
+  ggplot(aes(x = conf, y = pHighConf)) +
+  geom_line(aes(y = prop, colour = "proportion of responses")) +
+  geom_line(aes(colour = "p(HighConf)")) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(limits = c(0, 1)) +
+  coord_fixed()
+
+```
+
+That looks pretty amazing. We've got a slightly squiffy sigmoid where the slope looks about right and the balance point is around 50% confidence on the scale. Furthermore, that part of the scale is where there are most responses when the agents are combined (as we might expect).
