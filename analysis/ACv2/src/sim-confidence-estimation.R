@@ -111,7 +111,9 @@ simulateAgentAnswers <- function(AdvisedTrial, agents,
       finalAnswerFun(agent, strategy) 
     
     for (n in grep('responseConfidenceFinal', names(tmp), value = T)) {
-      suffix <- reFirstMatch('responseAnswerSideFinal([\\w\\W]*)$', n)
+      re <- regexpr('responseAnswerSideFinal([\\w\\W]*)$', n, perl = T)
+      suffix <- substr(n, attr(re, "capture.start"), 
+                       attr(re, "capture.start") + attr(re, "capture.length") - 1)
       tmp[, paste0('responseAnswerSideFinal', suffix)] <-
         if_else(pull(tmp, paste0('responseConfidenceFinal', suffix)) > 0,
                 pull(tmp, paste0('responseAnswerSide', suffix)),
@@ -230,18 +232,32 @@ getAdjustedConfidence <- function(AdvisedTrialSubset, agent, strategy = 'Add') {
   AdvisedTrialSubset
 }
 
-#' Power analysis for Confidence Estimation task.
-#'
-#' @param AdvisedTrial tibble of CE task answers used for simulating data.
-#' @param parameters tibble of parameters settings to explore
-#' @param nCores number of cores to use in parallel processing
-#' 
-#' @return list with input, calculated data, and summary stats
+#' Simulate a Confidence Estimation task
 powerAnalysisCE <- function(
   AdvisedTrial, 
   parameters, 
+  simFun = simulateCE,
   nCores = detectCores() - 2
 ) {
+  out <- powerAnalysis(AdvisedTrial, parameters, simFun, nCores)
+  out$models$analysis <- analyseCE(out$models$data)
+  out
+}
+  
+#' Power analysis for task via simulation.
+#'
+#' @param AdvisedTrial tibble of task answers used for simulating data.
+#' @param parameters tibble of parameters settings to explore
+#' @param simFunName function name to use for simulating data
+#' @param nCores number of cores to use in parallel processing
+#' 
+#' @return list with input, calculated data, and summary stats
+powerAnalysis <- function(
+  AdvisedTrial, 
+  parameters, 
+  simFunName,
+  nCores = detectCores() - 2
+)  {
   
   out <- list(
     seedData = AdvisedTrial,
@@ -253,23 +269,21 @@ powerAnalysisCE <- function(
     nCores = nCores
   )
   
-  cl <- makeCluster(nCores)
-  
   #' Unpack arguments into a neat list from a singleton and a vector
-  unpacker <- function(vec, df) {
-    do.call(simulateCE, c(list(AdvisedTrial = df), vec))
+  unpacker <- function(vec, input, f) {
+    source('src/sim-confidence-estimation.R') # source this script
+    do.call(f, c(list(AdvisedTrial = input), vec))
   }
   
-  # out$models$data <- apply(parameters, 1, unpacker, 
-  #                          x = AdvisedTrial, f = simulateCE)
-  
-  clusterExport(cl, c("getAdjustedConfidence", "simulateCE"))
-  out$models$data <- parRapply(cl, x = parameters, unpacker,
-                               df = AdvisedTrial)
-  
-  stopCluster(cl)
-  
-  out$models$analysis <- analyseCE(out$models$data)
+  if (nCores > 1) {
+    cl <- makeCluster(nCores)
+    out$models$data <- parRapply(cl, x = parameters, unpacker,
+                                 input = AdvisedTrial, f = simFunName)
+    stopCluster(cl)
+  } else {
+    out$models$data <- apply(parameters, 1, unpacker, 
+                             input = AdvisedTrial, f = simFunName)  
+  }
   
   out
 }
@@ -359,7 +373,8 @@ simulateCK <- function(
     confidence = abs(rnorm(length(pid), agentConfidence, agentConfidenceSD)),
     egoBias = rnorm(length(pid), agentEgoBias, agentEgoBiasSD),
     es = rnorm(length(pid), agentEffectSize, agentEffectSizeSD),
-    preferredAdvisor = sample(unique(AdvisedTrial$advisor0id), length(pid), replace = T)
+    # Most agents should prefer the high-confidence advisor
+    preferredAdvisor = if_else(runif(length(pid)) < .3, "lowConf", "highConf")
   ) %>%
     mutate(
       egoBias = pmax(0, pmin(1, egoBias)),
@@ -387,7 +402,8 @@ simulateCK <- function(
 #' Confidence adjusted by advice
 #' @param AdvisedTrialSubset tbl of trials for agent
 #' @param agent tbl of agent's properties
-#' @param strategy to use for calculating the default response variables
+#' @param strategy to use for calculating the default response variables. 
+#'  Options are 'LeastPref', 'PreferWorst', 'LikelihoodWeighted'
 #'
 #' @details Final confidence is an average of initial confidence on one side,
 #'   and advice (signed by agreement) on the other. The average is weighted by
@@ -399,7 +415,7 @@ getAdjustedConfidence.CK <- function(AdvisedTrialSubset, agent, strategy) {
   initial <- AdvisedTrialSubset$responseConfidence
   advice <- AdvisedTrialSubset$advisor0adviceConfidence
   agree <- AdvisedTrialSubset$agree
-  advisor <- AdvisedTrialSubset$advisor0id
+  advisor <- AdvisedTrialSubset$advisor0idDescription
   hybrid <- AdvisedTrialSubset$advisor0hybridIds != ""
   
   # correct advice for agreement
@@ -414,9 +430,9 @@ getAdjustedConfidence.CK <- function(AdvisedTrialSubset, agent, strategy) {
   
   # Prefer the least preferred advisor to the hybrid
   # Hybrid = egoBias, non-preferred = egoBias - es, preferred = egoBias - 2es
-  egoBias <- agent$egoBias + 
-    (hybrid * agent$es) -
-    (advisor == agent$preferredAdvisor) * agent$es * !hybrid
+  egoBias <- agent$egoBias - 
+    (!hybrid * agent$es) -
+    (advisor == agent$preferredAdvisor) * !hybrid * agent$es
   AdvisedTrialSubset$responseConfidenceFinalPreferWorst <-  
     initial + (advice * (1 - egoBias))
   
@@ -454,4 +470,98 @@ getAdjustedConfidence.CK <- function(AdvisedTrialSubset, agent, strategy) {
   }
   
   AdvisedTrialSubset
+}
+
+#' Analysis of effects for model data
+#' @param x list of model data
+#' @param summariseResults whether to provide a one-row summary of each run
+#' @param nCores number of cores to use (>1 will use parallel operation)
+#' @return tibble of t-test output plus BayesFactor for single vs mass advisor
+#'   influence on no-feedback trials
+analyseCK <- function(x, summariseResults = T, nCores = detectCores() - 2) {
+  out <- NULL
+  if (nCores > 1) {
+    cl <- makeCluster(nCores)
+    clusterExport(cl, ".analyseCK")
+    out <- parLapply(cl, x, .analyseCK, summariseResults)
+    stopCluster(cl)
+  } else {
+    out <- lapply(x, .analyseCK, summariseResults)
+  }
+  
+  if (summariseResults) 
+    out <- map_dfr(out, bind_rows)
+  
+  out
+}
+
+.analyseCK <- function(x, summariseResults = T) {
+  require(ez)
+  require(tidyverse)
+  require(broom)
+  
+  out <- NULL
+  for (s in c('LeastPref', 'PreferWorst', 'LikelihoodWeighted')) {
+    tmp <- x$trials %>% 
+      dplyr::filter(feedback == F) %>%
+      mutate(advisor0agree = if_else(advisor0idDescription == "lowConf",
+                                     lowConf.agree, highConf.agree)) %>%
+      mutate(advisor0agree = as.logical(advisor0agree))
+    tmp$r <- pull(tmp, paste0('responseConfidenceFinal', s))
+    # calculate influence for advisor from agent's final response confidence
+    tmp <- tmp %>% 
+      mutate(
+        influence = case_when(
+          advisor0agree & r >= 0 ~ r - responseConfidence,
+          advisor0agree & r < 0 ~ -(responseConfidence + r),
+          !advisor0agree & r >= 0 ~ -(responseConfidence - r),
+          !advisor0agree & r < 0 ~ responseConfidence + r
+        ),
+        pid = factor(pid)
+      )
+    
+    try({
+      # ANOVA
+      a <- tmp %>%
+        mutate(hybrid = factor(advisor0name == '?')) %>%
+        group_by(pid, advisor0idDescription, hybrid) %>% 
+        summarise(influence = mean(influence)) %>% 
+        ezANOVA(dv = influence,
+                wid = pid, 
+                within = c(hybrid, advisor0idDescription),
+                return_aov = T)
+      
+      # Tidy and bind results
+      out <- a$aov %>% 
+        tidy() %>% 
+        mutate(strategy = s) %>% 
+        select(strategy, everything()) %>%
+        rbind(out, .)
+    }, silent = T)
+  }
+  
+  if (summariseResults) {
+    f <- function(x) {
+      if (is.null(x))
+        return(tibble(okay = F))
+      
+      tmp <- x %>%
+        mutate(residual = if_else(term == 'Residuals', '_residual', '')) %>%
+        pivot_wider(id_cols = c(strategy, stratum), 
+                    names_from = residual,
+                    names_sep = '',
+                    values_from = df:p.value) %>%
+        select(-ends_with('_residual'), df_residual, sumsq_residual) %>%
+        filter(str_detect(stratum, ':'))
+      
+      tmp %>% 
+        group_by(strategy, stratum) %>% 
+        summarise(p = mean(p.value)) %>% 
+        pivot_wider(names_from = c(strategy, stratum), values_from = p) %>%
+        mutate(okay = T)
+    }
+    out <- f(out)
+  } 
+  
+  out
 }

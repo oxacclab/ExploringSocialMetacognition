@@ -667,11 +667,15 @@ class AdviceProfile extends BaseObject {
         let pCor;
         if(advisor.pCorFunction)
             pCor = advisor.pCorFunction(d);
-        else  // derived from simulations in dates-binary-advice-accuracy.Rmd
-            pCor = .4670 +
-                d * .04426 +
-                Math.pow(d, 2) * -.00121 +
-                Math.pow(d, 3) * .00001;
+        else
+            // Cumulative density of the normal distribution
+            // derived from simulations in dates-binary-advice-accuracy.Rmd
+            pCor = utils.pNorm(d, 0, 12);
+
+        if(pCor < 0)
+            pCor = 0;
+        if(pCor > 1)
+            pCor = 1;
 
         // confidence comes from function of p(correct) in confidence space
         let slope = 1.25;
@@ -686,6 +690,8 @@ class AdviceProfile extends BaseObject {
         let conf = slope * (pCor + nudge);
         // add a little random noise
         conf += utils.sampleNormal(1, 0, noise_sd);
+        if(conf < 0)
+            return AdviceProfile.getConfidenceByPCorrect(answer, trial, advisor);
 
         conf *= 100;
 

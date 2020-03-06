@@ -50,7 +50,7 @@ theme_set(theme_light() +
 rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
 testData <- T
 
-studyVersion <- "0-0-8"
+studyVersion <- "0-0-16"
 studyName <- "calibrationKnowledge"
 
 exclude <- list(
@@ -272,9 +272,15 @@ tmp <- decisions %>%
   mutate(highConf = zConf > 0) %>%
   group_by(pid, decision, highConf) %>%
   summarise(pCorrect = mean(responseCorrect)) %>%
+  filter(!is.na(highConf)) %>%
   group_by(pid, decision) %>%
   spread(highConf, pCorrect) %>%
   mutate(pCorrectDiff = `TRUE` - `FALSE`)
+
+drop <- length(unique(tmp$pid)) != length(unique(decisions$pid))
+if (drop > 0) {
+  print(paste0("Dropping ", drop, " rows from analysis for unstandardizable confidence."))
+}
 
 tmp %>% 
   peek(pCorrectDiff, decision) %>% 
@@ -603,7 +609,34 @@ tmp <- AdvisedTrial %>%
           wid = pid, 
           within = c(hybrid, advisor0idDescription))
 
-tmp
+kable(tmp)
+
+if (testData) {
+  for (s in c('LeastPref', 'PreferWorst', 'LikelihoodWeighted')) {
+    print(paste0('=== ', s, ' ==='))
+    tmp <- AdvisedTrial %>% 
+      dplyr::filter(feedback == F) %>%
+      mutate(advisor0agree = as.logical(advisor0agree))
+    tmp$r <- pull(tmp, paste0('responseConfidenceFinal', s))
+    tmp <- tmp %>% 
+      mutate(
+        influence = case_when(
+          advisor0agree & r >= 0 ~ r - responseConfidence,
+          advisor0agree & r < 0 ~ -(responseConfidence + r),
+          !advisor0agree & r >= 0 ~ -(responseConfidence - r),
+          !advisor0agree & r < 0 ~ responseConfidence + r
+        )
+    )
+    tmp %>%
+      mutate(hybrid = factor(advisor0name == '?')) %>%
+      group_by(pid, advisor0idDescription, hybrid) %>% 
+      summarise(influence = mean(influence)) %>% 
+      ezANOVA(dv = influence,
+              wid = pid, 
+              within = c(hybrid, advisor0idDescription)) %>%
+      print()
+  }
+}
 
 ```
 

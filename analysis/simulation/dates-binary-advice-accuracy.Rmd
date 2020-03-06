@@ -601,8 +601,9 @@ data %>%
   mutate(conf = round(conf, 2)) %>%
   group_by(conf) %>%
   summarise(pHighConf = mean(agent == 'HighConf'), prop = n()/nrow(data)) %>%
+  mutate(prop = prop / max(prop)) %>%
   ggplot(aes(x = conf, y = pHighConf)) +
-  geom_line(aes(y = prop, colour = "proportion of responses")) +
+  geom_line(aes(y = prop, colour = "scaled proportion of responses")) +
   geom_line(aes(colour = "p(HighConf)")) +
   scale_y_continuous(limits = c(0, 1)) +
   scale_x_continuous(limits = c(0, 1)) +
@@ -611,3 +612,149 @@ data %>%
 ```
 
 That looks pretty amazing. We've got a slightly squiffy sigmoid where the slope looks about right and the balance point is around 50% confidence on the scale. Furthermore, that part of the scale is where there are most responses when the agents are combined (as we might expect).
+
+#### p(correct|distance)
+
+Advisors shouldn't objectively know their p(correct), and should instead have to estimate it from the difference between their answer and the anchor date. We want as simple a function as possible which does a good job of approximating p(correct) for a given difference.
+
+```{r}
+n <- 100000
+
+x <- tibble(q = 1:n) %>%
+  mutate(
+    anchor = rnorm(n(), sd = 8),
+    guess = rnorm(n(), sd = 8),
+    correct = abs(guess) < abs(anchor) | sign(guess) != sign(anchor)
+    ) %>%
+  mutate(diff = round(abs(guess - anchor))) %>%
+  mutate(bin = map(abs(guess - anchor), ~ min(which(1:100 >= .)))) %>%
+  unnest_legacy() %>%
+  nest(data = -diff) %>%
+  mutate(pCor = map(data, ~ mean(.x$correct))) %>%
+  unnest_legacy(pCor) %>%
+  unnest_legacy() %>%
+  # don't worry about the limit cases
+  filter(pCor < .99, diff < 40)
+
+x %>% lm(pCor ~ bin, data = .)
+
+x %>% lm(pCor ~ bin + I(log(bin)), data = .)
+
+x %>% lm(pCor ~ bin + I(bin ^ .2), data = .)
+
+x %>% lm(pCor ~ bin + I(bin ^ 2), data = .)
+
+# Should include the currently-used cubic function.
+
+x %>%
+  ggplot(aes(x = diff)) + 
+  # stat_function(colour = 'black', fun = ~ .483 + .018 * . + .054 * log(.)) +
+  # stat_function(colour = 'blue', fun = ~ .2276 + .015 * . + .258 * (. ^ .2)) + 
+  stat_function(colour = 'red', fun = ~ .4684 + .0419 * . - .0009 * (. ^ 2)) +
+  stat_function(colour = 'blue', fun = ~ pnorm(., sd = 12)) +
+  geom_point(aes(y = pCor)) +
+  scale_y_continuous(limits = c(.5, 1))
+
+```
+
+Having decided on using the pnorm function we now have to work out how to approximate it in JS. The cumulative normal distribution function supplied by math.js doesn't seem to do the trick:
+
+```{r}
+
+# Math.js algorithms
+sdX <- function(x, sd = 12) {
+  x / sd
+}
+
+erfc1 <- function(x) {
+  P <- c(3.16112374387056560e00, 1.13864154151050156e02,
+        3.77485237685302021e02, 3.20937758913846947e03,
+        1.85777706184603153e-1)
+  Q <- c(2.36012909523441209e01, 2.44024637934444173e02,
+        1.28261652607737228e03, 2.84423683343917062e03)
+  
+  x <- sdX(x)
+  x2 <- x^2
+  xnum <- P[length(P)] * x2
+  xden <- x2
+  
+  for (i in 1:length(Q)) {
+    xnum <- (xnum + P[i]) * x2
+    xden <- (xden + Q[i]) * x2
+  }
+  
+  x * (xnum + P[length(Q)]) / (xden + Q[length(Q)])
+}
+
+erfc2 <- function(x) {
+  P <- c(5.64188496988670089e-1, 8.88314979438837594e00,
+        6.61191906371416295e01, 2.98635138197400131e02,
+        8.81952221241769090e02, 1.71204761263407058e03,
+        2.05107837782607147e03, 1.23033935479799725e03,
+        2.15311535474403846e-8)
+  Q <- c(1.57449261107098347e01, 1.17693950891312499e02,
+        5.37181101862009858e02, 1.62138957456669019e03,
+        3.29079923573345963e03, 4.36261909014324716e03,
+        3.43936767414372164e03, 1.23033935480374942e03)
+  
+  x <- sdX(x)
+  xnum <- P[length(P)] * x
+  xden <- x
+  
+  for (i in 1:length(Q)) {
+    xnum <- (xnum + P[i]) * x
+    xden <- (xden + Q[i]) * x
+  }
+  
+  r <- (xnum + P[length(Q)]) / (xden + Q[length(Q)])
+  x2 <- (x * 16) / 16  # ?? this is what math.js has
+  d <- (x - x2) * (x + x2);
+  1 - (exp(-x2 * x2) * exp(-d) * r)
+}
+
+erfc3 <- function(x) {
+  P <- c(3.05326634961232344e-1, 3.60344899949804439e-1,
+        1.25781726111229246e-1, 1.60837851487422766e-2,
+        6.58749161529837803e-4, 1.63153871373020978e-2)
+  Q <- c(2.56852019228982242e00, 1.87295284992346047e00,
+        5.27905102951428412e-1, 6.05183413124413191e-2,
+        2.33520497626869185e-3)
+  
+  x <- sdX(x)
+  x2 <- 1 / (x ^ 2)
+  xnum <- P[length(P)] * x2
+  xden <- x2
+  
+  for (i in 1:length(Q)) {
+    xnum <- (xnum + P[i]) * x2
+    xden <- (xden + Q[i]) * x2
+  }
+  
+  r <- x2 * (xnum + P[length(Q)]) / (xden + Q[length(Q)])
+  
+  sqrtpi <- 5.6418958354775628695e-1 # this is so NOT the sqrt(pi)
+  
+  r <- (sqrtpi - r) / x
+  
+  x2 <- (x * 16) / 16  # ?? this is what math.js has
+  d <- (x - x2) * (x + x2);
+  1 - (exp(-x2 * x2) * exp(-d) * r)
+}
+
+js <- c(0, 0.0938143842450717, 0.18633628423320808, 0.2763263901682369, 0.3626481117660628, 0.4443102097172054, 0.5204998778130465, 0.5906045137900813, 0.6542214138488396, 0.7111556336535152, 0.7614071706835646, 0.8051493513911305, 0.8427007929497148, 0.8744935285625308, 0.9010398459805942, 0.9229001282564582, 0.9406535612080801, 0.9548730511113239, 0.9661051464753108, 0.9748552388266426, 0.981577874545901) %>%
+  enframe() %>%
+  transmute(x = name - 1, js = value)
+
+ggplot(js, aes(x, js)) +
+  geom_vline(xintercept = 0.46875, linetype = 'dotted') +
+  geom_vline(xintercept = 4, linetype = 'dashed') + 
+  geom_point() +
+  stat_function(colour = 'blue', fun = ~pnorm(., sd = 12)) +
+  stat_function(fun = erfc1) +
+  stat_function(fun = erfc2, linetype = 'dotted') +
+  stat_function(fun = erfc3, linetype = 'dashed') +
+  scale_y_continuous(limits = c(0, 1))
+
+```
+
+In the end we solve this with a lookup table taken from pnorm(seq(0, 4, .01)).
