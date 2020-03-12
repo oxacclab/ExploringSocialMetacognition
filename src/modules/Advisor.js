@@ -408,18 +408,6 @@ class AdvisorHybrid extends Advisor {
             const blueprints = this.hybridBlueprints
                 .sort((a, b) => a.id < b.id? 1 : -1);
 
-            const base64toSVG = (s) => {
-                // Sychronous XHTTP requests are depreciated but really useful here!
-                const request = new XMLHttpRequest();
-                request.open('GET', s, false);
-                request.send(null);
-
-                if (request.status === 200)
-                    return new DOMParser().parseFromString(request.responseText, 'text/xml');
-
-                return null;
-            };
-
             const svgToBase64 = (svg) => {
                 let xml = svg.querySelector('svg').outerHTML;
                 xml = xml.replace(/clippath/g, 'clipPath');
@@ -429,7 +417,15 @@ class AdvisorHybrid extends Advisor {
 
             const images = [];
             for(let bp of this.hybridBlueprints) {
-                images.push(new Advisor(bp).svg);
+                const svg = new Advisor(bp).svg;
+                const match = /^data:image\/svg\+xml;base64,(\S+)$/.exec(svg);
+                if(match && match[1]) {
+                    const svg = atob(match[1]);
+                    const obj = new DOMParser().parseFromString(svg, 'text/xml');
+                    images.push(obj);
+                }
+                else
+                    this.warn(`Unable to register hybrid blueprint image segment for advisor ${bp.id}`);
             }
 
             const theta = Math.PI * 2 / images.length;
@@ -452,25 +448,23 @@ class AdvisorHybrid extends Advisor {
 
                 const clipId = "clip-path-" + i.toString();
 
-                let svg = base64toSVG(img);
-
                 // Apply clip mask
                 const pathAttr = document.createAttribute('clip-path');
                 pathAttr.value = "url(#" + clipId + ")";
-                svg.querySelector('svg g').attributes.setNamedItem(pathAttr);
-                svg.querySelector('svg').insertBefore(document.createElement('defs'), svg.querySelector('svg').firstChild);
-                const clip = svg.querySelector('defs').appendChild(document.createElement('clippath'));
+                img.querySelector('svg g').attributes.setNamedItem(pathAttr);
+                img.querySelector('svg').insertBefore(document.createElement('defs'), img.querySelector('svg').firstChild);
+                const clip = img.querySelector('defs').appendChild(document.createElement('clippath'));
                 clip.id = clipId;
                 clip.innerHTML =
                     `<path d="M ${start[0]} ${start[1]} A 1 1 0 0 0 ${end[0]} ${end[1]} Z"/>`;
 
                 if(!i)
-                    this._image = svg;
+                    this._image = img;
                 else {
                     this._image.querySelector('svg')
-                        .appendChild(svg.querySelector('g'));
+                        .appendChild(img.querySelector('g'));
                     this._image.querySelector('defs')
-                        .appendChild(svg.querySelector('clippath'));
+                        .appendChild(img.querySelector('clippath'));
                     // Add lines showing the divide
                     this._image.querySelector('svg')
                         .innerHTML += `<g><line x1="${start[0]}" y1="${start[1]}" x2="${width}" y2="${width}" style="stroke:rgb(0,0,0);stroke-width:4"/><line x1="${end[0]}" y1="${end[1]}" x2="${width}" y2="${width}" style="stroke:rgb(0,0,0);stroke-width:4"/></g>`;
