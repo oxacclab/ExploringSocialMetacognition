@@ -137,12 +137,12 @@ AdvisedTrial %>%
 AdvisedTrial <- AdvisedTrial %>%
   mutate(Hybrid = if_else(advisor0name == '?', 'Hybrid', 'Labelled'),
          Advisor = capitalize(as.character(advisor0idDescription)),
-         Feedback = if_else(feedback, "With Feedback", "No feedback"))
+         Phase = if_else(feedback, "Familiarization", "Test"))
 
 decisions <- decisions %>% 
   mutate(Hybrid = if_else(advisor0name == '?', 'Hybrid', 'Labelled'),
          Advisor = capitalize(as.character(advisor0idDescription)),
-         Feedback = if_else(feedback, "With Feedback", "No feedback"),
+         Phase = if_else(feedback, "Familiarization", "Test"),
          Decision = capitalize(decision))
 ```
 
@@ -166,16 +166,16 @@ decisions %>% peek(responseCorrect, decision) %>%
 decisions %>% filter(feedback == T) %>% 
   peek(responseCorrect, decision) %>% 
   num2str.tibble(isProportion = T, precision = 3) %>%
-  cbind(feedback = T)
+  cbind(Phase = unique(decisions %>% filter(feedback) %>% pull(Phase)))
 
 ```
 
 ```{r accuracyGraph}
 
-tmp <- decisions %>% group_by(pid, Decision, Feedback) %>%
+tmp <- decisions %>% group_by(pid, Decision, Phase) %>%
   do(correct = mean_cl_normal(.$responseCorrect)) %>%
   unnest(correct) %>%
-  transmute(pid, Decision, Feedback,
+  transmute(pid, Decision, Phase,
             pCorrect = y, 
             ciLow = ymin,
             ciHigh = ymax)
@@ -189,7 +189,7 @@ ggplot(tmp,
   geom_line(alpha = .25, aes(group = pid)) + 
   scale_y_continuous(limits = c(0, 1)) +
   labs(y = "P(Response correct)") +
-  facet_grid(~Feedback)
+  facet_grid(~Phase)
 
 # caption = "Probability of correct responses on initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance performance."
 
@@ -243,16 +243,16 @@ decisions %>% peek(responseConfidence, decision) %>%
 decisions %>% filter(feedback == T) %>% 
   peek(responseConfidence, decision) %>% 
   num2str.tibble(isProportion = T, precision = 3) %>%
-  cbind(feedback = T)
+  cbind(Phase = unique(decisions %>% filter(feedback) %>% pull(Phase)))
 
 ```
 
 ```{r confidence graph}
 
-tmp <- decisions %>% group_by(pid, Decision, Feedback) %>%
+tmp <- decisions %>% group_by(pid, Decision, Phase) %>%
   do(confidence = mean_cl_normal(.$responseConfidence)) %>%
   unnest(confidence) %>%
-  transmute(pid, Decision, Feedback,
+  transmute(pid, Decision, Phase,
             confidence = y, 
             ciLow = ymin,
             ciHigh = ymax)
@@ -265,7 +265,7 @@ ggplot(tmp,
   geom_line(alpha = .25, aes(group = pid)) + 
   scale_y_continuous(limits = c(0, 100)) +
   labs(y = "Confidence") +
-  facet_grid(~Feedback)
+  facet_grid(~Phase)
 
 # caption = "Confidence of initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions."
 
@@ -619,9 +619,9 @@ tmp <- AdvisedTrial %>%
     con = map(data, ~ cor.test(.x$responseConfidence, .x$advisor0influence)), 
     con = map(con, tidy)
   ) %>% 
-  unnest(acc, .sep = ".") %>%
-  unnest(con, .sep = ".") %>%
-  unnest(acc.BF, con.BF)
+  unnest(acc, names_sep = ".") %>%
+  unnest(con, names_sep = ".") %>%
+  unnest(c(acc.BF, con.BF))
 
 tmp <- bind_rows(
   tmp %>% 
@@ -712,7 +712,7 @@ tmp %>%
   geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
                width = .25, size = 1.25) +
-  geom_line(alpha = .25, size = 1, aes(group = pid, linetype = Favourite)) + 
+  geom_line(alpha = .25, size = .75, aes(group = pid, linetype = Favourite)) + 
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
   scale_y_continuous(limits = c(-100, 100)) +
@@ -771,17 +771,18 @@ tmp %>%
     by = 'pid') %>%
   rename(Advisor = advisor) %>%
   ggplot(aes(x = Advisor, y = influence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
   geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
                width = .25, size = 1.25) +
-  geom_line(alpha = .25, size = 1, aes(group = pid, linetype = nonfavourite)) + 
+  geom_line(alpha = .25, size = .75, aes(group = pid, linetype = nonfavourite)) + 
   scale_colour_discrete(h.start = 135) + # match colours with hybrid green above
   scale_fill_discrete(h.start = 135) +
   scale_y_continuous(limits = c(-100, 100)) +
   scale_linetype_discrete(name = 'Least favourite advisor') +
   labs(x = 'Advisor presentation', y = 'Advisor influence')
 
-# caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The line types show the identity of the least advisor whose influence is plotted for that participant."
+# caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The line types show the identity of the least advisor whose influence is plotted for that participant. The full-width black dashed line shows zero influence."
 
 ```
 
@@ -807,6 +808,33 @@ tmp <- AdvisedTrial %>%
           within = c(hybrid, advisor0idDescription))
 
 tmp
+
+dw <- .25
+AdvisedTrial %>%
+  filter(!feedback) %>%
+  group_by(pid, Advisor, Hybrid) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  ungroup() %>%
+  mutate(Advisor = factor(Advisor), 
+         Hybrid = factor(Hybrid)) %>%
+  ggplot(aes(x = Hybrid, y = influence, colour = Advisor)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  scale_x_discrete() +
+  geom_line(aes(
+    group = paste0(pid, Advisor),
+    x = as.numeric(Hybrid) - .75 * dw + .5 * dw * as.numeric(Advisor)
+    ), alpha = .25) +
+  stat_summary(aes(group = Advisor), geom = 'line', fun.y = mean, size = 1,
+               position = position_dodge(dw)) +
+  stat_summary(aes(group = paste0(Advisor, Hybrid)), geom = 'point', 
+               size = 4, fun.y = mean, position = position_dodge(dw)) +
+  stat_summary(aes(group = paste0(Advisor, Hybrid)), geom = 'errorbar', 
+               width = 0, size = 1, fun.data = mean_cl_normal, 
+               position = position_dodge(dw)) +
+  scale_colour_discrete(h.start = 45) +
+  labs(y = 'Advisor influence', x = 'Advisor presentation')
+
+# caption = "ANOVA plot of advisor influence on test trials by advisor identity and presentation. Faint lines show individual participant means, while heavy lines and circles give means aggregated over all participants, with error bars showing 95% confidence intervals. The black dashed line shows zero influence."
 
 if (testData) {
   for (s in c('LeastPref', 
@@ -869,7 +897,7 @@ for (p in packageNames) {
                                                    collapse = '<br/><br/>')))
 }
 
-kable(out)
+as_tibble(out)
 ```
 
 ## Funding

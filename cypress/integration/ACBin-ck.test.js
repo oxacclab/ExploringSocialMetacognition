@@ -1,4 +1,4 @@
-const runs = 15;
+const runs = 1;
 
 function respond(position = null) {
     position = position || {x: 0, y: Math.random() * 100};
