@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.16">
+<head data-version="0.0.17">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -107,6 +107,46 @@
             <esm-instruction-page>
                 <h1>Confidence</h1>
                 <p>The advisors indicate their confidence in a similar way to you, by placing their marker higher on the scale if they are more sure.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="advisor-intro-speech">
+        <h1>Meet <span class="advisor-name">a different advisor</span></h1>
+        <div class="advisor-intro flex">
+            <div class="advisor-intro-speech">
+                <div class="image"><div class="advisor-key-row group-bg group-border">
+                    <div class="advisor-avatar"></div>
+                    <div class="advisor-details">
+                        <span class="advisor-name">A different advisor</span>
+                    </div>
+                    <div class="response-marker advisor size0 static advisor-bg advisor-border"></div>
+                </div></div>
+                <div class="text group-border"><p>You shouldn't ever see me introduce myself like this. Something has gone wrong!</p></div>
+            </div>
+        </div>
+    </template>
+    <template id="instr-advisor-intro">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Meet the advisor</h1>
+                <p>In the next block of questions you'll get advice from <span class="advisor-name">a different advisor</span>.</p>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="instr-hybrid-advisor-intro">
+        <esm-instruction>
+            <esm-instruction-page class="advisor-reminder-general">
+                <h1>Both advisors</h1>
+                <p>From now on you might get advice from any of the advisors you've seen before. We'll let them introduce themselves again so you can refresh your memory about them.</p>
+            </esm-instruction-page>
+            <esm-instruction-page class="advisor-hybrid-description" data-min-time="1000">
+                <h1>Both advisors</h1>
+                <p>You won't always be told who is giving you advice. When you are told, you'll see the images for the advisors you've just been reminded of.</p>
+                <p>Sometimes, however, you'll see this image instead:</p>
+                <div class="advisor-key-row group-bg group-border group-0">
+                    <div class="response-marker advisor size0 group-0 static advisor-bg advisor-border"></div>
+                </div>
+                <p><strong>The advice will always come from one of the advisors you know, but you won't always know which one it comes from.</strong></p>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -414,7 +454,7 @@
 <script type="module">
     "use strict";
 
-    import {DatesStudyBinary, Block} from "../src/modules/Study.js";
+    import {DatesStudyHybrid, Block} from "../src/modules/Study.js";
     import {AdvisedTrial} from "../src/modules/Trial.js";
     import {Advisor, AdvisorHybrid, AdviceProfile, ADVICE_CORRECTISH} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
@@ -462,7 +502,7 @@
                     position: 0,
                     idDescription: "Practice",
                     introImage: "speech",
-                    introText: "<p>I'm going to show you how the advisors in the experiment work. Once you've answered a question I'll give you advice to consider, and then you'll make a final decision.</p>",
+                    introText: "<p>I'm going to show you how the advisors in the experiment work.</p><p>Once you've answered a question I'll give you advice to consider, and then you'll make a final decision.</p>",
                     group: 0,
                     name: "Practice advisor ###",
                     templateId: "advisor-key",
@@ -481,7 +521,7 @@
                     position: 1,
                     idDescription: "lowConf",
                     introImage: "speech",
-                    introText: "<p>I'm cautious and careful. I try to keep an open mind even when I've made my choice.</p>",
+                    introText: "<p>I'm cautious and careful.</p><p>I try to keep an open mind even when I've made my choice.</p>",
                     group: 0,
                     name: "Advisor ###",
                     templateId: "advisor-key",
@@ -500,7 +540,7 @@
                     position: 2,
                     idDescription: "highConf",
                     introImage: "speech",
-                    introText: "<p>I'm confident and outgoing. I tend to make up my mind and stick to it.</p>",
+                    introText: "<p>I'm confident and outgoing.</p><p>I tend to make up my mind and stick to it.</p>",
                     group: 0,
                     name: "Advisor ###",
                     templateId: "advisor-key",
@@ -547,7 +587,7 @@
                 }),
                 // Feedback + confidence info - train
                 new Block({
-                    trialCount: 10,
+                    trialCount: 4,
                     blockType: "core",
                     feedback: true,
                     showAdvisorConfidence: true,
@@ -557,7 +597,7 @@
                 }),
                 // Feedback + confidence info - train
                 new Block({
-                    trialCount: 10,
+                    trialCount: 4,
                     blockType: "core",
                     feedback: true,
                     showAdvisorConfidence: true,
@@ -570,12 +610,11 @@
                     trialCount: 22,
                     blockType: "core",
                     feedback: false,
-                    introText: "<p>From now on you may get advice from either of the advisors you met before. Sometimes you will know which advisor is giving you advice, and sometimes the advice could come from either advisor.</p><p>You will not get to see the answers to these questions until the end of the study.</p>",
+                    introText: "<p>From now on you will not get to see the answers to the questions until the end of the study.</p>",
                     showAdvisorConfidence: true,
                     advisors: advisors.filter(a => a.id > 0),
                     allAdvisors: true,
                     advisorsPerTrial: 1,
-                    introduceAdvisors: false,
                     forceRefreshAdvisor: true
                 })
             ],
@@ -586,7 +625,7 @@
             countdownTime: 0
         };
 
-        window.study = new DatesStudyBinary(studyBlueprint);
+        window.study = new DatesStudyHybrid(studyBlueprint);
 
         if (utils.getQueryStringValue("fb")) {
             study.awaitTrialLoading()

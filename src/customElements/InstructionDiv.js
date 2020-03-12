@@ -146,7 +146,11 @@ customElements.define('esm-instruction',
          * @return {InstructionBooklet}
          */
         showPage(pageId) {
-            this.querySelector("#" + pageId).display();
+            const page = this.querySelector("#" + pageId);
+            page.display();
+
+            if(!page.dataset.firstExposureTime)
+                page.dataset.firstExposureTime = new Date().getTime().toString();
 
             if(this.dataset.noButtons !== "true") {
 
@@ -174,6 +178,19 @@ customElements.define('esm-instruction',
         nextPage(e) {
             // Find the button owner
             const me = e? e.currentTarget.closest("esm-instruction") : this;
+            const page = me.currentPage;
+
+            // Check we're allowed to move on
+            if(page.dataset.minTime) {
+                const timepoint =
+                    parseInt(page.dataset.minTime) +
+                    parseInt(page.dataset.firstExposureTime);
+                if(new Date().getTime() < timepoint) {
+                    me.sendCallback("next (rejected - too early)", e);
+                    return;
+                }
+            }
+
             me.sendCallback("next", e);
 
             let position = me.currentPageNumber;
@@ -192,6 +209,19 @@ customElements.define('esm-instruction',
         end(e) {
             // Find the button owner
             const me = e? e.currentTarget.closest("esm-instruction") : this;
+            const page = me.currentPage;
+
+            // Check we're allowed to move on
+            if(page.dataset.minTime) {
+                const timepoint =
+                    parseInt(page.dataset.minTime) +
+                    parseInt(page.dataset.firstExposureTime);
+                if(new Date().getTime() < timepoint) {
+                    me.sendCallback("exit (rejected - too early)", e);
+                    return;
+                }
+            }
+
             me.sendCallback("end", e);
 
             me.classList.add("exit");
@@ -219,6 +249,8 @@ customElements.define('esm-instruction-page',
      *
      * Contains instructions. Used to differentiate different display pages which can contain
      * any valid HTML tags.
+     *
+     * @property [minTime=0] {number} minimum time the page can be viewed before navigating onwards
      *
      */
     class InstructionBookletPage extends HTMLElement {

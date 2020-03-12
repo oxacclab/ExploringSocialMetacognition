@@ -768,7 +768,7 @@ esm-response-timeline .response-timeline {
 .advisor-intro-speech .text::before {
     content: '';
     position: absolute;
-    left: calc(-2em - var(--bubble-border-width) / 2);
+    left: calc(-1.9em - var(--bubble-border-width) / 2);
     top: 37%;
     transform: translateY(-50%);
     border-width: calc(1em);
@@ -781,7 +781,7 @@ esm-response-timeline .response-timeline {
 .advisor-intro-speech .text::after {
     content: '';
     position: absolute;
-    left: calc(-2em + 2 * var(--bubble-border-width));
+    left: calc(-1.9em + 2 * var(--bubble-border-width));
     top: 37%;
     transform: translateY(-50%);
     border-width: calc(1em - var(--bubble-border-width));
