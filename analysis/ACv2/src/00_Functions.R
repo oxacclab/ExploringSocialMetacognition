@@ -929,7 +929,7 @@ singleAdvisorTrials <- function(df) {
 #' @param df trials with initial and final decisions
 #' @return copy of df with a row per decision rather than per trial
 byDecision <- function(df) {
-  out <- df[, !grepl("^response(?=\\S+Final$)", names(df), perl = T)]
+  out <- df[, !grepl("[rR]esponse(?=\\S+Final$)", names(df), perl = T)]
   
   out <- rbind(out, out)
   
@@ -942,7 +942,7 @@ byDecision <- function(df) {
   for (i in (n + 1):nrow(out)) {
     
     # fill in final responses in the initial response columns for final decisions
-    for (v in names(out)[grepl("^response", names(out), perl = T)]) {
+    for (v in names(out)[grepl("[rR]esponse", names(out), perl = T)]) {
       old <- out[[v]][i]
       if (has_name(df, paste0(v, "Final")))
         new <- df[[paste0(v, "Final")]][i - n]

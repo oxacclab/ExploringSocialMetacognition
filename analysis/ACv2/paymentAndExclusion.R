@@ -21,6 +21,10 @@ for (f in fName)
 
 # Exclusions --------------------------------------------------------------
 
+dropped <- key[!(key$pid %in% exclusions$pid), ]
+print("Dropped:")
+print(as.character(dropped$prolificId))
+
 key <- key[key$pid %in% exclusions$pid, ]
 
 key$excluded <- sapply(key$pid, function(x) 
@@ -77,4 +81,4 @@ for (i in 1:nrow(data)) {
 
 # Cleanup -----------------------------------------------------------------
 
-rm("key", "data", "maxBonus")
+rm("key", "dropped", "data", "maxBonus")

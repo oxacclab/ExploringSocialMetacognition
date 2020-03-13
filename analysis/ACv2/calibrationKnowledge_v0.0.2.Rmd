@@ -48,10 +48,10 @@ theme_set(theme_light() +
 
 ```{r loadData, include = F}
 
-rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
-testData <- T
+# rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
+testData <- F
 
-studyVersion <- "0-0-16"
+studyVersion <- "0-0-18"
 studyName <- "calibrationKnowledge"
 
 exclude <- list(
@@ -108,6 +108,7 @@ if (testData) {
 }
 
 tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+tmp <- tmp %>% mutate(pid = as.character(pid))
 
 tmp$condition <- factor(tmp$condition, labels = c("highFirst",
                                                   "lowFirst"))
@@ -116,6 +117,7 @@ table(tmp$excluded, tmp$condition)
 
 # Test accuracy of the labels
 AdvisedTrial %>% 
+  mutate(pid = as.character(pid)) %>%
   group_by(pid, block, advisor0idDescription) %>% 
   filter(block == 2) %>% 
   summarise(n()) %>% 
@@ -227,7 +229,7 @@ tmp %>%
 
 ### Summary {.summary}
 
-Participants' initial decisions were only slightly better than chance. Their final decisions were substantially better, indicating a reasonably high rate of switching from one answer to the other following advice. The time taken to answer each question was consistent with previous experiments.
+Participants initial estimates were slightly better than chance in both the familiarization and test phases. Final decisions, made after seeing advice, were better still. These results indicate that participants likely found the task difficult but possible, and found the advice helpful. Participants made final decisions much more quickly than initial estimates, although they were likely processing advice information during the 2s window in which advice is animated on the screen.
 
 ## Metacognitive performance
 
@@ -329,9 +331,9 @@ ggplot(aes(x = Decision, y = pCorrectDiff)) +
 
 ### Summary {.summary}
 
-Participants' answers were generally around the midpoint on the scale, with a fair amount of variation between participants. Confidence in final decisions did not appear to be consistently higher than initial estimates, although this is unsurprising given the final decisions are not split by whether the advisor agreed with the initial decision.
+Participants' answers were generally around the upper midpoint on the scale, with a fair amount of variation between participants. Confidence in final decisions did not appear to be consistently higher than initial estimates, although this is unsurprising given the final decisions are not split by whether the advisor agreed with the initial decision.
 
-The relationship between confidence and the probability of being correct is essentially zero for initial estimates, indicating that participants are guessing on initial decisions. Final decisions did show a relationship where higher confidence in decisions was indicative of a greater probability of being correct, presumably because participants' confidence was readily affected by advice.
+The relationship between confidence and the probability of being correct is essentially zero for initial estimates, indicating that participants are guessing on initial estimates. Final decisions did show a relationship where higher confidence in decisions was indicative of a greater probability of being correct, presumably because participants' confidence was readily affected by advice. This pattern was true for most participants individually, as well as for the sample as a whole.
 
 ## Advisor performance
 
@@ -435,10 +437,7 @@ We should take a look at a handful of specific distributions experienced by indi
 
 tmp <- AdvisedTrial %>%
   filter(feedback) %>%
-  select(pid, Advisor, Confidence = advisor0adviceConfidence) %>%
-  nest(data = c(Advisor, Confidence)) %>%
-  # sample_n(6) %>%
-  unnest_legacy()
+  select(pid, Advisor, Confidence = advisor0adviceConfidence)
 
 ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
   geom_violin() +
@@ -508,6 +507,8 @@ tmp %>%
 
 The advisors' performances were within the expected ranges for both the probability and extent of agreement with the participants and the objective accuracy of their advice. The advisors didn't differ substantially from one another in any of these aspects.
 
+Advisor confidence was systematically different between the high and low confidence advisors, with a moderate overlap between the distributions, as designed. This pattern was true both at the individual participant level and at the overall sample level. The low confidence advisor's estimates were less liable to extreme distances from the participant's initial estimate, but this is a direct consequence of the high confidence advisor using the upper extremes of the scale which amplify the distance for disagreement trials.
+
 ### Influence
 
 The measure of influence is the extent to which a participant's confidence moves in the expected direction as a function of the advice (increasing when agreed with, decreasing when disagreed with).
@@ -574,6 +575,7 @@ AdvisedTrial %>%
   stat_smooth(aes(group = paste0(pid, Advisor, sep = '.')),
               geom = 'line', method = 'lm', alpha = .25) +
   scale_colour_manual(values = hue_pal(h.start = 45)(4)[1:3]) + 
+  scale_y_continuous(limits = c(-200, 200)) +
   labs(x = 'Advisor confidence', y = 'Advisor influence')
 
 # caption = "Relationship between advisor confidence and advisor influence. Dots show individual trials, while faint lines link a participant's trials for a given advisor. The heavy lines show data for each advisor aggregated over all participants. The dashed black line indicates zero influence."
@@ -642,7 +644,9 @@ tmp %>%
 
 ### Summary {.summary}
 
-The influence of the advisors (formally tested below) did not show obvious differences between the advisors. while many participants were slightly more influenced by the single advisor, the participants with the largest differences between advisors were influenced more by the mass advisor. As usual, the vast majority of individual trials showed almost no influence of advice; this is somewhat surprising given that participants' initial answers were barely more accurate than guessing.
+The influence of the advisors (formally tested below) did not show obvious differences between the advisors' presentation (labelled as themselves or as a hybrid). Numerically, there were decreases in the influence of the advice of advisors when advice was presented as coming from hybrids. As advice was more confident it was more likely to be influential, and this pattern was true for both high and low confidence advisors, and for both advisors combined under the hybrid presentation. The latter more closely resembles the low confidence advisor. The histograms show hints of a bimodal distribution between ignoring and averaging advice for both advisors under both presentations. 
+
+Participant initial estimate accuracy is a strong predictor of influence, while initial estimate confidence is not. 
 
 ## Manipulation checks
 
@@ -676,6 +680,10 @@ ggplot(tmp, aes(x = advisor0adviceConfidence, y = advisor0influence, colour = Ad
 
 ```
 
+### Summary {.summary}
+
+The slope for the low confidence advisor looks steeper than that of the high confidence advisor, suggesting that participants were more sensitive to changes in the low confidence advisor's confidence in the middle of the scale. There is no obvious difference between overall influence levels, however, suggesting that participants do not fully adapt to the calibration of the low-confidence advisor.
+
 ## Advisor preferences
 
 In the hypothesis tests we need to know which advisor is most influential for each participant. We explore this influence over only those trials on which the participants receive feedback.
@@ -689,15 +697,26 @@ tmp <- AdvisedTrial %>%
          advisor0adviceConfidence <= boundaries[2]) %>%
   group_by(pid, advisor0id) %>%
   summarise(influence = mean(advisor0influence)) %>%
+  mutate(influence = if_else(is.na(influence), -Inf, influence)) %>%
   spread(advisor0id, influence) %>%
   group_by(pid) %>%
   summarise(favouriteAdvisorId = if_else(`1` > `2`, 1, 2))
 
 AdvisedTrial <- AdvisedTrial %>% left_join(tmp, by = 'pid')
 
+if (any(is.na(AdvisedTrial$favouriteAdvisorId))) {
+  pids <- AdvisedTrial %>%
+    group_by(pid) %>% 
+    summarise(favouriteAdvisorId = mean(favouriteAdvisorId)) %>%
+    filter(is.na(favouriteAdvisorId)) %>%
+    pull(pid)
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+}
+
 # Plot influence for feedback trials
 tmp <- AdvisedTrial %>% 
-  filter(feedback,
+  filter(!is.na(favouriteAdvisorId),
+         feedback,
          advisor0adviceConfidence >= boundaries[1],
          advisor0adviceConfidence <= boundaries[2]) %>%
   group_by(pid, Advisor) %>%
@@ -722,11 +741,16 @@ tmp %>%
 
 tmp %>%
   group_by(pid) %>% 
-  summarise(favourite = unique(Favourite)) %>%
+  summarise(favourite = first(Favourite)) %>%
   group_by(favourite) %>%
+  filter(!is.na(favourite)) %>%
   summarise(n())
 
 ```
+
+### Summary {.summary}
+
+Participants are perhaps surprisingly fairly evenly spilt in terms of the advisor they find most influential. We might expect a high confidence advisor to be more influential than a low confidence one because people generally prefer high confidence, and because low confidence advice may tempt some people to reduce their confidence even if agreed with. 
 
 ## Hypothesis testing
 
@@ -788,7 +812,7 @@ tmp %>%
 
 ### Summary {.summary}
 
-The null model in which the advisors' advice is the same is 5x more likely than the alternative given the data observed. It would be appropriate to conclude that this manipulation does not produce a meaningful difference in advice processing.
+There is some evidence to suggest that advice is treated similarly when it comes from the least favourite advisor regardless of whether that advice is labelled as belonging to the least favourite advisor or labelled with the hybrid avatar. This is an intuitively sensible strategy, though not in line with our hypothesis that people will have a superadditive dislike of source uncertainty.
 
 ## Exploration
 
@@ -799,15 +823,44 @@ The experiment is structured suitably for a neat ANOVA comparing the effects of 
 ```{r anova}
 
 tmp <- AdvisedTrial %>% 
-  dplyr::filter(feedback == F) %>%
+  dplyr::filter(feedback == F,
+                advisor0adviceConfidence >= boundaries[1],
+                advisor0adviceConfidence <= boundaries[2]) %>%
   mutate(hybrid = factor(advisor0name == '?')) %>%
   group_by(pid, advisor0idDescription, hybrid) %>% 
-  summarise(influence = mean(advisor0influence)) %>% 
+  summarise(influence = mean(advisor0influence)) %>%
+  pivot_wider(names_from = c(hybrid, advisor0idDescription), 
+              values_from = influence) %>%
+  pivot_longer(-pid, 
+               names_to = c('hybrid', 'advisor0idDescription'),
+               names_sep = '_', 
+               values_to = 'influence')
+  
+pids <- tmp %>% 
+  group_by(pid) %>%
+  summarise(influence = mean(influence)) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids) < length(unique(tmp$pid))) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+tmp <- tmp %>% 
+  ungroup() %>%
+  mutate(
+  pid = factor(pid),
+  hybrid = factor(hybrid),
+  advisor0idDescription = factor(advisor0idDescription)
+)
+
+anv <- tmp %>% 
   ezANOVA(dv = influence,
           wid = pid, 
           within = c(hybrid, advisor0idDescription))
 
-tmp
+anv
 
 dw <- .25
 AdvisedTrial %>%
@@ -867,6 +920,20 @@ if (testData) {
 }
 
 ```
+
+#### Summary {.summary}
+
+Over the medium-range advice zone which both advisors occupy, the high-confidence advisor's advice is more influential, and this does not differ as a function of presentation. This is somewhat puzzling. Firstly, the high confidence advisor is less sure for the same level of confidence than the low-confidence advisor, so the low-confidence advisor's advice ought to be more highly weighted. Secondly, there is no effect of presentation, or interaction with presentation, meaning that the high confidence advisor's advice is probably also more influential when labelled as a hybrid than when the low-confidence advisor's advice is given with the same label in a similar confidence range. This latter point is perhaps partially explained by the tailing off of the frequency of low-confidence advice at the higher end of the shared band, meaning that participants may be more justified in treating advice from a hybrid towards the upper end of the shared band as coming from the high-confidence advisor. 
+
+### Time taken vs accuracy
+
+There is considerable variation in the time participants take to produce their initial estimates - to what extent is this variation predictive of accuracy? 
+
+Is the same pattern true within participants as well as between them?
+
+### Time taken vs confidence-weighted accuracy
+
+How does time taken relate to metacognitive accuracy?
 
 # Conclusions {.summary}
 
