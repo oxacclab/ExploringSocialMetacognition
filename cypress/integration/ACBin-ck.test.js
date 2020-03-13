@@ -100,12 +100,12 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        it('Creates a DatesStudyBinary object', function () {
+        it('Creates a DatesStudyHybrid object', function () {
             cy.window()
                 .its('study')
                 .its('constructor')
                 .its('name')
-                .should('eq', 'DatesStudyBinary');
+                .should('eq', 'DatesStudyHybrid');
         });
 
         it('Gets study variables from server', function () {
@@ -236,9 +236,16 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            // Acknowledge new context
+            cy.wait(300);
+
+            // Meet the advisor
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
             cy.wait(1200);
-            cy.get('.advisor-intro .esm-instruction-button')
+            cy.get('esm-instruction button')
+                .contains('Okay')
                 .should('be.visible')
                 .click();
         });
@@ -268,9 +275,16 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            // Acknowledge new context
+            cy.wait(300);
+
+            // Meet the advisor
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
             cy.wait(1200);
-            cy.get('.advisor-intro .esm-instruction-button')
+            cy.get('esm-instruction button')
+                .contains('Okay')
                 .should('be.visible')
                 .click();
         });
@@ -295,10 +309,16 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            cy.wait(1200);
+            cy.wait(300);
 
-            // No feedback for next few trials prompt
-            cy.get('.confirm .esm-instruction-button')
+            // Meet the advisor
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+            cy.wait(1200);
+            cy.get('esm-instruction button')
+                .contains('Okay')
                 .should('be.visible')
                 .click();
         });
@@ -323,11 +343,35 @@ for(let run = 0; run < runs; run++) {
                 .should('be.visible')
                 .click();
 
-            cy.wait(1200);
+            cy.wait(600);
 
             // No feedback for next few trials prompt
             cy.get('esm-instruction button')
                 .contains('Okay!')
+                .should('be.visible')
+                .click();
+
+            cy.wait(300);
+
+            // Advisor reminder
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+            cy.wait(1200);
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+            cy.wait(1200);
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+            // Hybrid intro
+            cy.wait(1200);
+            cy.get('esm-instruction button')
+                .contains('Okay')
                 .should('be.visible')
                 .click();
         });
