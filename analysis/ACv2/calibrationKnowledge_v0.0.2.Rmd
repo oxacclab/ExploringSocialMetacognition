@@ -925,6 +925,64 @@ if (testData) {
 
 Over the medium-range advice zone which both advisors occupy, the high-confidence advisor's advice is more influential, and this does not differ as a function of presentation. This is somewhat puzzling. Firstly, the high confidence advisor is less sure for the same level of confidence than the low-confidence advisor, so the low-confidence advisor's advice ought to be more highly weighted. Secondly, there is no effect of presentation, or interaction with presentation, meaning that the high confidence advisor's advice is probably also more influential when labelled as a hybrid than when the low-confidence advisor's advice is given with the same label in a similar confidence range. This latter point is perhaps partially explained by the tailing off of the frequency of low-confidence advice at the higher end of the shared band, meaning that participants may be more justified in treating advice from a hybrid towards the upper end of the shared band as coming from the high-confidence advisor. 
 
+### Comparing influence by favourite advisor
+
+Hybrid vs labelled for favourite advisor.
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(!feedback, 
+         advisor0id == favouriteAdvisorId,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Hybrid) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(Hybrid, influence)
+
+pids <- 
+  tmp %>% 
+  gather("advisor", "influence", -pid) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids)) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+cat(md.ttest(tmp$Labelled, tmp$Hybrid, paired = T, 
+             labels = c('*M*|Labelled', '*M*|Hybrid')))
+```
+
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(!feedback, 
+         Hybrid == "Labelled",
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  mutate(isFavourite = if_else(advisor0id == favouriteAdvisorId,
+                               "Favourite", "Non-favourite")) %>%
+  group_by(pid, isFavourite) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(isFavourite, influence)
+
+pids <- 
+  tmp %>% 
+  gather("advisor", "influence", -pid) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids)) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+cat(md.ttest(tmp$Favourite, tmp$`Non-favourite`, paired = T, 
+             labels = c('*M*|Favourite', '*M*|Non-favourite')))
+```
+
+# As above but comparing favourite to least favourite advisor
+
+
 ### Time taken vs accuracy
 
 There is considerable variation in the time participants take to produce their initial estimates - to what extent is this variation predictive of accuracy? 

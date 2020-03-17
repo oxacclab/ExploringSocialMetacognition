@@ -111,7 +111,8 @@ getLabels <- function(
     )
   
   if (is.null(dict)) {
-    stop(paste0("Could not retrieve dictionary from '", rDir, dictName, "'"))
+    warning(paste0("Could not retrieve dictionary from '", rDir, dictName, "'"))
+    return(tbl)
   }
   
   for (n in names(tbl)) {

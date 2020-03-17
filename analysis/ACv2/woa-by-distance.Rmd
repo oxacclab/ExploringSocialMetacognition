@@ -197,13 +197,14 @@ We want to examine data by participant to see if they individually show the patt
 ```{r plots by participant}
 
 byP <- AdvisedTrial %>%
-  mutate(dist = advisor0distance,
-         woa = advisor0woa,
-         p = factor(paste(as.character(studyId), 
-                          as.character(studyVersion),
-                          as.character(pid),
-                          sep = '-'))) %>%
-  group_by(p) 
+  transmute(dist = advisor0distance,
+            woa = advisor0woa,
+            p = factor(paste(as.character(studyId), 
+                             as.character(studyVersion),
+                             as.character(pid),
+                             sep = '-'))) %>%
+  group_by(p) %>%
+  dplyr::filter(!is.na(woa))
 
 # run models for each participant
 linear <- byP %>% 
