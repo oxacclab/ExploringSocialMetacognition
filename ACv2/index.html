@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.5.3">
+<head data-version="0.5.4">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -365,10 +365,11 @@
 <script type="module">
     "use strict";
 
-    import {Study, DatesStudy, Block} from "../src/modules/Study.js";
-    import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_AGREEISH, ADVICE_CORRECTISH, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
+    import {Block} from "../src/modules/Block.js";
+    import {DatesStudy} from "../src/modules/Studies/DatesStudy.js";
+    import {AdvisedTrial} from "../src/modules/Trials/AdvisedTrial.js";
+    import {Advisor, AdviceProfile, AdviceTypes} from "../src/modules/Advisors/Advisor.js";
 
     // Procedural stuff
 
@@ -420,7 +421,7 @@
                     confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECT.copy(1)
+                            AdviceTypes.CORRECT.copy(1)
                         ]
                     })
                 }),
@@ -435,10 +436,10 @@
                     confidenceVariation: 5,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(10),
-                            ADVICE_INCORRECT_REFLECTED.copy(3),
+                            AdviceTypes.CORRECTISH.copy(10),
+                            AdviceTypes.INCORRECT_REFLECTED.copy(3),
                             // fallbacks
-                            ADVICE_INCORRECT_REVERSED.copy(0)
+                            AdviceTypes.INCORRECT_REVERSED.copy(0)
                         ]
                     })
                 }),
@@ -453,10 +454,10 @@
                     confidenceVariation: 5,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_AGREEISH.copy(10),
-                            ADVICE_INCORRECT_REFLECTED.copy(3),
+                            AdviceTypes.AGREEISH.copy(10),
+                            AdviceTypes.INCORRECT_REFLECTED.copy(3),
                             // fallbacks
-                            ADVICE_INCORRECT_REVERSED.copy(0)
+                            AdviceTypes.INCORRECT_REVERSED.copy(0)
                         ]
                     })
                 })
@@ -531,11 +532,6 @@
     }
 
     // Hoist for debugging
-    window.Study = Study;
-    window.DatesStudy = DatesStudy;
-    window.Trial = Trial;
-    window.AdvisedTrial = AdvisedTrial;
-    window.Advisor = Advisor;
     window.utils = utils;
 
 </script>

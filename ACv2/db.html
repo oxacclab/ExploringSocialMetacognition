@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="3.0.2">
+<head data-version="3.0.3">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -396,10 +396,11 @@
 <script type="module">
     "use strict";
 
-    import {Study, NoFeedbackStudy, Block} from "../src/modules/Study.js";
-    import {Trial, AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_AGREEISH, ADVICE_CORRECTISH, ADVICE_INCORRECT_REFLECTED, ADVICE_INCORRECT_REVERSED} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
+    import {Block} from "../src/modules/Block.js";
+    import {NoFeedbackStudy} from "../src/modules/Studies/NoFeedbackStudy.js";
+    import {AdvisedTrial} from "../src/modules/Trials/AdvisedTrial.js";
+    import {Advisor, AdviceProfile, AdviceTypes} from "../src/modules/Advisors/Advisor.js";
 
     // Procedural stuff
 
@@ -452,7 +453,7 @@
                     confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
+                            AdviceTypes.CORRECTISH.copy(1)
                         ]
                     })
                 }),
@@ -468,7 +469,7 @@
                     confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
+                            AdviceTypes.CORRECTISH.copy(1)
                         ]
                     }),
                     includeQuestionnaire: true
@@ -485,7 +486,7 @@
                     confidenceVariation: 11,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
+                            AdviceTypes.CORRECTISH.copy(1)
                         ]
                     }),
                     includeQuestionnaire: true
@@ -552,11 +553,6 @@
     }
 
     // Hoist for debugging
-    window.Study = Study;
-    window.NoFeedbackStudy = NoFeedbackStudy;
-    window.Trial = Trial;
-    window.AdvisedTrial = AdvisedTrial;
-    window.Advisor = Advisor;
     window.utils = utils;
 
 </script>

@@ -32,6 +32,7 @@
     * ~~Pilot~~
     * ~~Preregistration~~
     * ~~Data analysis~~
+    
 ### Registered Report
 * Identify journal(s)
 * RR stage 1
@@ -42,7 +43,8 @@
 ## Confidence mapping study
 * ~~Devise confidence mapping manipulation~~
 * ~~Design study~~
-* Pilot
+* ~~Pilot~~
+* Rework
 * Preregistration
 
 ## Core studies
@@ -57,6 +59,7 @@
     * ~~Tests on trials where 8 used regardless of confidence (offbrand)~~
     * ~~Integration tests~~
 * Run AiC/AiU study
+
 ### Advisor choice
 * ~~Implement advisor choice~~
 * Run advisor choice for Agree/Accurate

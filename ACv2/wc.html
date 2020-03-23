@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.5">
+<head data-version="0.0.6">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -371,10 +371,12 @@
 <script type="module">
     "use strict";
 
-    import {Study, DatesStudy, Block} from "../src/modules/Study.js";
-    import {AdvisedTrialWithConf, TrialWithConf} from "../src/modules/Trial.js";
-    import {Advisor, AdviceProfile, ADVICE_CORRECT, ADVICE_AGREE_OFFSET, ADVICE_AGREE_BY_CONF} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
+    import {Block} from "../src/modules/Block.js";
+    import {DatesStudy} from "../src/modules/Studies/DatesStudy.js";
+    import {AdvisedTrialWithConf} from "../src/modules/Trials/AdvisedTrialWithConf.js";
+    import {TrialWithConf} from "../src/modules/Trials/TrialWithConf.js";
+    import {Advisor, AdviceProfile, AdviceTypes} from "../src/modules/Advisors/Advisor.js";
 
     // Procedural stuff
 
@@ -426,7 +428,7 @@
                     confidenceVariation: 3,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECT.copy(1)
+                            AdviceTypes.CORRECT.copy(1)
                         ]
                     })
                 }),
@@ -446,10 +448,10 @@
                     confidenceOffset: [8],
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_AGREE_BY_CONF.copy(9),
-                            ADVICE_AGREE_OFFSET.copy(3),
+                            AdviceTypes.AGREE_BY_CONF.copy(9),
+                            AdviceTypes.AGREE_OFFSET.copy(3),
                             // fallbacks
-                            ADVICE_CORRECT.copy(0)
+                            AdviceTypes.CORRECT.copy(0)
                         ]
                     })
                 }),
@@ -469,10 +471,10 @@
                     confidenceOffset: [8],
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_AGREE_BY_CONF.copy(9),
-                            ADVICE_AGREE_OFFSET.copy(3),
+                            AdviceTypes.AGREE_BY_CONF.copy(9),
+                            AdviceTypes.AGREE_OFFSET.copy(3),
                             // fallbacks
-                            ADVICE_CORRECT.copy(0)
+                            AdviceTypes.CORRECT.copy(0)
                         ]
                     })
                 })
@@ -551,11 +553,6 @@
     }
 
     // Hoist for debugging
-    window.Study = Study;
-    window.DatesStudy = DatesStudy;
-    window.TrialWithConf = TrialWithConf;
-    window.AdvisedTrialWithConf = AdvisedTrialWithConf;
-    window.Advisor = Advisor;
     window.utils = utils;
 
 </script>
