@@ -29,12 +29,14 @@ class AdviceType extends BaseObject {
     /**
      * Produce a mutable copy of this object for actual use
      * @param quantity {int} number of these trials desired
+     * @param properties {{}} object to be copied into the child.
      * @return {{quantity: int}} copy of this object + a quantity property
      */
-    copy(quantity) {
+    copy(quantity, properties) {
         return {
             ...this,
-            quantity
+            quantity,
+            ...properties
         };
     }
 }
@@ -55,9 +57,10 @@ const AGREE = Object.freeze(new AdviceType({
      * Values for middle consistent with agreement
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]|null}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         let min = t.data.responseEstimateLeft - w;
         let max = t.data.responseEstimateLeft + t.data.responseMarkerWidth + w;
@@ -80,9 +83,10 @@ const CORRECT = Object.freeze(new AdviceType({
      * Values for middle consistent with correctness
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]|null}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         let min = t.correctAnswer - w;
         let max = t.correctAnswer + w;
@@ -107,9 +111,10 @@ const INCORRECT_REFLECTED = Object.freeze(new AdviceType({
      * participant's answer, but in the other direction.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]|null}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         const minError = w < 4? 4 : w;
 
@@ -167,9 +172,10 @@ const CORRECT_AGREE = Object.freeze(new AdviceType({
      * Values for middle consistent with simultaneous correctness and agreement
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]|null}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         // Agreement values
         const minA = t.data.responseEstimateLeft - w;
@@ -199,9 +205,10 @@ const CORRECT_DISAGREE = Object.freeze(new AdviceType({
      * correctness
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]|null}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
 
         // If the participant is correct this will not be possible
@@ -240,9 +247,10 @@ const INCORRECT_REVERSED = Object.freeze(new AdviceType({
      * participant's answer, in the same direction.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]|null}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         const minError = w < 4? 4 : w;
 
@@ -304,9 +312,10 @@ const CORRECTISH = Object.freeze(new AdviceType({
      * distribution.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         const minS = parseFloat(t.responseWidget.dataset.min);
         const maxS = parseFloat(t.responseWidget.dataset.max);
@@ -351,9 +360,10 @@ const AGREEISH = Object.freeze(new AdviceType({
      * distribution.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         const w = Math.ceil(a.confidence / 2);
         const minS = parseFloat(t.responseWidget.dataset.min);
         const maxS = parseFloat(t.responseWidget.dataset.max);
@@ -396,9 +406,10 @@ const AGREE_BY_CONF = Object.freeze(new AdviceType({
      * Values dependent on initial response + initial confidence.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         // Participant answer
         const ans = t.data.responseEstimateLeft +
             Math.floor(t.data.responseMarkerWidth / 2);
@@ -432,9 +443,10 @@ const AGREE_OFFSET = Object.freeze(new AdviceType({
      * Values dependent on initial response + initial confidence.
      * @param t {Trial} at the post-initial-decision phase
      * @param a {Advisor} advisor giving advice
+     * @param [self=null] {AdviceType|null} this object for self-referencing
      * @return {number[]}
      */
-    match: (t, a) => {
+    match: (t, a, self = null) => {
         // Participant answer
         const ans = t.data.responseEstimateLeft +
             Math.floor(t.data.responseMarkerWidth / 2);
@@ -457,13 +469,47 @@ const AGREE_OFFSET = Object.freeze(new AdviceType({
     }
 }));
 
-export {AGREE_OFFSET};
-export {AGREE_BY_CONF};
-export {AGREEISH};
-export {CORRECTISH};
-export {INCORRECT_REVERSED};
-export {CORRECT_DISAGREE};
-export {CORRECT_AGREE};
-export {INCORRECT_REFLECTED};
-export {CORRECT};
-export {AGREE};
+
+/**
+ * Advisor estimate which has both its direction and its difference from the anchor date specified at creation time.
+ * @type {Readonly<AdviceType>}
+ */
+const EXACT_BINARY = Object.freeze(new AdviceType({
+    name: "cheat-binary",
+    flag: 1024,
+    fallback: null,
+    /**
+     * Return an answer which is in/correct and offset by a specified distance from the anchor date. Correctness and distance are specified in this object's correct {boolean} and difference {number} properties.
+     * @param t {Trial}
+     * @param a {Advisor}
+     * @param [self=null] {AdviceType|null} this object for self-referencing
+     * @return {number[]}
+     */
+    match: (t, a, self = null) => {
+        // Work out how to be in/correct
+        const correct = typeof self.correct === "function"?
+            self.correct() : self.correct;
+        const difference = typeof self.difference === "function"?
+            self.difference() : self.difference;
+
+        const side = (t.data.correctAnswerSide == correct)? 1 : -1;
+
+        const c = t.anchorDate + difference * side;
+        return [c, c];
+    }
+}));
+
+
+export {
+    AGREE_OFFSET,
+    AGREE_BY_CONF,
+    AGREEISH,
+    CORRECTISH,
+    INCORRECT_REVERSED,
+    CORRECT_DISAGREE,
+    CORRECT_AGREE,
+    INCORRECT_REFLECTED,
+    CORRECT,
+    AGREE,
+    EXACT_BINARY
+};

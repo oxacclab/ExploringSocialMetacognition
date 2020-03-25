@@ -1,5 +1,5 @@
+import * as utils from "../../../utils.js";
 import {BaseObject} from "../../Prototypes.js";
-import {Advisor} from "../Advisor.js";
 
 /**
  * @class AdviceProfile
@@ -7,16 +7,25 @@ import {Advisor} from "../Advisor.js";
  * their definitions and their desired quantities. It also tracks the number
  * of times each advice type has actually been used, which allows for recording
  * the empirical provision of advice as well as the desired provision.
- * @property adviceTypes {AdviceType[]}
+ * AdviceProfile can be used to specify the exact order in which AdviceTypes are used by setting fixedSelection to true.
+ *
+ * @property adviceTypes {AdviceType[]} list of AdviceTypes to iterate through when calculating advice
+ * @property fixedSelection {boolean} whether to select AdviceType by adhering to the order in which they are input rather than using weighted random selection. Where the desired adviceType is not available, its fallback will be used. Defaults to false.
+ * @property shuffleOnReset {boolean} whether to shuffle the order of adviceTypes when starting at index 0. Defaults to true.
  */
 class AdviceProfile extends BaseObject {
     constructor(blueprint) {
         super(blueprint);
 
         this.usedTypes = {};
-        this.adviceTypes.forEach(aT => {
-            this.usedTypes[aT.flag] = 0;
-        });
+        const me = this;
+        this.adviceTypes.forEach(aT => me.setUsedCount(aT, 0));
+    }
+
+    _setDefaults() {
+        super._setDefaults();
+        this.shuffleOnReset = true;
+        this.fixedSelection = false;
     }
 
     /**
@@ -35,13 +44,25 @@ class AdviceProfile extends BaseObject {
     }
 
     /**
-     * Return the centre of the advice for a trial
+     * Fetch an advisor's advice for a trial
      * @param trial {Trial}
      * @param advisor {Advisor}
-     * @return {{validTypeFlags: int[], nominalTypeFlag: int, nominalType: string, validTypes: string[], actualTypeFlag: int, actualType: string, adviceCentre: number, adviceWidth: number, advice: number, adviceSide: number|null, adviceConfidence: number|null}} centre for the advice
+     * @return {{
+     *      adviceCentre: number,
+     *      adviceSide: (number|null),
+     *      adviceWidth: number,
+     *      validTypeFlags: null,
+     *      actualTypeFlag: int,
+     *      actualType: string,
+     *      nominalTypeFlag: null,
+     *      advice: number,
+     *      adviceConfidence: (number|null),
+     *      nominalType: null,
+     *      validTypes: null
+     * }}
      */
     getAdvice(trial, advisor) {
-        const out = {
+        let out = {
             validTypes: null,
             validTypeFlags: null,
             nominalType: null,
@@ -64,79 +85,198 @@ class AdviceProfile extends BaseObject {
                 aT = trial.adviceTypeOverride;
             }
         } else {
-            // Find qualified matches
-            let validQuantities = {};
-            let validFlags = 0;
-            let allQuantities = {};
-            this.adviceTypes.forEach(aT => {
-                allQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
+            const type = this.getAdviceType(trial, advisor);
+            aT = type.adviceType;
+            // Copy meta information for saving in trial csv file later
+            delete type.adviceType;
+            out = {...out, ...type};
+        }
 
-                if (!aT.match(trial, advisor))
-                    return;
+        // Record final AdviceType details and use to get advice
+        out = {
+            ...out,
+            actualType: aT.name,
+            actualTypeFlag: aT.flag,
+            ...this.getAdviceFromAdviceType(trial, advisor, aT)
+        };
 
-                validQuantities[aT.name] = aT.quantity - this.usedTypes[aT.flag];
-                validFlags += aT.flag;
-            });
+        return out;
+    }
 
-            let fallback = false;
-            if (utils.sumList(validQuantities) <= 0)
-                fallback = true;
+    /**
+     * Fetch the AdviceType to use for this advisor's advice on the trial
+     * @param trial {Trial}
+     * @param advisor {Advisor}
+     * @param [includeInCounter=true] {boolean} whether to count the selected trial towards the quotas
+     *
+     * @return {{
+     *     validTypes: string,
+     *     validFlags: int,
+     *     adviceType: AdviceType
+     * }}
+     */
+    getAdviceType(trial, advisor, includeInCounter = true) {
+        const out = {validTypes: "", validFlags: 0};
+        // Record qualified matches
+        const types = this.getValidAdviceTypes(trial, advisor);
+        out.validTypes = types.map(aT => aT.name).join(", ");
+        out.validFlags = utils.sumList(types.map(aT => aT.flag));
 
-            // Allow fallbacks if nothing qualifies
-            let types = fallback ?
-                Object.keys(allQuantities) : Object.keys(validQuantities);
-            let sum = utils.sumList(fallback ? allQuantities : validQuantities);
+        // Pick an AdviceType to use
+        let aT = this.chooseAdviceType(trial, advisor);
+        out.nominalType = aT.name;
+        out.nominalTypeFlag = aT.flag;
 
-            // Select a type by weighted random selection accounting for past
-            // selections
-            let type = null;
-            let x = Math.random();
-            for (type of types) {
-                x -= allQuantities[type] / sum;
-                if (x < 0)
-                    break;
+        // Handle cases where there were no valid AdviceTypes, so the invalid one selected requires a fallback
+        if (!types.length) {
+            let t = aT;
+            while (t.match(trial, advisor, t) === null) {
+                for (let x of this.adviceTypes)
+                    if (x.name === t.fallback || x.flag === t.fallback) {
+                        t = x;
+                        break;
+                    }
+
+                if (t === aT || t === null)
+                    this.error("No valid adviceType and no fallback.");
             }
+            aT = t;
+        }
 
-            // Selected type
-            this.adviceTypes.forEach(t => {
-                if (t.name === type)
-                    aT = t;
-            });
-            out.validTypes = Object.keys(validQuantities).join(", ");
-            out.validTypeFlags = validFlags;
-            out.nominalType = aT.name;
-            out.nominalTypeFlag = aT.flag;
-            this.usedTypes[out.nominalTypeFlag]++;
+        if(includeInCounter) {
+            this.markUsed(aT);
+        }
 
-            if (fallback) {
-                let t = aT;
-                while (t.match(trial, advisor) === null) {
-                    for (let x of this.adviceTypes)
-                        if (x.name === t.fallback || x.flag === t.fallback) {
-                            t = x;
-                            break;
-                        }
+        return {...out, adviceType: aT};
+    }
 
-                    if (t === aT || t === null)
-                        this.error("No valid adviceType and no fallback.");
-                }
-                aT = t;
-            }
-
-            // Reset the used types
-            if (utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
-                Object.keys(this.usedTypes).forEach(
-                    k => this.usedTypes[k] = 0);
-                this.info("Used all advice instances; resetting.");
+    /**
+     * Return a list of the adviceTypes which are valid for this trial and advisor
+     * @param trial {Trial|null} If blank, the last cached value is returned
+     * @param advisor {Advisor|null}
+     * @return {AdviceType[]|null}
+     */
+    getValidAdviceTypes(trial, advisor) {
+        if(this.fixedSelection) {
+            return [this.nextAdviceType];
+        }
+        if(!trial) {
+            if (this._validAdviceTypes)
+                return this._validAdviceTypes;
+            else {
+                this.warn("getValidTypes() did not receive a trial object and has no cached value.");
+                return null;
             }
         }
 
-        // Actual type
-        out.actualType = aT.name;
-        out.actualTypeFlag = aT.flag;
+        this._validAdviceTypes = this.adviceTypes.filter(
+            aT => aT.match(trial, advisor, aT)
+        );
+
+        return this._validAdviceTypes;
+    }
+
+    /**
+     * Choose an AdviceType by weighted random selection based on the quantities of the available adviceTypes. Prioritise AdviceTypes which can offer valid advice on the trial.
+     * @param trial {Trial}
+     * @param advisor {Advisor}
+     * @return {AdviceType}
+     */
+    chooseAdviceType(trial, advisor) {
+        const me = this;
+        let types = this.getValidAdviceTypes(trial, advisor);
+        let quantities = types.map(
+            aT => aT.quantity - me.getUsedCount(aT)
+        );
+        let sum = utils.sumList(quantities);
+
+        if(sum <= 0) {
+            // Fallback on looking at any type rather than simply valid types
+            types = this.adviceTypes;
+            quantities = types.map(
+                aT => aT.quantity - me.getUsedCount(aT)
+            );
+            sum = utils.sumList(quantities);
+        }
+
+        // Select a type by weighted random selection accounting for past
+        // selections
+        let x = utils.randomNumber(0, sum, true);
+        let i = 0;
+        while(x > 0 || i === 0) {
+            x -= quantities[i++];
+        }
+
+        return types[i - 1];
+    }
+
+    /**
+     * @return {AdviceType} first AdviceType with unused quantity
+     */
+    get nextAdviceType() {
+        // Fetch the first adviceType with quantity left to use
+        for(let i = 0; i < this.adviceTypes.length; i++) {
+            const aT = this.adviceTypes[i];
+            if(aT.quantity > this.getUsedCount(aT))
+                return aT;
+        }
+    }
+
+    /**
+     * Increase the usage count for this AdviceType and reset all counts if all AdviceTypes have been used according to their quantities.
+     * @param adviceType {AdviceType}
+     */
+    markUsed(adviceType) {
+        // Mark chosen type as used
+        this.setUsedCount(adviceType, this.getUsedCount(adviceType) + 1);
+        // Reset the used types if empty
+        const allQuantities = this.adviceTypes.map(aT => aT.quantity);
+        if (utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
+            if(this.shuffleOnReset)
+                this.adviceTypes = utils.shuffle(this.adviceTypes);
+            this.adviceTypes.forEach(
+                aT => this.setUsedCount(aT, 0));
+            this.info("Used all advice instances; resetting.");
+        }
+    }
+
+    /**
+     * Return the number of times this adviceType has been used
+     * @param adviceType {AdviceType}
+     * @return {number}
+     */
+    getUsedCount(adviceType) {
+        return this.usedTypes[adviceType.flag];
+    }
+
+    /**
+     * Set the number of times this adviceType has been used
+     * @param adviceType {AdviceType}
+     * @param count {number}
+     */
+    setUsedCount(adviceType, count) {
+        this.usedTypes[adviceType.flag] = count;
+    }
+
+    /**
+     * Use an AdviceType to calculate advice
+     * @param trial {Trial}
+     * @param advisor {Advisor}
+     * @param adviceType {AdviceType}
+     *
+     * @return {{
+     *     adviceCentre: number,
+     *     adviceWidth: number,
+     *     advice: number,
+     *     adviceSide: (number|null),
+     *     adviceConfidence: (number|null)
+     * }}
+     */
+    getAdviceFromAdviceType(trial, advisor, adviceType) {
+        const out = {};
 
         // Advice is selected as the middle of the available values
-        let range = aT.match(trial, advisor);
+        let range = adviceType.match(trial, advisor, adviceType);
         out.adviceCentre = Math.round((range[1] - range[0]) / 2) + range[0];
         out.adviceWidth = advisor.confidence;
 

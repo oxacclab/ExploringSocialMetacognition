@@ -10,6 +10,7 @@
 
 import {BaseObject} from "../Prototypes.js";
 import {AdviceProfile} from "./Advice/AdviceProfile.js";
+import {AdviceSpecification} from "./Advice/AdviceSpecification.js";
 import * as AdviceTypes from "./Advice/AdviceType.js"
 import * as icon from "../../identicon.js";
 
@@ -478,4 +479,4 @@ class AdvisorHybrid extends Advisor {
     }
 }
 
-export {Advisor, AdvisorHybrid, AdviceProfile, AdviceTypes};
+export {Advisor, AdvisorHybrid, AdviceProfile, AdviceSpecification, AdviceTypes};
