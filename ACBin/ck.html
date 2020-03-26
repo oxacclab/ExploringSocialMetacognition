@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.18">
+<head data-version="0.0.20">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -19,6 +19,8 @@
     <link rel="stylesheet" type="text/css" href="../style/advisorsGroups.css"/>
     <!--minimal groups experiment-->
     <link rel="stylesheet" type="text/css" href="../style/minimalGroups.css"/>
+    <!--scorecard-->
+    <link rel="stylesheet" type="text/css" href="../style/scorecard.css"/>
 
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
@@ -56,6 +58,43 @@
             </div>
             <div class="confirm">
                 <button class="esm-instruction-button">&check;</button>
+            </div>
+        </div>
+    </template>
+    <template id="scorecard-content">
+        <div class="scorecard-content">
+            <div class="scorecard-card response-panel response-right">
+                <div class="response-line">
+                    <div class="scorecard-avatar">
+                        <div></div>
+                        <img/>
+                    </div>
+                    <div class="response-label-text">sure</div>
+                    <div class="scorecard-column" class="response-column">
+                        <div class="response-column-inner"></div>
+                    </div>
+                    <div class="response-label-text">unsure</div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="scorecard">
+        <esm-instruction>
+            <esm-instruction-page>
+                <h1>Scorecard</h1>
+                <div class="scorecard">
+                    <div class="scorecard-text">
+                        <p>We'll put some information about the scorecards here, such as how this is your scorecard which shows how confident your responses were, and also whether they were correct or incorrect. We may also mention that you'll see the scorecards of some advisors before you meet them, because that's what we're hoping to do.</p>
+                    </div>
+                </div>
+            </esm-instruction-page>
+        </esm-instruction>
+    </template>
+    <template id="scorecard-compare">
+        <h1>Scorecards</h1>
+        <div class="scorecard">
+            <div class="scorecard-text">
+                <p>Here are the scorecards for all the advisors side-by-side to allow you to compare them with one another.</p>
             </div>
         </div>
     </template>
@@ -107,6 +146,24 @@
             <esm-instruction-page>
                 <h1>Confidence</h1>
                 <p>The advisors indicate their confidence in a similar way to you, by placing their marker higher on the scale if they are more sure.</p>
+                <p>Some advisors might use more or less of the confidence scale, while others might have closer or looser ties between their confidence and the likelihood that they are correct.</p>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Scorecards</h1>
+                <div class="scorecard participant">
+                    <div class="scorecard-text">
+                        <p>To help you get an idea of how the advisor you're paired with behaves, you'll see a scorecard which shows how confident a sample of the advisor's responses have been and whether or not those responses were correct.</p>
+                        <p>As an example, here is your scorecard from the questions you just answered. The 'before' and 'after' answers are combined into one bar. The higher on this bar the tick or cross appears, the higher your confidence was in the answer. The tick or cross indicates whether you chose the correct or incorrect bar.</p>
+                    </div>
+                </div>
+            </esm-instruction-page>
+            <esm-instruction-page>
+                <h1>Scorecards</h1>
+                <div class="scorecard participant">
+                    <div class="scorecard-text">
+                        <p>When you see advisors' scorecards you'll also be reminded of what yours looks like so that you can compare them again. When you're ready to practice with advice, click the button below.</p>
+                    </div>
+                </div>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -122,6 +179,7 @@
                     <div class="response-marker advisor size0 static advisor-bg advisor-border"></div>
                 </div></div>
                 <div class="text group-border"><p>You shouldn't ever see me introduce myself like this. Something has gone wrong!</p></div>
+                <div class="scorecard"></div>
             </div>
         </div>
     </template>
@@ -159,7 +217,7 @@
             </esm-instruction-page>
             <esm-instruction-page>
                 <h1>Main experiment</h1>
-                <p>You will have various advisors who will give you advice about each question. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
+                <p>You will have various advisors who will give you throughout the study. These advisors might behave in different ways, and it's up to you to decide how useful you think each advisor is, and to use their advice accordingly.</p>
             </esm-instruction-page>
         </esm-instruction>
     </template>
@@ -454,10 +512,11 @@
 <script type="module">
     "use strict";
 
-    import {DatesStudyHybrid, Block} from "../src/modules/Study.js";
-    import {AdvisedTrial} from "../src/modules/Trial.js";
-    import {Advisor, AdvisorHybrid, AdviceProfile, ADVICE_CORRECTISH} from "../src/modules/Advisor.js";
     import * as utils from "../src/utils.js";
+    import {Block} from "../src/modules/Block.js";
+    import {DatesStudyHybrid} from "../src/modules/Studies/DatesStudyHybrid.js";
+    import {AdvisedTrial} from "../src/modules/Trials/AdvisedTrial.js";
+    import {Advisor, AdvisorHybrid, AdviceProfile, AdviceSpecification, AdviceTypes} from "../src/modules/Advisors/Advisor.js";
 
     // Procedural stuff
 
@@ -509,12 +568,42 @@
                     confidence: 20, // max confidence at X years distant
                     confidenceVariation: 8,
                     confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
-                    confidenceAddition: 25,
-                    adviceProfile: new AdviceProfile({
+                    confidenceAddition: 10,
+                    adviceProfile: new AdviceSpecification({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
+                            AdviceTypes.EXACT_BINARY.copy(3, {
+                                correct: true,
+                                difference: () =>
+                                    Math.floor(36 + Math.random() * 30)
+                            }),
+                            AdviceTypes.EXACT_BINARY.copy(2, {
+                                correct: true,
+                                difference: () =>
+                                    Math.floor(8 + Math.random() * 10)
+                            }),
+                            AdviceTypes.EXACT_BINARY.copy(1, {
+                                correct: false,
+                                difference: () =>
+                                    Math.floor(8 + Math.random() * 10)
+                            }),
+                            AdviceTypes.EXACT_BINARY.copy(1, {
+                                correct: true,
+                                difference: () =>
+                                    Math.floor(1 + Math.random() * 5)
+                            }),
+                            AdviceTypes.EXACT_BINARY.copy(2, {
+                                correct: false,
+                                difference: () =>
+                                    Math.floor(1 + Math.random() * 5)
+                            })
                         ]
-                    })
+                    }),
+                    // Made-up trials to show on the advisor's intro scorecard
+                    introScores: [
+                        [1, 99], [1, 79], [1, 76],
+                        [1, 65], [0, 63], [1, 45],
+                        [1, 34], [0, 16], [0, 5]
+                    ]
                 }),
                 new Advisor({
                     id: 1,
@@ -531,9 +620,14 @@
                     confidenceAddition: 10,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
+                            AdviceTypes.CORRECTISH.copy(1)
                         ]
-                    })
+                    }),
+                    introScores: [
+                        [1, 69], [1, 59], [1, 56],
+                        [1, 45], [0, 43], [1, 25],
+                        [1, 19], [0, 6], [0, 5]
+                    ]
                 }),
                 new Advisor({
                     id: 2,
@@ -550,9 +644,14 @@
                     confidenceAddition: 40,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            ADVICE_CORRECTISH.copy(1)
+                            AdviceTypes.CORRECTISH.copy(1)
                         ]
-                    })
+                    }),
+                    introScores: [
+                        [1, 99], [1, 89], [1, 86],
+                        [1, 75], [0, 73], [1, 55],
+                        [1, 44], [0, 36], [0, 35]
+                    ]
                 })
             ];
 
@@ -568,17 +667,17 @@
         let studyBlueprint = {
             studyName: "calibrationKnowledge",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [17, 25, 33, 45],
+            attentionCheckTrials: [25, 33, 45, 55],
             blocks: [
                 new Block({
-                    trialCount: 7,
+                    trialCount: 9,
                     blockType: "practice",
                     advisors: [],
                     advisorsPerTrial: 0,
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 3,
+                    trialCount: 9,
                     blockType: "practiceAdvisor",
                     feedback: true,
                     showAdvisorConfidence: true,
@@ -607,7 +706,7 @@
                 }),
                 // Test
                 new Block({
-                    trialCount: 22,
+                    trialCount: 26,
                     blockType: "core",
                     feedback: false,
                     introText: "<p>From now on you will not get to see the answers to the questions until the end of the study.</p>",

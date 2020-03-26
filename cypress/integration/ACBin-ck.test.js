@@ -202,7 +202,7 @@ for(let run = 0; run < runs; run++) {
         let q = -1;
 
         // 10 practice questions
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 9; i++) {
             q++;
             it('Runs practice Q' + i + ' [Q' + q + ']', function () {
 
@@ -230,6 +230,14 @@ for(let run = 0; run < runs; run++) {
                 .contains('Next')
                 .should('be.visible')
                 .click();
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
 
             cy.get('esm-instruction button')
                 .contains('Okay')
@@ -250,7 +258,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 9; i++) {
             q++;
 
             it('Runs advisor practice q' + i + ' [Q' + q + ']',
@@ -368,6 +376,11 @@ for(let run = 0; run < runs; run++) {
                 .contains('Next')
                 .should('be.visible')
                 .click();
+            // Comparison of scorecards
+            cy.get('esm-instruction button')
+                .contains('Next')
+                .should('be.visible')
+                .click();
             // Hybrid intro
             cy.wait(1200);
             cy.get('esm-instruction button')
@@ -376,7 +389,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 22; i++) {
+        for(let i = 0; i < 26; i++) {
             q++;
 
             it('Runs block 3 (TEST) Q' + i + ' [Q' + q + ']',

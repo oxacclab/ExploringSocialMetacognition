@@ -1,0 +1,59 @@
+.scorecard {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly; }
+  .scorecard-text {
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-evenly; }
+  .scorecard-content {
+    height: 100%; }
+  .scorecard-avatar {
+    max-width: 100%; }
+    .scorecard-avatar div {
+      height: 3em; }
+      @media screen and (max-height: 500px) {
+        .scorecard-avatar div {
+          display: none; } }
+    .scorecard-avatar img {
+      max-width: 4em; }
+  .scorecard-card {
+    height: 100%;
+    display: flex; }
+  .scorecard-column {
+    border: 6px dashed black;
+    height: 100%;
+    width: 4em; }
+    .scorecard-column .response-column-inner {
+      height: 100%;
+      background: linear-gradient(#c6f4ff, #1bd3ff); }
+    .scorecard-column span.star {
+      position: absolute;
+      transform: translate(-50%, 50%);
+      font-size: 2em;
+      font-weight: bold; }
+      .scorecard-column span.star.correct {
+        color: #7cd803; }
+      .scorecard-column span.star.incorrect {
+        color: red; }
+  .scorecard .response-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%; }
+
+.advisor-intro-with-scores {
+  height: 100%; }
+  .advisor-intro-with-scores .advisor-intro-speech {
+    height: 100%;
+    align-items: center; }
+    .advisor-intro-with-scores .advisor-intro-speech .text {
+      height: min-content; }
+    .advisor-intro-with-scores .advisor-intro-speech .scorecard {
+      height: 100%; }
+
+/*# sourceMappingURL=scorecard.css.map */

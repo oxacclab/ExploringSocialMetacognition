@@ -1,0 +1,83 @@
+$columnBorderWidth: 6px;
+$barWidth: 4em;
+$light: #c6f4ff;
+$dark: #1bd3ff;
+$green: #7cd803;
+
+.scorecard {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+
+  &-text {
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-evenly;
+  }
+  &-content {
+    height: 100%;
+  }
+  &-avatar {
+    max-width: 100%;
+    div {
+      height: 3em;
+      @media screen and (max-height: 500px) {
+        display: none;
+      }
+    }
+    img {
+      max-width: $barWidth;
+    }
+  }
+  &-card {
+    height: 100%;
+    display: flex;
+  }
+  &-column {
+    border: $columnBorderWidth dashed black;
+    height: 100%;
+    width: $barWidth;
+
+    .response-column-inner {
+      height: 100%;
+      background: linear-gradient($light, $dark);
+    }
+    span.star {
+      position: absolute;
+      transform: translate(-50%, 50%);
+      font-size: 2em;
+      font-weight: bold;
+      &.correct {
+        color: $green;
+      }
+      &.incorrect {
+        color: red;
+      }
+    }
+  }
+  .response-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+  }
+}
+
+.advisor-intro-with-scores {
+  height: 100%;
+  .advisor-intro-speech {
+    height: 100%;
+    align-items: center;
+    .text {
+      height: min-content;
+    }
+    .scorecard {
+      height: 100%;
+    }
+  }
+}
+

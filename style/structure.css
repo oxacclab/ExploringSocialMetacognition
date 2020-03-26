@@ -542,7 +542,7 @@ esm-response-binary-conf#response-panel {
 .response-marker.advisor:not(.static):not(.confidence)::after {
     content: close-quote;
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: calc(50% - var(--triangle-size));
 
     /* triangle pointing down */

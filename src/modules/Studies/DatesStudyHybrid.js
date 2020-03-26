@@ -1,3 +1,4 @@
+import {Advisor} from "../Advisors/Advisor.js";
 import {DatesStudyBinary} from "./DatesStudyBinary.js";
 
 /**
@@ -11,6 +12,19 @@ class DatesStudyHybrid extends DatesStudyBinary {
     _setDefaults() {
         super._setDefaults();
         this.minAdvisorIntroPanelTime = 1000;
+    }
+
+    async advisorPracticeInstructions() {
+        const me = this;
+        const scorecard = Advisor.makeScorecard(
+            me.trials.filter(t => t.data.block === 0)
+        ).querySelector('div');
+        document.getElementById('instr-practice-advisor')
+            .content
+            .querySelectorAll('.scorecard.participant')
+            .forEach(e => e.appendChild(scorecard.cloneNode(true)));
+
+        return super.advisorPracticeInstructions();
     }
 
     /**
@@ -37,7 +51,7 @@ class DatesStudyHybrid extends DatesStudyBinary {
      * @return {HTMLElement}
      * @protected
      */
-    static _advisorIntroSpeechPage(advisor, templateId = 'advisor-intro-speech') {
+    _advisorIntroSpeechPage(advisor, templateId = 'advisor-intro-speech') {
         // Update the advisor intro field to contain the appropriate info for advisor
         const template = document.getElementById(templateId);
         if (!template)
@@ -56,6 +70,22 @@ class DatesStudyHybrid extends DatesStudyBinary {
         const bubble = content.querySelector('.text');
         bubble.classList.add(`group-${advisor.group}`);
         bubble.innerHTML = advisor.introText;
+
+        // Add scorecard
+        const sc = content.querySelector('.scorecard');
+        if(sc) {
+            content.querySelector('div')
+                .classList.add('advisor-intro-with-scores');
+            const me = this;
+            const participantScorecard = Advisor.makeScorecard(
+                me.trials.filter(t => t.data.block === 0)
+            );
+            const advisorScorecard =
+                advisor.getScorecard(advisor.introScores);
+
+            sc.appendChild(advisorScorecard);
+            sc.appendChild(participantScorecard);
+        }
 
         return content;
     }
@@ -81,13 +111,13 @@ class DatesStudyHybrid extends DatesStudyBinary {
         // Amend the template to insert the advisor's introduction
         const page = content.querySelector('esm-instruction')
             .appendChild(document.createElement('esm-instruction-page'));
-        page.appendChild(DatesStudyHybrid._advisorIntroSpeechPage(advisor));
+        page.appendChild(this._advisorIntroSpeechPage(advisor));
         page.classList.add('temporary');
         page.dataset.minTime = this.minAdvisorIntroPanelTime.toString();
 
         return new Promise(function (resolve) {
             let data = [];
-            Study._updateInstructions(templateId,
+            DatesStudyHybrid._updateInstructions(templateId,
                 (name) => {
                     let now = new Date().getTime();
                     data.push({
@@ -114,12 +144,26 @@ class DatesStudyHybrid extends DatesStudyBinary {
             if (/Hybrid/.test(a.constructor.name))
                 continue;
             const page = document.createElement('esm-instruction-page');
-            page.appendChild(DatesStudyHybrid._advisorIntroSpeechPage(a));
+            page.appendChild(this._advisorIntroSpeechPage(a));
             page.dataset.minTime = this.minAdvisorIntroPanelTime.toString();
             page.classList.add('temporary');
             index.after(page);
             index = page;
         }
+
+        // Show a side-by-side comparison of the advisors along with the participant's scorecard
+        const compare = document.createElement('esm-instruction-page');
+        compare.appendChild(document.importNode(
+            document.getElementById('scorecard-compare').content,
+            true
+        ));
+        const bar = compare.querySelector('.scorecard');
+        for (const a of advisors.filter(a => !/Hybrid/.test(a.constructor.name)))
+            bar.appendChild(a.getScorecard(a.introScores));
+        bar.appendChild(Advisor.makeScorecard(
+            this.trials.filter(t => t.data.block === 0)
+        ));
+        index.after(compare);
 
         // Inject the hybrid's portrait
         const hybrid = advisors.filter(a => /Hybrid/.test(a.constructor.name))[0];
@@ -141,36 +185,24 @@ class DatesStudyHybrid extends DatesStudyBinary {
         });
     }
 
-    static get listPhases() {
-        return [
-            "splashScreen",
-            "consent",
-            "demographics",
-            "practice",
-            "_makeScorecard"
-        ];
-    }
-
-    _makeScorecard() {
+    scorecard(parentElement, ) {
+        const me = this;
         const sc = document.importNode(
             document.getElementById('scorecard').content,
             true);
         const bar = sc.querySelector('.scorecard');
         bar.appendChild(
-            this.makeScorecard(
-                this.trials.filter(
-                    t => typeof t.data.responseAnswerSide !== "undefined"
-                )
+            Advisor.makeScorecard(
+                this.trials.filter(t => t.data.block === 0)
             )
         );
         // An advisor
         bar.appendChild(
-            this.makeScorecard([
-                    [1, 98], [1, 95], [1, 80],
-                    [1, 78], [0, 72], [1, 70],
-                    [0, 69], [1, 66], [0, 53]
-                ],
-                this.advisors[0])
+            this.advisors[0].getScorecard(
+                this.trials.filter(
+                    t => t.data.advisor0id === me.advisors[0].id &&
+                        typeof t.data.responseAnswerSideFinal !== "undefined"
+                ))
         );
         // An advisor
         bar.appendChild(
@@ -185,52 +217,6 @@ class DatesStudyHybrid extends DatesStudyBinary {
         const instr = document.getElementById('instructions');
         instr.classList.add('open');
         instr.innerHTML = sc.querySelector('esm-instruction').outerHTML;
-    }
-
-    /**
-     * Show a scorecard indicating which questions were answered correctly ordered by the confidence of the answers.
-     * @param trials {Trial[]|number[][]} either a list of trials or a list of 2-item lists with [0] correctness {binary} [1] confidence {numeric}
-     * @param advisor {Advisor|null} Advisor whose advice is being presented, or null for the participant
-     * @return {HTMLElement}
-     */
-    makeScorecard(trials, advisor = null) {
-        const sc = document.importNode(
-            document.getElementById('scorecard-content').content,
-            true);
-        // Set avatar
-        if (advisor) {
-            sc.querySelector('.scorecard-avatar div').innerHTML = advisor.name;
-            sc.querySelector('.scorecard-avatar img').src = advisor.svg;
-        } else {
-            sc.querySelector('.scorecard-avatar div').innerHTML = "You";
-            sc.querySelector('.scorecard-avatar img').src = "../assets/image/you.svg";
-        }
-        const bar = sc.querySelector('.response-column-inner');
-        trials.forEach(t => {
-            const elm = bar.appendChild(document.createElement('span'));
-            elm.classList.add('star');
-            let correct;
-            if (!t.data)
-                correct = t[0];
-            else if (t.data.responseAnswerSideFinal)
-                correct = t.data.responseAnswerSideFinal === t.data.correctAnswerSide;
-            else
-                correct = t.data.responseAnswerSide === t.data.correctAnswerSide;
-            if (correct) {
-                elm.classList.add('correct');
-                elm.innerHTML = "&#10004;";
-            } else {
-                elm.classList.add('incorrect');
-                elm.innerHTML = "&#10007;";
-            }
-            if (!t.data)
-                elm.style.bottom = `${t[1]}%`;
-            else
-                elm.style.bottom = `${t.data.responseConfidenceFinal || t.data.responseConfidence}%`;
-            elm.style.transform = `translate(${Math.random() * 100 - 50}%, 50%)`;
-        });
-
-        return sc;
     }
 
     toTable() {

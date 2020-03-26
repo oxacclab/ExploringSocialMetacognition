@@ -8,6 +8,7 @@
 
 "use strict";
 
+import * as utils from "../../utils.js";
 import {BaseObject} from "../Prototypes.js";
 import {AdviceProfile} from "./Advice/AdviceProfile.js";
 import {AdviceSpecification} from "./Advice/AdviceSpecification.js";
@@ -203,6 +204,89 @@ class Advisor extends BaseObject {
             // without confidence just indicate the answer
             this.createMarker(panel);
         }
+    }
+
+    /**
+     * Fetch the scorecard for this advisor.
+     * @param trials {Trial[]|number[]} either a list of trials or a list of 2-item lists with [0] correctness {binary}, [1] confidence {numeric}
+     * @return {HTMLElement}
+     */
+    getScorecard(trials) {
+        return Advisor.makeScorecard(trials, this);
+    }
+
+    /**
+     * Show a scorecard indicating which questions were answered correctly ordered by the confidence of the answers.
+     * @param trials {Trial[]|number[][]} either a list of trials or a list of 2-item lists with [0] correctness {binary} [1] confidence {numeric}
+     * @param advisor {Advisor|null} Advisor whose advice is being presented, or null for the participant
+     * @return {HTMLElement}
+     */
+    static makeScorecard(trials, advisor = null) {
+        if(!trials)
+            this.error(`No trials supplied for makeScorecard (${advisor})`);
+
+        trials = utils.shuffle(trials);
+        const sc = document.importNode(
+            document.getElementById('scorecard-content').content,
+            true);
+        // Set avatar
+        if (advisor) {
+            sc.querySelector('.scorecard-avatar div').innerHTML = advisor.name;
+            sc.querySelector('.scorecard-avatar img').src = advisor.svg;
+            // Extract the advisor's trial responses rather than the participant's
+            const trialList = [];
+            trials.forEach(t => {
+                if(!t.data)
+                    trialList.push(t);
+                else {
+                    // Find advisor index
+                    let a;
+                    let i = -1;
+                    while(t.data.hasOwnProperty(`advisor${++i}id`))
+                        if(t.data[`advisor${i}id`] === advisor.id)
+                            a = `advisor${i}`;
+                    if(typeof a === "undefined") {
+                        this.warn(`Advisor (id=${advisor.id}) does not give advice on scorecard trial #${t.data.number}`);
+                        return;
+                    }
+                    trialList.push([
+                        t.data[`${a}adviceSide`] === t.data.correctAnswerSide,
+                        t.data[`${a}adviceConfidence`]
+                    ]);
+                }
+            });
+            trials = trialList;
+        } else {
+            sc.querySelector('.scorecard-avatar div').innerHTML = "You";
+            sc.querySelector('.scorecard-avatar img').src = "../assets/image/you.svg";
+        }
+        const bar = sc.querySelector('.response-column-inner');
+        const fraction = 1 / (trials.length - 1) * 100;
+        trials.forEach((t, i) => {
+            const elm = bar.appendChild(document.createElement('span'));
+            elm.classList.add('star');
+            let correct;
+            if (!t.data)
+                correct = t[0];
+            else if (t.data.responseAnswerSideFinal)
+                correct = t.data.responseAnswerSideFinal === t.data.correctAnswerSide;
+            else
+                correct = t.data.responseAnswerSide === t.data.correctAnswerSide;
+            if (correct) {
+                elm.classList.add('correct');
+                elm.innerHTML = "&#10004;";
+            } else {
+                elm.classList.add('incorrect');
+                elm.innerHTML = "&#10007;";
+            }
+            if (!t.data)
+                elm.style.bottom = `${t[1]}%`;
+            else
+                elm.style.bottom = `${t.data.responseConfidenceFinal || t.data.responseConfidence}%`;
+            elm.style.left = `${fraction * i}%`;
+        });
+
+        return sc;
     }
 
     /**
