@@ -39,7 +39,7 @@ $green: #7cd803;
   }
   &-column {
     border: $columnBorderWidth dashed black;
-    height: 100%;
+    height: calc(100% - 11em);
     width: $barWidth;
 
     .response-column-inner {

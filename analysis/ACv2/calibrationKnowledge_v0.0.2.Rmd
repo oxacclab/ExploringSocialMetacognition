@@ -993,6 +993,31 @@ Is the same pattern true within participants as well as between them?
 
 How does time taken relate to metacognitive accuracy?
 
+### Agreement rates in the test trials
+
+```{r}
+tmp <- AdvisedTrial %>% 
+  filter(!feedback) %>%
+  mutate(hybrid = advisor0name == '?') %>%
+  group_by(pid, advisor0idDescription, hybrid) %>%
+  summarise(agreement = mean(advisor0agree)) 
+
+n <- length(unique(tmp$pid))
+bw <- .2
+
+tmp %>% 
+  mutate(Advisor = capitalize(paste0(advisor0idDescription, if_else(hybrid, 'Hybrid', '')))) %>%
+  ggplot(aes(x = agreement, fill = Advisor)) +
+  geom_histogram(binwidth = bw) +
+  stat_bin(aes(label = ..count..), 
+           geom = "text", vjust = -.5, binwidth = bw, y = n * .9) +
+  scale_fill_discrete(h.start = 45, guide = "none") +
+  scale_y_continuous(limits = c(0, n)) +
+  labs(x = "Agreement rate") +
+  facet_wrap(~Advisor)
+
+```
+
 # Conclusions {.summary}
 
 !TODO[Conclusions]

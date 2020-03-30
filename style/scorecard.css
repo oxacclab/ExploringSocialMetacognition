@@ -26,7 +26,7 @@
     display: flex; }
   .scorecard-column {
     border: 6px dashed black;
-    height: 100%;
+    height: calc(100% - 11em);
     width: 4em; }
     .scorecard-column .response-column-inner {
       height: 100%;
