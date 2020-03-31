@@ -499,7 +499,7 @@ function pNorm(x, mean = 0, sd = 1) {
     const i = Math.abs(Math.round(z * 100));
 
     if(i > R.length)
-        return R[R.length];
+        return R[R.length - 1];
 
     return R[i];
 }
