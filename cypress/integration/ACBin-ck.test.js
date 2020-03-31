@@ -355,7 +355,7 @@ for(let run = 0; run < runs; run++) {
 
             // No feedback for next few trials prompt
             cy.get('esm-instruction button')
-                .contains('Okay!')
+                .contains('Next')
                 .should('be.visible')
                 .click();
 

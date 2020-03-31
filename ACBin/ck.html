@@ -193,6 +193,10 @@
     </template>
     <template id="instr-hybrid-advisor-intro">
         <esm-instruction>
+            <esm-instruction-page>
+                <h1>No feedback</h1>
+                <p>From now on you will not get to see the answers to the questions until the end of the study.</p>
+            </esm-instruction-page>
             <esm-instruction-page class="advisor-reminder-general">
                 <h1>Both advisors</h1>
                 <p>From now on you might get advice from any of the advisors you've seen before. We'll let them introduce themselves again so you can refresh your memory about them.</p>
@@ -709,7 +713,6 @@
                     trialCount: 26,
                     blockType: "core",
                     feedback: false,
-                    introText: "<p>From now on you will not get to see the answers to the questions until the end of the study.</p>",
                     showAdvisorConfidence: true,
                     advisors: advisors.filter(a => a.id > 0),
                     allAdvisors: true,
