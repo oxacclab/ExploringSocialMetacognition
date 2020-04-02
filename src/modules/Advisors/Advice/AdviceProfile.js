@@ -111,16 +111,16 @@ class AdviceProfile extends BaseObject {
      *
      * @return {{
      *     validTypes: string,
-     *     validFlags: int,
+     *     validTypeFlags: int,
      *     adviceType: AdviceType
      * }}
      */
     getAdviceType(trial, advisor, includeInCounter = true) {
-        const out = {validTypes: "", validFlags: 0};
+        const out = {validTypes: "", validTypeFlags: 0};
         // Record qualified matches
         const types = this.getValidAdviceTypes(trial, advisor);
         out.validTypes = types.map(aT => aT.name).join(", ");
-        out.validFlags = utils.sumList(types.map(aT => aT.flag));
+        out.validTypeFlags = utils.sumList(types.map(aT => aT.flag));
 
         // Pick an AdviceType to use
         let aT = this.chooseAdviceType(trial, advisor);
@@ -277,26 +277,37 @@ class AdviceProfile extends BaseObject {
 
         // Advice is selected as the middle of the available values
         let range = adviceType.match(trial, advisor, adviceType);
-        out.adviceCentre = Math.round((range[1] - range[0]) / 2) + range[0];
-        out.adviceWidth = advisor.confidence;
+        if(range.length === 1) {
+            out.adviceCentre = range[0];
+            out.advice = range[0];
+        }
+        else {
+            out.adviceCentre =
+                Math.round((range[1] - range[0]) / 2) +
+                range[0];
 
-        // Add some variation around the mean
-        let room = utils.min([
-            out.adviceCentre - range[0],
-            advisor.confidenceVariation,
-            range[1] - out.adviceCentre
-        ], true);
-        out.advice = utils.randomNumber(out.adviceCentre - room, out.adviceCentre + room);
+            // Add some variation around the mean
+            let room = utils.min([
+                out.adviceCentre - range[0],
+                advisor.confidenceVariation,
+                range[1] - out.adviceCentre
+            ], true);
+            out.advice = utils.randomNumber(out.adviceCentre - room, out.adviceCentre + room);
+        }
+
+        out.adviceWidth = advisor.confidence;
 
         // Advice for binary options is thresholded by the anchor
         if (trial.anchorDate)
             out.adviceSide = (out.advice >= trial.anchorDate) ? 1 : 0;
 
         if (trial.showAdvisorConfidence) {
-            if (advisor.confidenceFunction)
-                out.adviceConfidence = advisor.confidenceFunction(out, trial, advisor);
+            if(advisor.confidenceFunction)
+                out.adviceConfidence = advisor.confidenceFunction(out, trial, advisor, adviceType);
+            else if(adviceType.confidence)
+                out.adviceConfidence = adviceType.confidence(out, trial, advisor, adviceType);
             else
-                out.adviceConfidence = AdviceProfile.getConfidence(out, trial, advisor);
+                out.adviceConfidence = AdviceProfile.getConfidence(out, trial, advisor, adviceType);
 
             out.adviceConfidence = Math.max(
                 0, Math.min(100, Math.round(out.adviceConfidence))
@@ -306,8 +317,19 @@ class AdviceProfile extends BaseObject {
         return out;
     }
 
-    static getConfidence(answer, trial, advisor) {
-        // More confident each year, up to 100% confident at confidence boundary
+    /**
+     * Confidence increases each year up to 100% confident at the advisor's confidence boundary
+     * @param answer {{
+     *     adviceCentre: number,
+     *     adviceWidth: number,
+     *     advice: number,
+     *     adviceSide: (number|null)}}
+     * @param trial {Trial}
+     * @param advisor {Advisor}
+     * @param adviceType {AdviceType}
+     * @return {number}
+     */
+    static getConfidence(answer, trial, advisor, adviceType) {
         let adviceConfidence =
             Math.abs(answer.advice - trial.anchorDate) /
             advisor.confidence * 100;
@@ -317,10 +339,20 @@ class AdviceProfile extends BaseObject {
         return adviceConfidence;
     }
 
-    static getConfidenceByPCorrect(answer, trial, advisor) {
+    /**
+     * Confidence increases via the cumulative normal distribution based on the difference between the estimate and the anchor.
+     * @param answer {{
+     *     adviceCentre: number,
+     *     adviceWidth: number,
+     *     advice: number,
+     *     adviceSide: (number|null)}}
+     * @param trial {Trial}
+     * @param advisor {Advisor}
+     * @param adviceType {AdviceType}
+     * @return {number}
+     */
+    static getConfidenceByPCorrect(answer, trial, advisor, adviceType) {
         // calculate p(correct) from estimate-anchor difference
-        // This is a cubic function with parameters empirically estimated for
-        // advisor with confidenceVariation = anchor distribution SD
         const d = Math.abs(trial.anchorDate - answer.advice);
         let pCor;
         if (advisor.pCorFunction)
@@ -359,6 +391,10 @@ class AdviceProfile extends BaseObject {
         return conf;
     }
 
+    /**
+     * The AdviceType with the greatest quantity
+     * @return {AdviceType|null}
+     */
     get mainAdviceType() {
         const x = {
             q: -Infinity,
