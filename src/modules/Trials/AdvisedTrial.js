@@ -194,10 +194,13 @@ class AdvisedTrial extends Trial {
 
             // Save advisor's advice
             const advice = a.getAdvice(this);
-            Object.keys(advice).forEach((k) => {
-                if (advice.hasOwnProperty(k))
-                    this.data["advisor" + i.toString() + k] = advice[k];
-            });
+            // Don't use forEach here because Apple has a unique interpretation of alphabetical order!
+            const keys = Object.keys(advice);
+            for(let k = 0; k < keys.length; k++) {
+                const key = keys[k];
+                if (advice.hasOwnProperty(key))
+                    this.data["advisor" + i.toString() + key] = advice[key];
+            }
 
             await a.drawAdvice();
         }
