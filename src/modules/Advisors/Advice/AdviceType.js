@@ -18,8 +18,8 @@ import {BaseObject} from "../../Prototypes.js";
  * where this type is inadmissable (fallbacks will fall back themselves if not
  * suitable, and an error arises if no fallback is possible)
  * @property matches {<number[]|null>function(<Trial>, <Advisor>)} given a trial
- * object, return a range specifying which values for the middle of the advice are
- * consistent with this advice type (null if none are)
+ * object, return a range specifying which values for the middle of the advice are consistent with this advice type (null if none are)
+ * @property quantity {number} used to indicate how many trials should use this AdviceType
  */
 class AdviceType extends BaseObject {
     constructor(blueprint) {
@@ -471,15 +471,37 @@ const AGREE_OFFSET = Object.freeze(new AdviceType({
 
 
 /**
+ * Fetch the confidence from a set value. Applies the advisor's confidenceAddition.
+ * @param advice {{
+ *     adviceCentre: number,
+ *     adviceWidth: number,
+ *     advice: number,
+ *     adviceSide: (number|null)}}
+ * @param trial {Trial}
+ * @param advisor {Advisor}
+ * @param self {AdviceType|null}
+ * @return {number}
+ */
+const getConfFromValue = function(advice, trial, advisor, self = null) {
+    let conf = typeof self.confidenceValue === "function"?
+        self.confidenceValue() : self.confidenceValue;
+    if(advisor.confidenceAddition)
+        conf += advisor.confidenceAddition;
+    return conf;
+};
+
+/**
  * Advisor estimate which has both its direction and its difference from the anchor date specified at creation time.
  * @type {Readonly<AdviceType>}
+ * @property correct {boolean|function} used to determine whether the answer should be correct
+ * @property confidenceValue {number|function} used to determine what the confidence should be
  */
-const EXACT_BINARY = Object.freeze(new AdviceType({
-    name: "cheat-binary",
+const EXACT_CONFIDENCE_BINARY = Object.freeze(new AdviceType({
+    name: "binary-cheat-confidence",
     flag: 1024,
     fallback: null,
     /**
-     * Return an answer which is in/correct and offset by a specified distance from the anchor date. Correctness and distance are specified in this object's correct {boolean} and difference {number} properties.
+     * Return an answer which is Infinitely far from the anchor date in the in/correct direction. Correctness is specified in this object's correct {boolean} property.
      * @param t {Trial}
      * @param a {Advisor}
      * @param [self=null] {AdviceType|null} this object for self-referencing
@@ -489,14 +511,61 @@ const EXACT_BINARY = Object.freeze(new AdviceType({
         // Work out how to be in/correct
         const correct = typeof self.correct === "function"?
             self.correct() : self.correct;
-        const difference = typeof self.difference === "function"?
-            self.difference() : self.difference;
 
         const side = (t.data.correctAnswerSide == correct)? 1 : -1;
 
-        const c = t.anchorDate + difference * side;
-        return [c, c];
-    }
+        const c = t.anchorDate + side * Infinity;
+        return [c];
+    },
+    confidence: getConfFromValue
+}));
+
+/**
+ * Advisor estimate which agrees with the participant and has its confidence specified at creation time.
+ * @type {Readonly<AdviceType>}
+ * @property confidenceValue {number|function} used to determine what the confidence should be
+ */
+const AGREE_EXACT_CONFIDENCE_BINARY = Object.freeze(new AdviceType({
+    name: "binary-agree-cheat-confidence",
+    flag: 2048,
+    fallback: null,
+    /**
+     * Return an answer whose side matches the participant's.
+     * @param t {Trial}
+     * @param a {Advisor}
+     * @param [self=null] {AdviceType|null} this object for self-referencing
+     * @return {number[]}
+     */
+    match: (t, a, self = null) => {
+        const p = t.data.responseAnswerSide;
+        const c = p? Infinity : -Infinity;
+        return [c];
+    },
+    confidence: getConfFromValue
+}));
+
+/**
+ * Advisor estimate which disagrees with the participant and has its confidence specified at creation time.
+ * @type {Readonly<AdviceType>}
+ * @property confidenceValue {number|function} used to determine what the confidence should be
+ */
+const DISAGREE_EXACT_CONFIDENCE_BINARY = Object.freeze(new AdviceType({
+    name: "binary-disagree-cheat-confidence",
+    flag: 4096,
+    fallback: null,
+    /**
+     * Return an answer whose side doesn't match the participant's.
+     * @param t {Trial}
+     * @param a {Advisor}
+     * @param [self=null] {AdviceType|null} this object for self-referencing
+     * @return {number[]}
+     */
+    match: (t, a, self = null) => {
+        const p = t.data.responseAnswerSide;
+        const c = p? -Infinity : Infinity;
+        return [c];
+    },
+    confidence: getConfFromValue
 }));
 
 
@@ -511,5 +580,7 @@ export {
     INCORRECT_REFLECTED,
     CORRECT,
     AGREE,
-    EXACT_BINARY
+    EXACT_CONFIDENCE_BINARY,
+    AGREE_EXACT_CONFIDENCE_BINARY,
+    DISAGREE_EXACT_CONFIDENCE_BINARY
 };

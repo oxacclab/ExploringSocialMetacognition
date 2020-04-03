@@ -119,7 +119,9 @@ class AdviceProfile extends BaseObject {
         const out = {validTypes: "", validTypeFlags: 0};
         // Record qualified matches
         const types = this.getValidAdviceTypes(trial, advisor);
-        out.validTypes = types.map(aT => aT.name).join(", ");
+        out.validTypes = types
+            .map(aT => `${(aT.quantity - this.getUsedCount(aT))}/${aT.quantity}:${aT.name}`)
+            .join(", ");
         out.validTypeFlags = utils.sumList(types.map(aT => aT.flag));
 
         // Pick an AdviceType to use
@@ -197,11 +199,21 @@ class AdviceProfile extends BaseObject {
                 aT => aT.quantity - me.getUsedCount(aT)
             );
             sum = utils.sumList(quantities);
+            if(sum <= 0) {
+                // If everything is exhausted, reset the counts
+                this.resetUsedCounts();
+                if(utils.sumList(types.map(
+                    aT => aT.quantity - me.getUsedCount(aT))
+                ))
+                    return this.chooseAdviceType(trial, advisor);
+                else
+                    this.error('No AdviceTypes left even after resetting!')
+            }
         }
 
         // Select a type by weighted random selection accounting for past
         // selections
-        let x = utils.randomNumber(0, sum, true);
+        let x = utils.randomNumber(1, sum, true);
         let i = 0;
         while(x > 0 || i === 0) {
             x -= quantities[i++];
@@ -229,15 +241,6 @@ class AdviceProfile extends BaseObject {
     markUsed(adviceType) {
         // Mark chosen type as used
         this.setUsedCount(adviceType, this.getUsedCount(adviceType) + 1);
-        // Reset the used types if empty
-        const allQuantities = this.adviceTypes.map(aT => aT.quantity);
-        if (utils.sumList(allQuantities) === utils.sumList(this.usedTypes)) {
-            if(this.shuffleOnReset)
-                this.adviceTypes = utils.shuffle(this.adviceTypes);
-            this.adviceTypes.forEach(
-                aT => this.setUsedCount(aT, 0));
-            this.info("Used all advice instances; resetting.");
-        }
     }
 
     /**
@@ -256,6 +259,17 @@ class AdviceProfile extends BaseObject {
      */
     setUsedCount(adviceType, count) {
         this.usedTypes[adviceType.flag] = count;
+    }
+
+    /**
+     * Reset used type counts
+     */
+    resetUsedCounts() {
+        if(this.shuffleOnReset)
+            this.adviceTypes = utils.shuffle(this.adviceTypes);
+        this.adviceTypes.forEach(
+            aT => this.setUsedCount(aT, 0));
+        this.info("Used all advice instances; resetting.");
     }
 
     /**

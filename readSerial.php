@@ -98,7 +98,7 @@ if(($handle = fopen($dataFileName, "rb")) !== false) {
         }
     }
 } else
-    sulk("Unable to save result.", 500);
+    sulk("Unable to load results.", 500);
 
 // Send back the all clear
 die(json_encode(array(

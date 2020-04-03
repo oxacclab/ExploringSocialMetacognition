@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.20">
+<head data-version="0.1.3">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -520,7 +520,8 @@
     import {Block} from "../src/modules/Block.js";
     import {DatesStudyHybrid} from "../src/modules/Studies/DatesStudyHybrid.js";
     import {AdvisedTrial} from "../src/modules/Trials/AdvisedTrial.js";
-    import {Advisor, AdvisorHybrid, AdviceProfile, AdviceSpecification, AdviceTypes} from "../src/modules/Advisors/Advisor.js";
+    import {Advisor, AdviceProfile, AdviceSpecification, AdviceTypes} from "../src/modules/Advisors/Advisor.js";
+    import {AdvisorHybrid} from "../src/modules/Advisors/AdvisorHybrid.js";
 
     // Procedural stuff
 
@@ -558,6 +559,79 @@
         DEBUG.feedback = parseInt(utils.getQueryStringValue("feedback"));
         DEBUG.qCount = parseInt(utils.getQueryStringValue("qCount"));
 
+        // The advisor's confidence function takes precedence so we need to wrap it to delegate back to the AdviceType's confidence function where necessary
+        const delegateConf = (ans, trial, advisor, adviceType) => {
+            if(adviceType.confidence)
+                return adviceType.confidence(ans, trial, advisor, adviceType);
+            return AdviceProfile.getConfidenceByPCorrect(ans, trial, advisor, adviceType);
+        };
+
+        /**
+         * Familiarisation phase advice
+         * @type {AdviceSpecification}
+         */
+        let fAdvice = new AdviceSpecification({
+            adviceTypes: [
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(3, {
+                    correct: true,
+                    confidenceValue: () => utils.randomNumber(45, 67)
+                }),
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(2, {
+                    correct: true,
+                    confidenceValue: () => utils.randomNumber(23, 44)
+                }),
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(1, {
+                    correct: false,
+                    confidenceValue: () => utils.randomNumber(23, 44)
+                }),
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(1, {
+                    correct: true,
+                    confidenceValue: () => utils.randomNumber(0, 22)
+                }),
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(2, {
+                    correct: false,
+                    confidenceValue: () => utils.randomNumber(0, 22)
+                })
+            ]
+        });
+        /**
+         * Test phase advice (LowConf)
+         * @type {AdviceSpecification}
+         */
+        let tAdviceLow = new AdviceSpecification({
+            adviceTypes: [
+                AdviceTypes.AGREE_EXACT_CONFIDENCE_BINARY.copy(2, {
+                    confidenceValue: () => utils.randomNumber(33, 66)
+                }),
+                AdviceTypes.DISAGREE_EXACT_CONFIDENCE_BINARY.copy(2, {
+                    confidenceValue: () => utils.randomNumber(33, 66)
+                }),
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(3, {
+                    correct: true,
+                    confidenceValue: () => utils.randomNumber(0, 33)
+                })
+            ]
+        });
+        /**
+         * Test phase advice (HighConf)
+         * @type {AdviceSpecification}
+         */
+        let tAdviceHigh = new AdviceSpecification({
+            adviceTypes: [
+                AdviceTypes.AGREE_EXACT_CONFIDENCE_BINARY.copy(2, {
+                    // Gives 33-66 after confidenceAddition is added
+                    confidenceValue: () => utils.randomNumber(0, 33)
+                }),
+                AdviceTypes.DISAGREE_EXACT_CONFIDENCE_BINARY.copy(2, {
+                    confidenceValue: () => utils.randomNumber(0, 33)
+                }),
+                AdviceTypes.EXACT_CONFIDENCE_BINARY.copy(3, {
+                    correct: true,
+                    confidenceValue: () => utils.randomNumber(33, 67)
+                })
+            ]
+        });
+
         let advisors =
             [
                 new Advisor({ // practice advisor
@@ -571,37 +645,9 @@
                     templateId: "advisor-key",
                     confidence: 20, // max confidence at X years distant
                     confidenceVariation: 8,
-                    confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
-                    confidenceAddition: 10,
-                    adviceProfile: new AdviceSpecification({
-                        adviceTypes: [
-                            AdviceTypes.EXACT_BINARY.copy(3, {
-                                correct: true,
-                                difference: () =>
-                                    Math.floor(36 + Math.random() * 30)
-                            }),
-                            AdviceTypes.EXACT_BINARY.copy(2, {
-                                correct: true,
-                                difference: () =>
-                                    Math.floor(8 + Math.random() * 10)
-                            }),
-                            AdviceTypes.EXACT_BINARY.copy(1, {
-                                correct: false,
-                                difference: () =>
-                                    Math.floor(8 + Math.random() * 10)
-                            }),
-                            AdviceTypes.EXACT_BINARY.copy(1, {
-                                correct: true,
-                                difference: () =>
-                                    Math.floor(1 + Math.random() * 5)
-                            }),
-                            AdviceTypes.EXACT_BINARY.copy(2, {
-                                correct: false,
-                                difference: () =>
-                                    Math.floor(1 + Math.random() * 5)
-                            })
-                        ]
-                    }),
+                    confidenceFunction: delegateConf,
+                    confidenceAddition: 16,
+                    adviceProfile: new AdviceSpecification(fAdvice),
                     // Made-up trials to show on the advisor's intro scorecard
                     introScores: [
                         [1, 99], [1, 79], [1, 76],
@@ -620,13 +666,9 @@
                     templateId: "advisor-key",
                     confidence: 20,
                     confidenceVariation: 8,
-                    confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
-                    confidenceAddition: 10,
-                    adviceProfile: new AdviceProfile({
-                        adviceTypes: [
-                            AdviceTypes.CORRECTISH.copy(1)
-                        ]
-                    }),
+                    confidenceFunction: delegateConf,
+                    confidenceAddition: 0,
+                    adviceProfile: new AdviceSpecification(fAdvice),
                     introScores: [
                         [1, 69], [1, 59], [1, 56],
                         [1, 45], [0, 43], [1, 25],
@@ -644,13 +686,9 @@
                     templateId: "advisor-key",
                     confidence: 20,
                     confidenceVariation: 8,
-                    confidenceFunction: AdviceProfile.getConfidenceByPCorrect,
-                    confidenceAddition: 40,
-                    adviceProfile: new AdviceProfile({
-                        adviceTypes: [
-                            AdviceTypes.CORRECTISH.copy(1)
-                        ]
-                    }),
+                    confidenceFunction: delegateConf,
+                    confidenceAddition: 33,
+                    adviceProfile: new AdviceSpecification(fAdvice),
                     introScores: [
                         [1, 99], [1, 89], [1, 86],
                         [1, 75], [0, 73], [1, 55],
@@ -659,19 +697,34 @@
                 })
             ];
 
-        advisors.push(new AdvisorHybrid({
-            blueprints: [advisors[1], advisors[2]],
-            name: '?'
-        }));
-        advisors.push(new AdvisorHybrid({
-            blueprints: [advisors[2], advisors[1]],
-            name: '?'
-        }));
+        // Advisors with test advice sets
+        const a1t = new Advisor(advisors[1]);
+        a1t.adviceProfile = new AdviceSpecification(tAdviceLow);
+        a1t.id = 3;
+        const a2t = new Advisor(advisors[2]);
+        a2t.adviceProfile = new AdviceSpecification(tAdviceHigh);
+        a2t.id = 4;
+        advisors.push(a1t, a2t);
+
+        const hybrids = [
+            new AdvisorHybrid({
+                blueprints: [advisors[3], advisors[4]],
+                name: '?'
+            }),
+            new AdvisorHybrid({
+                blueprints: [advisors[4], advisors[3]],
+                name: '?'
+            })
+        ];
+        hybrids.forEach((h, i) => {
+            h.adviceProfile = new AdviceSpecification(i? tAdviceHigh : tAdviceLow);
+            advisors.push(h);
+        });
 
         let studyBlueprint = {
             studyName: "calibrationKnowledge",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [25, 33, 45, 55],
+            attentionCheckTrials: [25, 33],
             blocks: [
                 new Block({
                     trialCount: 9,
@@ -710,11 +763,11 @@
                 }),
                 // Test
                 new Block({
-                    trialCount: 26,
+                    trialCount: 28,
                     blockType: "core",
                     feedback: false,
                     showAdvisorConfidence: true,
-                    advisors: advisors.filter(a => a.id > 0),
+                    advisors: advisors.filter(a => a.id > 2),
                     allAdvisors: true,
                     advisorsPerTrial: 1,
                     forceRefreshAdvisor: true

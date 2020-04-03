@@ -389,7 +389,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 26; i++) {
+        for(let i = 0; i < 28; i++) {
             q++;
 
             it('Runs block 3 (TEST) Q' + i + ' [Q' + q + ']',
