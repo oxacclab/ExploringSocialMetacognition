@@ -1,0 +1,427 @@
+---
+title: "Calibration knowledge development"
+author: "[Matt Jaquiery](https://github.com/mjaquiery) ([matt.jaquiery@psy.ox.ac.uk](mailto:matt.jaquiery@psy.ox.ac.uk))"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+April 2020
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(tidyverse)
+library(scales)
+library(broom)
+library(BayesFactor)
+library(prettyMD)
+library(knitr)
+library(parallel)
+library(ez)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20191216)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid = element_blank(),
+                  legend.position = 'top'))
+
+```
+
+```{r loadData, include = F}
+
+rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
+testData <- T
+
+studyVersion <- "0-1-3"
+studyName <- "calibrationKnowledge"
+
+exclude <- list(
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1     # some advice taken on 10%+ of trials
+  ) 
+
+skipLoadData <- F
+
+source("src/02_Exclusions.R")
+
+```
+
+## Exclusions
+
+```{r exclusions}
+
+if (testData) {
+  print("NOTE: Testing (simulated) data!!!!")
+}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+tmp <- tmp %>% mutate(pid = as.character(pid))
+
+tmp$condition <- factor(tmp$condition, labels = c("highFirst",
+                                                  "lowFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+# Test accuracy of the labels
+AdvisedTrial %>% 
+  mutate(pid = as.character(pid)) %>%
+  group_by(pid, block, advisor0idDescription) %>% 
+  filter(block == 2) %>% 
+  summarise(n()) %>% 
+  left_join(tmp, by = 'pid') %>% 
+  ungroup() %>%
+  select(advisor0idDescription, condition) %>%
+  mutate(ok = if_else(advisor0idDescription == 'lowConf',
+                      condition == 'lowFirst',
+                      condition == 'highFirst')) %>%
+  pull(ok) %>%
+  all() %>%
+  expect_equal(T)
+
+```
+
+```{r data visualisation variables}
+# Add some variables which we can use for plotting prettily later
+
+AdvisedTrial <- AdvisedTrial %>%
+  mutate(Hybrid = if_else(advisor0name == '?', 'Hybrid', 'Labelled'),
+         Advisor = capitalize(as.character(advisor0idDescription)),
+         Phase = if_else(feedback, "Familiarization", "Test"),
+         KeyTrial = if_else(str_detect(advisor0actualType, 
+                                       "binary-(dis)?agree-cheat-confidence"),
+                            "Key", "Foil"))
+
+decisions <- decisions %>% 
+  mutate(Hybrid = if_else(advisor0name == '?', 'Hybrid', 'Labelled'),
+         Advisor = capitalize(as.character(advisor0idDescription)),
+         Phase = if_else(feedback, "Familiarization", "Test"),
+         KeyTrial = if_else(str_detect(advisor0actualType, 
+                                       "binary-(dis)?agree-cheat-confidence"),
+                            "Key", "Foil"),
+         Decision = capitalize(decision))
+```
+
+## Advisors should be equally ACCURATE
+
+```{r adviceAccuracy}
+
+AdvisedTrial$advisor0accurate <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".accurate")])
+)
+
+AdvisedTrial$advisor0agree <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".agree")])
+)
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor) %>%
+  summarise(advisorAccuracy = mean(advisor0accurate),
+            advisorAgree = mean(advisor0agree)) 
+
+tmp %>% 
+  group_by(Advisor) %>%
+  summarise(advisorAccuracy = mean(advisorAccuracy),
+            advisorAgree = mean(advisorAgree)) %>%
+  num2str.tibble(isProportion = T, precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+
+tmp %>% 
+  dplyr::rename(`p(correct)` = advisorAccuracy,
+                `p(agree)` = advisorAgree) %>%
+  gather("var", "value", `p(correct)`:`p(agree)`) %>%
+  mutate(var = capitalize(var)) %>%
+  ggplot(aes(x = Advisor, y = value)) +
+  geom_hline(yintercept = .5, linetype = 'dashed') +
+  # geom_hline(yintercept = .75, linetype = 'dashed', colour = 'lightgrey') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(y = "Mean") +
+  scale_y_continuous(limits = c(0, 1)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  facet_wrap(~var)
+  
+# caption = "Probability of agreement (left panel) and correct responses (right panel) for advice from the two advisors. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance level."
+  
+```
+
+## Advisors should differ in CONFIDENCE
+
+The advisors differ by design in their confidence, so participants should experience these differences. There should be some overlap between the advisors' distributions, and these should be true for individual participants not just in aggregate.
+
+```{r advisor confidence}
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor) %>%
+  summarise(confidence = mean(advisor0adviceConfidence))
+
+tmp %>% 
+  group_by(Advisor) %>%
+  summarise(confidence = mean(confidence)) %>%
+  num2str.tibble(precision = 1)
+
+
+```
+
+```{r advisor confidence graph}
+
+tmp %>%
+  ggplot(aes(x = Advisor, y = confidence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  labs(y = 'Mean advisor confidence')
+
+# caption = "Mean advisor confidence for each advisor during the training phase. Lines show the mean experience of an individual participant, while violins and boxplots show the distributions."
+
+```
+
+## Advisor CONFIDENCE Distributions
+
+```{r}
+
+tmp <- tibble(
+  advisor = factor(rep(c("HighConf", "LowConf"), each = 3)),
+  confCat = factor(rep(c("Low", "Medium", "High"), 2), 
+                   levels = c("Low", "Medium", "High")),
+  confMin = c(
+    33, 55, 77,
+    0, 22, 44
+  ),
+  confMax = c(
+    54, 76, 100,
+    21, 43, 65
+  )
+)
+
+ggplot(tmp, aes(x = advisor, ymin = confMin, ymax = confMax, fill = confCat)) +
+  geom_blank() +
+  geom_hline(linetype = 'dashed', yintercept = 33) +
+  geom_hline(linetype = 'dashed', yintercept = 66) +
+  geom_rect(colour = NA, position = position_identity(),
+            aes(xmin = as.numeric(advisor) - .4, 
+                xmax = as.numeric(advisor) + .4)) +
+  labs(x = "Advisor", y = "Confidence")
+
+# caption = "Advice distribution map for the advisors. The High confidence equates to 100% correct, Medium to 66%, and Low to 33%. The dashed lines show the overlap area between the minimum confidence for the HighConf advisor and the maximum confidence for the LowConf advisor. Note that the advisors are not equally correct on average in this zone: the LowConf advisor is substantially more accurate because they are idiosyncratically more confidence."
+
+```
+
+### Individual participants' experience should show OVERLAP
+
+We should take a look at a handful of specific distributions experienced by individual participants to ensure the individual-level view tallies with the sample view. 
+
+```{r advisor confidence by participant}
+
+tmp <- AdvisedTrial %>%
+  filter(feedback) %>%
+  select(pid, Advisor, Confidence = advisor0adviceConfidence)
+
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = 33) +
+  geom_hline(linetype = 'dashed', yintercept = 66) +
+  geom_violin() +
+  geom_point(position = position_jitter(.1), alpha = .5) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  facet_wrap(~pid) +
+  theme(strip.text = element_blank())
+
+# caption = "Individual participant experience of the advisors during the familiarity phase. Each point shows a single trial, while the violins indicate the distribution."
+  
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = 33) +
+  geom_hline(linetype = 'dashed', yintercept = 66) +
+  geom_violin() +
+  geom_point(position = position_jitter(width = .1), alpha = .1) +
+  scale_colour_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 100))
+
+# caption = "Overall advice of advisors during the familiarity phase. Each point shows a single trial, while the violins indicate the distribution."
+
+```
+
+### Key Trials should ALL OVERLAP
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key") %>%
+  select(pid, Advisor, Confidence = advisor0adviceConfidence)
+
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = 33) +
+  geom_hline(linetype = 'dashed', yintercept = 66) +
+  geom_violin() +
+  geom_point(position = position_jitter(.1), alpha = .5) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  facet_wrap(~pid) +
+  theme(strip.text = element_blank())
+
+# caption = "Individual participant experience of the advisors during the Key trials in the Test phase. Each point shows a single trial, while the violins indicate the distribution."
+  
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = 33) +
+  geom_hline(linetype = 'dashed', yintercept = 66) +
+  geom_violin() +
+  geom_point(position = position_jitter(width = .1), alpha = .1) +
+  scale_colour_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 100))
+
+# caption = "Overall advice of advisors during the Key trials in the Test phase. Each point shows a single trial, while the violins indicate the distribution."
+
+```
+
+## There should the RIGHT NUMBER of KEY TRIALS
+
+There should be 2 key trials per Advisor-Presentation-Agreement combo for each participant.
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  mutate(Advisor = capitalize(paste0(advisor0idDescription, 
+                                     if_else(Hybrid == "Hybrid", '?', ''))),
+         Agreement = if_else(advisor0agree, "Agree", "Disagree")) %>%
+  filter(KeyTrial == "Key") %>%
+  group_by(pid, Advisor, Agreement) %>%
+  select(group_vars(.)) %>%
+  summarise(count = n()) 
+
+tmp %>%
+  pivot_wider(id_cols = pid, 
+              names_from = c(-pid, -count), 
+              values_from = count) %>%
+  ungroup() %>%
+  select(-pid) %>%
+  summarise_all(list(mean = ~ mean(., na.rm = T),
+                sd = ~ sd(., na.rm = T))) %>%
+  pivot_longer(everything(), 
+               names_to = c("Advisor", "Agreement", "stat"), 
+               names_sep = "_") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+z = length(unique(tmp$pid))
+ggplot(tmp, aes(x = count, fill = Advisor)) +
+  geom_vline(xintercept = 2) +
+  geom_label(x = 2, y = z * 1.2, hjust = .5, label = "TARGET",
+             fill = "white") +
+  geom_histogram(binwidth = 1) + 
+  scale_y_continuous(limits = c(0, z), expand = c(0, 0, .4, 0)) +
+  scale_x_continuous(limits = c(0, 5)) +
+  scale_fill_discrete(h.start = 45, guide = "none") +
+  facet_grid(Advisor ~ Agreement)
+
+```
+
+There should also be 3 foil trials per Advisor-Presentation combo for each participant.
+
+```{r}
+tmp <- AdvisedTrial %>%
+  mutate(Advisor = capitalize(paste0(advisor0idDescription, 
+                                     if_else(Hybrid == "Hybrid", '?', '')))) %>%
+  filter(KeyTrial == "Foil", !feedback) %>%
+  group_by(pid, Advisor) %>%
+  summarise(count = n()) 
+
+tmp %>%
+  pivot_wider(id_cols = pid, 
+              names_from = c(-pid, -count), 
+              values_from = count) %>%
+  ungroup() %>%
+  select(-pid) %>%
+  summarise_all(list(mean = ~ mean(., na.rm = T),
+                sd = ~ sd(., na.rm = T))) %>%
+  pivot_longer(everything(), 
+               names_to = c("Advisor", "stat"), 
+               names_sep = "_") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+z <- length(unique(tmp$pid))
+ggplot(tmp, aes(x = count, fill = Advisor)) +
+  geom_vline(xintercept = 3) +
+  geom_label(x = 3, y = z * 1.2, hjust = .5, label = "TARGET",
+             fill = "white") +
+  geom_histogram(binwidth = 1) + 
+  scale_y_continuous(limits = c(0, z), expand = c(0, 0, .4, 0)) +
+  scale_x_continuous(limits = c(0, 5)) +
+  scale_fill_discrete(h.start = 45, guide = "none") +
+  facet_wrap(~Advisor)
+```
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+as_tibble(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```
