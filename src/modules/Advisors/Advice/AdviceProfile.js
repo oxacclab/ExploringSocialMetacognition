@@ -63,12 +63,12 @@ class AdviceProfile extends BaseObject {
      */
     getAdvice(trial, advisor) {
         let out = {
+            actualTypeFlag: null,
+            actualType: null,
             validTypes: null,
             validTypeFlags: null,
             nominalType: null,
             nominalTypeFlag: null,
-            actualTypeFlag: null,
-            actualType: null,
             adviceCentre: null,
             adviceWidth: null,
             advice: null,
