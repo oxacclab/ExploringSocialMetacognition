@@ -1,0 +1,42 @@
+---
+title: "Advice weight"
+author: "[Matt Jaquiery](https://github.com/mjaquiery) ([matt.jaquiery@psy.ox.ac.uk](mailto:matt.jaquiery@psy.ox.ac.uk))"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ./src/writeUp.css
+    includes:
+      after_body: ./src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ./src/writeUp.css
+    includes:
+      after_body: ./src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+April 2020
+
+[Script run `r Sys.time()`]
+
+# Advice weight for binary decisions
+
+Measuring the extent to which advice contributes to a decision in a judge-advisor system is intricate. Many solutions exist for continuous decisions, based around expressing the difference between the final decision and the initial estimate (i.e. amount the initial estimate is updated) as a proportion of the difference between the advice and the initial estimate (i.e. the amount of updating recommended). The advice and the initial estimate are thus viewed as anchors and the measures quantify the relative weight of these anchors to the final decision. 
+
+With binary decisions expressed with confidence the situation is more complex. A solution typically employed by our lab is to take the distance moved along the scale in the direction of the advice. This measure works, but it treats advice as discrete (agreeing or disagreeing) rather than continuous. For experiments where advice is continuous, this measure loses much of the resolution of advice. There is thus a need for an alternative measure.
+
+# Alternate measures
+
+## Weight-on-Advice adaptation
+
+A straightforward adaptation of Weight on Advice will not work because it treats the advice as a target value, not as indicating a shift relative to the initial estimate. If a participant answers with 50 points of confidence, and an advisor agrees with 20 points of confidence, the participant's confidence should increase, whereas doing so would suggest Weight on Advice is undefined (truncated to zero). In contrast, if the participant's confidence decreased, the Weight on Advice would increase up to 1 at 20 points or below (and would stay at 1 if the participant change their mind). This is clearly nonsensical.
+
+Another approach is to adapt Weight on Advice but to target it at the sum of the initial estimate and the advice (flipping the sign on the advice and final decisions where they disagree with the initial estimate). Now an initial estimate of 50 with agreeing advice of 20 has the target of 70. An increase in confidence for the final decision will increase the Weight on Advice. The target can be truncated at the maximum of the scale (so 80 points of confidence with 80 points of agreeing advice yields a target of 100 rather than 160).
+
+## Bayesian measure
+
+A Bayesian measure of advice views the final decision as a product of the initial estimate and the advice, along with their relative weights. Given the initial estimate, advice, and final decision, the weights can be calculated by setting the weight for the initial estimate to 1. 

@@ -1,0 +1,1661 @@
+---
+title: "Calibration knowledge"
+author: "[Matt Jaquiery](https://github.com/mjaquiery) ([matt.jaquiery@psy.ox.ac.uk](mailto:matt.jaquiery@psy.ox.ac.uk))"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+December 2019
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(tidyverse)
+library(scales)
+library(broom)
+library(BayesFactor)
+library(prettyMD)
+library(knitr)
+library(parallel)
+library(ez)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20191216)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid = element_blank(),
+                  legend.position = 'top'))
+
+```
+
+```{r loadData, include = F}
+
+# rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
+testData <- F
+
+studyVersion <- "0-1-3"
+studyName <- "calibrationKnowledge"
+
+exclude <- list(
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1,    # some advice taken on 10%+ of trials
+  custom = list(
+    keyTrialCount = 
+    # Each participant should have 16 Key trials
+    function(x) {
+      # Handle Apple mixing up the actualType and actualTypeFlag columns!
+      x %>% 
+        filter(str_detect(paste0(advisor0actualType, advisor0actualTypeFlag), # Safari switched type and flag fields in v0.1.3  
+                          "binary-(dis)?agree-cheat-confidence")) %>%
+        summarise(n = n()) %>%
+        pull() != 16
+    }
+  )
+  ) 
+
+skipLoadData <- F
+
+source("src/02_Exclusions.R")
+
+```
+
+# Introduction
+
+Observations from [evolutionary models](https://github.com/oxacclab/EvoEgoBias) show that egocentric discounting is a successful strategy in environments where advisors cannot be clear on how advisors' expressed confidence relates to their actual confidence. We reason that human participants may show a sensitivity to these contextual factors underlying advice-taking and respond to them in a rational manner. To test the effects of known versus unknown confidence representations, we manipulated whether participants knew which of two advisors was giving them advice. Participants performed a block of 9 trials to get acquainted with each of two advisors, one who had high confidence and one who had low confidence (both were equally accurate). The advisors introduced themselves exhibiting their confidence. Participants then performed 20 trials where no feedback was given and advice came from one of the two advisors they had previously encountered. In some of these trials the advice was labelled as coming from the advising advisor, in others it was shown as coming from an unspecified one of the two advisors.
+
+We hypothesised that participants would show greater sensitivity to the confidence of advice when they knew the identify of the advisor.
+
+* Version 0.1.3 
+
+  * The previous version showed participants lacked sensitivity to the difference in advisor confidence (they failed to correct for over/underconfidence in the advice). Here we separate advice more dramatically and clearly in an attempt to establish rough equivalence between the advisors when participants are aware of the advisor's properties. We also added scorecards to give participants a clear visual indication of how the advisors perform compared to one another.
+
+# Method
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiment can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ck.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
+## Exclusions
+
+```{r exclusions}
+
+if (testData) {
+  print("NOTE: Testing (simulated) data!!!!")
+}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+tmp <- tmp %>% mutate(pid = as.character(pid))
+
+tmp$condition <- factor(tmp$condition, labels = c("highFirst",
+                                                  "lowFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+# Test accuracy of the labels
+AdvisedTrial %>% 
+  mutate(pid = as.character(pid)) %>%
+  group_by(pid, block, advisor0idDescription) %>% 
+  filter(block == 2) %>% 
+  summarise(n()) %>% 
+  left_join(tmp, by = 'pid') %>% 
+  ungroup() %>%
+  select(advisor0idDescription, condition) %>%
+  mutate(ok = if_else(advisor0idDescription == 'lowConf',
+                      condition == 'lowFirst',
+                      condition == 'highFirst')) %>%
+  pull(ok) %>%
+  all() %>%
+  expect_equal(T)
+
+```
+
+```{r data visualisation variables}
+# Add some variables which we can use for plotting prettily later
+
+AdvisedTrial <- AdvisedTrial %>%
+  mutate(Hybrid = if_else(advisor0name == '?', 'Hybrid', 'Labelled'),
+         Advisor = capitalize(as.character(advisor0idDescription)),
+         Phase = if_else(feedback, "Familiarization", "Test"),
+         KeyTrial = if_else(str_detect(paste0(advisor0actualType, advisor0actualTypeFlag), # Safari switched type and flag fields in v0.1.3 
+                                       "binary-(dis)?agree-cheat-confidence"),
+                            "Key", "Foil"))
+
+decisions <- decisions %>% 
+  mutate(Hybrid = if_else(advisor0name == '?', 'Hybrid', 'Labelled'),
+         Advisor = capitalize(as.character(advisor0idDescription)),
+         Phase = if_else(feedback, "Familiarization", "Test"),
+         KeyTrial = if_else(str_detect(paste0(advisor0actualType, advisor0actualTypeFlag), # Safari switched type and flag fields in v0.1.3 
+                                       "binary-(dis)?agree-cheat-confidence"),
+                            "Key", "Foil"),
+         Decision = capitalize(decision))
+```
+
+Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each, of which an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial[!AdvisedTrial$feedback, ], length)$advisor0))` had no feedback.
+
+## Task performance
+
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
+
+### Decisions
+
+Participants offered estimates of whether various events took place before or after a given year. The correct answers were always between 1900 and 2000. Participants answered by selecting a point on one of two confidence bars, with the choice of bar indicating the chosen answer. 
+
+#### Correctness
+
+```{r accuracy}
+
+decisions %>% filter(feedback == T) %>% 
+  peek(responseCorrect, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(feedback) %>% pull(Phase)))
+
+decisions %>% filter(!feedback) %>% 
+  peek(responseCorrect, decision) %>%
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(!feedback) %>% pull(Phase)))
+
+```
+
+```{r accuracyGraph}
+
+tmp <- decisions %>% group_by(pid, Decision, Phase) %>%
+  do(correct = mean_cl_normal(.$responseCorrect)) %>%
+  unnest(correct) %>%
+  transmute(pid, Decision, Phase,
+            pCorrect = y, 
+            ciLow = ymin,
+            ciHigh = ymax)
+
+ggplot(tmp, 
+       aes(x = Decision, y = pCorrect)) +
+  geom_hline(yintercept = .5, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(y = "P(Response correct)") +
+  facet_grid(~Phase)
+
+# caption = "Probability of correct responses on initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance performance."
+
+```
+
+### Timing
+
+We can look at the response time - the difference between the time the response is opened and the time the response is received.  
+
+```{r time}
+
+decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
+
+decisions %>% filter(feedback == T) %>% 
+  peek(rt, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(feedback) %>% pull(Phase)))
+
+decisions %>% filter(!feedback) %>% 
+  peek(rt, decision) %>%
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(!feedback) %>% pull(Phase)))
+
+```
+
+```{r timeGraph}
+
+tmp <- decisions %>% group_by(pid, Decision, Phase) %>% 
+  summarise(rt = mean(rt))
+
+tmp %>%
+  ggplot(aes(x = Decision, y = rt)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(y = "Response time (ms)") +
+  facet_grid(~Phase)
+
+# caption = "Response times for initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions."
+
+```
+
+### Summary {.summary}
+
+Participants initial estimates were clearly better than chance in both the familiarization and test phases. Final decisions, made after seeing advice, were better still. These results indicate that participants found the task possible, and found the advice helpful. Participants made final decisions much more quickly than initial estimates, although they were likely processing advice information during the 2s window in which advice is animated on the screen.
+
+## Metacognitive performance
+
+### Confidence
+
+Each answer bar allowed the participant to express their confidence in that answer by selecting a higher point on the bar for a higher confidence, in a range of 0-100% for each decision.
+
+```{r confidence}
+
+decisions %>% filter(!feedback) %>% 
+  peek(responseConfidence, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(!feedback) %>% pull(Phase)))
+
+decisions %>% filter(feedback == T) %>% 
+  peek(responseConfidence, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(feedback) %>% pull(Phase)))
+
+```
+
+```{r confidence graph}
+
+tmp <- decisions %>% group_by(pid, Decision, Phase) %>%
+  do(confidence = mean_cl_normal(.$responseConfidence)) %>%
+  unnest(confidence) %>%
+  transmute(pid, Decision, Phase,
+            confidence = y, 
+            ciLow = ymin,
+            ciHigh = ymax)
+
+ggplot(tmp, 
+       aes(x = Decision, y = confidence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(y = "Confidence") +
+  facet_grid(~Phase)
+
+# caption = "Confidence of initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions."
+
+```
+
+### Relationship between confidence and p(correct)
+
+Participants indicated the confidence in their decisions simultaneously with the decisions themselves. We can thus explore how well a participant's confidence signals their accuracy. We provide only a brief examination here where normalised responses are split into high and low confidence for each participant (by the participant's mean confidence), and the accuracies of the two categories are compared. This is done separately for first and last decisions.
+
+```{r confidence normalisation}
+
+decisions <- decisions %>% 
+  group_by(pid, decision) %>% 
+  dplyr::mutate(zConf = scale(responseConfidence)) %>%
+  ungroup() 
+
+```
+
+```{r confidence binary split}
+
+tmp <- decisions %>% 
+  mutate(highConf = zConf > 0) %>%
+  group_by(pid, decision, Decision, highConf) %>%
+  summarise(pCorrect = mean(responseCorrect)) %>%
+  filter(!is.na(highConf)) %>%
+  group_by(pid, decision, Decision) %>%
+  spread(highConf, pCorrect) %>%
+  mutate(pCorrectDiff = `TRUE` - `FALSE`)
+
+drop <- length(unique(tmp$pid)) != length(unique(decisions$pid))
+if (drop > 0) {
+  print(paste0("Dropping ", drop, " rows from analysis for unstandardizable confidence."))
+}
+
+tmp %>% 
+  peek(pCorrectDiff, decision) %>% 
+  num2str.tibble(isProportion = T, precision = 3)
+
+print("p(correct|high confidence) - p(correct|low confidence) for initial estimates")
+ttestBF(tmp$pCorrectDiff[tmp$decision == "first"])
+print("p(correct|high confidence) - p(correct|low confidence) for final decisions")
+ttestBF(tmp$pCorrectDiff[tmp$decision == "last"])
+
+```
+
+```{r confidence binary split plot}
+
+tmp %>% 
+ggplot(aes(x = Decision, y = pCorrectDiff)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(y = "P(Correct | sure) - P(Correct | unsure)") +
+  scale_y_continuous(limits = c(-1, 1))  
+
+# caption = "Difference in the probability of correct responses on initial estimates and final decisions when made with high versus low confidence. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance performance."
+ 
+```
+
+### Variance of confidence
+
+Final decisions are more likely to be correct than initial estimates. This is not simply because participants are always unsure about the initial estimates because final decisions are no more confident on average. It is possible that participants use a medium confidence for all initial estimates which is then adjusted up or down for final decisions. If this is the case, the variance within a participant will be much lower for initial estimates than final decisions.
+
+```{r}
+
+decisions %>%
+  group_by(pid, Decision) %>%
+  mutate(sd = sd(responseConfidence)) %>%
+  group_by(Decision) %>%
+  do(confidenceSD = mean_cl_normal(.$sd)) %>%
+  unnest(confidenceSD) %>%
+  transmute(Decision,
+            confidenceSD = y, 
+            ciLow = ymin,
+            ciHigh = ymax)
+
+```
+
+### Summary {.summary}
+
+Participants' answers were generally around the upper midpoint on the scale, with a fair amount of variation between participants. Confidence in final decisions did not appear to be consistently higher than initial estimates, although this is unsurprising given the final decisions are not split by whether the advisor agreed with the initial decision.
+
+The relationship between confidence and the probability of being correct is essentially zero for initial estimates, indicating that participants' initial estimates might feel like guesses (albeit good ones). Final decisions did show a relationship where higher confidence in decisions was indicative of a greater probability of being correct, presumably because participants' confidence was readily affected by advice. This pattern was true for most participants individually, as well as for the sample as a whole.
+
+Individuals' confidence ratings for their initial estimates were less varied than their confidence ratings for their final decisions. This, combined with the other results, suggests that perhaps individuals were generally unsure about their initial estimates and became more or less sure as a function of the advice. 
+
+## Advisor performance - Familiarisation
+
+Participants in should get an appropriate experience of each advisor in the Familiariasation phase, during which they get feedback after each question. This means that the accuracy and metacognitive sensitivity of the advisors should be balanced, while the confidence (metacognitive bias) is not. 
+
+*N.B.*: Advisors' advice was closely choreographed during this study, so the graphs below show little variation in advice.
+
+### Accuracy
+
+```{r adviceAccuracy}
+
+AdvisedTrial$advisor0accurate <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".accurate")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".accurate")])
+)
+
+AdvisedTrial$advisor0agree <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".agree")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".agree")])
+)
+
+AdvisedTrial$Agree <- if_else(AdvisedTrial$advisor0agree, "Agree", "Disagree")
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor, Phase) %>%
+  summarise(advisorAccuracy = mean(advisor0accurate),
+            advisorAgree = mean(advisor0agree)) 
+
+tmp %>% 
+  group_by(Advisor, Phase) %>%
+  summarise(advisorAccuracy = mean(advisorAccuracy),
+            advisorAgree = mean(advisorAgree)) %>%
+  num2str.tibble(isProportion = T, precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+
+tmp %>% 
+  dplyr::rename(`p(correct)` = advisorAccuracy,
+                `p(agree)` = advisorAgree) %>%
+  gather("var", "value", `p(correct)`:`p(agree)`) %>%
+  mutate(var = capitalize(var)) %>%
+  ggplot(aes(x = Advisor, y = value)) +
+  geom_hline(aes(yintercept = y), data = tibble(var = 'P(correct)', y = .5),
+             linetype = 'dashed') +
+  # geom_hline(yintercept = .75, linetype = 'dashed', colour = 'lightgrey') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(y = "Mean") +
+  scale_y_continuous(limits = c(0, 1)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  facet_grid(Phase~var)
+  
+# caption = "Probability of agreement (left panel) and correct responses (right panel) for advice from the two advisors during the Familiarisation phase. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance level for accuracy. Chance level for agreement is dependent upon an indivdidual participant's accuracy."
+  
+```
+
+### Advisor confidence
+
+The advisors differ by design in their confidence, so participants should experience these differences.
+
+```{r advisor confidence}
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor, Phase) %>%
+  summarise(confidence = mean(advisor0adviceConfidence))
+
+tmp %>% 
+  group_by(Advisor, Phase) %>%
+  summarise(confidence = mean(confidence)) %>%
+  num2str.tibble(precision = 1)
+
+
+```
+
+```{r advisor confidence graph}
+
+tmp %>%
+  ggplot(aes(x = Advisor, y = confidence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  labs(y = 'Mean advisor confidence') +
+  facet_wrap(~Phase)
+
+# caption = "Mean advisor confidence for each advisor during the familiarisation phase. Lines show the mean experience of an individual participant, while violins and boxplots show the distributions."
+
+```
+
+#### Planned advice distributions
+
+The advisors' advice distributions are arranged as shown below. The advisors have the same level of accuracy at high (100%), medium (66%), and low (33%) idiosyncratic confidence. They differ in how their idiosyncratic confidence maps to the confidence scale, with the low confidence advisor using the bottom and middle parts of the scale, while the high confidence advisor uses the middle and top parts of the scale.
+
+```{r}
+
+boundaries <- c(33, 66)
+
+tmp <- tibble(
+  advisor = factor(rep(c("HighConf", "LowConf"), each = 3)),
+  confCat = factor(rep(c("Low", "Medium", "High"), 2), 
+                   levels = c("Low", "Medium", "High")),
+  confMin = c(
+    33, 55, 77,
+    0, 22, 44
+  ),
+  confMax = c(
+    54, 76, 100,
+    21, 43, 65
+  )
+)
+
+ggplot(tmp, aes(x = advisor, ymin = confMin, ymax = confMax, fill = confCat)) +
+  geom_blank() +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[1]) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[2]) +
+  geom_rect(colour = NA, position = position_identity(),
+            aes(xmin = as.numeric(advisor) - .4, 
+                xmax = as.numeric(advisor) + .4)) +
+  labs(x = "Advisor", y = "Confidence")
+
+# caption = "Advice distribution map for the advisors. The High confidence equates to 100% correct, Medium to 66%, and Low to 33%. The dashed lines show the overlap area between the minimum confidence for the HighConf advisor and the maximum confidence for the LowConf advisor. Note that the advisors are not equally correct on average in this zone: the LowConf advisor is substantially more accurate because they are idiosyncratically more confidence."
+
+```
+
+#### Individual participants' experience
+
+We should take a look at a handful of specific distributions experienced by individual participants to ensure the individual-level view tallies with the sample view. 
+
+```{r advisor confidence by participant}
+
+tmp <- AdvisedTrial %>%
+  filter(feedback) %>%
+  select(pid, Advisor, Phase, Confidence = advisor0adviceConfidence)
+
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[1]) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[2]) +
+  geom_violin() +
+  geom_point(position = position_jitter(.1), alpha = .5) + 
+  scale_colour_discrete(h.start = 45) + 
+  facet_wrap(Phase~pid) +
+  theme(strip.text = element_blank())
+
+# caption = "Individual participant experience of the advisors during the familiarisation phase. Each point shows a single trial, while the violins indicate the distribution. Dashed lines show the preprogrammed overlap between the advisors' advice distributions."
+  
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[1]) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[2]) +
+  geom_violin() +
+  geom_point(position = position_jitter(width = .1), alpha = .1) +
+  scale_colour_discrete(h.start = 45) +
+  facet_wrap(~Phase)
+
+# caption = "Overall advice of advisors during the familiarisation phase. Each point shows a single trial, while the violins indicate the distribution. Dashed lines show the preprogrammed overlap between the advisors' advice distributions."
+
+```
+
+#### Summary {.summary}
+
+Participants' individual experience was reflective of the aggregate experience, indicating that the scripted advice produced an experience which was similar for each participant.
+
+### Distance
+
+Distance is the continuous version of agreement - the difference along the confidence scale between the advice and the initial estimate. Where different scales are endorsed, the difference is the combination of how sure the participant was on one scale plus how sure the advisor was on the other.
+
+```{r adviceDistance}
+
+AdvisedTrial$advisor0distance <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".distance")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".distance")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".distance")])
+)
+AdvisedTrial$advisor0distanceFinal <- ifelse(
+  is.na(AdvisedTrial[, paste0(advisorNames[1], ".distanceFinal")]),
+  pull(AdvisedTrial[, paste0(advisorNames[2], ".distanceFinal")]),
+  pull(AdvisedTrial[, paste0(advisorNames[1], ".distanceFinal")])
+)
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor, Phase) %>%
+  summarise(adviceDistance = mean(advisor0distance)) 
+
+tmp %>% 
+  group_by(Advisor, Phase) %>%
+  summarise(adviceDistance = mean(adviceDistance)) %>%
+  num2str.tibble(precision = 1)
+
+```
+
+```{r adviceDistanceGraph}
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = adviceDistance)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 200)) +
+  labs(y = 'Mean advice distance') +
+  facet_wrap(~Phase)
+
+# caption = "Distance in scale points between the participants' initial estimates and the advisors' advice on familiarisation trials. Lines show individual participant means, while violins and boxplots give distributions."
+
+```
+
+### Influence
+
+The advisors should be roughly equally influential overall.
+
+```{r influence}
+
+AdvisedTrial$advisor0influence <- 
+  unlist(sapply(1:nrow(AdvisedTrial),
+                function(i) 
+                  AdvisedTrial[i, 
+                               paste0(AdvisedTrial$advisor0idDescription[i], 
+                                      ".influence")]))
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, advisor0idDescription, Agree, Phase) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, Agree, Phase) %>%
+  summarise(advisorInfluence = mean(advisorInfluence)) %>%
+  num2str.tibble(precision = 1)
+
+```
+
+```{r}
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor, Agree, Phase) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) %>%
+  spread(Advisor, advisorInfluence) %>%
+  gather("Advisor", "advisorInfluence", LowConf:HighConf)
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = advisorInfluence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') + 
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(y = 'Advisor influence') +
+  facet_wrap(Phase~Agree)
+
+# caption = "Advisor influence by advisor on familiarity trials. Lines show individual participant's means, with the line type indicating which advisor had the higher mean influence for that participant on these trials. Violins and boxplots show distributions, while the full width black dashed line indicates zero influence."
+
+```
+
+On the overlap trials, the low confidence advisor should be more influential than the high confidence advisor because this advisor is subjectively more confident and has a higher probability of being correct.
+
+```{r}
+
+AdvisedTrial$advisor0influence <- 
+  unlist(sapply(1:nrow(AdvisedTrial),
+                function(i) 
+                  AdvisedTrial[i, 
+                               paste0(AdvisedTrial$advisor0idDescription[i], 
+                                      ".influence")]))
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, advisor0idDescription, Agree) %>%
+  summarise(advisorInfluence = mean(advisor0influence))  %>% 
+  mutate(trials = "Familiarization, Overlap")
+
+tmp %>% 
+  group_by(advisor0idDescription, Agree, trials) %>%
+  summarise(advisorInfluence = mean(advisorInfluence)) %>%
+  num2str.tibble(precision = 1)
+
+```
+
+```{r}
+
+tmp <- AdvisedTrial %>% 
+  filter(feedback,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Advisor, Agree) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) %>%
+  spread(Advisor, advisorInfluence) %>%
+  gather("Advisor", "advisorInfluence", LowConf:HighConf) %>%
+  mutate(trials = "Familiarization, Overlap")
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = advisorInfluence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') + 
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(y = 'Advisor influence') +
+  facet_wrap(trials~Agree)
+
+# caption = "Advisor influence by advisor on familiarity trials where the advice confidence is in the overlap. Lines show individual participant's means, with the line type indicating which advisor had the higher mean influence for that participant on these trials. Violins and boxplots show distributions, while the full width black dashed line indicates zero influence."
+
+```
+
+### Summary {.summary}
+
+The advisors' performances were within the expected ranges for both the probability and extent of agreement with the participants and the objective accuracy of their advice. The advisors didn't differ substantially from one another in any of these aspects.
+
+To anticipate the main analysis, the influence of the advisors during the familiarity phase suggests that the high confidence advisor is more influential than the low confidence advisor (although both are far more influential in disagreement, as is to be expected from the asymmetric nature of the influence scale). When the advisors are compared on the overlap, the low confidence advisor is slightly more influential, but this effect should be much more pronounced: ideally the difference between the advisors here should favour the low confidence advisor to the same extent as comparing the least confident vs most confidence halves of an individual advisor's advice. 
+
+It is possible that advice is being heavily taken, and that the high confidence advisor appears more influential because the advice is further away (meaning completely adopted advice shows as more influential for the high confidence advisor compared to the low confidence advisor). To investigate this possibility, an alternate measure of advice taking based on Weight on Advice can be calculated. This measure expresses the difference between the participant's initial estimate and final decision as a proportion of the difference between the intial estimate and the initial estimate + advice, and quantifies advice taking as the relative weight of the former compared to the latter.
+
+### Advice Weight
+
+Advice weight expresses the distance between the initial estimate and final decision in terms of the initial estimate and advice (signed by agreement with the initial estimate). It can be thought of as stating the proportion of the advice used in the final decision. It is truncated at 1 and 0, and is undefined where the advice is the same as the initial estimate.
+
+Intuitively, if the advisor indicates that they are 20 points sure in agreement with the participant, and the participant then increases their confidence by 20 points, the participant is considered to have taken 100% of the advice.
+
+This measure controls for the distance between the initial estimate and the advice, while allowing advice to be expressed along a continuum rather than simply identifying a direction.
+
+$$
+\omega' = \frac{
+  \text{initial} - f(\text{final}, \text{initial})
+  }{
+  \text{initial} - \text{min}(\text{initial} + f(\text{advice},\text{initial}), 100)
+  } \\
+\omega = \text{clamp}_0^1(\omega')
+$$
+Where $\text{min}(x,y)$ returns the lowest of its arguments, and
+
+$$
+f(x,y) = 
+\begin{cases}
+  c_x, & s_x = s_y \\
+  -c_x, & s_x \neq s_y
+\end{cases}
+$$
+Where $c_x$ is the confidence of $x$, and $s_x$ is the side (before or after) chosen for $x$.
+
+```{r}
+
+# Extract names of advisor fields we'll want to calculate AW for:
+re <- str_match(names(AdvisedTrial), '(\\w+[0\\.])advice$')
+re <- re[, 2]
+re <- re[which(!is.na(re))]
+
+aw <- function(ci, cf, ca, si, sf, sa) {
+  # Difference calculation
+  f <- ifelse(sf == si, cf, -cf)
+  a <- ifelse(sa == si, ca, -ca)
+  # Output d(f,i)/d(a,i)
+  r <- (ci - f)/(ci - pmin(a + ci, 100))
+  label(r) <- 'The distance between the final decision and initial estimate as a proportion of the distance between the initial estimate and the advice'
+  ifelse(is.nan(r), r, pmin(1, pmax(r, 0)))
+}
+
+# Test function aw gives sensible results
+tmp <- tribble(
+  ~ci, ~cf, ~ca, ~si, ~sf, ~sa, ~ans,
+  50, 60, 10, 1, 1, 1, 1.0,
+  50, 40, 20, 0, 0, 1, .5,
+  100, 100, 50, 0, 0, 0, NaN,
+  0, 100, 50, 1, 1, 1, 1.0,
+  50, 40, 10, 1, 1, 1, 0
+) %>% mutate(aw = aw(ci, cf, ca, si, sf, sa), 
+             ok = (is.nan(ans) & is.nan(aw)) | ans == aw)
+if (any(!tmp$ok)) {
+  print(tmp)
+  stop('Unexpected test values from AdviceWeight calculation.')
+}
+
+# Calculate AW for those names
+for (n in re) {
+  AdvisedTrial[, paste0(n, 'adviceWeight')] <- aw(
+    AdvisedTrial$responseConfidence,
+    AdvisedTrial$responseConfidenceFinal,
+    pull(AdvisedTrial, paste0(n, 'adviceConfidence')),
+    AdvisedTrial$responseAnswerSide,
+    AdvisedTrial$responseAnswerSideFinal,
+    pull(AdvisedTrial, paste0(n, 'adviceSide'))
+  )
+}
+
+# Tabulate
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, advisor0idDescription, Agree, Phase) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight, na.rm = T)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, Agree, Phase) %>%
+  summarise(adviceWeight = mean(adviceWeight)) %>%
+  num2str.tibble(precision = 3)
+
+# Plot
+tmp <- AdvisedTrial %>% 
+  filter(feedback) %>%
+  group_by(pid, Advisor, Agree, Phase) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight, na.rm = T)) %>%
+  spread(Advisor, adviceWeight) %>%
+  gather("Advisor", "adviceWeight", LowConf:HighConf)
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = adviceWeight)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(y = 'Advice weight') +
+  facet_wrap(Phase~Agree)
+
+# caption = "Advisor influence by advisor on familiarity trials. Lines show individual participant's means, with the line type indicating which advisor had the higher mean influence for that participant on these trials. Violins and boxplots show distributions, while the full width black dashed line indicates zero influence."
+
+# Overlap trials
+
+# Tabulate
+tmp <- AdvisedTrial %>%
+  filter(feedback,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, advisor0idDescription, Agree) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight, na.rm = T)) 
+
+tmp %>% 
+  group_by(advisor0idDescription, Agree) %>%
+  summarise(adviceWeight = mean(adviceWeight)) %>%
+  num2str.tibble(precision = 3) %>%
+  mutate(trials = 'Familiarization, Overlap')
+
+# Plot
+tmp <- AdvisedTrial %>%
+  filter(feedback,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Advisor, Agree) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight, na.rm = T)) %>%
+  spread(Advisor, adviceWeight) %>%
+  gather("Advisor", "adviceWeight", LowConf:HighConf) %>%
+  mutate(trials = 'Familiarization, Overlap')
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = adviceWeight)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(y = 'Advice weight') +
+  facet_wrap(trials~Agree)
+
+# caption = "Advisor influence by advisor on familiarity trials where the advice confidence is in the overlap. Lines show individual participant's means, with the line type indicating which advisor had the higher mean influence for that participant on these trials. Violins and boxplots show distributions, while the full width black dashed line indicates zero influence."
+
+```
+
+### Summary {.summary}
+
+The Advice Weight measure shows that advice is not being wholly adopted. Notably, disagreeing advice is more heavily adopted than agreeing advice, plausibly due to a tendency for some participants to reduce their confidence when agreed with (which can have the effect of bringing the final decision closer on the scale to the advice than the initial estimate), which is registered as 0.0 in the Advice Weight statistic. 
+
+The pattern is similar in both overlap and non-overlap trials, with a great deal more variation in Advice Weight under disagreement (expected from its higher mean), no clearly preferred advisor, and a roughly even split between Participants in which advisor has higher Advice Weight.
+
+## Advisor performance - Test
+
+### Key Trials
+
+Trials in the Test block are split into Key and Foil trials. Key trials are matched across avisors such that each advisor-presentation-agreement combination has two trials per participant. There are three Foil trials per advisor-presentation combination per participant, and in these the low confidence advisor expresses low confidence while the high confidence advisor expresses high confidence. 
+
+The advisors are always correct on Foil trials, and their correctness on Key trials depends upon the participant: where they agree with a correct participant or disagree with an incorrect one they are correct, and where they agree with an incorrect participant or disagree with a correct one they are incorrect. Participants do not receive feedback on questions in the Test block.
+
+All the analyses are conducted on Key trials only - information about Foil trials is only included to give a sense of how participants experienced the task.
+
+#### Accuracy
+
+```{r}
+
+tmp <- AdvisedTrial %>% 
+  filter(KeyTrial == "Key") %>%
+  group_by(pid, Advisor, Hybrid, KeyTrial) %>%
+  summarise(advisorAccuracy = mean(advisor0accurate)) %>%
+  ungroup() %>%
+  mutate(Advisor = if_else(Hybrid == "Hybrid",
+                           paste0(Advisor, 'Hybrid'), Advisor))
+
+tmp %>% 
+  dplyr::rename(`p(correct)` = advisorAccuracy) %>%
+  ggplot(aes(x = Advisor, y = `p(correct)`)) +
+  geom_hline(yintercept = .5, linetype = 'dashed') +
+  # geom_hline(yintercept = .75, linetype = 'dashed', colour = 'lightgrey') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(y = "Mean") +
+  scale_y_continuous(limits = c(0, 1)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  facet_grid(~KeyTrial, labeller = label_both)
+  
+# caption = "Probability of correct responses for advice from the advisors and presentations during the Key trials. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance level."
+  
+```
+
+### Confidence
+
+The advisors' confidence is carefully controlled even during the Test phase. Foil trials are outside the overlap, while Key trials are within the overlap (and evenly spread between agreement and disagreement).
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  filter(!feedback) %>%
+  select(pid, Advisor, KeyTrial, Hybrid, Phase, 
+         Confidence = advisor0adviceConfidence) %>%
+  mutate(Advisor = if_else(Hybrid == "Hybrid",
+                           paste0(Advisor, 'Hybrid'), Advisor),
+         KeyTrial = factor(KeyTrial))
+
+ggplot(tmp, aes(x = Advisor, y = Confidence, colour = Advisor)) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[1]) +
+  geom_hline(linetype = 'dashed', yintercept = boundaries[2]) +
+  geom_violin() +
+  geom_point(position = position_jitter(.1), alpha = .5, aes(shape = KeyTrial)) + 
+  scale_colour_discrete(h.start = 45) +
+  scale_shape_manual(values = c(4, 16)) +
+  facet_wrap(~Phase)
+
+# caption = "Overall advice of advisors during the familiarisation phase. Each point shows a single trial, while the violins indicate the distribution. Dashed lines show the preprogrammed overlap between the advisors' advice distributions."
+
+```
+
+### Influence
+
+The measure of influence is the extent to which a participant's confidence moves in the expected direction as a function of the advice (increasing when agreed with, decreasing when disagreed with).
+
+Influence is the primary outcome measure. Ideally it will be higher for the low confidence advisor because the Key trials occur in the overlap where the low confidence advisor is subjectively more confident.
+
+```{r influenceGraph}
+
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key") %>% 
+  mutate(Advisor = capitalize(paste0(Advisor, 
+                                     if_else(Hybrid == "Hybrid", 'Hybrid', '')))) %>%
+  group_by(pid, Advisor, Agree, KeyTrial) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) %>%
+  spread(Advisor, advisorInfluence) %>%
+  gather("Advisor", "advisorInfluence", LowConfHybrid:HighConf)
+
+tmp %>%
+  ggplot(aes(x = Advisor, y = advisorInfluence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(y = 'Advisor influence') +
+  facet_wrap(KeyTrial~Agree)
+
+# caption = "Influence of the advisors on Key Test trials. Advisors with their own names show data from labelled trials, while those with a '?' show data from trials where the advice was given a hybrid label. Lines show means for individual participants, while violins and boxplots show distributions. The dashed line indicates zero influence."
+
+```
+
+#### Advice weight
+
+For reasons discussed above, the Advice Weight statistic may be a better measure of how advice is used.
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key") %>% 
+  mutate(Advisor = capitalize(paste0(Advisor, 
+                                     if_else(Hybrid == "Hybrid", 'Hybrid', '')))) %>%
+  group_by(pid, Advisor, Agree, KeyTrial) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  spread(Advisor, adviceWeight) %>%
+  gather("Advisor", "adviceWeight", LowConfHybrid:HighConf)
+
+tmp %>%
+  ggplot(aes(x = Advisor, y = adviceWeight)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(y = 'Advice weight') +
+  facet_wrap(KeyTrial~Agree)
+
+# caption = "Influence of the advisors on Key Test trials. Advisors with their own names show data from labelled trials, while those with a '?' show data from trials where the advice was given a hybrid label. Lines show means for individual participants, while violins and boxplots show distributions. The dashed line indicates zero influence."
+
+```
+
+#### Influence scatter plots
+
+```{r}
+
+AdvisedTrial %>%
+  filter(KeyTrial == "Key") %>%
+  mutate(Advisor = if_else(advisor0name == '?', 
+                           'Hybrid', 
+                           capitalize(as.character(advisor0idDescription)))) %>%
+  ggplot(aes(x = advisor0adviceConfidence, 
+             y = advisor0influence, 
+             colour = Advisor)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_point(alpha = .25) +
+  geom_smooth(aes(group = Advisor),
+               method = 'lm', se = F, fullrange = T) +
+  stat_smooth(aes(group = paste0(pid, Advisor, sep = '.')),
+              geom = 'line', method = 'lm', alpha = .25) +
+  scale_colour_manual(values = hue_pal(h.start = 45)(4)[1:3]) + 
+  scale_y_continuous(limits = c(-200, 200)) +
+  labs(x = 'Advisor confidence', y = 'Advisor influence') +
+  facet_wrap(~KeyTrial)
+
+# caption = "Relationship between advisor confidence and advisor influence. Dots show individual trials, while faint lines link a participant's trials for a given advisor. The heavy lines show data for each advisor aggregated over all participants. The dashed black line indicates zero influence."
+
+```
+
+#### Influence distribution
+
+It's good to keep a general eye on the distribution of weight-on-advice on a trial-by-trial basis. 
+
+```{r influenceDistribution}
+
+AdvisedTrial %>% 
+  filter(KeyTrial == "Key") %>%
+  ggplot(aes(advisor0influence, colour = Advisor, fill = Advisor)) + 
+  geom_histogram() +
+  facet_grid(Hybrid ~ KeyTrial + Advisor) +
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  labs(y = 'Trial count', x = 'Advisor influence')
+
+# caption = "Histogram of advisor influence by advisor and hybrid status for test trials."
+
+```
+
+#### Is initial accuracy or initial confidence a better predictor of influence?
+
+```{r influence correlations}
+
+tmp <- AdvisedTrial %>% 
+  filter(KeyTrial == "Key") %>%
+  select(pid, responseCorrect, responseConfidence, advisor0influence) %>%
+  nest(data = -pid) %>%
+  mutate(
+    accBF = map(data, ~ correlationBF(.x$responseCorrect, 
+                                    .x$advisor0influence)),
+    acc.BF = map(accBF, ~ exp(.@bayesFactor$bf)),
+    conBF = map(data, ~ correlationBF(.x$responseConfidence, 
+                                    .x$advisor0influence)),
+    con.BF = map(conBF, ~ exp(.@bayesFactor$bf)),
+    acc = map(data, ~ cor.test(as.numeric(.x$responseCorrect), 
+                               .x$advisor0influence)), 
+    acc = map(acc, tidy),
+    con = map(data, ~ cor.test(.x$responseConfidence, .x$advisor0influence)), 
+    con = map(con, tidy)
+  ) %>% 
+  unnest(acc, names_sep = ".") %>%
+  unnest(con, names_sep = ".") %>%
+  unnest(c(acc.BF, con.BF))
+
+tmp <- bind_rows(
+  tmp %>% 
+    select_at(vars(starts_with('acc'))) %>%
+    rename_all(~ str_replace(., 'acc\\.(.+)', '\\1')) %>%
+    mutate(property = 'accuracy'),
+  tmp %>% 
+    select_at(vars(starts_with('con'))) %>%
+    rename_all(~ str_replace(., 'con\\.(.+)', '\\1')) %>%
+    mutate(property = 'confidence')
+)
+
+tmp %>% 
+  group_by(property) %>%
+  summarise_if(is.numeric, mean, na.rm = T)
+
+```
+
+### Summary {.summary}
+
+The influence of the advisors (formally tested below) did not show obvious differences between the advisors' presentation (labelled as themselves or as a hybrid). Numerically, there were decreases in the influence of advice from the high confidence advisor presented as a hybrid, and increases in the influence of advice from the low confidence advisor when presented as a hybrid. This pattern was true for both the Influence and Advice Weight measures. There was a huge amount of noise for the influence measures on disagreeing trials. As advice was more confident it was more likely to be influential, and this pattern was true for both high and low confidence advisors, and for both advisors combined under the hybrid presentation. The latter more closely resembles the low confidence advisor. The histograms show hints of a bimodal distribution between ignoring and averaging advice for both advisors under both presentations. 
+
+Participant initial estimate accuracy is a strong predictor of influence, while initial estimate confidence is not. 
+
+## Manipulation checks
+
+Participants should learn the advisor mappings during the course of the experiment. This means that they should treat the low- and high-confidence advisors' advice differently when those advisors express medium confidence on the scale. Specifically, they should be more highly influenced by the low-confidence advisor than by the high-confidence advisor.
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key",
+         Hybrid == 'Labelled',
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2])
+
+ggplot(tmp, aes(x = advisor0adviceConfidence, y = advisor0influence, colour = Advisor)) + 
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  stat_smooth(aes(group = paste0(pid, Advisor, sep = '.')),
+              geom = 'line', method = 'lm', alpha = .25) +
+  geom_point(alpha = .25) +
+  geom_smooth(aes(group = Advisor),
+               method = 'lm', se = F, fullrange = T) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  facet_wrap(KeyTrial~Advisor) +
+  labs(x = 'Advisor confidence', y = 'Advisor influence') 
+
+# caption = "Relationship between advisor confidence and advisor influence for labelled advisors during test trials. Dots show individual trials, while faint lines show individual participants' linear model fits. Heavy lines show linear fits aggregated over all participants, while the black dashed line shows zero influence."
+
+```
+
+### Summary {.summary}
+
+The slope for the low confidence advisor slopes upwards while that of the high confidence advisor slopes downwards, suggesting that participants were less heavily influenced by the high confidence advisor's advice as that advisor expressed more confidence. There is no obvious reason why this should be the case.
+
+## Advisor preferences
+
+In the hypothesis tests we need to know which advisor is most influential for each participant. We explore this influence on Familiarity trials.
+
+```{r favourite advisors}
+
+# Find favourite advisor where confidence is balanced
+tmp <- AdvisedTrial %>%
+  filter(feedback,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Advisor) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  mutate(influence = if_else(is.na(influence), -Inf, influence)) %>%
+  spread(Advisor, influence) %>%
+  group_by(pid) %>%
+  summarise(favouriteAdvisor = if_else(HighConf > LowConf, 
+                                       "HighConf", "LowConf"))
+
+AdvisedTrial <- AdvisedTrial %>% left_join(tmp, by = 'pid')
+
+if (any(is.na(AdvisedTrial$favouriteAdvisor))) {
+  pids <- AdvisedTrial %>%
+    group_by(pid) %>% 
+    summarise(favouriteAdvisor = mean(favouriteAdvisor)) %>%
+    filter(is.na(favouriteAdvisorId)) %>%
+    pull(pid)
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+}
+
+# Plot influence for Key trials
+tmp <- AdvisedTrial %>% 
+  filter(!is.na(favouriteAdvisor),
+         KeyTrial == "Key",
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Advisor, Agree, KeyTrial) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) %>%
+  spread(Advisor, advisorInfluence) %>%
+  mutate(Favourite = if_else(LowConf > HighConf, 'LowConf', 'HighConf')) %>%
+  gather("Advisor", "advisorInfluence", LowConf:HighConf)
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = advisorInfluence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') + 
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid, linetype = Favourite)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(y = 'Advisor influence') +
+  facet_wrap(KeyTrial~Agree)
+
+# caption = "Advisor influence by advisor on familiarity trials where the advisor's confidence was within the medium-confidence window. Lines show individual participant's means, with the line type indicating which advisor had the higher mean influence for that participant on these trials. Violins and boxplots show distributions, while the full width black dashed line indicates zero influence."
+
+tmp %>%
+  group_by(pid) %>% 
+  summarise(favourite = first(Favourite)) %>%
+  group_by(favourite) %>%
+  filter(!is.na(favourite)) %>%
+  summarise(n())
+
+```
+
+### Advice weight
+
+```{r}
+
+# Plot influence for Key trials
+tmp <- AdvisedTrial %>% 
+  filter(!is.na(favouriteAdvisor),
+         KeyTrial == "Key",
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Advisor, Agree, KeyTrial) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  spread(Advisor, adviceWeight) %>%
+  mutate(Favourite = if_else(LowConf > HighConf, 'LowConf', 'HighConf')) %>%
+  gather("Advisor", "adviceWeight", LowConf:HighConf)
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = adviceWeight)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') + 
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid, linetype = Favourite)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(y = 'Advisor influence') +
+  facet_wrap(KeyTrial~Agree)
+
+# caption = "Advisor influence by advisor on familiarity trials where the advisor's confidence was within the medium-confidence window. Lines show individual participant's means, with the line type indicating which advisor had the higher mean influence for that participant on these trials. Violins and boxplots show distributions, while the full width black dashed line indicates zero influence."
+
+tmp %>%
+  group_by(pid) %>% 
+  summarise(favourite = first(Favourite)) %>%
+  group_by(favourite) %>%
+  filter(!is.na(favourite)) %>%
+  summarise(n())
+
+```
+
+### Summary {.summary}
+
+Participants are perhaps surprisingly fairly evenly spilt in terms of the advisor they find most influential. We might expect a high confidence advisor to be more influential than a low confidence one because people generally prefer high confidence, and because low confidence advice may tempt some people to reduce their confidence even if agreed with. 
+
+## Hypothesis testing
+
+The hypotheses being tested here are:  
+
+1. Participants will place different weights on their least favourite advisor when they know that advisor's identity compared to when that advisor is labelled as a hybrid (controlling for confidence).
+    i. Advice influence
+
+```{r h1}
+  
+# Test
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key", 
+         Advisor != favouriteAdvisor,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Hybrid) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(Hybrid, influence)
+
+pids <- 
+  tmp %>% 
+  gather("presentation", "influence", -pid) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids)) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+cat(md.ttest(tmp$Labelled, tmp$Hybrid, paired = T, 
+             labels = c('*M*|Labelled', '*M*|Hybrid')))
+
+# Graph
+tmp %>% 
+  gather("presentation", "influence", -pid) %>%
+  left_join(
+    AdvisedTrial %>% 
+      group_by(pid) %>% 
+      filter(Advisor != favouriteAdvisor) %>%
+      summarise(`Least favourite` = unique(Advisor)),
+    by = 'pid') %>%
+  ggplot(aes(x = presentation, y = influence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = presentation)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = presentation),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 135) + # match colours with hybrid green above
+  scale_fill_discrete(h.start = 135) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(x = 'Advisor presentation', y = 'Advisor influence') +
+  facet_wrap(~`Least favourite`, labeller = label_both)
+
+# caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The line types show the identity of the least advisor whose influence is plotted for that participant. The full-width black dashed line shows zero influence."
+
+```
+
+    ii. Advice weight
+    
+```{r}
+  
+# Test
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key", 
+         Advisor != favouriteAdvisor,
+         advisor0adviceConfidence >= boundaries[1],
+         advisor0adviceConfidence <= boundaries[2]) %>%
+  group_by(pid, Hybrid) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  spread(Hybrid, adviceWeight)
+
+pids <- 
+  tmp %>% 
+  gather("presentation", "adviceWeight", -pid) %>%
+  filter(is.na(adviceWeight)) %>%
+  pull(pid)
+
+if (length(pids)) {
+  warning("Removing ", length(pids), " participants with NAs in advisor adviceWeight Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+cat(md.ttest(tmp$Labelled, tmp$Hybrid, paired = T, 
+             labels = c('*M*|Labelled', '*M*|Hybrid')))
+
+# Graph
+tmp %>% 
+  gather("presentation", "adviceWeight", -pid) %>%
+  left_join(
+    AdvisedTrial %>% 
+      group_by(pid) %>% 
+      filter(Advisor != favouriteAdvisor) %>%
+      summarise(`Least favourite` = unique(Advisor)),
+    by = 'pid') %>%
+  ggplot(aes(x = presentation, y = adviceWeight)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = presentation)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = presentation),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 135) + # match colours with hybrid green above
+  scale_fill_discrete(h.start = 135) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(x = 'Advisor presentation', y = 'Advice weight') +
+  facet_wrap(~`Least favourite`, labeller = label_both)
+
+# caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The line types show the identity of the least advisor whose influence is plotted for that participant. The full-width black dashed line shows zero influence."
+
+```
+
+### Summary {.summary}
+
+There is some evidence to suggest that advice is treated similarly when it comes from the least favourite advisor regardless of whether that advice is labelled as belonging to the least favourite advisor or labelled with the hybrid avatar. This is an intuitively sensible strategy, though not in line with our hypothesis that people will have a superadditive dislike of source uncertainty.
+
+# Exploration
+
+## ANOVA
+
+The experiment is structured suitably for a neat ANOVA comparing the effects of advisor and advisor labelling.
+
+```{r anova}
+
+tmp <- AdvisedTrial %>% 
+  dplyr::filter(KeyTrial == "Key") %>%
+  mutate(hybrid = factor(advisor0name == '?')) %>%
+  group_by(pid, advisor0idDescription, hybrid) %>% 
+  summarise(influence = mean(advisor0influence)) %>%
+  pivot_wider(names_from = c(hybrid, advisor0idDescription), 
+              values_from = influence) %>%
+  pivot_longer(-pid, 
+               names_to = c('hybrid', 'advisor0idDescription'),
+               names_sep = '_', 
+               values_to = 'influence')
+  
+pids <- tmp %>% 
+  group_by(pid) %>%
+  summarise(influence = mean(influence)) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids) < length(unique(tmp$pid))) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+tmp <- tmp %>% 
+  ungroup() %>%
+  mutate(
+  pid = factor(pid),
+  hybrid = factor(hybrid),
+  advisor0idDescription = factor(advisor0idDescription)
+)
+
+anv <- tmp %>% 
+  ezANOVA(dv = influence,
+          wid = pid, 
+          within = c(hybrid, advisor0idDescription))
+
+anv
+
+dw <- .25
+AdvisedTrial %>%
+  filter(KeyTrial == "Key") %>%
+  group_by(pid, Advisor, Hybrid, KeyTrial) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  ungroup() %>%
+  mutate(Advisor = factor(Advisor), 
+         Hybrid = factor(Hybrid)) %>%
+  ggplot(aes(x = Hybrid, y = influence, colour = Advisor)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  scale_x_discrete() +
+  geom_line(aes(
+    group = paste0(pid, Advisor),
+    x = as.numeric(Hybrid) - .75 * dw + .5 * dw * as.numeric(Advisor)
+    ), alpha = .25) +
+  stat_summary(aes(group = Advisor), geom = 'line', fun.y = mean, size = 1,
+               position = position_dodge(dw)) +
+  stat_summary(aes(group = paste0(Advisor, Hybrid)), geom = 'point', 
+               size = 4, fun.y = mean, position = position_dodge(dw)) +
+  stat_summary(aes(group = paste0(Advisor, Hybrid)), geom = 'errorbar', 
+               width = 0, size = 1, fun.data = mean_cl_normal, 
+               position = position_dodge(dw)) +
+  scale_colour_discrete(h.start = 45) +
+  labs(y = 'Advisor influence', x = 'Advisor presentation') +
+  facet_wrap(~KeyTrial)
+
+# caption = "ANOVA plot of advisor influence on test trials by advisor identity and presentation. Faint lines show individual participant means, while heavy lines and circles give means aggregated over all participants, with error bars showing 95% confidence intervals. The black dashed line shows zero influence."
+
+```
+
+### Advice weight
+
+```{r}
+
+tmp <- AdvisedTrial %>% 
+  dplyr::filter(KeyTrial == "Key") %>%
+  mutate(hybrid = factor(advisor0name == '?')) %>%
+  group_by(pid, advisor0idDescription, hybrid) %>% 
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  pivot_wider(names_from = c(hybrid, advisor0idDescription), 
+              values_from = adviceWeight) %>%
+  pivot_longer(-pid, 
+               names_to = c('hybrid', 'advisor0idDescription'),
+               names_sep = '_', 
+               values_to = 'adviceWeight')
+  
+pids <- tmp %>% 
+  group_by(pid) %>%
+  summarise(adviceWeight = mean(adviceWeight)) %>%
+  filter(is.na(adviceWeight)) %>%
+  pull(pid)
+
+if (length(pids) < length(unique(tmp$pid))) {
+  warning("Removing ", length(pids), " participants with NAs in advisor adviceWeight Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+tmp <- tmp %>% 
+  ungroup() %>%
+  mutate(
+  pid = factor(pid),
+  hybrid = factor(hybrid),
+  advisor0idDescription = factor(advisor0idDescription)
+)
+
+anv <- tmp %>% 
+  ezANOVA(dv = adviceWeight,
+          wid = pid, 
+          within = c(hybrid, advisor0idDescription))
+
+anv
+
+dw <- .25
+AdvisedTrial %>%
+  filter(KeyTrial == "Key") %>%
+  group_by(pid, Advisor, Hybrid, KeyTrial) %>%
+  summarise(influence = mean(advisor0adviceWeight)) %>%
+  ungroup() %>%
+  mutate(Advisor = factor(Advisor), 
+         Hybrid = factor(Hybrid)) %>%
+  ggplot(aes(x = Hybrid, y = influence, colour = Advisor)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  scale_x_discrete() +
+  geom_line(aes(
+    group = paste0(pid, Advisor),
+    x = as.numeric(Hybrid) - .75 * dw + .5 * dw * as.numeric(Advisor)
+    ), alpha = .25) +
+  stat_summary(aes(group = Advisor), geom = 'line', fun.y = mean, size = 1,
+               position = position_dodge(dw)) +
+  stat_summary(aes(group = paste0(Advisor, Hybrid)), geom = 'point', 
+               size = 4, fun.y = mean, position = position_dodge(dw)) +
+  stat_summary(aes(group = paste0(Advisor, Hybrid)), geom = 'errorbar', 
+               width = 0, size = 1, fun.data = mean_cl_normal, 
+               position = position_dodge(dw)) +
+  scale_colour_discrete(h.start = 45) +
+  labs(y = 'Advisor influence', x = 'Advisor presentation') +
+  facet_wrap(~KeyTrial)
+
+# caption = "ANOVA plot of advice weight on test trials by advisor identity and presentation. Faint lines show individual participant means, while heavy lines and circles give means aggregated over all participants, with error bars showing 95% confidence intervals. The black dashed line shows zero influence."
+
+```
+
+### Summary {.summary}
+
+The ANOVA revealed an interaction between advisor identity and advisor presentation for both measures of influence (influence and Advice Weight). The low confidence advisor is more highly weighted when presenting advice with confidence in the overlap zone when that advisor is presented as a hybrid. The opposite is true for the high confidence advisor, which is more highly weighted when presented as itself. We would expect the opposite pattern to be the case: when advice is presented as coming from the low confidence advisor it should be recognised as relatively high confidence, whereas when it is presented as coming from the hybrid it is of indeterminate confidence. Likewise, advice presented as coming from the high confidence advisor should be recognised as having relatively low confidence. 
+
+## Comparing influence by favourite advisor
+
+Hybrid vs labelled for favourite advisor.
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key", 
+         Advisor == favouriteAdvisor) %>%
+  group_by(pid, Hybrid) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(Hybrid, influence)
+
+pids <- 
+  tmp %>% 
+  gather("advisor", "influence", -pid) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids)) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+cat(md.ttest(tmp$Labelled, tmp$Hybrid, paired = T, 
+             labels = c('*M*|Labelled', '*M*|Hybrid')))
+```
+
+## As above but comparing favourite to least favourite advisor
+
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(KeyTrial == "Key", 
+         Hybrid == "Labelled") %>%
+  mutate(isFavourite = if_else(Advisor == favouriteAdvisor,
+                               "Favourite", "Non-favourite")) %>%
+  group_by(pid, isFavourite) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(isFavourite, influence)
+
+pids <- 
+  tmp %>% 
+  gather("advisor", "influence", -pid) %>%
+  filter(is.na(influence)) %>%
+  pull(pid)
+
+if (length(pids)) {
+  warning("Removing ", length(pids), " participants with NAs in advisor influence. Ids: ", paste0(pids, collapse = ", "))
+  tmp <- tmp %>% filter(!(pid %in% pids))
+}
+
+cat(md.ttest(tmp$Favourite, tmp$`Non-favourite`, paired = T, 
+             labels = c('*M*|Favourite', '*M*|Non-favourite')))
+```
+
+## Time taken vs accuracy
+
+There is considerable variation in the time participants take to produce their initial estimates - to what extent is this variation predictive of accuracy? 
+
+```{r}
+
+tmp <- decisions %>% 
+  group_by(pid, Decision) %>%
+  summarise(responseTime = mean(responseTimeEstimate),
+            pCorrect = mean(responseCorrect)) 
+
+print('Initial decisions')
+correlationBF(tmp$pCorrect[tmp$Decision == "First"], 
+              tmp$responseTime[tmp$Decision == "First"])
+print('Final decisions')
+correlationBF(tmp$pCorrect[tmp$Decision == "Last"], 
+              tmp$responseTime[tmp$Decision == "Last"])
+
+ggplot(tmp, aes(x = responseTime, y = pCorrect)) +
+  geom_smooth(method = 'lm', fullrange = T) +
+  geom_point() +
+  scale_x_continuous(limits = c(0, NA)) +
+  scale_y_continuous(limits = c(0, 1)) +
+  facet_grid(paste0(Decision, " decision")~"All trials")
+
+```
+
+Is the same pattern true within participants as well as between them?
+
+```{r}
+
+tmp <- decisions %>%
+  select(pid, Decision, responseTimeEstimate, responseCorrect) %>%
+  nest(data = c(-pid, -Decision)) %>%
+  mutate(logRegP = map_dbl(data, 
+                           ~ summary(glm(responseCorrect ~ responseTimeEstimate,
+                                         data = ., 
+                                         family = binomial(link = 'logit'))
+                           )$coefficients[2, 4]))
+
+ggplot(tmp, aes(x = paste0(Decision, " decision"), y = logRegP)) +
+  geom_hline(yintercept = .05, linetype = 'dashed') + 
+  geom_violin(alpha = .15, colour = NA, fill = 'black') +
+  geom_boxplot(fill = "white", outlier.color = NA, colour = 'black',
+               width = .25, size = 1.25) +
+  geom_point(position = position_jitter(.025), size = 2) +
+  scale_y_continuous(limits = c(0, 1)) + 
+  labs(x = "response correct ~ response time", y = "p-value") +
+  facet_wrap(~"All trials")
+
+# caption = "P-value for logistic regression of response time and response correctness. Each point shows the p-value for the logistic regression conducted on a single participant's initial responses. Violin and boxplots show distributions, and the dashed line shows the significance threshold of p = .05."
+  
+```
+
+### Summary {.summary}
+
+There does not seem to be a clear association between the time taken to answer a question and the probability of giving a correct answer for either initial or final responses.
+
+## Time taken vs confidence-weighted accuracy
+
+How does time taken relate to metacognitive accuracy?
+
+# Conclusions {.summary}
+
+The participants appeared to perform the basic task as intended. They were slightly more accurate than we have come to expect. Following advice, they appeared to show some metacognitive sensitivity. 
+
+The advice presented throughout the experiment appeared as planned. This advice was more influential in disagreement than agreement, and this remained true (though the discrepancy was reduced) when using an alternate measure of advice taking. 
+
+Advice taking was not clearly differentiated between advisors or presentations during the key trials, but nor was it especially clear that the advisors and presentations were treated the same. More data may help work out whether participants are treating the advisors equivalently.
+
+A puzzle, perhaps a concern, is that the interaction of presentation and advisor in the ANOVA indicates participants do the opposite of what would be predicted by a normative model: being more influenced by the high confidence advisor's advice than the hybrid's advice when the advice shown is in the overlap zone. 
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+kable(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```
