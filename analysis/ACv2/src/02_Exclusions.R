@@ -48,7 +48,8 @@ if (!isSet("exclude")) {
                 "multipleAttempts", "bool", "Remove participants who saw feedback on questions in previous attempts",
                 "manual", "vector", "Remove participants by logical mask",
                 "maxPerCondition", "int", "Remove excess participants by condition",
-                "badMarker", "bool", "Remove participants with some bad markers"))
+                "badMarker", "bool", "Remove participants with some bad markers",
+                "custom", "list", "Remove participants based on named custom functions."))
   
   stop("No criteria for exclusion ([exclude] variable not set). See above for a list of options.")
 }
@@ -370,6 +371,26 @@ if (!is.null(exclude$maxPerCondition) &&
         } else {
           i <- i + 1
         }
+      }
+    }
+  }
+}
+
+# custom ------------------------------------------------------------------
+
+# Custom exclusion functions take a participant's mainDF trials as input and 
+# return T if that participant should be excluded.
+
+# Loop through custom exclusion functions and execute them.
+for (i in 1:length(exclude$custom)) {
+  r <- names(exclude$custom)[i]
+  f <- exclude$custom[[i]]
+  for (p in unique(mainDF$pid)) {
+    tmp <- mainDF %>% filter(pid == p)
+    if (f(tmp)) {
+      if (p %in% exclusions$pid) {
+        exclusions$excluded[exclusions$pid == p] <-
+          addExclusion(exclusions$excluded[exclusions$pid == p], r)
       }
     }
   }
