@@ -18,6 +18,16 @@ key <- NULL
 for (f in fName)
   key <- rbind(key, read.csv(f))
 
+# Incomplete --------------------------------------------------------------
+
+pids <- Trial %>% filter(!responseCorrect) %>% pull(pid) %>% unique()
+
+key %>% 
+  filter(pid %in% pids) %>% 
+  select(prolificId, pid) %>%
+  mutate(exclude = 'attention check fail') %>%
+  as.data.frame()
+
 
 # Exclusions --------------------------------------------------------------
 

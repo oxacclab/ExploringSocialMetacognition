@@ -724,7 +724,6 @@ getDerivedVariables <- function(x, name, opts = list()) {
     # TRIAL -------------------------------------------------------------------
     
     Trial = {
-      
       x <- bind_cols(
         x, 
         getResponseVars(
@@ -744,6 +743,15 @@ getDerivedVariables <- function(x, name, opts = list()) {
             x$responseConfidence else NULL
         )
       )
+      
+      if (study == "calibrationKnowledge") {
+        x$responseCorrect <- 
+          (x$correctAnswer == x$responseAnswerSide) &
+          ((x$responseConfidence > 50) == str_detect(x$stimHTML, ' top '))
+        label(x$responseCorrect, self = F) <- "Whether the response was correct"
+      } 
+      
+      x 
     },
     
     x
