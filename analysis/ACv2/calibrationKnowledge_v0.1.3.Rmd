@@ -631,7 +631,7 @@ tmp %>%
   geom_line(alpha = .25, size = .75, aes(group = pid)) + 
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
-  scale_y_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-200, 200)) +
   labs(y = 'Advisor influence') +
   facet_wrap(Phase~Agree)
 
@@ -686,7 +686,7 @@ tmp %>%
   geom_line(alpha = .25, size = .75, aes(group = pid)) + 
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
-  scale_y_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-200, 200)) +
   labs(y = 'Advisor influence') +
   facet_wrap(trials~Agree)
 
@@ -949,12 +949,42 @@ tmp %>%
   geom_line(alpha = .25, aes(group = pid)) + 
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
-  scale_y_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-200, 200)) +
   labs(y = 'Advisor influence') +
   facet_wrap(KeyTrial~Agree)
 
 # caption = "Influence of the advisors on Key Test trials. Advisors with their own names show data from labelled trials, while those with a '?' show data from trials where the advice was given a hybrid label. Lines show means for individual participants, while violins and boxplots show distributions. The dashed line indicates zero influence."
 
+```
+
+#### Most influential labelled advisor overall 
+
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(Hybrid == "Labelled", Phase == "Test") %>%
+  group_by(pid, Advisor) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(Advisor, influence) 
+
+md.ttest(pull(tmp, HighConf), pull(tmp, LowConf), 
+           labels = c('*M*|HighConf', '*M*|LowConf'), 
+           paired = T) %>%
+  cat()
+```
+
+And for Key trials:
+
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(Hybrid == "Labelled", KeyTrial == "Key") %>%
+  group_by(pid, Advisor) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  spread(Advisor, influence) 
+
+md.ttest(pull(tmp, HighConf), pull(tmp, LowConf), 
+           labels = c('*M*|HighConf', '*M*|LowConf'), 
+           paired = T) %>%
+  cat()
 ```
 
 #### Advice weight
@@ -989,6 +1019,46 @@ tmp %>%
 
 ```
 
+##### Most influential labelled advisor overall 
+
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(Hybrid == "Labelled", Phase == "Test") %>%
+  group_by(pid, Advisor) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  spread(Advisor, adviceWeight) 
+
+print(paste0('Dropping ', sum(is.na(tmp$HighConf) | is.na(tmp$LowConf)),
+             ' participants with NA values.'))
+
+tmp <- tmp %>% filter_if(~!is.factor(.), ~!is.na(.))
+
+md.ttest(pull(tmp, HighConf), pull(tmp, LowConf), 
+           labels = c('*M*|HighConf', '*M*|LowConf'), 
+           paired = T) %>%
+  cat()
+```
+
+And for Key trials:
+
+```{r}
+tmp <- AdvisedTrial %>%
+  filter(Hybrid == "Labelled", KeyTrial == "Key") %>%
+  group_by(pid, Advisor) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  spread(Advisor, adviceWeight) 
+
+print(paste0('Dropping ', sum(is.na(tmp$HighConf) | is.na(tmp$LowConf)),
+             ' participants with NA values.'))
+
+tmp <- tmp %>% filter_if(~!is.factor(.), ~!is.na(.))
+
+md.ttest(pull(tmp, HighConf), pull(tmp, LowConf), 
+           labels = c('*M*|HighConf', '*M*|LowConf'), 
+           paired = T) %>%
+  cat()
+```
+
 #### Influence scatter plots
 
 ```{r}
@@ -1006,7 +1076,7 @@ AdvisedTrial %>%
   geom_smooth(aes(group = Advisor),
                method = 'lm', se = F, fullrange = T) +
   stat_smooth(aes(group = paste0(pid, Advisor, sep = '.')),
-              geom = 'line', method = 'lm', alpha = .25) +
+              geom = 'line', method = 'lm', alpha = .15) +
   scale_colour_manual(values = hue_pal(h.start = 45)(4)[1:3]) + 
   scale_y_continuous(limits = c(-200, 200)) +
   labs(x = 'Advisor confidence', y = 'Advisor influence') +
@@ -1025,7 +1095,7 @@ It's good to keep a general eye on the distribution of weight-on-advice on a tri
 AdvisedTrial %>% 
   filter(KeyTrial == "Key") %>%
   ggplot(aes(advisor0influence, colour = Advisor, fill = Advisor)) + 
-  geom_histogram() +
+  geom_histogram(bins = 30) +
   facet_grid(Hybrid ~ KeyTrial + Advisor) +
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
@@ -1102,7 +1172,7 @@ ggplot(tmp, aes(x = advisor0adviceConfidence, y = advisor0influence, colour = Ad
   geom_point(alpha = .25) +
   geom_smooth(aes(group = Advisor),
                method = 'lm', se = F, fullrange = T) +
-  scale_y_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-200, 200)) +
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
   facet_wrap(KeyTrial~Advisor) +
@@ -1167,7 +1237,7 @@ tmp %>%
   geom_line(alpha = .25, size = .75, aes(group = pid, linetype = Favourite)) + 
   scale_colour_discrete(h.start = 45) + 
   scale_fill_discrete(h.start = 45) +
-  scale_y_continuous(limits = c(-100, 100)) +
+  scale_y_continuous(limits = c(-200, 200)) +
   labs(y = 'Advisor influence') +
   facet_wrap(KeyTrial~Agree)
 
@@ -1604,9 +1674,98 @@ ggplot(tmp, aes(x = paste0(Decision, " decision"), y = logRegP)) +
 
 There does not seem to be a clear association between the time taken to answer a question and the probability of giving a correct answer for either initial or final responses.
 
-## Time taken vs confidence-weighted accuracy
+## Why are hybrids as different as labelled advisors? 
 
-How does time taken relate to metacognitive accuracy?
+The hybrids are by definition identical to one another in presentation, with the only exception being that the hybrids have different Foil advice (though the participants don't know this). They should not, therefore, have differences in how they are treated by the participants, but apparently they kinda do. 
+
+### The problem
+
+```{r}
+
+AdvisedTrial %>% 
+  select(pid, Advisor, Hybrid, KeyTrial, Agree, advisor0adviceWeight) %>%
+  filter(Hybrid == "Hybrid") %>%
+  group_by(pid, Advisor, KeyTrial, Agree) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight)) %>%
+  ggplot(aes(x = Agree, y = adviceWeight, colour = Advisor)) + 
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_boxplot() +
+  scale_color_discrete(h.start = 45) +
+  facet_wrap(~KeyTrial)
+
+```
+
+Not so much on the Foil trials, where differences are expected as a function of the advice, but in the key trials, where differences are not expected because advice should be equal. 
+
+The statistical extent of the differences:
+
+```{r}
+AdvisedTrial %>% 
+  filter(Hybrid == "Hybrid", KeyTrial == "Key", Agree == "Agree") %>%
+  group_by(pid, Advisor) %>%
+  summarise(adviceWeight = mean(advisor0adviceWeight, na.rm = T)) %>%
+  ttestBF(formula = adviceWeight ~ Advisor, data = .)
+```
+
+Looks like nothing too untoward is going on, really, but perhaps worth checking how the raw data look, anyway.
+
+### Raw confidence rating stats
+
+```{r}
+dw <- 1
+
+tmp <- AdvisedTrial %>% 
+  mutate(Initial = responseConfidence,
+         Final = 
+           if_else(responseAnswerSide == responseAnswerSideFinal,
+                   responseConfidenceFinal, -responseConfidenceFinal),
+         Advice = 
+           if_else(responseAnswerSide == advisor0adviceSide,
+                   advisor0adviceConfidence, -advisor0adviceConfidence)) %>%
+  select(pid, Advisor, Hybrid, KeyTrial, Agree, Initial, Final, Advice) %>%
+  filter(Hybrid == "Hybrid") %>%
+  group_by(pid, Advisor, Hybrid, KeyTrial, Agree) %>%
+  summarise_all(mean) %>%
+  gather("variable", "confidence", c(Initial, Final, Advice)) %>%
+  mutate(variable = fct_relevel(variable, "Advice", "Initial", "Final")) 
+
+ggplot(tmp, aes(x = variable, y = confidence, colour = Advisor)) +
+  geom_blank() + 
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_line(aes(group = pid), alpha = .1, colour = 'black', data = tmp %>% filter(variable != "Advice")) +
+  geom_boxplot(fill = NA) +
+  scale_color_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(y = "Confidence relative to Initial response side",
+       x = "") +
+  facet_grid(KeyTrial~Agree + Advisor, scales = 'free_y')
+
+```
+
+As planned, in the Key trials the advisors' confidences are identical, while they differ in the Foil trials. The responses to the advisors are quite pronounced, but the patterns look very similar between advisors. The major difference is in the Foil disagreement trials: participants seem to respond to low-confidence disagreement by sticking to their own initial estimate side, while they mostly switch side when given high-confidence disagreement. This all makes sense, given that the Foil trials identify the advisor, and they give a good indication of p(correct) through confidence. 
+
+The puzzle is not so clear here in the Key trials: both hybrids appear to be treated very similarly, with only a slight difference in the disagree trials between the two, in which the responses are revised downwards a little more when given by the LowConf hybrid (although this looks a lot like noise). In light of this plot, the differences in the disagreement trials between the hybrids pointed out above look fairly benign. 
+
+### Checking Hybrid advisor images
+
+Worth looking at a few of the images participants saw to double-check they're identical regardless of the advisor behind the scenes.
+
+```{r}
+library(htmltools)
+
+for (p in unique(AdvisedTrial %>% pull(pid)) %>% head()) {
+  hch <- AdvisedTrial %>% 
+    filter(pid == p, Advisor == "HighConf", Hybrid == "Hybrid") %>%
+    .[1,] %>% pull(advisor0svg)
+  lch <- AdvisedTrial %>% 
+    filter(pid == p, Advisor == "LowConf", Hybrid == "Hybrid") %>%
+    .[1,] %>% pull(advisor0svg)
+  cat(htmlPreserve(paste0('<div style="border: 2px solid black; padding: .5em; margin: .5em; display: flex; justify-content: space-evenly;"><div><p>HighConf Hybrid</p><img src="', hch, '"/></div><div><p>LowConf Hybrid</p><img src="', lch, '"/></div></div>')))
+}
+
+```
+
+These images show that the hybrid picture is calculated appropriately regardless of which underlying advisor is offering the advice. The differences in the data, which are not statistically significant, are likely to be the result of random chance rather than any systematic difference in responding to one underlying advice distribution versus another.
 
 # Conclusions {.summary}
 
@@ -1614,9 +1773,15 @@ The participants appeared to perform the basic task as intended. They were sligh
 
 The advice presented throughout the experiment appeared as planned. This advice was more influential in disagreement than agreement, and this remained true (though the discrepancy was reduced) when using an alternate measure of advice taking. 
 
-Advice taking was not clearly differentiated between advisors or presentations during the key trials, but nor was it especially clear that the advisors and presentations were treated the same. More data may help work out whether participants are treating the advisors equivalently.
+Advice taking was not clearly differentiated between advisors or presentations during the key trials, but nor was it especially clear that the advisors and presentations were treated the same.
 
 A puzzle, perhaps a concern, is that the interaction of presentation and advisor in the ANOVA indicates participants do the opposite of what would be predicted by a normative model: being more influenced by the high confidence advisor's advice than the hybrid's advice when the advice shown is in the overlap zone. 
+
+Further investigation with additional data collection illustrated that the absence of findings was probably reflective of the underlying truth: we were unable to get the basic manipulation to work. During training, we attempted to teach participants that the advisors were equally accurate, and only differed in their expressed confidence. We did this through direct experience, as well as by showing a scorecard to the participants with a visual depiction of the pattern. Furthermore, we showed participants the scorecards of the two advisors and allowed them to directly compare these (alongside their own). Despite this, participants were still much more influenced by the advice of the high confidence advisor (when labelled) overall, and may have been more influenced by the high confidence advisor's advice _even in the overlap_. The confidence heuristic thus appears very difficult to overcome, although there is good theoretical justification that it should be possible to do so (e.g. Cecelia Heyes' paper on training people that fluency is an indicator of unfamiliarity). Given the timeline of the thesis, the empirical question of whether this heuristic can be overcome through training will have to remain uninvestigated here. 
+
+The confidence heuristic itself is probably a cultural construction, and there is evidence that, broadly speaking, consensus exists about the mapping of objective probability onto metacognitive terms (Dan Bang, Cecelia Heyes, et al.'s paper on Cultural Evolution of Metacognition has a reference). Participants may have strong expectations that their advisors will use the confidence scale in an appropriate way if they (reasonably enough) view the proportion of the bar filled as an estimate of objective probability of being correct. We failed to overcome this expectation through training. It is possible that participants view the low confidence advisor as being metacognitively incompetent rather than cautious. A paradigm where the participant's success is tied to sensitivity to the advisor's confidence (as Maja is developing) may help train participants to adjust for confidence differences more effectively.
+
+Overall, we have tried in a few experiments to produce an environment where participants could demonstrate sensitivity to _knowledge about_ advisors' communication of confidence, and have not been successful in these attempts. It remains theoretically possible, and the evolutionary models which prompted the study offer some indication that it may be the case, but we cannot offer behavioural evidence. It may be that the effect is too subtle in contrast with the confidence heuristic; it may be that discounting in response to unknown confidence mapping is flexible only on a longer timescale than that studied here (evolutionary, cultural evolutionary, lifespan, or relationship); or it may be that no effects exist to demonstrate, or that the effects are too slight to detect.
 
 # Credits 
 
