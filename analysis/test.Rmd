@@ -5,7 +5,7 @@ date: "13 December 2018"
 output: 
   html_document:
     includes:
-      after_body: toc_menu.html
+      after_body: src/toc_menu.html
 ---
 
 ```{r setup, include=FALSE}
@@ -13,6 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Tabset 
+
+```{r}
+cat(htmltools::htmlPreserve('<div style="border: 4px solid red; padding: 1em;">Can we output HTML from RCode???</div>'))
+```
 
 ## First Tab
 

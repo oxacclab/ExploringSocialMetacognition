@@ -1010,11 +1010,50 @@ tmp %>%
   ggplot(aes(x = agreement, fill = Advisor)) +
   geom_histogram(binwidth = bw) +
   stat_bin(aes(label = ..count..), 
-           geom = "text", vjust = -.5, binwidth = bw, y = n * .9) +
+           geom = "text", vjust = -.5, binwidth = bw, y = n * 1.1) +
   scale_fill_discrete(h.start = 45, guide = "none") +
   scale_y_continuous(limits = c(0, n)) +
   labs(x = "Agreement rate") +
   facet_wrap(~Advisor)
+
+# caption = "Histograms of the number of participants who experienced agreement rates for each advisor and presentation in the test trials. There were five trials per unique advisor-presentation combination per participant, so most participants have agreement rates neatly divisible by 5. Some participants had one or more trials excluded, meaning these participants's agreement rates for that combination may not be exactly divisible by 5."
+
+```
+
+How many participants would be excluded if we required 1 agreement and 1 disagreement trial in all 4 categories? 
+
+```{r}
+
+tmp %>% 
+  mutate(okay = agreement > 0 & agreement < 1) %>%
+  group_by(pid) %>%
+  summarise(okay = all(okay)) %>%
+  ungroup() %>%
+  summarise(okay = mean(okay))
+
+```
+
+### Influence differences by agreement
+
+```{r}
+tmp <- AdvisedTrial %>% 
+  group_by(pid, Advisor, advisor0agree) %>%
+  summarise(influence = mean(advisor0influence)) %>%
+  mutate(Agree = if_else(advisor0agree, "Agree", "Disagree"))
+
+tmp %>% 
+  ggplot(aes(x = Advisor, y = influence)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  scale_y_continuous(limits = c(-200, 200)) +
+  labs(y = 'Advice influence') +
+  facet_wrap(~Agree)
+
+# caption = "Influence of the advisors broken down by whether or not the advisor endorsed the same side as the participant selected in their intial estimate. Presentations are collapsed and both familiarisation and test trials are combined."
 
 ```
 
