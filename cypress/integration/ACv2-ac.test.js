@@ -150,7 +150,7 @@ for(let run = 0; run < runs; run++) {
         let q = -1;
 
         // 10 practice questions
-        for(let i = 0; i < 1; i++) {
+        for(let i = 0; i < 10; i++) {
             q++;
             it('Runs practice Q' + i + ' [Q' + q + ']', function() {
 
@@ -259,7 +259,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 3; i++) {
+        for(let i = 0; i < 10; i++) {
             q++;
 
             it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
@@ -345,7 +345,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 3; i++) {
+        for(let i = 0; i < 10; i++) {
             q++;
 
             it('Runs block 2 Q' + i + ' [Q' + q + ']', function() {
@@ -423,7 +423,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 2; i++) {
+        for(let i = 0; i < 10; i++) {
             q++;
 
             it('Runs choice block Q' + i + ' [Q' + q + ']', function() {

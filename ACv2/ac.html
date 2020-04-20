@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.4">
+<head data-version="0.0.5">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -271,7 +271,7 @@
             <esm-response-timeline id="response-panel" data-min="1890"
                                  data-max="2010" data-prefix=""
                                  data-suffix="" data-decimals="0"
-                                 data-no-confidence="true" data-label-step="10" data-marker-widths="1, 3, 11, 21" data-marker-values="100, 35, 10, 5">
+                                 data-no-confidence="true" data-label-step="10" data-marker-widths="7, 13, 21" data-marker-values="25, 10, 5">
                 <div class="response-timeline">
                     <div class="response-line"></div>
                 </div>
@@ -468,10 +468,10 @@
         let studyBlueprint = {
             studyName: "advisorChoice",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [16, 34],
+            attentionCheckTrials: [16, 25],
             blocks: [
                 new Block({
-                    trialCount: 1,
+                    trialCount: 10,
                     blockType: "practice",
                     advisors: [],
                     advisorsPerTrial: 0,
@@ -485,7 +485,7 @@
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 3,
+                    trialCount: 10,
                     blockType: "core",
                     advisorsPerTrial: 1,
                     perTrial: {
@@ -496,7 +496,7 @@
                     }
                 }),
                 new Block({
-                    trialCount: 3,
+                    trialCount: 10,
                     blockType: "core",
                     advisorsPerTrial: 1,
                     perTrial: {
@@ -507,7 +507,7 @@
                     }
                 }),
                 new Block({
-                    trialCount: 2,
+                    trialCount: 10,
                     blockType: "core",
                     advisorsPerTrial: 2,
                     advisorChoice: true,
