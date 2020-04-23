@@ -382,19 +382,22 @@ if (!is.null(exclude$maxPerCondition) &&
 # return T if that participant should be excluded.
 
 # Loop through custom exclusion functions and execute them.
-for (i in 1:length(exclude$custom)) {
-  r <- names(exclude$custom)[i]
-  f <- exclude$custom[[i]]
-  for (p in unique(mainDF$pid)) {
-    tmp <- mainDF %>% filter(pid == p)
-    if (f(tmp)) {
-      if (p %in% exclusions$pid) {
-        exclusions$excluded[exclusions$pid == p] <-
-          addExclusion(exclusions$excluded[exclusions$pid == p], r)
+if (!is.null(exclude$custom)) {
+  for (i in 1:length(exclude$custom)) {
+    r <- names(exclude$custom)[i]
+    f <- exclude$custom[[i]]
+    for (p in unique(mainDF$pid)) {
+      tmp <- mainDF %>% filter(pid == p)
+      if (f(tmp)) {
+        if (p %in% exclusions$pid) {
+          exclusions$excluded[exclusions$pid == p] <-
+            addExclusion(exclusions$excluded[exclusions$pid == p], r)
+        }
       }
     }
   }
 }
+
 
 # do exclusions -----------------------------------------------------------
 
