@@ -46,6 +46,8 @@ class AdvisedTrial extends Trial {
         this.durationShowAdvice = 1500;
         this.durationFinalResponse = null;
         this.advice = [];
+        this.advisorOptions = [];
+        this.advisorChoice = false;
     }
 
     // Override the prefix so styling can use Trial rather than duplicating
@@ -280,6 +282,10 @@ class AdvisedTrial extends Trial {
         this.data.context = this.context;
         this.data.contextName = this.contextName;
         this.data.contextDescription = this.contextDescription;
+
+        // Add advisor choice data fields
+        this.data.advisorChoice = this.advisorChoice;
+        this.data.advisorOptions = this.advisorOptions.map(a => a.id).join(',');
 
         // Add attention check stuff
         if (this.attentionCheck) {

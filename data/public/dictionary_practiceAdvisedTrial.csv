@@ -34,6 +34,8 @@ advisor[0-9]+sameGroup,boolean,Whether advisor [0-9]+ is in the same group as th
 advisor[0-9]+svg,string|NA,The img element src field containing base64-encoded svg file for advisor [0-9]+'s portrait
 advisor[0-9]+validTypeFlags,int,Binary flag representation of the above
 advisor[0-9]+validTypes,string,Comma-separated list of advice types which advisor [0-9]+ may select for this trial
+advisorChoice,boolean,Whether the trial offers a choice of advisor
+advisorOptions,string,Comma-separated list of ids for the available advisor options
 anchorDate,int|NA,Year given as the anchor
 anchorHTML,string|NA,HTML displayed in the anchor date area
 block,int,The number of the experimental block the trial is in
