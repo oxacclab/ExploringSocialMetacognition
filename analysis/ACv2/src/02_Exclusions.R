@@ -254,7 +254,6 @@ if (!is.null(exclude$participantOutliers) &&
   }
 }
 
-
 # multiple attempts -------------------------------------------------------
 
 # In later study versions repetitions are forbidden web-side for prolific
@@ -275,7 +274,7 @@ if (!is.null(exclude$multipleAttempts) &&
       
       tmp$excluded <- addExclusion(tmp$excluded, "multipleAttempts")
       
-      exclusions$excluded[exclusions$pid %in% ids, ] <- tmp$excluded
+      exclusions$excluded[exclusions$pid %in% ids] <- tmp$excluded
     }
     
     # participants who have answered the same question twice
@@ -288,11 +287,10 @@ if (!is.null(exclude$multipleAttempts) &&
       
       tmp$excluded <- addExclusion(tmp$excluded == F, "repeatedQuestion")
       
-      exclusions$excluded[exclusions$pid %in% ids, ] <- tmp$excluded
+      exclusions$excluded[exclusions$pid %in% ids] <- tmp$excluded
     }
   }
 }
-
 
 # manual exclusions -------------------------------------------------------
 

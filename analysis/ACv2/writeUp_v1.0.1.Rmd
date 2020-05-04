@@ -1234,6 +1234,91 @@ Some participants exhibit extreme patterns of advice-taking, e.g. taking no advi
 
 # Etc
 
+## Exploration
+
+### Bayes
+
+```{r}
+
+tmp <- offBrand[, c("advisor0idDescription", "pid", "woa", "feedback", 
+                    "firstAdvisor")]
+names(tmp)[1] <- "advisor"
+
+df <- aggregate(woa ~ pid + feedback + advisor + firstAdvisor,
+                 tmp, mean, na.rm = T)
+df$feedback <- factor(df$feedback)
+
+# remove incomplete cases
+for (p in unique(df$pid)) {
+  if (nrow(df[df$pid == p, ]) != 2) {
+    print(paste("Dropping incomplete case pid =", p))
+    df <- df[df$pid != p, ]
+  }
+}
+
+# refactor pid
+df$pid <- factor(df$pid)
+
+r <- anovaBF(
+  woa ~ feedback * firstAdvisor * advisor + pid, 
+  data = df, 
+  whichRandom = "pid",
+  progress = F
+)
+
+#' Compare models within a anovaBF output to get relative likelihood
+#' @param x the BFBayesFactor object containing the results
+#' @param comparisons list of pairs of values for the comparions. Values can be row numbers or model strings.
+#' @return data frame with columns M1, M2, BF(M1,M2)
+marginalBF <- function(x, comparisons) {
+  ns <- rownames(x@bayesFactor)
+  getIndex <- function(i) if (i %in% ns) which(ns == i) else i
+  bf <- function(a, b) exp(a - b)
+  out <- NULL
+  for (comp in comparisons) {
+    if (length(comp) < 2) {
+      stop(paste0("Comparison of length <2 (", length(comp), ") requested."))
+    }
+    a <- getIndex(comp[1]); b <- getIndex(comp[2]);
+    out <- rbind(out, data.frame(
+      M1 = ns[a], M2 = ns[b],
+      BF.M1.M2 = bf(x@bayesFactor$bf[a], x@bayesFactor$bf[b])
+    ))
+  }
+  out
+}
+
+# Compare 
+r
+
+marginalBF(r, list(c(9, 8)))
+
+```
+
+### Cleaner graph for ppt presentation
+
+```{r}
+offBrand %>%
+  mutate(feedback = if_else(feedback, "Feedback", "No feedback"),
+         feedback = factor(feedback, levels = c("No feedback", "Feedback"))) %>%
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(woa = mean(woa)) %>%
+  ggplot(aes(x = advisor0idDescription, y = woa)) +
+  geom_violin(colour = NA, fill = "grey90") +
+  geom_boxplot(fill = "white", outlier.color = NA, width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = 'line', aes(group = feedback, linetype = "Mean"), 
+               fun.y = mean, size = 1.25) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_linetype_manual(values = "dotted") +
+  facet_wrap(~feedback) +
+  labs(x = "Advisor", 
+       y = "Weight on Advice") +
+  theme(text = element_text(size = 16),
+        panel.grid = element_blank(),
+        legend.position = "top")
+```
+
 ## Credits 
 
 ### Acknowledgements

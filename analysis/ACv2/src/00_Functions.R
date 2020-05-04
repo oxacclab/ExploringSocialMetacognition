@@ -164,7 +164,7 @@ getMarkerList <- function() {
 #' @param reason to add to the list
 #' @return combined set of reasons
 addExclusion <- function(current, reason) {
-  if (current == F)
+  if (!length(current) || current == F)
     reason
   else 
     paste(current, reason, collapse = ", ")
@@ -241,6 +241,7 @@ getAdvisorDetails <- function(x) {
   }
   
   types <- unlist(types)
+  types <- as.character(types)
   types <- types[nchar(types) > 0]
   
   list(
@@ -330,6 +331,19 @@ getResponseVars.binary <- function(cas, ra, rc, suffix = NULL) {
   }
   
   x
+}
+
+#' Strip out rows where the csv data are misaligned
+#' @param x data frame to clean
+#' @return list(x, y) with data frames of okay and removed data 
+removeMismatchedRows <- function(x) {
+  if (!("correctAnswer" %in% names(x)))
+    return(list(keep = x, drop = data.frame()))
+  ok <- !is.na(as.numeric(as.character(x$correctAnswer)))
+  list(
+    keep = x[ok, ],
+    drop = x[!ok, ]
+  )
 }
 
 #' Calculate the derived variables for a dataframe
@@ -1139,3 +1153,25 @@ peek <- function(tbl, colName, groupCol, idCol = as.symbol("pid"),
 #' @param width of the marker
 #' @return points the marker is worth
 markerPoints <- function(width) 27 / width
+
+#' Compare models within a anovaBF output to get relative likelihood
+#' @param x the BFBayesFactor object containing the results
+#' @param comparisons list of pairs of values for the comparisons. Values can be row numbers or model strings.
+#' @return data frame with columns M1, M2, BF(M1,M2)
+marginalBF <- function(x, comparisons) {
+  ns <- rownames(x@bayesFactor)
+  getIndex <- function(i) if (i %in% ns) which(ns == i) else i
+  bf <- function(a, b) exp(a - b)
+  out <- NULL
+  for (comp in comparisons) {
+    if (length(comp) < 2) {
+      stop(paste0("Comparison of length <2 (", length(comp), ") requested."))
+    }
+    a <- getIndex(comp[1]); b <- getIndex(comp[2]);
+    out <- rbind(out, data.frame(
+      M1 = ns[a], M2 = ns[b],
+      BF.M1.M2 = bf(x@bayesFactor$bf[a], x@bayesFactor$bf[b])
+    ))
+  }
+  out
+}

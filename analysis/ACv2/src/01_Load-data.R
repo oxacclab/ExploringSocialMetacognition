@@ -82,6 +82,16 @@ for (study in studies) {
       
       tmp <- as_tibble(read.csv(f))
       
+      x <- removeMismatchedRows(tmp)
+      if (nrow(x$drop)) {
+        warning(paste0("Dropping ", nrow(x$drop), " rows with mismatched headers."))
+        # Quickest way to repair all the misapplied interpretations caused by header mismatch is to reload
+        .lastDropped <- x$drop
+        tmpFile <- tempfile()
+        write.csv(x$keep, tmpFile, row.names = F)
+        tmp <- read.csv(tmpFile) %>% as_tibble()
+      }
+      
       # screen out non-okay ids
       if ("pid" %in% names(tmp))
         tmp <- tmp[tmp$pid %in% okayIds$pid[okayIds$okay], ]
@@ -117,7 +127,7 @@ for (study in studies) {
       # add labels to the columns from the associated data dictionaries
       tmp <- getLabels(tmp, str_replace(name, '\\.', '-'), 
                        rDir = rDir, warnOnMissing = 'variable')
-      
+  
       tmp <- getDerivedVariables(tmp, name, vars[[name]])
       
       # Check all variables have labels

@@ -2327,6 +2327,49 @@ where $\omega_a^t$ is the credibility of advisor $a$ on trial $t$, $\lambda$ is 
 
 In the simplest case, $f(x, y)$ takes values of -1 or +1 for incorrect and correct estimates, respectively, while in other cases it may be continuous, e.g. the reciprocal of the error.
 
+
+### Cleaner graph for ppt presentation
+
+```{r}
+
+offBrand %>%
+  mutate(feedback = if_else(hasFeedback, "Feedback", "No feedback"),
+         feedback = factor(feedback, levels = c("No feedback", "Feedback"))) %>%
+  group_by(pid, advisor0idDescription, feedback) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  ggplot(aes(x = advisor0idDescription, y = woa)) +
+  geom_violin(colour = NA, fill = "grey90") +
+  geom_boxplot(fill = "white", outlier.color = NA, width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = 'line', aes(group = feedback, linetype = "Mean"), 
+               fun.y = mean, size = 1.25) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_linetype_manual(values = "dotted") +
+  facet_wrap(~feedback) +
+  labs(x = "Advisor", 
+       y = "Weight on Advice") +
+  theme(text = element_text(size = 16),
+        panel.grid = element_blank(),
+        legend.position = "top")
+```
+
+### Bayesian ANOVA
+
+```{r}
+tmp <- offBrand %>% 
+  mutate(feedback = factor(hasFeedback),
+         advisor = factor(advisor0idDescription),
+         order = factor(firstAdvisor))
+a <- anovaBF(advisor0woa ~ advisor + feedback + order + pid, 
+             data = tmp, whichRandom = "pid", progress = F)
+a
+marginalBF(a, list(
+  c("feedback + advisor + feedback:advisor + order + pid",
+    "feedback + advisor + order + pid")
+  )
+)
+```
+
 ## Credits 
 
 ### Acknowledgements
