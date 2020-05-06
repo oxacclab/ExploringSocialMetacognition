@@ -33,7 +33,7 @@ key %>%
 
 dropped <- key[!(key$pid %in% exclusions$pid), ]
 print("Dropped:")
-print(as.character(dropped$prolificId))
+print(unique(as.character(dropped$prolificId)))
 
 key <- key[key$pid %in% exclusions$pid, ]
 
