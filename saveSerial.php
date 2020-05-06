@@ -96,6 +96,8 @@ $json = json_decode(file_get_contents("php://input"), true);
 
 $meta = $json["metadata"];
 $data = json_decode($json["data"], true);
+// Prepend server time to the data file
+$data = array("serverTime" => date(DateTimeInterface::ISO8601)) + $data;
 
 $public = (boolean) $meta["isPublic"];
 $tid = (string) $meta["fileName"];
