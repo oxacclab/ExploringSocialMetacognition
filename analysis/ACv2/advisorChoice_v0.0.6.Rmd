@@ -1,0 +1,559 @@
+---
+title: "Advisor choice (dates)"
+author: "[Matt Jaquiery](https://github.com/mjaquiery) ([matt.jaquiery@psy.ox.ac.uk](mailto:matt.jaquiery@psy.ox.ac.uk))"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+  html_notebook:
+    toc: yes
+    toc_depth: 3
+    css: ../src/writeUp.css
+    includes:
+      after_body: ../src/toc_menu.html
+editor_options:
+  chunk_output_type: inline
+---
+
+May 2020
+
+[Script run `r Sys.time()`]
+
+
+```{r prematter, include = F}
+
+library(tidyverse)
+library(scales)
+library(broom)
+library(BayesFactor)
+library(prettyMD)
+library(knitr)
+library(parallel)
+library(ez)
+
+opts_chunk$set('echo' = F)
+
+set.seed(20200504)
+
+# Plot setup
+theme_set(theme_light() + 
+            theme(panel.grid = element_blank(),
+                  legend.position = 'top'))
+
+```
+
+```{r loadData, include = F}
+
+# rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
+testData <- F
+
+studyVersion <- "0-0-6"
+studyName <- "advisorChoice"
+
+overrideMarkerList <- c(7, 13, 21)
+
+exclude <- list(
+  maxTrialRT = 60000,    # trials take < 1 minute
+  minTrials = 11,        # at least 11 trials completed
+  minChangeRate = .1,    # some advice taken on 10%+ of trials
+  badMarker = T,        # markers not in markerList
+  custom = list(
+      adviceColumnsNumeric = 
+        # Each participant should have only numeric values in the advice details
+        function(x) {
+          x %>% 
+            transmute(advisor0adviceCentre = 
+                        as.numeric(as.character(advisor0adviceCentre))) %>%
+            summarise_all(~any(is.na(.))) %>% 
+            pull()
+        },
+      eightKeyTrials = 
+        # Each participant should have at least eight choice trials
+        function(x) {
+          x %>% 
+            filter(advisorOptions != "") %>%
+            nrow() < 8
+        }
+    )
+  ) 
+
+skipLoadData <- F
+
+source("src/02_Exclusions.R")
+
+if (testData) {
+  # Construct some models of participant behaviour on the ‘prefer worst known to
+  # unknown’, ‘treat unknown as worst known’, and ‘weight advice weights
+  # according to how likely advice of a given confidence was to come from each
+  # advisor’
+  source("src/sim-confidence-estimation.R")
+  model <- simulateCK(
+    AdvisedTrial,
+    agentInsensitivitySD = 8,
+    agentConfidence = 2,
+    agentConfidenceSD = 4,
+    agentEgoBias = .7, 
+    agentEgoBiasSD = .2,
+    agentEffectSize = .1,
+    agentEffectSizeSD = .1,
+    strategy = 'PreferWorst'
+    )
+  AdvisedTrial <- model$trials
+  decisions <- byDecision(AdvisedTrial)
+}
+
+```
+
+# Introduction
+
+We have [previously observed](https://oxacclab.github.io/ExploringSocialMetacognition/analysis/ACv2/writeUp_v1.0.1.html) that people are more influenced by accurate over agreeing advisors when given feedback, and by agreeing over accurate advisors when denied feedback. Here we seek to extend that finding to the domain of source selection by offering participants a choice of advisor.
+
+# Method
+
+Participants are trained on an estimation decision task (dates task) and familiarised with two advisors within a judge-advisor system, one of who offers advisory estimates close to the participant's initial estimate ('agreeing advisor') and one who offers advisory estimates close to the true answer ('accurate advisor'). In the test phase, participants are allowed to choose which of the two advisors will give them advice on each trial.
+
+The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiment can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/ac.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACv2/ac.html?PROLIFIC_PID=WriteUp). 
+
+# Results
+
+## Exclusions
+
+```{r exclusions}
+
+if (testData) {
+  print("NOTE: Testing (simulated) data!!!!")
+}
+
+tmp <- suppressWarnings(left_join(exclusions, okayIds, by = "pid"))
+tmp <- tmp %>% mutate(pid = as.character(pid))
+
+tmp$condition <- factor(tmp$condition, labels = c("Feedback.AgreeFirst",
+                                                  "Feedback.AccurateFirst",
+                                                  "Nofeedback.AgreeFirst",
+                                                  "Nofeedback.AccurateFirst"))
+
+table(tmp$excluded, tmp$condition)
+
+AdvisedTrial <- AdvisedTrial %>%
+  mutate(
+    condition = unlist(sapply(pid, function(p) tmp$condition[tmp$pid == p][1])),
+    FeedbackCondition = if_else(str_detect(condition, "^Feedback"), 
+                                "Feedback condition", "No feedback condition")
+  )
+
+```
+
+```{r data visualisation variables}
+# Add some variables which we can use for plotting prettily later
+
+AdvisedTrial <- AdvisedTrial %>%
+  mutate(Advisor = capitalize(as.character(advisor0idDescription)),
+         Feedback = if_else(feedback, "Feedback", "No feedback"),
+         Phase = if_else(advisorOptions == "", "Familiarization", "Test"))
+
+decisions <- byDecision(AdvisedTrial) %>% 
+  mutate(Decision = capitalize(decision))
+```
+
+Our final participant list consists of `r length(unique(AdvisedTrial$pid))` participants who completed an average of `r num2str(mean(aggregate(advisor0 ~ pid, AdvisedTrial, length)$advisor0))` trials each. There were `r AdvisedTrial %>% select(pid, FeedbackCondition) %>% unique() %>% filter(FeedbackCondition == "Feedback condition") %>% nrow()` participants in the Feedback condition, and `r AdvisedTrial %>% select(pid, FeedbackCondition) %>% unique() %>% filter(FeedbackCondition == "No feedback condition") %>% nrow()` in the No feedback condition.
+
+## Task performance
+
+First we offer a characterisation of the task, to provide the reader with a sense of how the participants performed. 
+
+### Decisions
+
+Participants offered estimates of whether various events took place before or after a given year. The correct answers were always between 1900 and 2000. Participants answered selecting a marker from a pool of available markers and dragging it onto a timeline to cover a range of dates within which they thought the event took place.
+
+#### Correctness
+
+Correct answers are those in which the chosen marker covers the year in which the event took place.
+
+```{r accuracy}
+
+decisions %>% filter(Phase == "Familiarization") %>% peek(responseCorrect, decision) %>%
+  num2str.tibble(isProportion = T, precision = 3) %>%
+  cbind(Phase = unique(decisions %>% filter(Phase == "Familiarization") %>% pull(Phase)))
+
+```
+
+```{r accuracyGraph}
+
+tmp <- decisions %>%
+  filter(Phase == "Familiarization") %>% 
+  group_by(pid, Decision, FeedbackCondition, Phase) %>%
+  do(correct = mean_cl_normal(.$responseCorrect)) %>%
+  unnest(correct) %>%
+  transmute(pid, Decision, FeedbackCondition, Phase,
+            pCorrect = y, 
+            ciLow = ymin,
+            ciHigh = ymax)
+
+ggplot(tmp, 
+       aes(x = Decision, y = pCorrect)) +
+  geom_hline(yintercept = max(overrideMarkerList) / 110, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(y = "P(Response correct)") +
+  facet_grid(~Phase + FeedbackCondition)
+
+# caption = "Probability of correct responses on initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows chance performance when placing the widest marker randomly on the timeline. The panels are facetted according to the participants' condition."
+
+```
+
+### Error 
+
+Error is the distance in years between the centre of the marker and the correct year. Note that when using smaller markers it is possible for answers to be incorrect (the marker doesn't cover the correct year) while still having relatively low error (the centre of the marker is close to the correct year).
+
+```{r}
+
+decisions %>% filter(Phase == "Familiarization") %>% peek(responseError, decision) %>%
+  num2str.tibble(isProportion = T, precision = 1) %>%
+  cbind(Phase = unique(decisions %>% filter(Phase == "Familiarization") %>% pull(Phase)))
+
+tmp <- decisions %>%
+  filter(Phase == "Familiarization") %>% 
+  group_by(pid, Decision, FeedbackCondition, Phase) %>%
+  do(error = mean_cl_normal(.$responseError)) %>%
+  unnest(error) %>%
+  transmute(pid, Decision, FeedbackCondition, Phase,
+            error = y, 
+            ciLow = ymin,
+            ciHigh = ymax)
+
+# Estimate error from random placement
+guessingError <- tibble(
+  x = sample(1890:(2010 - max(overrideMarkerList)) + max(overrideMarkerList/2), 10000, T), 
+  y = sample(AdvisedTrial$correctAnswer, 10000, T),
+  error = abs(x - y)
+  ) %>% pull(error) %>% mean()
+
+
+ggplot(tmp, aes(x = Decision, y = error)) +
+  geom_hline(yintercept = guessingError, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(y = "Mean error (years)") +
+  facet_grid(~Phase + FeedbackCondition)
+
+# caption = "Response error for initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions. The panels are facetted according to the participants' condition. Dashed line shows the (empirically estimated) average error from placing the widest marker randomly on the timeline."
+
+```
+
+### Timing
+
+We can look at the response time - the difference between the time the response is opened and the time the response is received.  
+
+```{r time}
+
+decisions$rt <- decisions$responseTimeEstimate - decisions$timeResponseOpen
+
+decisions %>% filter(Phase == "Familiarization") %>% peek(rt, decision) %>% 
+  mutate_if(is.numeric, round) %>%
+  cbind(Phase = unique(decisions %>% filter(Phase == "Familiarization") %>% pull(Phase)))
+
+```
+
+```{r timeGraph}
+
+tmp <- decisions %>% 
+  filter(Phase == "Familiarization") %>% 
+  group_by(pid, Decision, Phase, FeedbackCondition) %>% 
+  summarise(rt = mean(rt))
+
+tmp %>%
+  ggplot(aes(x = Decision, y = rt)) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(y = "Response time (ms)") +
+  facet_grid(~ Phase + FeedbackCondition)
+
+# caption = "Response times for initial estimates and final decisions. Lines show individual participant means, while violins and boxplots give distributions."
+
+```
+
+### Summary {.summary}
+
+Participants were able to perform the task appropriately: their responses were better than would be expected by chance both in terms of the difference between the correct answer and the response marker placement and in terms of the rate at which the response marker placement covered the correct answer. 
+
+## Metacognitive performance
+
+### Marker usage
+
+Participants could select one of three markers, each spanning a different number of years. They were awarded more points for selecting slimmer markers.
+
+```{r marker usage}
+
+PP <- decisions %>% 
+  filter(Phase == "Familiarization") %>% 
+  participantSummary()
+
+tmp <- markerBreakdown(proportion, PP, hideMarkerTotal = T)
+
+# Proportions within a row should sum to 1
+for (x in tmp)
+  expect_equal(apply(x[, 3:5], 1, sum), rep(1, nrow(x)))
+
+num2str.tibble(tmp$first, isProportion = T, precision = 3)
+num2str.tibble(tmp$last, isProportion = T, precision = 3)
+
+```
+
+```{r marker usage graph}
+
+PP %>% 
+  left_join(AdvisedTrial %>% select(pid, FeedbackCondition) %>% unique(), by = "pid") %>%
+  filter(!is.na(responseMarker)) %>% 
+  mutate(Decision = capitalize(decision)) %>%
+  ggplot(aes(x = responseMarker, y = proportion)) +
+  geom_hline(yintercept = 1/length(overrideMarkerList), linetype = 'dashed') +
+  geom_violin(alpha = .15, aes(fill = Decision), colour = NA) +
+  geom_boxplot(fill = "white", aes(colour = Decision), outlier.color = NA, width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_grid(Decision ~ FeedbackCondition) +
+  scale_linetype_manual(values = c("dashed")) + 
+  labs(x = "response marker width (years)", 
+       y = "p(marker used)")
+
+# caption = "Proportion of marker selection by participant condition and decision time. Faint lines show individual participant scores, heavy dashed lines show participant means, and boxplots and violins give distributions. Light dashed line shows the probability of selecting markers at random"
+
+```
+
+#### Feedback condition by advisor
+
+```{r}
+
+decisions %>% 
+  filter(FeedbackCondition == "Feedback condition",
+         Phase == "Familiarization") %>% 
+  nest(data = c(-advisor0idDescription, -FeedbackCondition, -Phase)) %>% 
+  mutate(data = map(data, ~ participantSummary(.))) %>%
+  unnest_legacy() %>%
+  mutate(Decision = capitalize(decision)) %>%
+  ggplot(aes(x = responseMarker, y = proportion)) +
+  geom_hline(yintercept = 1/length(overrideMarkerList), linetype = 'dashed') +
+  geom_violin(alpha = .15, aes(fill = Decision), colour = NA) +
+  geom_boxplot(fill = "white", aes(colour = Decision), outlier.color = NA, width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_grid(Decision ~ FeedbackCondition + advisor0idDescription) +
+  scale_linetype_manual(values = c("dashed")) + 
+  labs(x = "response marker width (years)", 
+       y = "p(marker used)")
+
+# caption = "Proportion of marker selection by participants in the Feedback condition by Advisor and decision time. Faint lines show individual participant scores, heavy dashed lines show participant means, and boxplots and violins give distributions. Light dashed line shows the probability of selecting markers at random"
+
+```
+
+### Relationship between marker width and error
+
+Participants indicated the confidence in their decisions simultaneously with the decisions themselves through their choice of which marker to use. We can thus explore how well a participant's confidence signals their accuracy. We expect that slimmer markers will be associated with less error.
+
+```{r}
+
+tmp <- decisions %>% 
+  filter(Phase == "Familiarization") %>%
+  markerBreakdown(responseError, .)
+num2str.tibble(tmp$first, precision = 1)
+num2str.tibble(tmp$last, precision = 1)
+
+```
+
+```{r}
+
+byChance <- tibble(
+  responseMarker = sample(overrideMarkerList, 10000 * length(overrideMarkerList), T),
+  x = map_dbl(responseMarker, ~ sample(1890:(2010 - .) + ./2, 1)),
+  c = sample(AdvisedTrial$correctAnswer, length(responseMarker), T),
+  error = abs(x - c)
+) %>% group_by(responseMarker) %>% 
+  summarise(chanceLevel = mean(error)) %>%
+  mutate(responseMarker = factor(responseMarker))
+
+decisions %>% 
+  filter(Phase == "Familiarization") %>%
+  group_by(Decision, FeedbackCondition, pid, responseMarker) %>%
+  summarise(responseError = mean(responseError)) %>%
+  ggplot(aes(x = responseMarker, y = responseError)) +
+  geom_blank() +
+  geom_segment(aes(x = as.numeric(responseMarker) - .33, 
+                   xend = as.numeric(responseMarker) + .33, 
+                   y = chanceLevel, yend = chanceLevel), 
+               linetype = "dashed", data = byChance) +
+  geom_violin(alpha = .25, colour = NA, aes(fill = Decision)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Decision), width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  stat_summary(geom = "line", fun.y = mean,
+               aes(group = 1, linetype = "mean"), size = 1.5) +
+  facet_grid(Decision ~ FeedbackCondition) +
+  scale_linetype_manual(values = c("dashed")) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(x = "response marker width (years)", 
+       y = "|target - response marker centre| (years)")
+
+# caption = "Error values for each marker, by participant condition and decision. Faint solid lines show individual participant data, heavy dashed lines show means for all participants, and violins and box plots show distributions. The light dashed lines show (empirically estimated) chance level error for each marker if it were placed randomly on the scale."
+
+```
+
+### Summary {.summary}
+
+Participants made use of all the markers. The usage proportions for each marker were fairly similar to one another, especially in comparison with past data. In the feedback case it appears that participants tended to adopt a conservative marker width to begin with, relying on the advice to resolve their uncertainty. These participants often chose to select narrow markers where the Accurate advisor was providing advice, while retaining the widest marker when the Agreeing advisor was providing advice. The participants in the No feedback condition appeared to increase their confidence (by using slimmer markers) on final decisions as compared with initial estimates.
+
+The mean error showed a tendency to increase with the marker width, indicating that participants were using wider markers where they were less close to the correct answer, presumably reflecting a decrease in confidence which accompanied the decreased accuracy.
+
+## Advisor performance
+
+Participants in should get an appropriate experience of each advisor during familiarisation. The accurate advisor should have low error, while the agreeing advisor should have low distance (a measure of the distance between the centre of the advice and the participant's initial estimate).
+
+### Error
+
+```{r adviceAccuracy}
+
+tmp <- AdvisedTrial %>%
+  group_by(pid, advisor0idDescription, FeedbackCondition) %>% 
+  mutate(advisor0adviceCentre = as.numeric(as.character(advisor0adviceCentre))) %>%
+  summarise(error = mean(abs(advisor0adviceCentre - correctAnswer)),
+            distance = mean(abs(advisor0adviceCentre - 
+                                  (responseEstimateLeft + responseMarkerWidth / 2))))
+
+tmp %>% 
+  group_by(advisor0idDescription, FeedbackCondition) %>%
+  summarise(adviceError = mean(error),
+            adviceDistance = mean(distance)) %>%
+  num2str.tibble(isProportion = T, precision = 3)
+
+```
+
+```{r adviceAccuracyGraph}
+guessingError <- tibble(
+  x = sample(1890:(2010 - unique(AdvisedTrial$advisor0adviceWidth)) + unique(AdvisedTrial$advisor0adviceWidth/2), 10000, T), 
+  y = sample(AdvisedTrial$correctAnswer, 10000, T),
+  error = abs(x - y)
+  ) %>% pull(error) %>% mean()
+
+tmp %>% 
+  gather("var", "value", c(error, distance)) %>%
+  mutate(var = capitalize(var)) %>%
+  ggplot(aes(x = advisor0idDescription, y = value)) +
+  geom_hline(yintercept = guessingError, linetype = 'dashed') +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor0idDescription)) +
+  geom_boxplot(fill = "white", outlier.color = NA, aes(colour = advisor0idDescription),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  labs(y = "Mean advice error", x = "Advisor") +
+  scale_y_continuous(limits = c(0, 100)) + 
+  scale_colour_discrete(h.start = 45) + 
+  scale_fill_discrete(h.start = 45) +
+  facet_grid(var~FeedbackCondition)
+  
+# caption = "Mean advice distance and error for advice from the two advisors. Lines show individual participant means, while violins and boxplots give distributions. The dashed line shows the (empirically estimated) error by placing an advisor's marker randomly on the timeline."
+  
+```
+
+### Summary {.summary}
+
+The advisors offered advice which was better than chance. The Accurate advisors were more accurate than the Agreeing advisors, and the Agreeing advisors offered answers which were closer to the participants' initial estimates than the Accurate advisors.
+
+## Hypothesis testing
+
+The hypotheses being tested here are:  
+
+1. Participants' pick rates for the two advisors will differ by condition.  
+2. Participants in the Feedback condition will pick the Accurate advisor more than the Agreeing advisor.  
+3. Participants in the No feedback condition will pick the Agreeing advisor more than the Accurate advisor.  
+
+```{r h1}
+
+tmp <- AdvisedTrial %>%
+  filter(Phase == "Test") %>%
+  group_by(pid, FeedbackCondition, firstAdvisor) %>%
+  summarise(`p(chooseAccurate)` = mean(advisor0idDescription == "Accurate"))
+
+ggplot(tmp, aes(x = FeedbackCondition, y = `p(chooseAccurate)`)) +
+  geom_hline(yintercept = .5, linetype = 'dashed') +
+  geom_violin(fill = "grey85", colour = NA) +
+  geom_boxplot(width = .25, size = 1.25, fill = "white", outlier.color = NA) +
+  geom_point(position = position_jitter(.05), shape = 4, size = 3, alpha = .5)
+
+# caption = "Distribution of participant advisor selection. Crosses show participants' proportion of choice trials where the Accurate advisor was chosen over the Agreeing advisor. Violins and box plots show distributions, while the dashed line indicates chance level choosing."
+
+ttestBF(formula = `p(chooseAccurate)` ~ FeedbackCondition, data = tmp)
+```
+
+```{r h2}
+ttestBF(tmp$`p(chooseAccurate)`[tmp$FeedbackCondition == "Feedback condition"], mu = .5)
+```
+
+```{r h3}
+ttestBF(tmp$`p(chooseAccurate)`[tmp$FeedbackCondition != "Feedback condition"], mu = .5)
+```
+
+### Summary {.summary}
+
+Participants in the two conditions showed different pick rates. Participants in the Feedback condition preferred to pick the Accurate advisor. Participants in the No feedback condition did not have a systematic preference, although there was a tendency to prefer the Agreeing advisor.
+
+## Exploration
+
+# Conclusions {.summary}
+
+As we showed with influence, people can use feedback to identify a helpful advisor. Unlike the influence results, participants denied feedback did not show a preference for the Agreeing advisor, suggesting that source selection is substantially more robust to the agreement-driven updating than we hypothesised. 
+
+This finding should be replicated in a) a preregistered experiment and b) using the Dots task. If the finding that source selection is relatively unaffected by agreement-driven updating proves robust, this may be worth conduting further experiments to explore: is the tendency to prefer to pick the Agreeing advisor associated with metacognitive ability, need-for-certainty, or the like?
+
+# Credits 
+
+## Acknowledgements
+
+Thanks as always to Nick Yeung and the other folks at the [ACC Lab](https://www.psy.ox.ac.uk/research/attention-cognitive-control-lab).
+
+## R Packages
+
+```{r results = 'asis'}
+# list packages
+packageNames <- (.packages())
+# don't include very core package
+packageNames <- packageNames[!(packageNames %in% 
+                                 rownames(installed.packages(
+                                   priority = "base")))]
+# but do include the base package
+packageNames <- c("base", packageNames)
+out <- NULL
+for (p in packageNames) {
+  out <- rbind(out, data.frame('Package' = p, 
+                               'Citations' = paste(format(citation(p), 
+                                                          style = 'textVersion'), 
+                                                   collapse = '<br/><br/>')))
+}
+
+as_tibble(out)
+```
+
+## Funding
+
+Matt Jaquiery is funded by a studentship from the [Medical Research Council](https://mrc.ukri.org/) (reference 1943590) and the University of Oxford [Department of Experimental Psychology](https://www.psy.ox.ac.uk/) (reference 17/18_MSD_661552).
+
+## Technical details  
+
+```{r results = 'hold'}
+cat(paste('Time stamp:', Sys.time(), '\n\n'))
+cat('Runtime \n')
+proc.time()
+cat('\n')
+sessionInfo()
+```
