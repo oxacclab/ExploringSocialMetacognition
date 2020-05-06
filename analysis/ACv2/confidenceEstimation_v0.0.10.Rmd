@@ -814,6 +814,39 @@ tmp %>%
 
 ```
 
+### Prettier influence graph
+
+```{r}
+
+theme_set(theme_light() +
+            theme(
+              panel.grid = element_blank(),
+              legend.position = 'top',
+              text = element_text(size = 16)
+            ))
+
+tmp <- AdvisedTrial %>% 
+  group_by(pid, advisor0idDescription, feedback, studyId, studyVersion) %>%
+  summarise(advisorInfluence = mean(advisor0influence)) 
+
+tmp %>% 
+  mutate(
+    Advisor = advisor0idDescription,
+    Feedback = if_else(feedback, "Feedback", "No feedback"),
+    Feedback = factor(Feedback, levels = c("No feedback", "Feedback"))
+  ) %>%
+  rename(advisor = advisor0idDescription) %>%
+  ggplot(aes(x = advisor, y = advisorInfluence)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_violin(alpha = .5, colour = NA, fill = "grey85") +
+  geom_boxplot(fill = "white", outlier.color = NA, width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(-100, 100)) +
+  facet_grid(studyId + studyVersion~Feedback) +
+  labs(x = "Advisor", y = "Influence")
+
+```
+
 # Conclusions {.summary}
 
 !TODO[Conclusions]

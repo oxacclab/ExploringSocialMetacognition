@@ -1348,7 +1348,8 @@ tmp %>%
   scale_fill_discrete(h.start = 135) +
   scale_y_continuous(limits = c(-100, 100)) +
   labs(x = 'Advisor presentation', y = 'Advisor influence') +
-  facet_wrap(~`Least favourite`, labeller = label_both)
+  facet_grid("calibrationKnowledge" + "0.1.3"~"Least favourite:" + `Least favourite`) +
+  theme(text = element_text(size = 16))
 
 # caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The line types show the identity of the least advisor whose influence is plotted for that participant. The full-width black dashed line shows zero influence."
 

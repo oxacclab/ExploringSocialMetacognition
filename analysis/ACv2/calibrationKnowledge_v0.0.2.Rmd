@@ -799,14 +799,16 @@ tmp %>%
   geom_violin(alpha = .15, colour = NA, aes(fill = Advisor)) +
   geom_boxplot(fill = "white", outlier.color = NA, aes(colour = Advisor),
                width = .25, size = 1.25) +
-  geom_line(alpha = .25, size = .75, aes(group = pid, linetype = nonfavourite)) + 
+  geom_line(alpha = .25, size = .75, aes(group = pid)) + 
   scale_colour_discrete(h.start = 135) + # match colours with hybrid green above
   scale_fill_discrete(h.start = 135) +
   scale_y_continuous(limits = c(-100, 100)) +
   scale_linetype_discrete(name = 'Least favourite advisor') +
-  labs(x = 'Advisor presentation', y = 'Advisor influence')
+  labs(x = 'Advisor presentation', y = 'Advisor influence') + 
+  facet_grid("calibrationKnowledge" + "0.0.18" ~ "Least favourite:" + nonfavourite) +
+  theme(text = element_text(size = 16))
 
-# caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The line types show the identity of the least advisor whose influence is plotted for that participant. The full-width black dashed line shows zero influence."
+# caption = "Advice influence for the least influential advisor in the critical trials. Lines show individual participants' means, while box plots and violins show distributions. Labelled trials are those where the advisor's identity is displayed to the participant, while hybrid trials are those where the advice could be coming from either advisor. The facets divide the plot by the identity of the least favourite advisor, whose influence is plotted for that participant. The full-width black dashed line shows zero influence."
 
 ```
 
