@@ -470,6 +470,78 @@ tmp %>%
 
 The advisors offered advice which was better than chance. The Accurate advisors were more accurate than the Agreeing advisors, and the Agreeing advisors offered answers which were closer to the participants' initial estimates than the Accurate advisors.
 
+## Advice during Familiarization
+
+The participants had a familiarization block with each of the advisors individually. While these blocks are relatively short, learning may be rapid enough to demonstrate differences in influence. 
+
+```{r}
+
+optimalIsh <- tibble(
+  advisor0idDescription = unique(AdvisedTrial$advisor0idDescription),
+  woa = if_else(advisor0idDescription == "Agreeing", 0, NA_real_)
+  ) %>%
+  filter(advisor0idDescription == "Agreeing")
+
+AdvisedTrial %>% 
+  filter(Phase == "Familiarization") %>%
+  group_by(pid, advisor0idDescription, FeedbackCondition, Phase) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  ggplot(aes(x = advisor0idDescription, y = woa)) +
+  geom_blank() +
+  geom_segment(aes(x = as.numeric(advisor0idDescription) - .33, 
+                   xend = as.numeric(advisor0idDescription) + .33, 
+                   y = woa, yend = woa), 
+               linetype = "dashed", data = optimalIsh) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor0idDescription)) +
+  geom_boxplot(fill = "white", outlier.color = NA, 
+               aes(colour = advisor0idDescription),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_colour_discrete(name = "Advisor", h.start = 45) + 
+  scale_fill_discrete(name = "Advisor", h.start = 45) +
+  labs(x = "Advisor", y = "Weight on Advice") +
+  facet_grid(~ Phase + FeedbackCondition)
+  
+# caption = "Influence of the advice during the familiarization phase. Faint lines show individual participant means, while box plots and violins show the distributions. Dashed lines show the theoretically optimal level of advice-taking. The optimal level of advice-taking for the Accurate advisor depends upon the ability of the participant, but is likely to be very high (>.75)."
+
+```
+We included a couple of trials in each familiarization block where the advisors gave matched advice. We can compare influence just on those trials.
+
+```{r}
+
+optimalIsh <- tibble(
+  advisor0idDescription = unique(AdvisedTrial$advisor0idDescription),
+  woa = if_else(advisor0idDescription == "Agreeing", 0, NA_real_)
+  ) %>%
+  filter(advisor0idDescription == "Agreeing")
+
+AdvisedTrial %>% 
+  filter(Phase == "Familiarization",
+         advisor0actualType == "disagreeReflected") %>%
+  group_by(pid, advisor0idDescription, FeedbackCondition, Phase, advisor0actualType) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  ggplot(aes(x = advisor0idDescription, y = woa)) +
+  geom_blank() +
+  geom_segment(aes(x = as.numeric(advisor0idDescription) - .33, 
+                   xend = as.numeric(advisor0idDescription) + .33, 
+                   y = woa, yend = woa), 
+               linetype = "dashed", data = optimalIsh) +
+  geom_violin(alpha = .15, colour = NA, aes(fill = advisor0idDescription)) +
+  geom_boxplot(fill = "white", outlier.color = NA, 
+               aes(colour = advisor0idDescription),
+               width = .25, size = 1.25) +
+  geom_line(alpha = .25, aes(group = pid)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_colour_discrete(name = "Advisor", h.start = 45) + 
+  scale_fill_discrete(name = "Advisor", h.start = 45) +
+  labs(x = "Advisor", y = "Weight on Advice") +
+  facet_grid(~ advisor0actualType + Phase + FeedbackCondition)
+  
+# caption = "Influence of the advice during the familiarization phase. Faint lines show individual participant means, while box plots and violins show the distributions. Dashed lines show the theoretically optimal level of advice-taking. The optimal level of advice-taking for the Accurate advisor depends upon the ability of the participant, but is likely to be very high (>.75)."
+
+```
+
 ## Hypothesis testing
 
 The hypotheses being tested here are:  
@@ -510,11 +582,209 @@ Participants in the two conditions showed different pick rates. Participants in 
 
 ## Exploration
 
+### Influence during Familiarization x Pick preference
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  group_by(pid, advisor0idDescription, FeedbackCondition, Phase) %>%
+  summarise(woa = mean(advisor0woa), n = n()) 
+tmp <- tmp %>%
+  pivot_wider(names_from = advisor0idDescription, values_from = c(woa, n)) %>%
+  ungroup() %>%
+  mutate_if(is.numeric, ~ if_else(is.na(.), 0, as.numeric(.))) %>%
+  mutate(woa = woa_Accurate / (woa_Accurate + woa_Agreeing),
+         n = n_Accurate / (n_Accurate + n_Agreeing)) %>%
+  pivot_wider(names_from = Phase, values_from = c(woa, n)) %>%
+  group_by(pid, FeedbackCondition) %>%
+  summarise(woa = mean(woa_Familiarization, na.rm = T), n = mean(n_Test, na.rm = T))
+
+print('>> Feedback condition')
+cor.test(formula = ~ n + woa, data = tmp[tmp$FeedbackCondition == "Feedback condition", ])
+print('>> No feedback condition')
+cor.test(formula = ~ n + woa, data = tmp[tmp$FeedbackCondition != "Feedback condition", ])
+
+ggplot(tmp, aes(y = woa, x = n, colour = FeedbackCondition)) + 
+  geom_smooth(method = 'lm', se = F, fullrange = T) +
+  geom_point() +
+  coord_fixed() +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1)) + 
+  labs(y = "WoA_Acc / (WoA_Acc + WoA_Agr) during Familiarization", 
+       x = "N_Acc / (N_Acc + N_Agr) during Test")
+
+```
+We really ought to check this using the disagreeReflected trials only.
+
+```{r}
+
+tmp <- AdvisedTrial %>%
+  filter(advisor0actualType == "disagreeReflected" | Phase == "Test") %>%
+  group_by(pid, advisor0idDescription, FeedbackCondition, Phase) %>%
+  summarise(woa = mean(advisor0woa), n = n()) 
+tmp <- tmp %>%
+  pivot_wider(names_from = advisor0idDescription, values_from = c(woa, n)) %>%
+  ungroup() %>%
+  mutate_if(is.numeric, ~ if_else(is.na(.), 0, as.numeric(.))) %>%
+  mutate(woa = woa_Accurate / (woa_Accurate + woa_Agreeing),
+         n = n_Accurate / (n_Accurate + n_Agreeing)) %>%
+  pivot_wider(names_from = Phase, values_from = c(woa, n)) %>%
+  group_by(pid, FeedbackCondition) %>%
+  summarise(woa = mean(woa_Familiarization, na.rm = T), n = mean(n_Test, na.rm = T))
+
+adviceTaking <- tmp
+
+print('>> Feedback condition (disagreeReflected trials only)')
+cor.test(formula = ~ n + woa, data = tmp[tmp$FeedbackCondition == "Feedback condition", ])
+print('>> No feedback condition (disagreeReflected trials only)')
+cor.test(formula = ~ n + woa, data = tmp[tmp$FeedbackCondition != "Feedback condition", ])
+
+ggplot(tmp, aes(y = woa, x = n, colour = FeedbackCondition)) + 
+  geom_smooth(method = 'lm', se = F, fullrange = T) +
+  geom_point() +
+  coord_fixed() +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1)) + 
+  labs(y = "WoA_Acc / (WoA_Acc + WoA_Agr) during Familiarization", 
+       x = "N_Acc / (N_Acc + N_Agr) during Test")
+
+```
+
+### Offbrand trial numbers
+
+We want to know how much experience with an advisor each participant had before they got the offbrand trials used to calculate influence.
+
+```{r}
+suppressWarnings(
+  tmp <- AdvisedTrial %>% 
+    arrange(number) %>%
+    nest(d = c(-pid, -block, -advisor0idDescription)) %>%
+    mutate(d = map(d, ~ rowid_to_column(., 'nth_in_block'))) %>%
+    unnest_legacy()
+) 
+tmp %>%
+  filter(advisor0actualType == "disagreeReflected") %>%
+  ggplot(aes(x = nth_in_block, fill = advisor0idDescription)) +
+  geom_histogram(position = position_identity(), colour = NA, bins = 7, alpha = .5) +
+  scale_fill_discrete(h.start = 45) +
+  scale_x_continuous(breaks = unique(tmp$nth_in_block))
+
+```
+
+### Advisor ratings
+
+We can look at the questionnaire items for the advisors, too.
+
+```{r}
+
+tmp <- left_join(debrief.advisors, adviceTaking, by = "pid") %>%
+  left_join(advisors %>% select(pid, id, idDescription), by = c("pid", "advisorId" = "id")) %>%
+  select(pid, knowledge, helpfulness, likability, comment, advisorId, 
+         FeedbackCondition, woa, n, idDescription) %>%
+  mutate_if(is.numeric, as.numeric) %>%
+  filter(!is.na(FeedbackCondition)) 
+
+tmp
+
+tmp %>%
+  gather(key = "var", value = "value", knowledge:likability) %>%
+  ggplot(aes(x = idDescription, y = value,
+                  fill = idDescription, colour = idDescription)) +
+  geom_violin(colour = NA, alpha = .4) +
+  geom_boxplot(fill = "white", width = .2, size = 1.25) +
+  geom_line(colour = "black", alpha = .1, aes(group = pid)) +
+  scale_colour_discrete(h.start = 45, name = "Advisor") +
+  scale_fill_discrete(h.start = 45, name = "Advisor") +
+  scale_y_continuous(limits = c(0, 100)) +
+  facet_grid(FeedbackCondition ~ var) +
+  labs(x = "Advisor", y = "Questionnaire rating")
+
+# Arrange QQ into difference scores
+diff <- tmp %>% 
+  mutate(Advisor = as.character(idDescription)) %>%
+  pivot_wider(id_cols = c(pid, woa, n, FeedbackCondition), 
+              names_from = Advisor, 
+              values_from = knowledge:likability) %>%
+  mutate(knowledge = knowledge_Accurate - knowledge_Agreeing,
+         helpfulness = helpfulness_Accurate - helpfulness_Agreeing,
+         likability = likability_Accurate - likability_Agreeing) %>%
+  select(pid, woa, n, FeedbackCondition, knowledge, helpfulness, likability) %>%
+  pivot_longer(knowledge:likability)
+
+cors <- NULL
+for (v in unique(diff$name)) {
+  for (fb in c(unique(diff$FeedbackCondition), 'all')) {
+    for (stat in c('n', 'woa')) {
+      x <- diff %>% filter(name == v)
+      x$stat <- pull(x, stat)
+      if (fb != 'all')
+        x <- x %>% filter(FeedbackCondition == fb)
+      c.fr <- cor.test(x$stat, x$value)
+      c.bf <- correlationBF(x$stat, x$value)
+      
+      cors <- rbind(
+        cors, 
+        tibble(
+          name = v,
+          FeedbackCondition = fb,
+          stat = stat,
+          r = c.fr$estimate,
+          p = c.fr$p.value,
+          bf = exp(c.bf@bayesFactor$bf),
+          s = paste0('r', lteq(prop2str(r, minPrefix = NA), sep = ""), 
+                     ' p', lteq(prop2str(p, minPrefix = NA), sep = ""), 
+                     '\nbf(rho!=0)=', num2str(bf, 1))
+        )
+      )
+    }
+  }
+}
+
+cors %>% filter(FeedbackCondition == 'all') %>% arrange(stat, name)
+
+ggplot(diff, aes(x = n, y = value)) +
+  geom_smooth(method = 'lm', alpha = .25, fill = "lightblue", fullrange = T) +
+  geom_point(alpha = .5) +
+  geom_text(
+    x = .5, y = -100, hjust = .5, vjust = 0, aes(label = s), 
+    data = cors[cors$stat == 'n' & cors$FeedbackCondition != 'all', ]
+    ) +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(x = "Pick proportion (Accurate)",
+       y = "Questionnaire score (Accurate - Agreeing)") +
+  facet_grid(FeedbackCondition ~ name) 
+
+ggplot(diff, aes(x = woa, y = value)) +
+  geom_smooth(method = 'lm', alpha = .25, fill = "lightblue", fullrange = T) +
+  geom_point(alpha = .5) +
+  geom_text(
+    x = .5, y = -100, hjust = .5, vjust = 0, aes(label = s), 
+    data = cors[cors$stat == 'woa' & cors$FeedbackCondition != 'all', ]
+    ) +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  labs(x = "Weight on Advice (Accurate - Agreeing)",
+       y = "Questionnaire score (Accurate - Agreeing)") +
+  facet_grid(FeedbackCondition ~ name) 
+
+```
+
+#### Summary {.summary}
+
+The participants' subjective ratings show some interesting patterns. In the Feedback condition, participants consistently rate the Accurate advisor as both more helpful and more knowledgeable. For around half of these participants, the Accurate advisor is also more likeable, while for the other half the likeability of the advisors is very similar. In the No feedback condition, the advisor preferences appear to be much more idiosyncratic, but they also appear to be stable across scales, so that an advisor rated highly for helpfulness will also be rated highly for likeability and knowledge. 
+
+The difference in ratings given to the two advisors also corresponds quite well with the rate at which that advisor is picked. The higher the ratings for the Accurate advisor compared to the Agreeing advisor, the more frequently the Accurate advisor is picked, for both conditions. This makes sense, but because these measures are taken after the choosing phase an alternate explanation remains plausible; that the more exposed to (i.e. familiar with) an advisor a participant is, the higher they will rate them on arbitrary scales.
+
+The correlations for weight on advice difference with questionnaire rating difference are not very pronounced, and they do not appear to reflect much more than noise, according to the statistical tests. Numerically, they go in the 'wrong' direction: in almost all cases the lower the weight on advice of the Accurate advisor compared to the Agreeing advisor, the higher the rating of the Accurate advisor compared to the Agreeing advisor.
+
 # Conclusions {.summary}
 
-As we showed with influence, people can use feedback to identify a helpful advisor. Unlike the influence results, participants denied feedback did not show a preference for the Agreeing advisor, suggesting that source selection is substantially more robust to the agreement-driven updating than we hypothesised. 
+As we showed with influence, people can use feedback to identify a helpful advisor. Unlike the influence results, participants denied feedback did not show a preference for the Agreeing advisor, suggesting that source selection is substantially more robust to the agreement-driven updating than we hypothesised.
 
-This finding should be replicated in a) a preregistered experiment and b) using the Dots task. If the finding that source selection is relatively unaffected by agreement-driven updating proves robust, this may be worth conduting further experiments to explore: is the tendency to prefer to pick the Agreeing advisor associated with metacognitive ability, need-for-certainty, or the like?
+This finding should be replicated in a) a preregistered experiment and b) using the Dots task. If the finding that source selection is relatively unaffected by agreement-driven updating proves robust, this may be worth conducting further experiments to explore: is the tendency to prefer to pick the Agreeing advisor associated with metacognitive ability, need-for-certainty, or the like?
+
+Future versions should probably ensure that offbrand trials come towards the end of the familiarization blocks to give a good indication of influence.
 
 # Credits 
 
