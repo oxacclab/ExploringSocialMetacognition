@@ -43,9 +43,9 @@ registration), or the following properties:
 */
 
 //phpinfo();
-error_reporting(E_ALL);
-ini_set("display_errors", true);
-ini_set("log_errors", true);
+error_reporting(0);
+//ini_set("display_errors", true);
+//ini_set("log_errors", true);
 ini_set("auto_detect_line_endings", true);
 $log = "";
 
@@ -97,8 +97,8 @@ $json = json_decode(file_get_contents("php://input"), true);
 
 $meta = $json["metadata"];
 $data = json_decode($json["data"], true);
-// Prepend server time to the data file
-$data = array("serverTime" => date(DateTimeInterface::ISO8601)) + $data;
+// Prepend server time (ISO8601) to the data file
+$data = array("serverTime" => date("Y-m-d\TH:i:sO")) + $data;
 
 $public = (boolean) $meta["isPublic"];
 $tid = (string) $meta["fileName"];
