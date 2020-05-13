@@ -259,7 +259,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 10; i++) {
+        for(let i = 0; i < 15; i++) {
             q++;
 
             it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
@@ -345,7 +345,7 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        for(let i = 0; i < 10; i++) {
+        for(let i = 0; i < 15; i++) {
             q++;
 
             it('Runs block 2 Q' + i + ' [Q' + q + ']', function() {

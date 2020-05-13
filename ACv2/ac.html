@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head data-version="0.0.6">
+<head data-version="0.0.7">
     <title>Advisor Choice Experiment</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
@@ -468,7 +468,7 @@
         let studyBlueprint = {
             studyName: "advisorChoice",
             studyVersion: document.querySelector("head").dataset.version,
-            attentionCheckTrials: [16, 25],
+            attentionCheckTrials: [16, 36],
             blocks: [
                 new Block({
                     trialCount: 10,
@@ -485,7 +485,7 @@
                     feedback: true
                 }),
                 new Block({
-                    trialCount: 10,
+                    trialCount: 15,
                     blockType: "core",
                     advisorsPerTrial: 1,
                     perTrial: {
@@ -496,7 +496,7 @@
                     }
                 }),
                 new Block({
-                    trialCount: 10,
+                    trialCount: 15,
                     blockType: "core",
                     advisorsPerTrial: 1,
                     perTrial: {
