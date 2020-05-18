@@ -1014,8 +1014,6 @@ class Governor {
         ask.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         let info = encodeURI('data='+JSON.stringify(this.compileSelf()));
         ask.send(info);
-        /*
-        ask.send();*/
     }
 
     /**

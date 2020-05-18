@@ -1012,6 +1012,9 @@ class AdvisorChoice extends DotTask {
      * @return {Advisor} - The advisor registered for the current trial
      */
     get currentAdvisor() {
+        if(typeof this.currentTrial.advisorId === "undefined" ||
+            this.currentTrial.advisorId === null)
+            this.currentTrial.advisorId = this.currentTrial.advisorOrder[0];
         return this.getAdvisorById(this.currentTrial.advisorId);
     }
 
@@ -1120,13 +1123,14 @@ class AdvisorChoice extends DotTask {
                 let trialType = trialTypeDeck.pop();
                 let advisorId = 0;
                 if (isPractice)
-                    advisorId = trialType===trialTypes.catch? 0 : this.practiceAdvisor.id;
+                    advisorId = trialType===trialTypes.catch? 0 : this.practiceAdvisors.id;
                 else
                     advisorId = trialType === trialTypes.force? advisorForceDeck.pop().id : 0;
                 let defaultAdvisor = trialType === trialTypes.change? advisorChangeDeck.pop().id : null;
                 let changes = trialType === trialTypes.change? 0 : null;
                 let r = Math.random() < .5? 1 : 0;
-                let choice = trialType === trialTypes.choice? [advisorChoices[r].id, advisorChoices[1-r].id] : [];
+                let advisorOrder =  [advisorChoices[r].id, advisorChoices[1-r].id];
+                let choice = trialType === trialTypes.choice? advisorOrder : [];
                 // let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
                 trials.push(new Trial(id, {
                     type: trialType,
@@ -1138,6 +1142,7 @@ class AdvisorChoice extends DotTask {
                     advisor0id,
                     advisor1id,
                     choice,
+                    advisorOrder,
                     changes,
                     answer: [NaN, NaN],
                     confidence: [NaN, NaN],
@@ -1208,7 +1213,14 @@ class AdvisorChoice extends DotTask {
             for(let i = 0; i < 2; i++)
                 this.drawAdvice(div, this.currentTrial['advisor' + i.toString() + 'id']);
         } else if(typeof this.currentAdvisor !== 'undefined') {
-            this.drawAdvice(div, this.currentAdvisor.id);
+            const advisors = this.currentTrial.advisorOrder;
+            for(let i = 0; i < advisors.length; i++) {
+                const a = advisors[i];
+                if(a === this.currentAdvisor.id)
+                    this.drawAdvice(div, this.currentAdvisor.id);
+                else
+                    this.getAdvisorById(a).draw(div);
+            }
         }
         // Set the class of the slider the advisor endorsed
         // let labelID = this.currentTrial.advice.side === 0? 0 : 2;
