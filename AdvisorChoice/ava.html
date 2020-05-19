@@ -47,7 +47,7 @@
         </div>
     </div>
 <script type="module">
-    import {DoubleDotGrid, Advisor, Cue, utils} from '../src/exploringSocialMetacognition.js';
+    import {DoubleDotGrid, Advisor, utils} from '../src/exploringSocialMetacognition.js';
     import {AdvisorChoice, trialTypes} from "../src/advisorChoiceDefs.js";
 
     let advisorClass = "Advisor";
@@ -58,9 +58,10 @@
         3|4 = strong metacog
         5|6 = acc
         7|8 = agg
+        9|10 = Consistent accuracy/Agreement
     */
-    let adviceTypes = [5,7];
-    let advisorIdDeck = utils.shuffle(utils.getSequence(1,6));
+    let adviceTypes = [9,10];
+    let advisorIdDeck = utils.shuffle(utils.getSequence(1,4));
     let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
     let advisorPicDeck = utils.shuffle(utils.getSequence(1,6));
     let args = {skipAudioPreload: true};
@@ -126,10 +127,10 @@
         ],
         blockStructure: [
             {
-                [trialTypes.force]: 2
+                [trialTypes.force]: 12
             },
             {
-                [trialTypes.choice]: 4
+                [trialTypes.choice]: 12
             }
         ],
         preTrialInterval: 200,

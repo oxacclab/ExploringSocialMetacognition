@@ -1,23 +1,23 @@
 const runs = 1;
 
-const qCount = {practice: 1, advisorPractice: 4, learning: 2, test: 4};
+const qCount = {practice: 1, advisorPractice: 4, learning: 12, test: 12};
 
-function doTrial(pCorrect = .72) {
+function doTrial(pCorrect = .71) {
     cy.wait(600);
     const gov = cy.state('window').gov;
     let ans = gov.currentTrial.whichSide;
     ans = Math.random() < pCorrect? ans : !ans;
-    const pos = ans? "right" : "left";
+    const pos = 5 + Math.random() * 40 + (ans? 50 : 0);
     cy.wait(600);
     cy.get('.jspsych-sliders-slider input')
-        .click({position: pos})
-        .invoke('attr', 'value', ans? "95" : "5");
+        .click()
+        .invoke('attr', 'value', pos);
     cy.get('.jspsych-btn')
         .should('contain', 'Continue')
         .click();
 };
 
-function doAdvisedTrial(pCorrect = .72, doInitial = true) {
+function doAdvisedTrial(pCorrect = .71, doInitial = true) {
     if(doInitial)
         doTrial(pCorrect);
     cy.get('.jspsych-jas-present-advice-wrapper')
@@ -27,7 +27,7 @@ function doAdvisedTrial(pCorrect = .72, doInitial = true) {
     doTrial(pCorrect);
 };
 
-function doAdvisorChoice(pCorrect = .72) {
+function doAdvisorChoice(pCorrect = .71) {
     doTrial(pCorrect);
     const img = Math.random() < .5? 0 : 1;
     cy.get('img#advisorChoice-choice-' + img)
@@ -235,16 +235,6 @@ for(let run = 0; run < runs; run++) {
         it('Shows feedback', function() {
             cy.get('body')
                 .contains('Completion URL')
-        });
-
-        it('Provides a functional permalink', function() {
-            cy.get('.permalink-link.feedback')
-                .invoke('text').then((txt) => {
-                cy.visit(txt);
-
-                cy.get('.feedback')
-                    .should('be.visible');
-            });
         });
     });
 }

@@ -575,6 +575,12 @@ class advisorChoice extends dotTask {
                     "at how your results and see how you did on the task and whether your choices matched our " +
                     "prediction.</p>";
                 break;
+            case 'acc-vs-agr':
+                thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
+                    "you had two advisors, and were sometimes able to choose between them. One of these " +
+                    "advisors was very good at the task, and the other advisor agreed with you more often. We are investigating the circumstances which make people prefer to hear advice from one or other of these advisors.</p>" +
+                    "<p>Below is a summary of your results. You can see how accurate your responses were compared to the advisors', and how you adjusted your confidence in your responses after you received advice.</p>";
+                break;
             default:
                 thanksDiv.innerHTML = "<h1>Thank you</h1><p>You have completed the experiment. During the experiment " +
                     "you had two sets of advisors, and were sometimes able to choose between them. Both of these " +
@@ -586,25 +592,28 @@ class advisorChoice extends dotTask {
         }
 
         thanksSection.appendChild(thanksDiv);
-        let permalinkDiv = thanksDiv.appendChild(document.createElement('div'));
-        permalinkDiv.className = 'permalink-container';
-        let permalinkLabel = permalinkDiv.appendChild(document.createElement('div'));
-        permalinkLabel.className = 'permalink-label';
-        permalinkLabel.innerText = 'Permanent link:';
-        let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
-        permalinkLink.className = 'permalink-link';
-        permalinkLink.innerText = 'https://acclab.psy.ox.ac.uk/~mj221/ESM/AdvisorChoice?id=' +
-            g.experimentCode + '_' + g.participantId;
-        let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
-        permalinkCopy.className = 'permalink-copy';
-        permalinkCopy.onclick = function(){
-            let linkDiv = document.querySelector('div.permalink-link');
-            let range = document.createRange();
-            range.selectNodeContents(linkDiv);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-            document.execCommand('copy');
-        };
+        if(g.experimentCode !== 'acc-vs-agr') {
+            let permalinkDiv = thanksDiv.appendChild(document.createElement('div'));
+            permalinkDiv.className = 'permalink-container';
+            let permalinkLabel = permalinkDiv.appendChild(document.createElement('div'));
+            permalinkLabel.className = 'permalink-label';
+            permalinkLabel.innerText = 'Permanent link:';
+            let permalinkLink = permalinkDiv.appendChild(document.createElement('div'));
+            permalinkLink.className = 'permalink-link';
+            permalinkLink.innerText = 'https://acclab.psy.ox.ac.uk/~mj221/ESM/AdvisorChoice?id=' +
+                g.experimentCode + '_' + g.participantId;
+            let permalinkCopy = permalinkDiv.appendChild(document.createElement('div'));
+            permalinkCopy.className = 'permalink-copy';
+            permalinkCopy.onclick = function(){
+                let linkDiv = document.querySelector('div.permalink-link');
+                let range = document.createRange();
+                range.selectNodeContents(linkDiv);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+            };
+        }
+
         // Accuracy
         let accuracySection = body.appendChild(document.createElement('section'));
         let accuracyDiv = document.createElement('div');
@@ -627,8 +636,8 @@ class advisorChoice extends dotTask {
             "We expect most people to have higher accuracy after advice than " +
             "before advice. Your pre-advice accuracy was <strong>"+pre+
             "%</strong>, and your post-advice accuracy " +
-            "was <strong>"+post+"%</strong>. The advisors are programmed to be equally accurate on average, and " +
-            "they should score around 70%.</p>";
+            "was <strong>"+post+"%</strong>." +
+            (g.experimentCode !== 'acc-vs-agr'? " advisors are programmed to be equally accurate on average, and they should score around 70%.</p>" : "</p>");
         accuracyContainer.appendChild(accuracyDescription);
         let accuracyGraph = document.createElement('div');
         accuracyGraph.id = 'accuracyGraph';
@@ -691,10 +700,12 @@ class advisorChoice extends dotTask {
                 stats.appendChild(statsContainer);
                 statsDiv.appendChild(stats);
                 // graphs (questionnaire answers over time)
-                let graphDiv = document.createElement('div');
-                graphDiv.id = 'advisor'+i+'graph';
-                graphDiv.className = 'advisor-graph graph';
-                advisorDiv.firstChild.appendChild(graphDiv);
+                if(g.experimentCode !== 'acc-vs-agr') {
+                    let graphDiv = document.createElement('div');
+                    graphDiv.id = 'advisor'+i+'graph';
+                    graphDiv.className = 'advisor-graph graph';
+                    advisorDiv.firstChild.appendChild(graphDiv);
+                }
             }
         }
 
@@ -733,10 +744,11 @@ class advisorChoice extends dotTask {
         // fill in graphs
         advisorChoice.getAccuracyGraph(g, accuracyGraph);
         advisorChoice.getConfidenceFeedback(g, confidenceGraph);
-        advisors.forEach(function (advisor) {
-            let graphDiv = document.querySelector('#advisor'+advisor.id+'graph');
-            advisorChoice.getQuestionnaireGraph(g, advisor.id, graphDiv);
-        })
+        if(g.experimentCode !== 'acc-vs-agr')
+            advisors.forEach(function (advisor) {
+                let graphDiv = document.querySelector('#advisor'+advisor.id+'graph');
+                advisorChoice.getQuestionnaireGraph(g, advisor.id, graphDiv);
+            })
     }
 
     /**

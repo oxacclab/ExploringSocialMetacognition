@@ -599,6 +599,10 @@ class Advisor {
                     * when participants get 71% of answers correct. */
                     return judgeCorrect? 0.66 : 0.17;
                 };
+            case 9: // Consistent high accuracy
+                return function(judgeCorrect) {return judgeCorrect? .8 : .2};
+            case 10: // Consistent high agreement
+                return function() {return .8};
             default:
                 return function(judgeCorrect) {
                     if (judgeCorrect !== true)
@@ -642,10 +646,12 @@ class Advisor {
             case 4:
                 return "<em>Agrees when uncertain</em>";
             case 5:
+            case 9:
                 return "<em>High accuracy</em>";
             case 6:
                 return "<em>Low accuracy</em>";
             case 7:
+            case 10:
                 return "<em>High agreement</em>";
             case 8:
                 return "<em>Low agreement</em>";
@@ -671,10 +677,12 @@ class Advisor {
                     ' likely to agree with you if you are more confident ' +
                     'in your initial decision.';
             case 5:
+            case 9:
                 return 'This advisor is very good at the task.';
             case 6:
                 return 'This advisor is not very good at the task';
             case 7:
+            case 10:
                 return 'This advisor agrees with you most of the time.';
             case 8:
                 return 'This advisor disagrees with you quite frequently.';
