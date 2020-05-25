@@ -1,6 +1,7 @@
 const runs = 1;
 
-const qCount = {practice: 1, advisorPractice: 4, learning: 12, test: 12};
+const qCount = {practice: [5, 5], advisorPractice: 5, learning: 6, test: 5};
+// const qCount = {practice: [60, 60], advisorPractice: 5, learning: 60, test: 60};
 
 function doTrial(pCorrect = .71) {
     cy.wait(600);
@@ -132,11 +133,25 @@ for(let run = 0; run < runs; run++) {
         let q = -1;
 
         // 10 practice questions
-        for(let i = 0; i < qCount.practice; i++) {
-            q++;
-            it('Runs practice Q' + i + ' [Q' + q + ']', function() {
-                doTrial();
-            });
+        for(let b = 0; b < qCount.practice.length; b++) {
+            for(let i = 0; i < qCount.practice[b]; i++) {
+                q++;
+                it('Runs practice Q' + i + ' [Q' + q + ']', function() {
+                    doTrial();
+                });
+            }
+            // block break
+            if(b < qCount.practice.length - 1) {
+                it('Pauses between blocks', function() {
+                    cy.get('#jspsych-content')
+                        .contains('score on the last block')
+                        .should('be.visible');
+                    cy.get('.jspsych-btn')
+                        .contains('Next')
+                        .should('be.visible')
+                        .click();
+                });
+            }
         }
 
         it('Introduces advice', function() {

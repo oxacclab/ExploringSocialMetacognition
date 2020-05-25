@@ -62,7 +62,7 @@
     */
     let adviceTypes = [9,10];
     let advisorIdDeck = utils.shuffle(utils.getSequence(1,4));
-    let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,10));
+    let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,4));
     let advisorPicDeck = utils.shuffle(utils.getSequence(1,6));
     let args = {skipAudioPreload: true};
     let practiceArgs = {skipAudioPreload: true, practice: true};
@@ -121,16 +121,17 @@
         blockCount: 2,
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 4,//63, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 3 + 5, // intro trials need to be accommodated in the first practice block
             },
-            {[trialTypes.force]: 4} // Practice advisors
+            {[trialTypes.catch]: 5}, // 2nd practice block
+            {[trialTypes.force]: 5} // Practice advisors
         ],
         blockStructure: [
             {
-                [trialTypes.force]: 12
+                [trialTypes.force]: 6
             },
             {
-                [trialTypes.choice]: 12
+                [trialTypes.choice]: 5
             }
         ],
         preTrialInterval: 200,
@@ -541,10 +542,12 @@
     // practice with feedback
     timeline.push(practiceInstructions);
     // fill in the remaining non-advisor practice blocks
-    for(let b=0; b < 1; b++) {
+    const nonAdvisorPracticeBlocks = gov.practiceBlockStructure.filter(b => utils.sumList(b) === b[trialTypes.catch]);
+    const advisorPracticeBlocks = gov.practiceBlockStructure.filter(b => nonAdvisorPracticeBlocks.indexOf(b) === -1);
+    for(let b=0; b < nonAdvisorPracticeBlocks.length; b++) {
         // find trials in this block
         let trials = utils.getMatches(trainingTrials, function(trial) {
-            return trial.block === b;
+            return trial.block === gov.practiceBlockStructure.indexOf(nonAdvisorPracticeBlocks[b]);
         });
         // add the trials selecting the appropriate procedure for the trial type
         while(trials.length)
@@ -555,10 +558,10 @@
 
     timeline.push(adviceInstructions);
     // A few practice trials with practice advisors
-    for(let b=1; b < gov.practiceBlockStructure.length; b++) {
+    for(let b=0; b < advisorPracticeBlocks.length; b++) {
         // find trials in this block
         let trials = gov.trials.filter(function(trial) {
-            return trial.block === b;
+            return trial.block === gov.practiceBlockStructure.indexOf(advisorPracticeBlocks[b]);
         });
         if(trials != null && trials.length > 0) {
             // add the trials selecting the appropriate procedure for the trial type
