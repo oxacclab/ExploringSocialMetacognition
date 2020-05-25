@@ -141,6 +141,7 @@ div.advisorChoice-choice:hover div.jspsych-jas-present-advice-image {
 
 .jspsych-jas-present-advice-choice-wrapper, .jspsych-jas-present-advice-wrapper {
     position: relative;
+    z-index: 1;
 }
 
 .jspsych-jas-present-advice-choice-wrapper:nth-of-type(n+2),
