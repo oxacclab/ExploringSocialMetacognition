@@ -34,11 +34,11 @@ function doTrial() {
             const ans = study.trials[study.currentTrial].correctAnswer;
             const conf = study.trials[study.currentTrial].attentionCheckHighConf;
             const bar = 'esm-response-binary-conf .response-panel.response-' + (ans === 0 ? 'left' : 'right') + ' .response-column';
-            const offset = conf ? -50 : 50;
+            const offset = conf ? "top" : "bottom";
 
             cy.get(bar)
-                .trigger('mousemove', {position: conf? "top" : "bottom"})
-                .click(0, offset);
+                .trigger('mousemove', {position: offset})
+                .click(offset);
         } else {
             // Fill in a response
             respond();

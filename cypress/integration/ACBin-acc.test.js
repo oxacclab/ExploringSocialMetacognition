@@ -1,6 +1,6 @@
 const runs = 1;
 
-function respond(position = null) {
+function respond(position = null, force = false) {
     position = position || {x: 0, y: Math.random() * 100};
 
     cy.get('esm-response-binary-conf .response-panel.response-' + (Math.random() > .5 ? 'left' : 'right') + ' .response-column')
@@ -9,10 +9,10 @@ function respond(position = null) {
             force: true,
             ...position
         })
-        .click(position);
+        .click(position.x, position.y, {force: force});
 }
 
-function doTrial() {
+function doTrial(hasChoice = false) {
 
     // Should show a question
     cy.get('#stimulus p')
@@ -43,6 +43,13 @@ function doTrial() {
             // Fill in a response
             respond();
 
+            if(hasChoice) {
+                const img = Math.random() < .5? 'first-of-type' : 'last-of-type';
+                cy.get(`.advisor-key-row:${img} img.identicon`)
+                    .should('be.visible')
+                    .click();
+            }
+
             // Receive advice
             cy.get('esm-response-binary-conf .response-marker.advisor')
                 .should('be.visible');
@@ -60,10 +67,10 @@ function doTrial() {
 
 for(let run = 0; run < runs; run++) {
 
-    describe('ACBin/CK (run=' + run + ')', function () {
+    describe('ACBin/ACC (run=' + run + ')', function () {
 
         it('Checks browser compatibility', function () {
-            cy.visit('localhost/ExploringSocialMetacognition/ACBin/ck.html?PROLIFIC_PID=CypressTest');
+            cy.visit('localhost/ExploringSocialMetacognition/ACBin/acc.html?PROLIFIC_PID=CypressTest');
 
             cy.get('h1')
                 .should('be.visible')
@@ -100,12 +107,12 @@ for(let run = 0; run < runs; run++) {
                 .click();
         });
 
-        it('Creates a DatesStudyHybrid object', function () {
+        it('Creates a DatesStudyBinary object', function () {
             cy.window()
                 .its('study')
                 .its('constructor')
                 .its('name')
-                .should('eq', 'DatesStudyHybrid');
+                .should('eq', 'DatesStudyBinary');
         });
 
         it('Gets study variables from server', function () {
@@ -202,7 +209,7 @@ for(let run = 0; run < runs; run++) {
         let q = -1;
 
         // 10 practice questions
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < 10; i++) {
             q++;
             it('Runs practice Q' + i + ' [Q' + q + ']', function () {
 
@@ -227,38 +234,12 @@ for(let run = 0; run < runs; run++) {
 
             // Click through instructions
             cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
-
-            cy.wait(300);
-
-            // Meet the advisor
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.wait(1200);
-            cy.get('esm-instruction button')
                 .contains('Okay')
                 .should('be.visible')
                 .click();
         });
 
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < 2; i++) {
             q++;
 
             it('Runs advisor practice q' + i + ' [Q' + q + ']',
@@ -282,22 +263,9 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
-
-            cy.wait(300);
-
-            // Meet the advisor
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.wait(1200);
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
         });
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 15; i++) {
             q++;
 
             it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
@@ -316,27 +284,13 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
-
-            cy.wait(300);
-
-            // Meet the advisor
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.wait(1200);
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
         });
 
-        for (let i = 0; i < 10; i++) {
+        for(let i = 0; i < 15; i++) {
             q++;
 
-            it('Runs block 2 Q' + i + ' [Q' + q + ']', function () {
-                doTrial();
-            });
+            it('Runs block 2 Q' + i + ' [Q' + q + ']',
+                function() {doTrial();});
         }
 
         it('Pauses between blocks', function () {
@@ -350,52 +304,15 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
-
-            cy.wait(600);
-
-            // No feedback for next few trials prompt
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-
-            cy.wait(300);
-
-            // Advisor reminder
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.wait(1200);
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            cy.wait(1200);
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            // Comparison of scorecards
-            cy.get('esm-instruction button')
-                .contains('Next')
-                .should('be.visible')
-                .click();
-            // Hybrid intro
-            cy.wait(1200);
-            cy.get('esm-instruction button')
-                .contains('Okay')
-                .should('be.visible')
-                .click();
         });
 
-        for(let i = 0; i < 28; i++) {
+        for (let i = 0; i < 10; i++) {
             q++;
 
-            it('Runs block 3 (TEST) Q' + i + ' [Q' + q + ']',
-                function() {doTrial();});
+            it('Runs block 3 Q' + i + ' [Q' + q + ']', function () {
+                doTrial(true);
+            });
         }
-
 
         it('Provides a debrief screen', function () {
             cy.get('textarea.mandatory')
@@ -421,6 +338,5 @@ for(let run = 0; run < runs; run++) {
                     .should('be.visible');
             });
         });
-
     });
 }

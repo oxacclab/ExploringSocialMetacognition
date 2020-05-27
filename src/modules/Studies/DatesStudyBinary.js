@@ -88,6 +88,10 @@ class DatesStudyBinary extends DatesStudy {
         // Counterbalanced advisor order
         this._setAdvisorOrder(this.condition % 2);
 
+        if(this.conditionCount && this.conditionCount > 2) {
+            this._setFeedback(this.condition > 2);
+        }
+
         this.pushBlockPropertiesToTrials();
 
         this.validate();
@@ -103,7 +107,7 @@ class DatesStudyBinary extends DatesStudy {
         // Ensure specifically named advisors' names aren't duplicated
         this.advisors.forEach(a => {
             const regex = /[ #]([0-9]+)$/.exec(a.name);
-            if (regex) {
+            if (regex && regex.groups) {
                 const num = parseInt(regex.groups[0]);
                 const i = numbers.indexOf(num);
                 if (i !== -1) {
@@ -160,32 +164,36 @@ class DatesStudyBinary extends DatesStudy {
     validate(errorOnFail = true, verbose = false) {
         const me = this;
         // Advisors should alternate between block sets by isGroup
-        const coreBlocks = this.blocks.filter(
-            // Core (non-test) blocks have feedback
-            b => b.blockType === "core" && b.feedback);
-        let x = -1;
-        coreBlocks.forEach((b, i) => {
-            if (verbose)
-                console.log({
-                    coreBlockNum: i,
-                    advisorId: b.advisors[0].id,
-                    block: b,
-                    isGroup: b.advisors[0].isGroup
-                });
-
-            if (b.advisors[0].isGroup === x && typeof x !== "undefined")
-                me.raise(
-                    "Advisors have same isGroup status in consecutive block sets",
-                    errorOnFail,
-                    verbose ? {
+        const advisorDescriptions = this.advisors.map(a => a.idDescription);
+        if(advisorDescriptions.filter(a => /mass/i.test(a)).length &&
+            advisorDescriptions.filter(a => /single/i.test(a)).length) {
+            const coreBlocks = this.blocks.filter(
+                // Core (non-test) blocks have feedback
+                b => b.blockType === "core" && b.feedback);
+            let x = -1;
+            coreBlocks.forEach((b, i) => {
+                if (verbose)
+                    console.log({
+                        coreBlockNum: i,
+                        advisorId: b.advisors[0].id,
                         block: b,
-                        isGroupValue: x,
-                        advisor: b.advisors[0]
-                    } : {}
-                );
-            else
-                x = b.advisors[0].isGroup;
-        });
+                        isGroup: b.advisors[0].isGroup
+                    });
+
+                if (b.advisors[0].isGroup === x && typeof x !== "undefined")
+                    me.raise(
+                        "Advisors have same isGroup status in consecutive block sets",
+                        errorOnFail,
+                        verbose ? {
+                            block: b,
+                            isGroupValue: x,
+                            advisor: b.advisors[0]
+                        } : {}
+                    );
+                else
+                    x = b.advisors[0].isGroup;
+            });
+        }
 
         return super.validate(errorOnFail, verbose);
     }
@@ -197,6 +205,8 @@ class DatesStudyBinary extends DatesStudy {
      * @return {Promise<HTMLElement>}
      */
     async _introduceAdvisor(advisor, resolve) {
+        if(!advisor.introText)
+            return resolve? resolve() : null;
 
         let nodeName = "advisor-intro-text";
         if (advisor.introImage)
@@ -384,11 +394,13 @@ class DatesStudyBinary extends DatesStudy {
                     format: 'svg'
                 }
             );
-        if (ds.advisor0adviceConfidence !== "undefined") {
+        if (ds.advisor0adviceConfidence !== "undefined" &&
+            ds.advisor0adviceConfidence !== "") {
             pane.querySelector(".advice .confidence").classList.remove("cloak");
             pane.querySelector(".advice .confidence-value").innerText = ds.advisor0adviceConfidence;
         } else
-            pane.querySelector(".advice .confidence").classList.add("cloak");
+            if(pane.querySelector(".advice .confidence"))
+                pane.querySelector(".advice .confidence").classList.add("cloak");
 
         pane.querySelector(".final").classList.add(ds.responseAnswerSideFinal === "0" ? "left" : "right");
         pane.querySelector(".final .confidence-value").innerText = ds.responseConfidenceFinal;
