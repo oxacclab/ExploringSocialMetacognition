@@ -517,6 +517,7 @@ const EXACT_CONFIDENCE_BINARY = Object.freeze(new AdviceType({
         const c = t.anchorDate + side * Infinity;
         return [c];
     },
+    correct: () => Math.random() < .5,
     confidence: getConfFromValue
 }));
 
@@ -568,6 +569,35 @@ const DISAGREE_EXACT_CONFIDENCE_BINARY = Object.freeze(new AdviceType({
     confidence: getConfFromValue
 }));
 
+/**
+ * Advisor answer which agrees with the participant some probability based on whether or not the participant's answer is correct.
+ * @type {Readonly<AdviceType>}
+ * @property pAgreeCorrect {number} probability of agreement where the participant is correct
+ * @property pAgreeIncorrect {number} probability of agreement where the participant is incorrect
+ */
+const BINARY_AGREE_RATE_BY_CORRECT = Object.freeze(new AdviceType({
+    name: "binary-p-agree-by-correct",
+    flag: 8192,
+    fallback: null,
+    /**
+     * Return an answer whose side matchs the participant's with a given probability depending upon whether the participant was correct.
+     * @param t {Trial}
+     * @param a {Advisor}
+     * @param [self=null] {AdviceType|null} this object for self-referencing
+     * @return {number[]}
+     */
+    match: (t, a, self = null) => {
+        const p = t.data.responseAnswerSide;
+        const agr = p? Infinity : -Infinity;
+        const disagr = p? -Infinity : Infinity;
+        const c = t.data.correctAnswerSide;
+        if(p === c)
+            return Math.random() < self.pAgreeCorrect? [agr] : [disagr];
+        return Math.random() < self.pAgreeIncorrect? [agr] : [disagr];
+    },
+    pAgreeCorrect: .5,
+    pAgreeIncorrect: .5
+}));
 
 export {
     AGREE_OFFSET,
@@ -582,5 +612,6 @@ export {
     AGREE,
     EXACT_CONFIDENCE_BINARY,
     AGREE_EXACT_CONFIDENCE_BINARY,
-    DISAGREE_EXACT_CONFIDENCE_BINARY
+    DISAGREE_EXACT_CONFIDENCE_BINARY,
+    BINARY_AGREE_RATE_BY_CORRECT
 };

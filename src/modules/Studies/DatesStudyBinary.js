@@ -515,14 +515,17 @@ class DatesStudyBinary extends DatesStudy {
         // Fill in the overall results
         for (const s in stats) {
             const x = stats[s];
+            const c = (x.conf / x.n);
+            const cc = (x.confRight / x.correct);
+            const cw = (x.confWrong / (x.n - x.correct));
             document.querySelector(".overall ." + x.name + " .accuracy").innerText =
                 (x.correct / x.n * 100).toFixed(2);
             document.querySelector(".overall ." + x.name + " .confidence").innerText =
-                (x.conf / x.n).toFixed(1);
+                isNaN(c)? "-" : c.toFixed(1);
             document.querySelector(".overall ." + x.name + " .confidence-correct").innerText =
-                (x.confRight / x.correct).toFixed(1);
+                isNaN(cc)? "-" : cc.toFixed(1);
             document.querySelector(".overall ." + x.name + " .confidence-wrong").innerText =
-                (x.confWrong / (x.n - x.correct)).toFixed(1);
+                isNaN(cw)? "-" : cw.toFixed(1);
         }
 
         // Event listener for overview button
