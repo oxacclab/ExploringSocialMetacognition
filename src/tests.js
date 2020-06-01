@@ -9,7 +9,7 @@
  * @return {object[]} list of objects representing sparse data about trial, advisor, advice
  */
 function seeAllAdvice(advisor = null, etc = {}) {
-    const study = window.study;
+    const study = window.cy? cy.state('window').study : window.study;
     const trials = study.trials.filter(t => !t.attentionCheck);
     advisor = advisor || study.advisors;
 
@@ -19,20 +19,25 @@ function seeAllAdvice(advisor = null, etc = {}) {
     const json = [];
     advisor.forEach(a => {
         for(let t = 0; t < trials.length; t++) {
+            const T = trials[t];
             json.push({
                 ...etc,
                 studyName: study.studyName,
-                trialNumber: t,
-                blockNumber: trials[t].block,
-                blockType: trials[t].blockType,
-                correctAnswer: trials[t].correctAnswer,
-                correctAnswerSide: trials[t].data.correctAnswerSide,
+                trialNumber: T.data.number,
+                blockNumber: T.block,
+                blockType: T.blockType,
+                correctAnswer: T.correctAnswer,
+                correctAnswerSide: T.data.correctAnswerSide,
+                responseAnswerSide: T.data.responseAnswerSide,
+                responseConfidence: T.data.responseConfidence,
+                responseEstimateLeft: T.data.responseEstimateLeft,
                 ...a,
-                ...a.getAdvice(trials[t]),
+                ...a.getAdvice(T),
                 adviceProfile: null,
                 blueprint: null,
                 log: null,
-                lastAdvice: null
+                lastAdvice: null,
+                _image: null
             });
         }
     });
@@ -40,11 +45,22 @@ function seeAllAdvice(advisor = null, etc = {}) {
     return json;
 }
 
-async function generateAdviceSets(n = 1000) {
+function setDummyAnswers(study) {
+    study.trials.forEach(t => {
+        //t.data.responseEstimateLeft = Math.floor(Math.random() * 100) + 1900;
+        // use average participant accuracy for binary questions
+        t.data.responseAnswerSide = Math.random() < .6?
+            t.data.correctAnswerSide : 1 - t.data.correctAnswerSide;
+    });
+}
+
+async function generateAdviceSets(n = 1000, dummyAnswers = false) {
     const out = [];
     for(let i = 0; i < n; i ++) {
         // Refresh the study
         await study.setupTrials();
+        if(dummyAnswers)
+            setDummyAnswers(study);
         out.push(...seeAllAdvice(null, {iteration: i}));
     }
     return out;
