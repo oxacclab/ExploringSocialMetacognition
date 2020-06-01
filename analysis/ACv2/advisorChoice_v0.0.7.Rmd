@@ -51,7 +51,7 @@ theme_set(theme_light() +
 # rDir <- "http://localhost/ExploringSocialMetacognition/data/public/"
 testData <- F
 
-studyVersion <- "0-0-6"
+studyVersion <- "0-0-7"
 studyName <- "advisorChoice"
 
 overrideMarkerList <- c(7, 13, 21)
@@ -111,6 +111,14 @@ if (testData) {
 # Introduction
 
 We have [previously observed](https://oxacclab.github.io/ExploringSocialMetacognition/analysis/ACv2/writeUp_v1.0.1.html) that people are more influenced by accurate over agreeing advisors when given feedback, and by agreeing over accurate advisors when denied feedback. Here we seek to extend that finding to the domain of source selection by offering participants a choice of advisor.
+
+## Preregistration
+
+This is a preregistered replication of a [previous study](https://oxacclab.github.io/ExploringSocialMetacognition/analysis/ACv2/advisorChoice_v0.0.6.html) which demonstrated that people would preferentially pick the Accurate advisor when provided with feedback. When feedback was withheld, the evidence suggested the rates of picking were equivalent to chance (although very noisy). The preregistration is done via the OSF, and, because the OSF is having some issues at the moment, via AsPredicted.org.
+
+## Bayes stats
+
+The Bayesian stats presented below use default priors. These are no more wildly unsuitable than frequentist t-test assumptions (also provided), but the competing models of selection can be specified more precisely and compared more directly. This analysis will be added at a later date.
 
 # Method
 
@@ -287,7 +295,7 @@ tmp %>%
 
 ### Summary {.summary}
 
-Participants were able to perform the task appropriately: their responses were better than would be expected by chance both in terms of the difference between the correct answer and the response marker placement and in terms of the rate at which the response marker placement covered the correct answer. 
+Participants performed the task as expected: responses were better than chance, and almost all participants increased their response accuracy from initial estimates to final decisions. Likewise, error was lower than would be expected with random marker placement, and errros decreased from initial estimate to final decision. Participants took several seconds to make each decision, around 10s for initial estimates and 5s for final decisions. *NB:* they had seen the advice for 2s by the time the final decision window started.
 
 ## Metacognitive performance
 
@@ -413,9 +421,9 @@ decisions %>%
 
 ### Summary {.summary}
 
-Participants made use of all the markers. The usage proportions for each marker were fairly similar to one another, especially in comparison with past data. In the feedback case it appears that participants tended to adopt a conservative marker width to begin with, relying on the advice to resolve their uncertainty. These participants often chose to select narrow markers where the Accurate advisor was providing advice, while retaining the widest marker when the Agreeing advisor was providing advice. The participants in the No feedback condition appeared to increase their confidence (by using slimmer markers) on final decisions as compared with initial estimates.
+Participants in the Feedback condition favoured the middle-width marker at the expense of the narrowest marker for both initial and final decisions. Participants in the No feedback condition preferred the widest marker at the expense of the narrowest for initial decisions, but were roughly equally likely to use any marker width for final decisions. Participants in the Feedback condition did not seem to alter their marker choice as a function of the advisor providing them with advice. There was a good deal of interpersonal variation in marker usage in all groups, although it is probable that individual participants were reasonably consistent with their marker choices.
 
-The mean error showed a tendency to increase with the marker width, indicating that participants were using wider markers where they were less close to the correct answer, presumably reflecting a decrease in confidence which accompanied the decreased accuracy.
+Participants had lower error on average for thinner markers, indicating appropriate usage of markers according to the accuracy of the participant's knowledge of the answer. 
 
 ## Advisor performance
 
@@ -468,7 +476,7 @@ tmp %>%
 
 ### Summary {.summary}
 
-The advisors offered advice which was better than chance. The Accurate advisors were more accurate than the Agreeing advisors, and the Agreeing advisors offered answers which were closer to the participants' initial estimates than the Accurate advisors.
+As planned, the advisors' advice differed. The Accurate advisor had lower error than the Agreeing advisor, and the distance between the participant's initial estimate and the advisor's marker was lower for the Agreeing advisor than the Accurate advisor. This need not by the case by definition (they will be equivalent if the participant is perfectly accurate), but are expected for any reasonable level of participant (in)accuracy.
 
 ## Advice during Familiarization
 
@@ -510,6 +518,46 @@ We included a couple of trials in each familiarization block where the advisors 
 
 ```{r}
 
+# Bayes factors for comparisons within facets
+tmp <- AdvisedTrial %>% 
+  filter(Phase == "Familiarization",
+         advisor0actualType == "disagreeReflected") %>%
+  select(pid, advisor = advisor0idDescription, feedback = FeedbackCondition, firstAdvisor, woa = advisor0woa) %>%
+  mutate(feedback = factor(feedback), woa = as.numeric(woa)) %>%
+  arrange(pid, advisor, feedback, firstAdvisor)
+
+# Drop participants with only observations for a single advisor
+drop_ids <- tmp %>% 
+  group_by(pid, advisor) %>% 
+  summarise(woa = mean(woa)) %>%
+  group_by(pid) %>% 
+  summarise(n = n()) %>%
+  filter(n < length(unique(AdvisedTrial$advisor0idDescription))) %>%
+  pull(pid)
+
+if (length(drop_ids)) {
+  warning(paste0('Dropping ', length(drop_ids), 
+                 ' pids without observations for all advisors. Pids: [', 
+                 paste0(drop_ids, collapse = ','), ']'))
+  tmp <- tmp %>% filter(!(pid %in% drop_ids))
+}
+
+comp.bf <- tmp %>% 
+  group_by(pid, advisor, feedback) %>%
+  summarise(woa = mean(woa)) %>%
+  nest(d = -feedback) %>%
+  mutate(
+    bf = map_dbl(d, ~ ttestBF(
+      .$woa[.$advisor == "Accurate"], 
+      .$woa[.$advisor != "Accurate"],
+      paired = T
+    )@bayesFactor$bf %>% exp()),
+    maxwoa = map_dbl(d, ~ max(.$woa)),
+    acc = "Accurate",
+    agr = "Agreeing"
+  ) %>%
+  mutate(FeedbackCondition = feedback)
+
 optimalIsh <- tibble(
   advisor0idDescription = unique(AdvisedTrial$advisor0idDescription),
   woa = if_else(advisor0idDescription == "Agreeing", 0, NA_real_)
@@ -532,15 +580,23 @@ AdvisedTrial %>%
                aes(colour = advisor0idDescription),
                width = .25, size = 1.25) +
   geom_line(alpha = .25, aes(group = pid)) + 
-  scale_y_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1.15), breaks = seq(0, 1, .25)) +
   scale_colour_discrete(name = "Advisor", h.start = 45) + 
   scale_fill_discrete(name = "Advisor", h.start = 45) +
   labs(x = "Advisor", y = "Weight on Advice") +
-  facet_grid(~ advisor0actualType + Phase + FeedbackCondition)
+  facet_grid(~ advisor0actualType + Phase + FeedbackCondition) +
+  geom_segment(aes(x = acc, xend = agr, y = 1.1, yend = 1.1), 
+               data = comp.bf) +
+  geom_label(aes(x = 1.5, y = 1.1, label = paste0('BF ', num2str(bf))),
+             data = comp.bf)
   
 # caption = "Influence of the advice during the familiarization phase. Faint lines show individual participant means, while box plots and violins show the distributions. Dashed lines show the theoretically optimal level of advice-taking. The optimal level of advice-taking for the Accurate advisor depends upon the ability of the participant, but is likely to be very high (>.75)."
 
 ```
+
+### Summary {.summary}
+
+Participants' weight on advice for the disagreeReflected (off brand) trials formed the primary outcome measure of [a previous study](https://oxacclab.github.io/ExploringSocialMetacognition/analysis/ACv2/writeUp_v1.0.1.html). Here we do not observe as striking a pattern of greater influence of Accurate advisors in the Feedback condition and of Agreeing advisors in the No feedback condition. We do, however, observe a greater influence of Accurate advisors in the Feedback condition, and it is plausible there is slightly greater influence for the Agreeing advisor in the No feedback condition. 
 
 ## Hypothesis testing
 
@@ -561,7 +617,8 @@ ggplot(tmp, aes(x = FeedbackCondition, y = `p(chooseAccurate)`)) +
   geom_hline(yintercept = .5, linetype = 'dashed') +
   geom_violin(fill = "grey85", colour = NA) +
   geom_boxplot(width = .25, size = 1.25, fill = "white", outlier.color = NA) +
-  geom_point(position = position_jitter(.05), shape = 4, size = 3, alpha = .5)
+  geom_point(position = position_jitter(.05), shape = 4, size = 3, alpha = .5) +
+  theme(text = element_text(size = 16))
 
 # caption = "Distribution of participant advisor selection. Crosses show participants' proportion of choice trials where the Accurate advisor was chosen over the Agreeing advisor. Violins and box plots show distributions, while the dashed line indicates chance level choosing."
 
@@ -578,43 +635,13 @@ ttestBF(tmp$`p(chooseAccurate)`[tmp$FeedbackCondition != "Feedback condition"], 
 
 ### Summary {.summary}
 
-Participants in the two conditions showed different pick rates. Participants in the Feedback condition preferred to pick the Accurate advisor. Participants in the No feedback condition did not have a systematic preference, although there was a tendency to prefer the Agreeing advisor.
+The participants' advisor pick rate differed according to whether the participants were in the Feedback or No feedback condition. Those in the Feedback condition showed a strong preference for the Accurate advisor. Those in the No feedback condition showed no systematic preference.
 
 ## Exploration
 
 ### Influence during Familiarization x Pick preference
 
-```{r}
-
-tmp <- AdvisedTrial %>%
-  group_by(pid, advisor0idDescription, FeedbackCondition, Phase) %>%
-  summarise(woa = mean(advisor0woa), n = n()) 
-tmp <- tmp %>%
-  pivot_wider(names_from = advisor0idDescription, values_from = c(woa, n)) %>%
-  ungroup() %>%
-  mutate_if(is.numeric, ~ if_else(is.na(.), 0, as.numeric(.))) %>%
-  mutate(woa = woa_Accurate / (woa_Accurate + woa_Agreeing),
-         n = n_Accurate / (n_Accurate + n_Agreeing)) %>%
-  pivot_wider(names_from = Phase, values_from = c(woa, n)) %>%
-  group_by(pid, FeedbackCondition) %>%
-  summarise(woa = mean(woa_Familiarization, na.rm = T), n = mean(n_Test, na.rm = T))
-
-print('>> Feedback condition')
-cor.test(formula = ~ n + woa, data = tmp[tmp$FeedbackCondition == "Feedback condition", ])
-print('>> No feedback condition')
-cor.test(formula = ~ n + woa, data = tmp[tmp$FeedbackCondition != "Feedback condition", ])
-
-ggplot(tmp, aes(y = woa, x = n, colour = FeedbackCondition)) + 
-  geom_smooth(method = 'lm', se = F, fullrange = T) +
-  geom_point() +
-  coord_fixed() +
-  scale_x_continuous(limits = c(0, 1)) +
-  scale_y_continuous(limits = c(0, 1)) + 
-  labs(y = "WoA_Acc / (WoA_Acc + WoA_Agr) during Familiarization", 
-       x = "N_Acc / (N_Acc + N_Agr) during Test")
-
-```
-We really ought to check this using the disagreeReflected trials only.
+For influence we use the disagreeReflected trials only.
 
 ```{r}
 
@@ -647,27 +674,6 @@ ggplot(tmp, aes(y = woa, x = n, colour = FeedbackCondition)) +
   scale_y_continuous(limits = c(0, 1)) + 
   labs(y = "WoA_Acc / (WoA_Acc + WoA_Agr) during Familiarization", 
        x = "N_Acc / (N_Acc + N_Agr) during Test")
-
-```
-
-### Offbrand trial numbers
-
-We want to know how much experience with an advisor each participant had before they got the offbrand trials used to calculate influence.
-
-```{r}
-suppressWarnings(
-  tmp <- AdvisedTrial %>% 
-    arrange(number) %>%
-    nest(d = c(-pid, -block, -advisor0idDescription)) %>%
-    mutate(d = map(d, ~ rowid_to_column(., 'nth_in_block'))) %>%
-    unnest_legacy()
-) 
-tmp %>%
-  filter(advisor0actualType == "disagreeReflected") %>%
-  ggplot(aes(x = nth_in_block, fill = advisor0idDescription)) +
-  geom_histogram(position = position_identity(), colour = NA, bins = 7, alpha = .5) +
-  scale_fill_discrete(h.start = 45) +
-  scale_x_continuous(breaks = unique(tmp$nth_in_block))
 
 ```
 
@@ -772,11 +778,9 @@ ggplot(diff, aes(x = woa, y = value)) +
 
 #### Summary {.summary}
 
-The participants' subjective ratings show some interesting patterns. In the Feedback condition, participants consistently rate the Accurate advisor as both more helpful and more knowledgeable. For around half of these participants, the Accurate advisor is also more likeable, while for the other half the likeability of the advisors is very similar. In the No feedback condition, the advisor preferences appear to be much more idiosyncratic, but they also appear to be stable across scales, so that an advisor rated highly for helpfulness will also be rated highly for likeability and knowledge. 
+Participants in the Feedback condition showed a tendency to give higher ratings to the Accurate advisor, especially regarding helpfulness and knowledge. Those in the No feedback condition did not demonstrate especially systematic preferences, but it is probable that preferences were reasonably stable within individual participants across measures.
 
-The difference in ratings given to the two advisors also corresponds quite well with the rate at which that advisor is picked. The higher the ratings for the Accurate advisor compared to the Agreeing advisor, the more frequently the Accurate advisor is picked, for both conditions. This makes sense, but because these measures are taken after the choosing phase an alternate explanation remains plausible; that the more exposed to (i.e. familiar with) an advisor a participant is, the higher they will rate them on arbitrary scales.
-
-The correlations for weight on advice difference with questionnaire rating difference are not very pronounced, and they do not appear to reflect much more than noise, according to the statistical tests. Numerically, they go in the 'wrong' direction: in almost all cases the lower the weight on advice of the Accurate advisor compared to the Agreeing advisor, the higher the rating of the Accurate advisor compared to the Agreeing advisor.
+Overall, differences between advisors in participants' ratings for all three questionnaire items were correlated with the extent to which they picked the higher rated advisor. This pattern was not shown significantly for influence, although the evidence was equivocal rather than indicative of equivalence. The pattern was shown most strongly for picking by participants in the Feedback condition.
 
 ### Debrief comments
 
@@ -793,83 +797,154 @@ AdvisedTrial %>%
 
 ```
 
-### Bayes factor priors and posteriors
+### Picking likelihood analysis
+
+We can define some pretty good, clearly distinct models of how participants' pick proportions will look under a null model vs a preference model. The null model quite simply states that any preference in any direction of any strength is equally probable. Participants are known to vary in both their strength and direction of preference, so this model captures that intuition quite well. The preference model is agnostic as to strength of the preference, but places 95% of its area over the prefer Accurate side (allowing for ~5% of participants to make weird choices). 
 
 ```{r}
-tmp <- AdvisedTrial %>%
+
+ac <- AdvisedTrial %>%
   filter(Phase == "Test") %>%
   group_by(pid, FeedbackCondition, firstAdvisor) %>%
-  summarise(`p(chooseAccurate)` = mean(advisor0idDescription == "Accurate"))
+  summarise(pAccurate = mean(advisor0idDescription == "Accurate"))
 
-ttestBF(formula = `p(chooseAccurate)` ~ FeedbackCondition, data = tmp)
-samples <- ttestBF(formula = `p(chooseAccurate)` ~ FeedbackCondition, data = tmp, posterior = T, iterations = 1000)
-plot(samples[, "mu"])
-
-
-null <- tibble(p = rnorm(100, .5, .05), fb = sample(c(T, F), 100, T))
-ttestBF(formula = p ~ fb, data = null)
-nullSamples <- ttestBF(formula = p ~ fb, data = null, posterior = T, iterations = 1000)
-plot(nullSamples[, "mu"])
-```
-```{r}
-input = tmp %>% filter(FeedbackCondition == "Feedback condition") %>% pull(`p(chooseAccurate)`)
-
-# construct prior h0 and h1 distributions of the pick proportion
-n <- 10000
-dist <- tibble(
-  x = (0:(n - 1)) / n,
-  h0 = dnorm(x, .5, 1/8) * 1/8,
-  h1 = if_else(x < .5, 0, x - .5),
-  d = dnorm(x, input %>% mean(), input %>% sd()) * input %>% sd(), 
-  h0post = h0 * d,
-  h1post = h1 * d
-) %>%
-  mutate(
-    h0post = h0post * sum(h0) / sum(h0post),
-    h1post = h1post * sum(h1) / sum(h1post)
-    )
-
-# Check AUC is pretty equal. There's a more rigarous approach but this will do for now.
-sum(dist$h0); sum(dist$h1); sum(dist$d)
-
-# Plot the priors
-ggplot(dist, aes(x = x)) + 
-  geom_line(aes(y = h0, colour = "h0")) + 
-  geom_line(aes(y = h1, colour = "h1")) +
-  geom_line(aes(y = d, linetype = 'data')) +
-  geom_line(aes(y = h0post, colour = "h0", linetype = "posterior")) +
-  geom_line(aes(y = h1post, colour = "h1", linetype = "posterior")) +
-  scale_linetype_manual(values = c('dotted', 'dashed')) +
-  scale_y_continuous(name = '', limits = c(0, 1)) +
-  scale_x_continuous(name = '', limits = c(0, 1))
-
-# Likelihood calculations
-e <- 1e-10
-LL <- tibble(
-  h0 = log(dist$h0 * dist$d + e),
-  h1 = log(dist$h1 * dist$d + e),
-  diff = log(dist$h1 * dist$d + e) - log(dist$h0 * dist$d + e)
+# The null model offers a flat prior over the whole preference space: 
+# Some participants have strong preferences, others weak preferences, and they go both ways.
+h0 <- function(x) case_when(
+  x < 0 | x > 1 ~ 0,
+  TRUE ~ 1/length(x)
 )
 
-sum(LL$h0); sum(LL$h1)
+# The preference model has two flat blocks, the preferred side gets 95% of the mass
+prefAcc <- function(x) case_when(
+  x < 0 | x > 1 ~ 0,
+  x <= .5 ~ .05 / length(x),
+  x > .5 ~ (2 - .05) / length(x)
+)
 
-library(bayestestR)
-library(rstanarm)
-library(insight)
-d <- tmp %>% rename(pAcc = `p(chooseAccurate)`)
-mdl <- stan_glm(pAcc ~ FeedbackCondition, data = d, prior = NULL)#normal(location = .5))
-posterior <- get_parameters(mdl)
-describe_prior(mdl)
-describe_posterior(mdl)
+prefAgr <- function(x) case_when(
+  x < 0 | x > 1 ~ 0,
+  x <= .5 ~ (2 - .05) / length(x),
+  x > .5 ~ .05 / length(x)
+)
+
+ggplot(tibble(x = seq(0, 1, length.out = 10000)), aes(x = x)) +
+  geom_hline(yintercept = 0, colour = "grey75") +
+  stat_function(fun = h0, colour = NA, alpha = .25, aes(fill = "Null model"), size = 1.25, geom = 'area') +
+  stat_function(fun = prefAcc, colour = NA, alpha = .25, aes(fill = 'Prefer Accurate model'), size = 1.25, geom = 'area') +
+  # geom_rug(aes(x = pAccurate, colour = condition), data = ac, alpha = .25, size = 1.25) +
+  labs(x = "Mean Accurate advisor pick proportion", y = "Likelihood") +
+  scale_fill_discrete(name = "") +
+  theme(text = element_text(size = 16),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())  +
+  geom_rug(aes(x = pAccurate, colour = FeedbackCondition), data = ac, alpha = .25, size = 1.25) +
+  scale_colour_discrete(name = "Data")
+
+# Likelihood of the models is given by taking the height of the curve at each of the observed data points
+e <- 1e-10  # tiny nudge to stop getting log(0)
+
+ac <- ac %>% 
+  nest(d = -FeedbackCondition) %>% 
+  mutate(
+    LLpAcc = map(d, ~ log(prefAcc(.$pAccurate) + e)),
+    LLpAgr = map(d, ~ log(prefAgr(.$pAccurate) + e)),
+    LLh0 = map(d, ~ log(h0(.$pAccurate) + e))
+  ) %>%
+  unnest(cols = -FeedbackCondition)
+  
+ac %>% 
+  group_by(FeedbackCondition) %>%
+  summarise(
+    LRatio_pAcc_h0 = exp(sum(LLpAcc) - sum(LLh0)),
+    LRatio_pAgr_h0 = exp(sum(LLpAgr) - sum(LLh0)),
+    LRatio_pAcc_pAgr = exp(sum(LLpAcc) - sum(LLpAgr))
+  )
+
+ac %>% 
+  group_by(FeedbackCondition) %>%
+  select(-pAccurate) %>%
+  summarise_if(is.numeric, sum) %>%
+  pivot_longer(cols = -FeedbackCondition) %>%
+  ggplot(aes(x = name, y = value, fill = FeedbackCondition)) +
+  geom_col(colour = NA, position = 'dodge') +
+  labs(x = 'Model', y = 'Sum(LogLikelihood)') +
+  theme(text = element_text(size = 16),
+        axis.title.x = element_blank())
+
+```
+#### Summary {.summary}
+
+The likelihood analysis shows that the Accuracy Preference model is the best fit for the picking data from participants in the Feedback condition, being nearly three times as likely as the Null model and much, much more likely than the opposite preference model. The No feedback condition picking data is best accommodated by the Null model, with the two Preference models being equally likely, and both being over 12.5 million times less likely than the Null model.
+
+### ANOVA for Weight on Advice
+
+```{r}
+
+tmp <- AdvisedTrial %>% 
+  filter(Phase == "Familiarization",
+         advisor0actualType == "disagreeReflected") %>%
+  select(pid, advisor = advisor0idDescription, feedback = FeedbackCondition, firstAdvisor, woa = advisor0woa) %>%
+  mutate(feedback = factor(feedback), woa = as.numeric(woa)) %>%
+  arrange(pid, advisor, feedback, firstAdvisor)
+
+tmp %>% group_by(pid, advisor, feedback, firstAdvisor) %>% summarise(woa = mean(woa))
+
+# Drop participants with only observations for a single advisor
+drop_ids <- tmp %>% 
+  group_by(pid, advisor) %>% 
+  summarise(woa = mean(woa)) %>%
+  group_by(pid) %>% 
+  summarise(n = n()) %>%
+  filter(n < length(unique(AdvisedTrial$advisor0idDescription))) %>%
+  pull(pid)
+
+if (length(drop_ids)) {
+  warning(paste0('Dropping ', length(drop_ids), 
+                 ' pids without observations for all advisors. Pids: [', 
+                 paste0(drop_ids, collapse = ','), ']'))
+  tmp <- tmp %>% filter(!(pid %in% drop_ids))
+}
+
+ezANOVA(
+  data = tmp,
+  dv = woa,
+  wid = pid,
+  within = advisor,
+  between = feedback:firstAdvisor
+)
+
+a.bf <- anovaBF(woa ~ feedback + firstAdvisor + advisor + pid, 
+                data = tmp, whichRandom = 'pid', progress = F)
+
+marginalBF(a.bf, list(c(
+  'advisor + feedback + advisor:feedback + firstAdvisor + pid',
+  'advisor + feedback + firstAdvisor + pid'
+)))
+
+# Comparison of influence for the advisors by feedback
+tt <- tmp %>% 
+  group_by(pid, advisor, feedback) %>%
+  summarise(woa = mean(woa)) %>%
+  nest(d = -feedback) %>%
+  mutate(str = map_chr(d, ~ md.ttest(
+    .$woa[.$advisor == "Accurate"], .$woa[.$advisor != "Accurate"],
+    labels = c('*M*|Acc', '*M*|Agr'),
+    paired = T
+  )))
+
+for (r in 1:nrow(tt)) {
+  cat('\n')
+  print(as.character(tt$feedback[r]))
+  cat(tt$str[r])
+  cat('\n')
+}
+
 ```
 
 # Conclusions {.summary}
 
-As we showed with influence, people can use feedback to identify a helpful advisor. Unlike the influence results, participants denied feedback did not show a preference for the Agreeing advisor, suggesting that source selection is substantially more robust to the agreement-driven updating than we hypothesised.
-
-This finding should be replicated in a) a preregistered experiment and b) using the Dots task. If the finding that source selection is relatively unaffected by agreement-driven updating proves robust, this may be worth conducting further experiments to explore: is the tendency to prefer to pick the Agreeing advisor associated with metacognitive ability, need-for-certainty, or the like?
-
-Future versions should probably ensure that offbrand trials come towards the end of the familiarization blocks to give a good indication of influence.
+As with the previous experiment, a preference was clear in the picking data for the participants in the Feedback condition: they appeared to learn about the differences in the advisors and to use that to identify and then select the Accurate advisor. Participants in the No feedback condition showed no systematic preference, and their data are consistent with a model wherein individual preferences are not systematically altered by experience. Participants in the No feedback condition did show a systematic relationship between how much advice they took from an advisor and the extent to which they picked that advisor, although it is not known whether the relationship is learned or based on an initial preference which is not updated.
 
 # Credits 
 

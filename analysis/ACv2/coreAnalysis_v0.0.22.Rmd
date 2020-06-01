@@ -2188,6 +2188,25 @@ r <- ezANOVA(tmp, advisor0woa, pid,
 
 r
 
+# Comparison of influence for the advisors by feedback
+tt <- tmp %>% 
+  group_by(pid, advisor0idDescription, hasFeedback) %>%
+  summarise(woa = mean(advisor0woa)) %>%
+  nest(d = -hasFeedback) %>%
+  mutate(str = map_chr(d, ~ md.ttest(
+    .$woa[.$advisor0idDescription == "Accurate"], 
+    .$woa[.$advisor0idDescription != "Accurate"],
+    labels = c('*M*|Acc', '*M*|Agr'),
+    paired = T
+  )))
+
+for (r in 1:nrow(tt)) {
+  cat('\n')
+  print(as.character(tt$hasFeedback[r]))
+  cat(tt$str[r])
+  cat('\n')
+}
+
 ```
 
 ### Regressions

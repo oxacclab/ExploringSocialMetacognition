@@ -1293,11 +1293,48 @@ r
 
 marginalBF(r, list(c(9, 8)))
 
+
+# Comparison of influence for the advisors by feedback
+tt <- df %>% 
+  group_by(pid, advisor, feedback) %>%
+  summarise(woa = mean(woa)) %>%
+  nest(d = -feedback) %>%
+  mutate(str = map_chr(d, ~ md.ttest(
+    .$woa[.$advisor == "Accurate"], 
+    .$woa[.$advisor != "Accurate"],
+    labels = c('*M*|Acc', '*M*|Agr'),
+    paired = T
+  )))
+
+for (r in 1:nrow(tt)) {
+  cat('\n')
+  print(as.character(tt$feedback[r]))
+  cat(tt$str[r])
+  cat('\n')
+}
+
 ```
 
 ### Cleaner graph for ppt presentation
 
 ```{r}
+comp.bf <- df %>% 
+  group_by(pid, advisor, feedback) %>%
+  summarise(woa = mean(woa)) %>%
+  nest(d = -feedback) %>%
+  mutate(
+    bf = map_dbl(d, ~ ttestBF(
+      .$woa[.$advisor == "Accurate"], 
+      .$woa[.$advisor != "Accurate"],
+      paired = T
+    )@bayesFactor$bf %>% exp()),
+    maxwoa = map_dbl(d, ~ max(.$woa)),
+    acc = "Accurate",
+    agr = "Agreeing"
+  ) %>%
+  mutate(feedback = if_else(feedback == "TRUE", "Feedback", "No feedback"),
+         feedback = factor(feedback, levels = c("No feedback", "Feedback")))
+
 offBrand %>%
   mutate(feedback = if_else(feedback, "Feedback", "No feedback"),
          feedback = factor(feedback, levels = c("No feedback", "Feedback"))) %>%
@@ -1309,14 +1346,18 @@ offBrand %>%
   geom_line(alpha = .25, aes(group = pid)) + 
   stat_summary(geom = 'line', aes(group = feedback, linetype = "Mean"), 
                fun.y = mean, size = 1.25) +
-  scale_y_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1.15), breaks = seq(0, 1, 0.25)) +
   scale_linetype_manual(values = "dotted") +
   facet_wrap(~feedback) +
   labs(x = "Advisor", 
        y = "Weight on Advice") +
   theme(text = element_text(size = 16),
         panel.grid = element_blank(),
-        legend.position = "top")
+        legend.position = "top") +
+  geom_segment(aes(x = acc, xend = agr, y = 1.1, yend = 1.1), 
+               data = comp.bf) +
+  geom_label(aes(x = 1.5, y = 1.1, label = paste0('BF ', num2str(bf))),
+             data = comp.bf)
 ```
 
 ## Credits 

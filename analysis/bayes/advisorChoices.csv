@@ -1,0 +1,29 @@
+"condition","firstAdvisor","pAccurate"
+"No feedback condition","Agreeing",0.666666666666667
+"No feedback condition","Agreeing",0.3
+"Feedback condition","Agreeing",1
+"No feedback condition","Agreeing",0.5
+"Feedback condition","Agreeing",0.8
+"No feedback condition","Agreeing",0.3
+"No feedback condition","Agreeing",0.4
+"No feedback condition","Accurate",0.2
+"No feedback condition","Accurate",1
+"No feedback condition","Agreeing",0.1
+"No feedback condition","Accurate",1
+"No feedback condition","Accurate",0.9
+"No feedback condition","Accurate",0.7
+"No feedback condition","Accurate",0.8
+"No feedback condition","Accurate",0.2
+"Feedback condition","Accurate",1
+"Feedback condition","Agreeing",0.8
+"No feedback condition","Accurate",0
+"Feedback condition","Accurate",0.8
+"Feedback condition","Accurate",1
+"No feedback condition","Accurate",0
+"Feedback condition","Accurate",0.3
+"Feedback condition","Agreeing",0.888888888888889
+"Feedback condition","Agreeing",1
+"Feedback condition","Agreeing",0.9
+"Feedback condition","Accurate",1
+"Feedback condition","Accurate",1
+"No feedback condition","Agreeing",0.3
