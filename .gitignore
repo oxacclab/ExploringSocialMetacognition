@@ -28,3 +28,4 @@ cypress/videos
 cypress/support
 style/sass/.sass-cache
 .DS_Store
+analysis/simulation/tmp.json
