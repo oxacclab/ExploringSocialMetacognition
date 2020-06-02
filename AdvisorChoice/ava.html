@@ -121,17 +121,17 @@
         blockCount: 2,
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 3 + 5, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 3 + 60, // intro trials need to be accommodated in the first practice block
             },
-            {[trialTypes.catch]: 5}, // 2nd practice block
-            {[trialTypes.force]: 5} // Practice advisors
+            {[trialTypes.catch]: 60}, // 2nd practice block
+            {[trialTypes.force]: 4} // Practice advisors
         ],
         blockStructure: [
             {
-                [trialTypes.force]: 6
+                [trialTypes.force]: 60
             },
             {
-                [trialTypes.choice]: 5
+                [trialTypes.choice]: 30
             }
         ],
         preTrialInterval: 200,
@@ -164,7 +164,7 @@
         pages: [
             "Welcome to the experiment. Click 'next' to begin.",
             "<p>You will see two boxes containing dots either side of the centre of the screen. " +
-            "Your task is to use the slider to decide which of the two boxes has the most dots.</p>"+
+            "Your task is to use the slider to indicate which of the two boxes has the most dots.</p>"+
             "<p>You make your decision by using the bar below the boxes. Once you've made your" +
             " decision you'll see <strong>the dots in the correct box reappear</strong> briefly.</p>" +
             "Click one of the boxes and then press the 'continue' button.</p>" +
@@ -480,7 +480,7 @@
             "Most people answer personal questions"
         ],
         labels: [
-            ["I have to be cautious", "I do not have to cautious"],
+            ["I have to be cautious", "I do not have to be cautious"],
             ["Tell the truth", "Lie"],
             ["Can be counted on", "Can't be counted on"],
             ["Work with other people", "Work alone"],

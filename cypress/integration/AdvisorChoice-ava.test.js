@@ -1,7 +1,6 @@
 const runs = 1;
 
-const qCount = {practice: [5, 5], advisorPractice: 5, learning: 6, test: 5};
-// const qCount = {practice: [60, 60], advisorPractice: 5, learning: 60, test: 60};
+const qCount = {practice: [60, 60], advisorPractice: 4, learning: 60, test: 30};
 
 function doTrial(pCorrect = .71) {
     cy.wait(600);
