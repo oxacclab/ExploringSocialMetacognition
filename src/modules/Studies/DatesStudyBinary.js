@@ -248,7 +248,12 @@ class DatesStudyBinary extends DatesStudy {
         );
 
         // Change prompt text to state what is happening
-        document.getElementById("prompt").innerHTML = "New advisor" + (advisors.length > 1 ? " group" : "") + "!";
+        let introText = this.blocks[this.trials[this.currentTrial].block].advisorIntroText;
+        if(typeof introText === "undefined")
+            introText = "New advisor" + (advisors.length > 1 ? " group" : "") + "!";
+        if(typeof introText === "function")
+            introText = introText(this);
+        document.getElementById("prompt").innerHTML = introText;
         await this.wait(500);
 
         await this._introduceAdvisor(advisors[0]);

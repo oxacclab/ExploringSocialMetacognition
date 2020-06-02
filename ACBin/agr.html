@@ -524,30 +524,21 @@
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    advisorsPerTrial: 1
                 }),
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    advisorsPerTrial: 1
                 }),
                 new Block({
                     trialCount: 10,
                     blockType: "core",
                     advisorsPerTrial: 2,
-                    advisorChoice: true
+                    advisorChoice: true,
+                    advisorIntroText: "",
+                    introText: "On each of the remaining rounds you can choose which of your two advisors you would like to advise you.",
+                    feedback: false
                 })
             ],
             questionsXML: "assets/etc/questions.xml",

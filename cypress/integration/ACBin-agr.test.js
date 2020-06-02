@@ -304,6 +304,14 @@ for(let run = 0; run < runs; run++) {
                 .contains('Okay')
                 .should('be.visible')
                 .click();
+
+            cy.wait(250);
+
+            // Acknowledge advisor choice
+            cy.get('esm-instruction button')
+                .contains('Okay')
+                .should('be.visible')
+                .click();
         });
 
         for (let i = 0; i < 10; i++) {
