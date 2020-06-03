@@ -75,6 +75,26 @@ if (binary) {
     print()
   
   print(paste0('Bad experience rate: ', round(nrow(bad) / nrow(tmp), 4) * 100, "%"))
+  
+  print('Accuracy difference experience')
+  tmp <- tmp %>% 
+    nest(data = -iteration) %>%
+    mutate(acc_difference = map_dbl(data, function(x) {
+      x <- group_by(x, idDescription) %>% 
+        summarise(correct = mean(correct)) %>% 
+        spread(idDescription, correct) 
+      unlist(x[, 1] - x[, 2])
+    }) 
+    ) %>%
+    pull(acc_difference)
+  tmp %>% 
+    mean_cl_normal()
+  print(
+    ggplot(enframe(tmp, value = "acc_difference"), aes(x = "", y = acc_difference)) + 
+      geom_hline(yintercept = 0, linetype = 'dashed') +
+      geom_violin(colour = NA, fill = 'grey85') +
+      geom_point(position = position_jitter(.1), alpha = .1)
+    )
 }
 
 if ('responseAnswerSide' %in% names(json)) {

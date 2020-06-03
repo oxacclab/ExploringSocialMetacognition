@@ -475,8 +475,10 @@
                     confidenceVariation: 6,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            AdviceTypes.CORRECTISH.copy(11),
-                            AdviceTypes.CORRECT.copy(3)
+                            AdviceTypes.BINARY_AGREE_RATE_BY_CORRECT.copy(1, {
+                                pAgreeCorrect: .85,
+                                pAgreeIncorrect: .15
+                            })
                         ]
                     })
                 }),
@@ -491,8 +493,10 @@
                     confidenceVariation: 20,
                     adviceProfile: new AdviceProfile({
                         adviceTypes: [
-                            AdviceTypes.CORRECTISH.copy(11),
-                            AdviceTypes.CORRECT.copy(3)
+                            AdviceTypes.BINARY_AGREE_RATE_BY_CORRECT.copy(1, {
+                                pAgreeCorrect: .55,
+                                pAgreeIncorrect: .45
+                            })
                         ]
                     })
                 })
@@ -520,30 +524,21 @@
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    advisorsPerTrial: 1
                 }),
                 new Block({
                     trialCount: 15,
                     blockType: "core",
-                    advisorsPerTrial: 1,
-                    perTrial: {
-                        adviceTypeOverride: [
-                            (aP)=>aP.mainAdviceType,
-                            (aP)=>aP.mainAdviceType
-                        ]
-                    }
+                    advisorsPerTrial: 1
                 }),
                 new Block({
                     trialCount: 10,
                     blockType: "core",
                     advisorsPerTrial: 2,
-                    advisorChoice: true
+                    advisorChoice: true,
+                    advisorIntroText: "",
+                    introText: "On each of the remaining rounds you can choose which of your two advisors you would like to advise you.",
+                    feedback: false
                 })
             ],
             questionsXML: "assets/etc/questions.xml",
