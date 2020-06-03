@@ -27,6 +27,7 @@ export default function processData(data) {
         preTrialInterval: data.preTrialInterval,
         preStimulusInterval: data.preStimulusInterval,
         stimulusDuration: data.stimulusDuration,
+        feedbackCondition: data.feedbackCondition,
         feedbackDuration: data.feedbackDuration,
         changeDuration: data.changeTime,
         timeStart: data.timeStart,
