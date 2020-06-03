@@ -511,9 +511,10 @@
     const procedures_feedback = {
         [trialTypes.catch]: [initialDecision, feedbackDisplay],
         [trialTypes.force]: [initialDecision, advice, finalDecision, feedbackDisplay],
-        [trialTypes.choice]: [initialDecision, advice, finalDecision, feedbackDisplay],
-        [trialTypes.dual]: [initialDecision, advice, finalDecision, feedbackDisplay],
-        [trialTypes.change]: [initialDecision, advice, finalDecision, feedbackDisplay]
+        // choice-type trials never get feedback
+        [trialTypes.choice]: [initialDecision, advice, finalDecision],
+        [trialTypes.dual]: [initialDecision, advice, finalDecision],
+        [trialTypes.change]: [initialDecision, advice, finalDecision]
     };
     const procedures = {
         [trialTypes.catch]: [initialDecision],
@@ -581,7 +582,10 @@
         });
         // add the trials selecting the appropriate procedure for the trial type
         while(trials.length) {
-            timeline.push({timeline: procedures[trials.shift().type]});
+            if(gov.feedbackCondition)
+                timeline.push({timeline: procedures_feedback[trials.shift().type]});
+            else
+                timeline.push({timeline: procedures[trials.shift().type]});
         }
         // Show instructions when changing from force trials to choice trials
         if(gov.blockStructure[b][trialTypes.force] &&
