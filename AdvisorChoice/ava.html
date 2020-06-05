@@ -395,8 +395,7 @@
     /* Questionnaires to ask about how the judge feels about the advisors */
     let order = utils.shuffle([0, 1, 2]);
 
-    const questionnaire = gov.advisorClass === "Advisor"?
-        {
+    const questionnaire = {
             type: "function-sliders-response",
             stimulus: (display_element, callback)=>gov.drawQuestionnaire(display_element, callback),
             prompt: '<p>This advisor is...</p>',
@@ -417,37 +416,6 @@
             require_change_warning: utils.orderArray([
                 '<p style="color: red;">Please answer the <em>likeability</em> question.</p>',
                 '<p style="color: red;">Please answer the <em>competence</em> question.</p>',
-                '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
-            ], order),
-            special_class_names: ['questionnaire'],
-            max_warnings: 1,
-            on_load: ()=>{
-                gov.setSliderClick(false);
-                AdvisorChoice.hackQuestionnaire();
-            },
-            on_finish: (trial)=>gov.questionnaireResponse(trial)
-        } : // "Cue"
-        {
-            type: "function-sliders-response",
-            stimulus: (display_element, callback)=>gov.drawQuestionnaire(display_element, callback),
-            prompt: '<p>This cue is...</p>',
-            sliderCount: 3,
-            slider_name: utils.orderArray([
-                'Desirability',
-                'Accuracy',
-                'Helpfulness'
-            ], order),
-            labels: utils.orderArray([
-                ['Unwanted', 'Wanted'],
-                ['Inaccurate', 'Accurate'],
-                ['Misleading', 'Helpful']
-            ], order),
-            slider_full_width: [true],
-            slider_arrangement: [0, 1, 2],
-            require_change: [0, 1, 2],
-            require_change_warning: utils.orderArray([
-                '<p style="color: red;">Please answer the <em>desirability</em> question.</p>',
-                '<p style="color: red;">Please answer the <em>accuracy</em> question.</p>',
                 '<p style="color: red;">Please answer the <em>helpfulness</em> question.</p>'
             ], order),
             special_class_names: ['questionnaire'],
