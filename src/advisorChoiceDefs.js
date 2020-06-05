@@ -884,6 +884,7 @@ class DotTask extends Governor {
         let canvas = document.getElementById(canvasId);
         // give feedback on previous trial
         let trial = this.trials[this.currentTrialIndex-1];
+        trial.feedback = true;
         DotTask.drawFixation(canvasId);
         trial.grid.drawBoundingBoxes(canvasId);
         trial.grid.draw(canvasId, trial.whichSide);
