@@ -233,6 +233,17 @@ advisorManipulationData <- function(trials) {
       tmp <- cbind(data.frame(pid = trials$pid), advice)
       df <- aggregate(cbind(HighAgrAgrees, LowAgrAgrees) ~ pid, tmp, mean)
     }
+    if(advisorTypes[1] == adviceTypes$avaAcc) {
+      # High accuracy vs High agreement - compare both
+      for(a in advisorTypes) {
+        v <- paste0(getAdviceTypeName(a), 'Agrees')
+        advice[ , v] <- advice[ , getAdviceTypeName(a)] == trials$initialAnswer
+        v <- paste0(getAdviceTypeName(a), 'Correct')
+        advice[ , v] <- advice[ , getAdviceTypeName(a)] == trials$correctAnswer
+      }
+      tmp <- cbind(data.frame(pid = trials$pid), advice)
+      df <- aggregate(cbind(avaAccAgrees, avaAgrAgrees, avaAccCorrect, avaAgrCorrect) ~ pid, tmp, mean)
+    }
     full <- cbind(full, df[ ,-1])
   }
   short <- data.frame(mean = colMeans(full[ ,-1]),

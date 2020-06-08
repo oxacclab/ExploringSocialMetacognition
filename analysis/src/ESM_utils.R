@@ -285,6 +285,10 @@ getAdviceTypeName <- function(adviceType, long = FALSE) {
     return(ifelse(long, 'High agreement', 'HighAgr'))
   if(adviceType==adviceTypes$LowAgr)
     return(ifelse(long, 'Low agreement', 'LowAgr'))
+  if(adviceType==adviceTypes$avaAcc)
+    return(ifelse(long, 'AVA Accurate', 'avaAcc'))
+  if(adviceType==adviceTypes$avaAgr)
+    return(ifelse(long, 'AVA Agreement', 'avaAgr'))
   return(ifelse(long, 'None', NA))
 }
 
@@ -323,7 +327,8 @@ type2ROC <- function(correctness, confidence, bins = NA) {
 adviceTypes <- list(neutral=0, 
                     AiC=3, AiU=4, 
                     HighAcc=5, LowAcc=6,
-                    HighAgr=7, LowAgr=8)
+                    HighAgr=7, LowAgr=8,
+                    avaAcc=9, avaAgr=10)
 
 trialTypes <- list(catch=0, force=1, choice=2, dual=3, change=4)
 confidenceCategories <- list(low=0, medium=1, high=2)
