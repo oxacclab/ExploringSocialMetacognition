@@ -31,6 +31,8 @@
     <script src="../src/jspsych-function-sliders-response.js"></script>
     <script src="../src/jspsych-jas-present-advice-choice.js"></script>
     <script src="../src/jspsych-canvas-sliders-response.js"></script>
+    <script src="../src/sha1.js"></script>
+    <script src="../src/identicon.js"></script>
 
     <link rel="stylesheet" href="../style/advisorChoice.css"/>
     <link rel="stylesheet" href="https://mjaquiery.github.io/jsPsych/css/jspsych.css"/>
@@ -63,7 +65,17 @@
     let adviceTypes = [9,10];
     let advisorIdDeck = utils.shuffle(utils.getSequence(1,4));
     let advisorVoiceDeck = utils.shuffle(utils.getSequence(1,4));
-    let advisorPicDeck = utils.shuffle(utils.getSequence(1,6));
+    // Create avatars using identicons
+    let advisorPicDeck = utils.shuffle(utils.getSequence(1,6))
+        .map(s => {
+            const data = new Identicon(
+                sha1.sha1(s.toString()),
+                {
+                    size: 50,
+                    format: 'svg'
+                }).toString();
+            return "data:image/svg+xml;base64," + data;
+        });
     let args = {skipAudioPreload: true};
     let practiceArgs = {skipAudioPreload: true, practice: true};
     // Each advisor in a pair has one of the two colour schemes (assigned randomly)
@@ -112,26 +124,42 @@
         advisorLists: [
             advisorListA
         ],
-        practiceAdvisors: [practiceAdvisor0, practiceAdvisor1],
+        practiceAdvisors: [practiceAdvisor0],
         advisors: [
             advisorListA[0],
             advisorListA[1]
         ],
-        contingentAdvisors: [[], [], []],
         blockCount: 2,
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 3 + 60, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 3 + 1, // intro trials need to be accommodated in the first practice block
             },
-            {[trialTypes.catch]: 60}, // 2nd practice block
+            {[trialTypes.catch]: 1}, // 2nd practice block
             {[trialTypes.force]: 4} // Practice advisors
         ],
         blockStructure: [
             {
-                [trialTypes.force]: 60
+                [trialTypes.force]: 6,
+                properties: {
+                    // Override the advisor to keep same advisor for whole block
+                    advisor0id: advisorListA[0].id,
+                    advisor1id: null,
+                    advisorId: advisorListA[0].id,
+                    advisorOrder: [advisorListA[0].id]
+                }
             },
             {
-                [trialTypes.choice]: 30
+                [trialTypes.force]: 6,
+                properties: {
+                    // Override the advisor to keep same advisor for whole block
+                    advisor0id: advisorListA[1].id,
+                    advisor1id: null,
+                    advisorId: advisorListA[1].id,
+                    advisorOrder: [advisorListA[1].id]
+                }
+            },
+            {
+                [trialTypes.choice]: 3
             }
         ],
         preTrialInterval: 200,
@@ -237,7 +265,7 @@
         pages: [
             "<p>Excellent. You are now ready to do the experiment.</p>" +
             "<p>Please make sure you are in a comfortable, quiet environment, and you are ready to begin.</p>",
-            "<p>We will now assign you two advisors. On each round, you will get advice from one of these advisors.</p>" +
+            "<p>We will now assign you two advisors. You will do one block of trials with advice from each of these advisors so you can get used to them.</p>" +
             "<p>The advisors may have different characteristics. Your task is to learn about and use the advice so that your final decisions on each round are as accurate as possible.</p>" +
             // No feedback condition get told the feedback is being removed
             (gov.feedbackCondition? "" : "<p>You will no longer see the correct answer after you make your decision.</p>")
@@ -355,8 +383,8 @@
                 const id = advisors[i];
                 if(id === a.id)
                     gov.drawAdvice(div, a.id);
-                else
-                    gov.getAdvisorById(id).draw(div);
+                //else
+                //    gov.getAdvisorById(id).draw(div);
             }
             return a.portrait.src;
         },

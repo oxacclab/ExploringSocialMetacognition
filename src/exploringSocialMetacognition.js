@@ -484,8 +484,12 @@ class Advisor {
             this.portraitId = portrait;
             if (portrait === 0)
                 this.portraitId = this.id;
-            // this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
-            this.portraitSrc = "assets/image/advisor_blank.png";
+
+            if (typeof portrait === "string")
+                this.portraitSrc = portrait;
+            else
+                // this.portraitSrc = "assets/image/advisor" + this.portraitId + ".jpg";
+                this.portraitSrc = "assets/image/advisor_blank.png";
         } else {
             // Regenerate an old advisor for feedback
             args = id;

@@ -1084,6 +1084,7 @@ class AdvisorChoice extends DotTask {
         let whichSideDeck = utils.shuffleShoe([0, 1], advisorSets*utils.sumList(this.blockStructure));
         // Define trials
         for (let b=0; b<practiceBlockCount+blockCount; b++) {
+            let properties = null;
             let advisorSet = 0;
             let advisor0id = null;
             let advisor1id = null;
@@ -1092,25 +1093,28 @@ class AdvisorChoice extends DotTask {
             let advisorForceDeck = null;
             let advisorChangeDeck = null;
             if (b >= practiceBlockCount) {
-                advisorSet = Math.floor((b-practiceBlockCount) / this.blockStructure.length);
                 blockStructure = this.blockStructure[(b-practiceBlockCount)%this.blockStructure.length];
+                advisorSet = Math.floor((b-practiceBlockCount) / this.blockStructure.length);
                 advisorChoices = this.advisorLists[advisorSet];
             } else {
                 advisorSet = 0;
                 blockStructure = this.practiceBlockStructure[b];
                 advisorChoices = this.practiceAdvisors;
             }
-            advisor0id = advisorChoices[0].adviceType % 2? advisorChoices[1].id : advisorChoices[0].id;
-            if(advisorChoices.length > 1)
+            properties = blockStructure.properties? blockStructure.properties : null;
+            if(advisorChoices.length > 1) {
+                advisor0id = advisorChoices[0].adviceType % 2? advisorChoices[1].id : advisorChoices[0].id;
                 advisor1id = advisorChoices[0].adviceType % 2? advisorChoices[0].id : advisorChoices[1].id;
-            else
+            } else {
+                advisor0id = advisorChoices[0].id;
                 advisor1id = advisor0id;
+            }
             // Shuffle advisors so they appear an equal number of times
             advisorForceDeck = utils.shuffleShoe(advisorChoices,
                 blockStructure[trialTypes.force]/advisorChoices.length);
             advisorChangeDeck = utils.shuffleShoe(advisorChoices,
                 blockStructure[trialTypes.change]/advisorChoices.length);
-            let blockLength = utils.sumList(blockStructure);
+            let blockLength = utils.sumList({...blockStructure, properties: null});
             // Work out what type of trial to be
             let trialTypeDeck = [];
             for (let tt=0; tt<Object.keys(trialTypes).length; tt++) {
@@ -1129,8 +1133,12 @@ class AdvisorChoice extends DotTask {
                     advisorId = trialType === trialTypes.force? advisorForceDeck.pop().id : 0;
                 let defaultAdvisor = trialType === trialTypes.change? advisorChangeDeck.pop().id : null;
                 let changes = trialType === trialTypes.change? 0 : null;
-                let r = Math.random() < .5? 1 : 0;
-                let advisorOrder =  [advisorChoices[r].id, advisorChoices[1-r].id];
+                let advisorOrder;
+                if(advisorChoices.length > 1) {
+                    let r = Math.random() < .5? 1 : 0;
+                    advisorOrder =  [advisorChoices[r].id, advisorChoices[1-r].id];
+                } else
+                    advisorOrder = [advisorChoices[0].id];
                 let choice = trialType === trialTypes.choice? advisorOrder : [];
                 // let choice = isPractice? [] : [advisorChoices[r].id, advisorChoices[1-r].id];
                 trials.push(new Trial(id, {
@@ -1157,7 +1165,8 @@ class AdvisorChoice extends DotTask {
                     warnings: [],
                     stimulusDrawTime: [],
                     stimulusOffTime: [],
-                    fixationDrawTime: []
+                    fixationDrawTime: [],
+                    ...properties
                 }));
                 if (!isPractice)
                     realId++;
@@ -1219,8 +1228,8 @@ class AdvisorChoice extends DotTask {
                 const a = advisors[i];
                 if(a === this.currentAdvisor.id)
                     this.drawAdvice(div, this.currentAdvisor.id);
-                else
-                    this.getAdvisorById(a).draw(div);
+                //else
+                //    this.getAdvisorById(a).draw(div);
             }
         }
         // Set the class of the slider the advisor endorsed
@@ -1274,8 +1283,8 @@ class AdvisorChoice extends DotTask {
                 return;
             }
             this.findAdvisorFromContingency();
-                callback(this.currentAdvisor.id); // force trials
-                return;
+            callback(this.currentAdvisor.id); // force trials
+            return;
         }
         // present choices
         let choiceImgs = [];
@@ -1477,7 +1486,7 @@ class AdvisorChoice extends DotTask {
      */
     findAdvisorFromContingency() {
         // Only apply where advisor ID is specified already (i.e. force trials)
-        if (this.currentTrial.advisorId === 0 || this.currentTrial.practice)
+        if (this.currentTrial.advisorId === 0 || this.currentTrial.practice || !this.contingentAdvisors)
             return;
         // Determine confidence
         let cc = this.getConfidenceCategory(this.currentTrial.id);
