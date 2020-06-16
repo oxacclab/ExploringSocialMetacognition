@@ -1081,7 +1081,10 @@ class AdvisorChoice extends DotTask {
         let blockCount = this.blockStructure.length * advisorSets;
         let practiceBlockCount = this.practiceBlockStructure.length;
         // Same for which side the correct answer appears on
-        let whichSideDeck = utils.shuffleShoe([0, 1], advisorSets*utils.sumList(this.blockStructure));
+        const nTrials = utils.sumList(
+            this.blockStructure.map(x => {return {...x, properties: null};})
+        );
+        let whichSideDeck = utils.shuffleShoe([0, 1], advisorSets * nTrials);
         // Define trials
         for (let b=0; b<practiceBlockCount+blockCount; b++) {
             let properties = null;
