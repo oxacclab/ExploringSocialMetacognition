@@ -1076,7 +1076,10 @@ class Study extends ControlObject {
      */
     _setFeedback(feedback) {
         const me = this;
-        this.blocks.filter(b => b.blockType === "core")
+        this.blocks.filter(
+            b => b.blockType === "core"
+            && typeof b.feedback === "undefined"
+        )
             .forEach(b => {
                 b.feedback = feedback;
                 b.displayFeedback = feedback?
