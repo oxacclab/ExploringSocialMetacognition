@@ -1082,7 +1082,7 @@ class Study extends ControlObject {
         let keys = Object.keys(d);
         keys.sort();
         for (let k = 0; k < keys.length; k++)
-            out[keys[k]] = d[k];
+            out[keys[k]] = d[keys[k]];
 
         return out;
     }
