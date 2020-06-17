@@ -1042,6 +1042,8 @@ class Study extends ControlObject {
             studyVersion: this.studyVersion
         };
 
+        data = Study._alphabetize(data);
+
         data = JSON.stringify({
             studyId: this.studyName,
             studyVersion: this.studyVersion,
@@ -1067,6 +1069,22 @@ class Study extends ControlObject {
                 .catch(error => onError(error))
                 .then(r => resolve(r));
         });
+    }
+
+    /**
+     * Return a copy of d with its keys constructed in chronological order matching alphabetical order
+     * @param d {Object}
+     * @return {Object}
+     * @protected
+     */
+    static _alphabetize(d) {
+        const out = {};
+        let keys = Object.keys(d);
+        keys.sort();
+        for (let k = 0; k < keys.length; k++)
+            out[keys[k]] = d[k];
+
+        return out;
     }
 
     /**
