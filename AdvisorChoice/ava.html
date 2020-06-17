@@ -132,14 +132,14 @@
         blockCount: 2,
         practiceBlockStructure: [
             {
-                [trialTypes.catch]: 3 + 1, // intro trials need to be accommodated in the first practice block
+                [trialTypes.catch]: 3 + 60, // intro trials need to be accommodated in the first practice block
             },
-            {[trialTypes.catch]: 1}, // 2nd practice block
+            {[trialTypes.catch]: 60}, // 2nd practice block
             {[trialTypes.force]: 4} // Practice advisors
         ],
         blockStructure: [
             {
-                [trialTypes.force]: 6,
+                [trialTypes.force]: 60,
                 properties: {
                     // Override the advisor to keep same advisor for whole block
                     advisor0id: advisorListA[0].id,
@@ -149,7 +149,7 @@
                 }
             },
             {
-                [trialTypes.force]: 6,
+                [trialTypes.force]: 60,
                 properties: {
                     // Override the advisor to keep same advisor for whole block
                     advisor0id: advisorListA[1].id,
@@ -159,7 +159,7 @@
                 }
             },
             {
-                [trialTypes.choice]: 3
+                [trialTypes.choice]: 30
             }
         ],
         preTrialInterval: 200,

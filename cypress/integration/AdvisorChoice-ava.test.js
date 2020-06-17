@@ -198,6 +198,24 @@ for(let run = 0; run < runs; run++) {
 
         it('Pauses between blocks', function() {
             cy.get('#jspsych-content')
+                .contains('a moment to rest here')
+                .should('be.visible');
+            cy.get('.jspsych-btn')
+                .contains('Next')
+                .should('be.visible')
+                .click();
+        });
+
+        for(let i = 0; i < qCount.learning; i++) {
+            q++;
+
+            it('Runs block 1 Q' + i + ' [Q' + q + ']', function () {
+                doAdvisedTrial();
+            });
+        }
+
+        it('Pauses between blocks', function() {
+            cy.get('#jspsych-content')
                 .contains('choose which advisor')
                 .should('be.visible');
             cy.get('.jspsych-btn')
