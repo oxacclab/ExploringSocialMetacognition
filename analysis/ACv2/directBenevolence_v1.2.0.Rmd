@@ -75,7 +75,7 @@ We hypothesised that participants would place greater weight on the advice of th
 
 ## Preregistration
 
-This study was preregistered on the Open Science Framework: [https://osf.io/6hvg5](https://osf.io/6hvg5).
+This study was not preregistered.
 
 # Method
 

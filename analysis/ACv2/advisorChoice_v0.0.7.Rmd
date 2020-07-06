@@ -114,7 +114,7 @@ We have [previously observed](https://oxacclab.github.io/ExploringSocialMetacogn
 
 ## Preregistration
 
-This is a preregistered replication of a [previous study](https://oxacclab.github.io/ExploringSocialMetacognition/analysis/ACv2/advisorChoice_v0.0.6.html) which demonstrated that people would preferentially pick the Accurate advisor when provided with feedback. When feedback was withheld, the evidence suggested the rates of picking were equivalent to chance (although very noisy). The preregistration is done via the OSF, and, because the OSF is having some issues at the moment, via AsPredicted.org.
+This is a preregistered replication of a [previous study](https://oxacclab.github.io/ExploringSocialMetacognition/analysis/ACv2/advisorChoice_v0.0.6.html) which demonstrated that people would preferentially pick the Accurate advisor when provided with feedback. When feedback was withheld, the evidence suggested the rates of picking were equivalent to chance (although very noisy). The preregistration is done [via the OSF](https://osf.io/nwmx5), and, because the OSF is having some issues at the moment, via AsPredicted.org.
 
 ## Bayes stats
 

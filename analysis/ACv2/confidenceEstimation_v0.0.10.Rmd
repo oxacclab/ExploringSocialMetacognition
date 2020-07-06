@@ -89,6 +89,10 @@ After 10 trials in each block in which feedback on the correct answers was provi
 
 We hypothesised that participants would place greater weight on the advice of the consistent advisor, presumably because they are able to learn about the calibration of the individual advisor while they cannot do likewise for the population of advisors.
 
+## Preregistration
+
+This study was preregistered on the [OSF](https://osf.io/9a84t).
+
 # Method
 
 The experimental code is available on [GitHub](https://github.com/oxacclab/ExploringSocialMetacognition), and the experiment can be performed by visiting [https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html](https://acclab.psy.ox.ac.uk/~mj221/ESM/ACBin/ce.html?PROLIFIC_PID=WriteUp). 
