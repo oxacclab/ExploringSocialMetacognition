@@ -20,6 +20,7 @@ source('src/ESM_core.R')
 
 library(ggridges)
 library(dplyr)
+library(broom)
 
 theme_set(theme_light() +
             theme(
@@ -34,6 +35,10 @@ theme_set(theme_light() +
 ## Introduction 
 
 Investigation using the Dates task indicated that people showed a strong preference for picking accurate over agreeing advisors when feedback was provided. When feedback was withheld, no systematic preference was seen. Here we investigate whether the same pattern of results is observed when the Dots (perceptual decision-making) task is used instead. 
+
+### Preregistration 
+
+This study was preregistered on [the OSF](https://osf.io/5z2fp).
 
 ## Load data  
 
@@ -155,11 +160,9 @@ We exclude participants for:
 
 * Proportion of correct initial judgements must be (.60 < cor1/n < .90) (*N* = `r sum(participants$excluded == 'Accuracy')`)
 
-* Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confidence')`)
+* Having fewer than 3 confidence categories (*N* = `r sum(participants$excluded == 'Confident')`)
 
 * Having fewer than 5% of trials in each confidence category (*N* = `r sum(participants$excluded == '<5%')`)
-
-* There being more data collected than specified in pre-registration (*N* = `r sum(participants$excluded == 'Excess')`)
 
 *NB: **practice trials are included** in this since they are used in part for determining confidence calibration*
 
@@ -201,7 +204,12 @@ trials %>%
     acc = map(d, ~ mean_cl_normal(.$accuracy))
   ) %>%
   unnest(cols = c(agr, acc), names_sep = ".") %>%
-  select(-d)
+  select(-d) %>% 
+  pivot_longer(-adviceTypeName, 
+               names_to = c("property", ".value"), 
+               names_pattern = '(\\w+)\\.(\\w+)') %>%
+  prop2str() %>% 
+  kable()
   
 ```
 
@@ -223,7 +231,7 @@ for(a in adviceTypes[unlist(adviceTypes) %% 2 == 1 & unlist(adviceTypes) %in% tr
 
 # Pick rate differences
 
-The primary outcome is the relative frequencies of advisor picking on trials where there is a choice of advisor. There are two kinds of choice of advisor. *Choice* trials show participants two advisors and wait until the participant selects one. *Change* trials provide a default advisor and allow the participant to hear advice from the other advisor instead by pressing a key within a selection window (`r unique(participants$changeDuration)`ms). These choices are distinct from one another, and are thus analysed separately.
+The primary outcome is the relative frequencies of advisor picking on trials where there is a choice of advisor. *Choice* trials show participants two advisors and wait until the participant selects one.
 
 ## Choice trials
 
@@ -241,17 +249,21 @@ df.choice %>%
   nest(d = -feedbackCondition) %>%
   mutate(m = map(d, ~ mean_cl_normal(.$pChooseAcc))) %>%
   unnest(cols = m) %>%
-  select(-d)
+  select(-d) %>%
+  prop2str() %>%
+  kable()
 
 cat(md.ttest(df.choice$pChooseAcc[df.choice$feedbackCondition == 'feedback'], 
              y = .5, labels = c('*M*|feedback')))
+cat('\n\n')
 cat(md.ttest(df.choice$pChooseAcc[df.choice$feedbackCondition == 'no-feedback'], 
              y = .5, labels = c('*M*|no-feedback')))
-
+cat('\n\n')
 
 cat(md.ttest(df.choice$pChooseAcc[df.choice$feedbackCondition == 'feedback'], 
              df.choice$pChooseAcc[df.choice$feedbackCondition == 'no-feedback'],
              labels = c('*M*|feedback', '*M*|no-feedback')))
+cat('\n\n')
 
 ```
 
@@ -261,12 +273,13 @@ ggplot(df.choice, aes(x = pChooseAcc, y = feedbackCondition)) +
   geom_vline(xintercept = .5, linetype = 'dashed') +
   geom_density_ridges(aes(fill = feedbackCondition), colour = NA, alpha = .75) +
   geom_point(position = position_jitter(0, .05), alpha = .5,
-             aes(y = as.numeric(factor(feedbackCondition)) - .05))
+             aes(y = as.numeric(factor(feedbackCondition)) - .07,
+                 colour = feedbackCondition))
 ```
 
 ## Summary {.summary}
 
-Participants do not seem to have learned about the differences in the advisors during the training phase, even with feedback. It may be that the current design, in which participants are trained on both advisors mixed together over two training blocks, is more difficult for participants to process than other designs we have used where participants are given an entire block of one advisor, then an entire block of the other. It may well be worth conducting a version of this experiment where advisors are introduced serially rather than mixed together.
+Participants do not seem to have learned about the differences in the advisors during the training phase, even with feedback. Despite efforts to make the advisors more salient by introducing them one at a time and by adding identicons, no clear preference emerged for either advisor, even in the Feedback condition.
 
 # Influence differences  
 
@@ -314,15 +327,68 @@ a.bf <- anovaBF(
 
 ```
 
+## Summary {.summary}
+
+There was a systematic effect of advisor on influence, with the accurate advisor being slightly more influential than the agreeing advisor in both conditions. There was possibly an interaction between advisor and Feedback condition, with the difference between the advisors being more pronounced in the No feedback condition !TODO[check this - it's not obvious from the graph], although this was not significant.
+
 # Pick rate x Influence
 
 If picking and influence measure a single latent 'trust' estimation for an advisor, the ratings should be correlated. The analysis is by advisor ID rather than advice profile, because individual advisors should have pick rates and influences which are more tightly correlated than advice profiles which average over multiple advisors. 
 
 Forced trials are used for the influence calculations, and choice trials for the pick rate calculations. 
 
+```{r}
 
+tmp <- trials %>% 
+  group_by(pid, feedbackCondition) %>%
+  dplyr::summarize(
+    influenceAcc = mean(if_else(!hasChoice & adviceTypeName == "avaAcc", 
+                                advisorInfluence, NA_real_), 
+                        na.rm = T),
+    influenceAgr = mean(if_else(!hasChoice & adviceTypeName == "avaAgr",
+                                advisorInfluence, NA_real_),
+                        na.rm = T),
+    pPickAcc = mean(if_else(hasChoice, adviceTypeName == "avaAcc", NA), na.rm = T)
+  ) %>%
+  mutate(influenceDiff = mean(influenceAcc - influenceAgr))
+
+ggplot(tmp, aes(x = pPickAcc, y = influenceDiff, 
+                colour = feedbackCondition, fill = feedbackCondition)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_vline(xintercept = .5, linetype = 'dashed') +
+  geom_smooth(method = 'lm', alpha = .15) +
+  geom_point(alpha = .25)
+
+tmp %>%
+  nest(d = -feedbackCondition) %>%
+  mutate(d = map(d, ~ lm(influenceDiff ~ pPickAcc, data = .)),
+         t = map(d, tidy)) %>%
+  unnest(cols = t)
+
+```
 
 # Exploration 
+
+## Questionnaires
+
+```{r}
+
+questionnaires <- trials %>% 
+  select(pid, advisorId, adviceTypeName) %>% 
+  unique() %>% 
+  left_join(questionnaires)
+
+questionnaires %>% 
+  select(pid, adviceTypeName, likeability, benevolence, ability) %>%
+  pivot_longer(c(-pid, -adviceTypeName), names_to = 'question', values_to = 'rating') %>%
+  ggplot(aes(x = adviceTypeName, y = rating)) +
+  geom_violin(fill = NA) +
+  geom_boxplot(size = 1.25, width = .2, outlier.colour = NA) +
+  geom_line(aes(group = pid), alpha = .25) +
+  scale_y_continuous(limits = c(0, 100)) +
+  facet_wrap(~ question)
+
+```
 
 
 # Credits 
