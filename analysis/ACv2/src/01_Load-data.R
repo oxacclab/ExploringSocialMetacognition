@@ -34,6 +34,12 @@ if (!isSet("rDir")) {
 if (!isSet("vars")) {
   vars <- list() # variables passed to getDerviedVariables
 }
+if (!isSet("useRawTrialData")) {
+  useRawTrialData <- F
+}
+if (!isSet("preserveWorkspaceVars")) {
+  preserveWorkspaceVars <- F
+}
 
 
 # load data ---------------------------------------------------------------
@@ -67,7 +73,7 @@ for (study in studies) {
     
     name <- "okayIds"
     # Bind to existing okayIds in workspace
-    if (length(versions) > 1 & 
+    if ((length(versions) > 1 | preserveWorkspaceVars) & 
         any(grepl(paste0('^', name, '$'), ls()) == T)) {
       assign(name, safeBind(list(get(name), tmp)))
     } else {
@@ -80,6 +86,10 @@ for (study in studies) {
     # convert CSV files to tibbles
     for (f in files) {
       
+      name <- reFirstMatch("([^_]+)\\.csv", f)
+      # Make name r-safe
+      name <- sub("-", ".", name)
+      
       tmp <- as_tibble(read.csv(f))
       
       x <- removeMismatchedRows(tmp)
@@ -90,6 +100,16 @@ for (study in studies) {
         tmpFile <- tempfile()
         write.csv(x$keep, tmpFile, row.names = F)
         tmp <- read.csv(tmpFile) %>% as_tibble()
+      }
+      
+      if (name == "Trial" || name == "AdvisedTrial") {
+        if (useRawTrialData) 
+          tmp <- suppressWarnings(
+            patchTrialDataFromRaw(tmp, 
+                                  studyName = studyName,
+                                  studyVersion = studyVersion,
+                                  rDir = rDir)
+          )
       }
       
       # screen out non-okay ids
@@ -120,10 +140,6 @@ for (study in studies) {
       if ("responseMarkerWidthFinal" %in% names(tmp))
         tmp$responseMarkerFinal <- factor(tmp[["responseMarkerWidthFinal"]])
       
-      name <- reFirstMatch("([^_]+)\\.csv", f)
-      # Make name r-safe
-      name <- sub("-", ".", name)
-      
       # add labels to the columns from the associated data dictionaries
       tmp <- getLabels(tmp, str_replace(name, '\\.', '-'), 
                        rDir = rDir, warnOnMissing = 'variable')
@@ -139,7 +155,8 @@ for (study in studies) {
       }
       
       # assign to workspace
-      if (max(length(studies), length(versions)) > 1 & 
+      if ((max(length(studies), length(versions)) > 1 |
+           preserveWorkspaceVars) & 
           any(grepl(paste0('^', name, '$'), ls()) == T)) {
         assign(name, safeBind(list(get(name), tmp)))
       } else {

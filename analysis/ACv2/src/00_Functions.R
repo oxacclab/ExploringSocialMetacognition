@@ -136,6 +136,83 @@ getLabels <- function(
   tbl
 }
 
+#' Load data directly from JSON files
+#' @param trials dataframe of existing trial data
+#' @param studyVersion study version or "all"
+#' @param studyName study name or "all"
+#' @param rDir remote directory
+#' 
+#' @return trials updated with data from the raw JSON files
+patchTrialDataFromRaw <- function(
+  trials,
+  studyName = "all", 
+  studyVersion = "all", 
+  rDir = "https://acclab.psy.ox.ac.uk/~mj221/ESM/data/public/") {
+  require(jsonlite)
+  
+  rDir <- paste0(rDir, if (str_ends(rDir, '/')) '' else '/', 'raw/')
+  
+  files <- NULL
+  
+  con <- curl(rDir)
+  open(con, "rb")
+  while (isIncomplete(con)) {
+    buffer <- readLines(con, n = 1)
+    if (length(buffer)) {
+      if (studyName == "all") {
+        f <- reFirstMatch(paste0('([0-9-_]+_[\\w\\W]+_v[0-9-]+_[0-9a-z]{8}.json)"'), buffer)
+      } else {
+        f <- reFirstMatch(
+          paste0('([0-9-_]+_', studyName, '_v[0-9-]+_[0-9a-z]{8}.json)"'),
+          buffer
+        )
+      }
+      
+      if (nchar(f)) {
+        v <- reFirstMatch(paste0('_v([0-9-]+)_[0-9a-z]{8}.json'), f)
+        
+        # Check version compatability with version mask
+        if (versionMatches(v, studyVersion)) {
+          files <- c(files, paste0(rDir, f))
+        }
+      }
+    }
+  }
+  close(con)
+  
+  d <- NULL
+  attn <- unique(trials$isAttentionCheck)
+  
+  for (f in files) {
+    con <- curl(f)
+    open(con, "rb")
+    txt <- readLines(con)
+    json <- jsonlite::fromJSON(txt)
+    tmp <- json$trials %>% 
+      as_tibble() %>% 
+      filter(blockType == "core") %>% 
+      .$data %>% 
+      as_tibble() %>%
+      filter(isAttentionCheck %in% attn) %>%
+      mutate_if(is.factor, as.character)
+    tmp$pid <- json$id
+    d <- rbind(d, tmp)
+    close(con)
+  }
+  
+  overwrite <- names(trials)[names(trials) %in% names(d)]
+  
+  for (i in 1:nrow(trials)) {
+    dRow <- d[d$pid == trials$pid[i] & 
+                d$timestampStart == trials$timestampStart[i], 
+              overwrite]
+    if (nrow(dRow) == 1)
+      trials[i, overwrite] <- dRow
+  }
+  
+  trials
+}
+
 getMarkerList <- function() {
   markersUsed <- c()
   
@@ -681,13 +758,14 @@ getDerivedVariables <- function(x, name, opts = list()) {
               paste("Whether the", a, 
                     "advisor agreed with the participant's initial estimate")
             
-            x[, paste0(a, ".distance", d)] <- ifelse(aa == p,
-                                                     pull(abs(conf - ac)), 
-                                                     pull(conf + ac))
-            
-            label(x[, paste0(a, ".distance", d)], self = F) <- 
-              paste("Difference between the confidences of the", a,
-                    "advisor's marker and the participant's initial estimate, respecting different answer sides if appropriate")
+            if (!is.factor(pull(ac))) {
+              x[, paste0(a, ".distance", d)] <- ifelse(aa == p,
+                                                       pull(abs(conf - ac)), 
+                                                       pull(conf + ac))
+              label(x[, paste0(a, ".distance", d)], self = F) <- 
+                paste("Difference between the confidences of the", a,
+                      "advisor's marker and the participant's initial estimate, respecting different answer sides if appropriate")
+            }
           }
         }
         
@@ -888,8 +966,12 @@ expect_equal(dim(safeBind(list(data.frame(x = 1:5, y = runif(5), rnorm(5)),
 #' @return x as a factor with y's labels 
 patchFactor <- function(x, y, dropUnused = T, ...) {
   z <- c(x, unique(y))
-  if (dropUnused)
-    z <- factor(z, labels = levels(factor(y)), ...)
+  if (dropUnused) {
+    if (length(levels(factor(y))))
+      z <- factor(z, labels = levels(factor(y)), ...)
+    else
+      z <- factor(z, ...)
+  }
   else
     z <- factor(z, labels = levels(y), ...)
   z[1:length(x)]
