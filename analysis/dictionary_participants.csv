@@ -1,0 +1,31 @@
+"id","The identification code for the participant. Where the participant comes from Prolific this is the sha1 hash of their Prolific ID. Where they do not, this is the sha1 hash of their starting timestamp plus a random decimal portion.
+This corresponds to participantId in other data frames"
+"blockCount","The number of advisor pairings experienced by the participant"
+"catchPerBlock","Block structure of the first subblock in a block. Structure values list numbers of
+0.	Catch trials
+1.	Force trials
+2.	Choice trials"
+"forcePerBlock","Block structure of the second subblock in a block"
+"practiceBlockCount","Number of practice blocks"
+"practiceBlockLength","Number of trials in the practice block. This is in addition to the training trials"
+"practiceCatchPerBlock","Number of catch (no advisor) trials in the practice blocks"
+"practiceForcePerBlock","Number of forced (no choice of advisor) trials in the practice blocks"
+"practiceChoicePerBlock","Number of choice trials in the practice blocks"
+"difficultyStep","List detailing the staircasing information
+•	start: starting stepsize
+•	end: minimum stepsize
+•	nReversals: number of reversals before decrementing stepsize
+•	current: tracker for current stepsize
+•	currentReversals: tracker for reversals"
+"dotCount","The starting number of dots in each box before the dotDifference is applied"
+"preTrialInterval","The time between blank screen and fixation cross appearance (ms)"
+"preStimulusInterval","Time between fixation appearance and stimulus onset (ms)"
+"stimulusDuration","Time stimulus is visible (ms)"
+"feedbackDuration","Time feedback screen is visible for trials with feedback (ms)"
+"timeStart","Timestamp of the start of the experiment"
+"timeEnd","Timestamp of the end of the experiment"
+"experimentDuration","Duration of the experiment (ms)"
+"manipulationQuestion","Participant’s response to the question of what the difference between the advisors was. This may be redacted if required for preserving participant data security"
+"debriefComments","Participant’s response to being asked for final questions or comments on the experiment. This may be redacted if required for preserving participant data security"
+"pid","A shorthand integer used for identifying a particular participant"
+"excluded","Whether the participant was excluded from further data analysis. Contains either FALSE (not excluded) or a reason for exclusion"
