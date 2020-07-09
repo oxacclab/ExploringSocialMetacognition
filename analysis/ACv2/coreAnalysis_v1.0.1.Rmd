@@ -246,7 +246,16 @@ for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
   for (a in advisorNames) {
     
     s <- paste0(a, ".", suffix)
-    AdvisedTrial[, s] <- NA
+    if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'character')
+      AdvisedTrial[, s] <- NA_character_
+    else if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'double')
+      AdvisedTrial[, s] <- NA_real_
+    else if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'integer')
+      AdvisedTrial[, s] <- NA_integer_
+    else if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'list')
+      AdvisedTrial[, s] <- NA_complex_
+    else
+      AdvisedTrial[, s] <- NA
     
     for (i in 1:nrow(AdvisedTrial)) {
       x <- 0
@@ -321,12 +330,10 @@ AdvisedTrial$confidenceChange <-
 
 i <- min(AdvisedTrial$number)
 
-AdvisedTrial$firstAdvisor <- unlist(sapply(AdvisedTrial$pid, 
-                                           function(x) 
-                                             unique(AdvisedTrial[
-                                               AdvisedTrial$pid == x &
-                                                 AdvisedTrial$number == i,
-                                               "advisor0idDescription"])))
+AdvisedTrial <- AdvisedTrial %>% 
+  nest(d = -pid) %>%
+  mutate(firstAdvisor = map_chr(d, ~ filter(., number == min(number)) %>% pull(advisor0idDescription))) %>%
+  unnest(cols = d)
 
 # Trials - advisor-specific variables
 for (a in advisorNames) {
@@ -2158,17 +2165,18 @@ The questions above can perhaps be more suitably answered using a heirachical Ba
 
 # calculate woa for the advisor
 
-tmp <- aggregate(advisor0woa ~ 
+tmp <- aggregate(advisor0woa ~
                    pid + hasFeedback + advisor0idDescription + firstAdvisor,
                  block2, mean, na.rm = T)
-tmp$hasFeedback <- factor(tmp$hasFeedback)
+tmp$hasFeedback <- ifelse(tmp$hasFeedback, 'Feedback', 'No feedback')
+tmp <- tmp %>% mutate_if(is.character, factor) %>% as_data_frame()
 
-r <- BANOVA.Normal(l1_formula = advisor0woa ~ advisor0idDescription,
-                   l2_formula = ~ hasFeedback + firstAdvisor, 
-                   data = tmp,
-                   id = tmp$pid)
-
-r
+# r <- BANOVA.Normal(l1_formula = advisor0woa ~ advisor0idDescription,
+#                    l2_formula = ~ hasFeedback + firstAdvisor,
+#                    data = tmp,
+#                    id = tmp$pid)
+# 
+# r
 
 ```
 

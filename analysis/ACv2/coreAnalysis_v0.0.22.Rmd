@@ -253,7 +253,17 @@ for (v in names(AdvisedTrial)[grepl("advisor0", names(AdvisedTrial))]) {
   for (a in advisorNames) {
     
     s <- paste0(a, ".", suffix)
-    AdvisedTrial[, s] <- NA
+    if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'character')
+      AdvisedTrial[, s] <- NA_character_
+    else if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'double')
+      AdvisedTrial[, s] <- NA_real_
+    else if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'integer')
+      AdvisedTrial[, s] <- NA_integer_
+    else if (typeof(pull(AdvisedTrial, paste0('advisor0', suffix))) == 'list')
+      AdvisedTrial[, s] <- NA_complex_
+    else
+      AdvisedTrial[, s] <- NA
+    
     
     for (i in 1:nrow(AdvisedTrial)) {
       x <- 0
@@ -2130,12 +2140,12 @@ tmp <- aggregate(advisor0woa ~
                  block2, mean, na.rm = T)
 tmp$hasFeedback <- factor(tmp$hasFeedback)
 
-r <- BANOVA.Normal(l1_formula = advisor0woa ~ advisor0idDescription,
-                   l2_formula = ~ hasFeedback + firstAdvisor, 
-                   data = tmp,
-                   id = tmp$pid)
-
-r
+# r <- BANOVA.Normal(l1_formula = advisor0woa ~ advisor0idDescription,
+#                    l2_formula = ~ hasFeedback + firstAdvisor, 
+#                    data = tmp,
+#                    id = tmp$pid)
+# 
+# r
 
 ```
 
