@@ -378,9 +378,11 @@ questionnaires <- trials %>%
   unique() %>% 
   left_join(questionnaires)
 
-questionnaires %>% 
+qq <- questionnaires %>% 
   select(pid, adviceTypeName, likeability, benevolence, ability) %>%
-  pivot_longer(c(-pid, -adviceTypeName), names_to = 'question', values_to = 'rating') %>%
+  pivot_longer(c(-pid, -adviceTypeName), names_to = 'question', values_to = 'rating') 
+
+qq %>%
   ggplot(aes(x = adviceTypeName, y = rating)) +
   geom_violin(fill = NA) +
   geom_boxplot(size = 1.25, width = .2, outlier.colour = NA) +
@@ -389,7 +391,49 @@ questionnaires %>%
   facet_wrap(~ question)
 
 ```
+### Correlation with pick rates
 
+```{r}
+
+tmp <- qq %>%
+  pivot_wider(names_from = adviceTypeName, values_from = rating) %>%
+  mutate(ratingDifference = avaAcc - avaAgr) %>%
+  left_join(df.choice, by = 'pid')
+
+r <- tmp %>% 
+  nest(d = c(-feedbackCondition, -question)) %>%
+  mutate(
+    d = map(d, ~ cor.test(~ ratingDifference + pChooseAcc, data = .)),
+    d = map(d, tidy)
+  ) %>%
+  unnest(cols = d)
+
+ggplot(tmp, aes(x = pChooseAcc, y = ratingDifference)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_vline(xintercept = .5, linetype = 'dashed') +
+  geom_smooth(method = 'lm', fill = 'blue', alpha = .2) +
+  geom_point(alpha = 1/3) +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(-100, 100)) +
+  geom_label(data = r, x = .15, y = 100, hjust = .5, vjust = 1,
+             aes(label = paste0(
+               'r ', lteq(prop2str(estimate)), 
+               ' [95%CI ', prop2str(conf.low),
+               ', ', prop2str(conf.high), ']\n',
+               'p ', lteq(prop2str(p.value))
+             ))) +
+  facet_grid(question ~ feedbackCondition)
+
+tmp %>% 
+  group_by(question, feedbackCondition) %>% 
+  summarise(
+    ratingDifference_mean = mean(ratingDifference),
+    rd_sd = sd(ratingDifference),
+    pChooseAcc_mean = mean(pChooseAcc),
+    pCA_sd = sd(pChooseAcc)
+    )
+
+```
 
 # Credits 
 
