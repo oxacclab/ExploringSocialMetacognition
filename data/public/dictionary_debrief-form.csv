@@ -1,7 +1,9 @@
 ﻿variable,type,description
 clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
 comment,string,Participant's answer to the open debrief question
+group,int,"Participant's response to the question asking which group they were in. For participants paying attention, will match the pGroup variable in study details."
 pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
 pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
+serverTime,string|NA,Time of the entry according to the server
 studyId,string,Study title
 studyVersion,string,Major.minor.revision version number

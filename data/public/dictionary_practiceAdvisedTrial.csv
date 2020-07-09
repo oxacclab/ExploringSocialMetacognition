@@ -31,7 +31,9 @@ advisor[0-9]+questionnaireHonestyValue,int,The option selected by the participan
 advisor[0-9]+questionnaireTimeOpen,int,Milliseconds from the beginning of the trial to the opening of the advice questionnaire window for advisor [0-9]+'s advice
 advisor[0-9]+questionnaireTimeSubmitted,int,Milliseconds from the beginning of the trial to the participant's submission of the advice questionnaire window for advisor [0-9]+'s advice
 advisor[0-9]+sameGroup,boolean,Whether advisor [0-9]+ is in the same group as the participant
+advisor[0-9]+side,int|NA,"The side marked as advisor [0-9]+'s advice (0=left, 1=right)"
 advisor[0-9]+svg,string|NA,The img element src field containing base64-encoded svg file for advisor [0-9]+'s portrait
+advisor[0-9]+validFlags,int|NA,Binary flag representation of advice types which advisor [0-9]+ may select for this trial
 advisor[0-9]+validTypeFlags,int,Binary flag representation of the above
 advisor[0-9]+validTypes,string,Comma-separated list of advice types which advisor [0-9]+ may select for this trial
 advisorChoice,boolean,Whether the trial offers a choice of advisor
@@ -40,6 +42,10 @@ anchorDate,int|NA,Year given as the anchor
 anchorHTML,string|NA,HTML displayed in the anchor date area
 block,int,The number of the experimental block the trial is in
 clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+confidenceConfidence,int,Confidence of the participant's response
+confidenceConfidenceFinal,int,Confidence of the participant's final response
+confidenceTimeConfidence,int,Timestamp of the time the participant's confidence response was submitted
+confidenceTimeConfidenceFinal,int,Timestamp of the time the participant's final confidence response was submitted
 context,int,Equivalent of advisor group for the whole trial
 contextDescription,string,Equivalent of advisor introText for the whole trial
 contextName,string,Equivalent of advisor idDescription for the whole trial
@@ -51,6 +57,8 @@ number,int,The number of the trial
 pGroup,int,The participant's group number
 pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
 pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
+responseAns,string|NA,The label of the submitted response as seen by the participant
+responseAnsFinal,string|NA,The label of the submitted final response as seen by the participant
 responseAnswer,string|NA,The label of the submitted response as seen by the participant
 responseAnswerFinal,string|NA,The label of the submitted final response as seen by the participant
 responseAnswerSide,int|NA,"The side of the response selected (0=left, 1=right)"
@@ -77,9 +85,14 @@ responseSlider,int|NA,Whether the slider used in the response was on the left (0
 responseSliderFinal,int|NA,Whether the slider used in the final response was on the left (0) or right (1)
 responseTimeEstimate,int,The time elapsed in milliseconds between the opening of the response window and the collection of the response
 responseTimeEstimateFinal,int,The time elapsed in milliseconds between the opening of the response window and the collection of the final response
+serverTime,string|NA,Time of the entry according to the server
 stimHTML,string,HTML displayed in the stimulus area
 studyId,string,Study title
 studyVersion,string,Major.minor.revision version number
+timeConfidenceOpen,int,Milliseconds from the beginning of the trial to the opening of the confidence report
+timeConfidenceOpenFinal,int,Milliseconds from the beginning of the trial to the opening of the final confidence report
+timeConfidenceClose,int,Milliseconds from the beginning of the trial to the closing of the confidence report
+timeConfidenceCloseFinal,int,Milliseconds from the beginning of the trial to the closing of the final confidence report
 timeEnd,int,Milliseconds from the beginning of the trial to the end of the trial
 timeFeedbackOff,int|NA,Milliseconds from the beginning of the trial to the end of the trial feedback (NA if no feedback provided)
 timeFeedbackOn,int|NA,Milliseconds from the beginning of the trial to the start of the trial feedback (NA if no feedback provided)

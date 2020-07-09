@@ -1,12 +1,15 @@
 ﻿variable,type,description
 advisorId,int,ID of the advisor
 clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+comment,string|NA,Free response field for the participant to describe the advisor.
 consistency,int,Participant's answer to how much integrity they felt the advisor had
 helpfulness,int,Participant's answer to how helpful they thought the advisor was
 knowledge,int,Participant's answer to how knowledgeable they though the advisor was
+likability,int,Participant's answer to how likable they thought the advisor was
 pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
 pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
 position,int,Position of the advisor in the experimental advisor list
+serverTime,string|NA,Time of the entry according to the server
 studyId,string,Study title
 studyVersion,string,Major.minor.revision version number
 trustworthiness,int,Participant's answer to how trustworthy they thought the advisor was

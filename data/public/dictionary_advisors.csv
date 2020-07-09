@@ -19,6 +19,7 @@ pidHash,string,md5 hash generated from participant's ProlificID and study info a
 position,int,Position of the advisor in the experimental advisor list
 questionnaire,NA,Unused
 sameGroup,boolean|NA,Whether the advisor belongs to the same group as the participant
+serverTime,string|NA,Time of the entry according to the server
 studyId,string,Study title
 studyVersion,string,Major.minor.revision version number
 svg,string|NA,The img element src field containing base64-encoded svg file for the advisor portrait

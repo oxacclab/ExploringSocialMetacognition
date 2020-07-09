@@ -11,6 +11,7 @@ number,int,The number of the trial
 pGroup,int,The participant's group number
 pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
 pidHash,string,md5 hash generated from participant's ProlificID and study info allowing one-way verification that a given ProlificID was responsible for the data
+responseAns,string|NA,The label of the submitted response as seen by the participant
 responseAnswer,string|NA,The label of the submitted response as seen by the participant
 responseAnswerSide,int|NA,"The side of the response selected (0=left, 1=right)"
 responseComplete,boolean,Whether the response was completed successfully
@@ -24,6 +25,7 @@ responseMarkerValue,int,The points to be awarded for a correct response using th
 responseMarkerWidth,int,The width of the response marker in years
 responseSlider,int|NA,Whether the slider used in the response was on the left (0) or right (1)
 responseTimeEstimate,int,The time elapsed in milliseconds between the opening of the response window and the collection of the response
+serverTime,string|NA,Time of the entry according to the server
 stimHTML,string,HTML displayed in the stimulus area
 studyId,string,Study title
 studyVersion,string,Major.minor.revision version number

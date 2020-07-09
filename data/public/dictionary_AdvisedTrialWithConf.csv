@@ -42,6 +42,10 @@ anchorDate,int|NA,Year given as the anchor
 anchorHTML,string|NA,HTML displayed in the anchor date area
 block,int,The number of the experimental block the trial is in
 clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+confidenceConfidence,int,Confidence of the participant's response
+confidenceConfidenceFinal,int,Confidence of the participant's final response
+confidenceTimeConfidence,int,Timestamp of the time the participant's confidence response was submitted
+confidenceTimeConfidenceFinal,int,Timestamp of the time the participant's final confidence response was submitted
 context,int,Equivalent of advisor group for the whole trial
 contextDescription,string,Equivalent of advisor introText for the whole trial
 contextName,string,Equivalent of advisor idDescription for the whole trial
@@ -85,6 +89,10 @@ serverTime,string|NA,Time of the entry according to the server
 stimHTML,string,HTML displayed in the stimulus area
 studyId,string,Study title
 studyVersion,string,Major.minor.revision version number
+timeConfidenceOpen,int,Milliseconds from the beginning of the trial to the opening of the confidence report
+timeConfidenceOpenFinal,int,Milliseconds from the beginning of the trial to the opening of the final confidence report
+timeConfidenceClose,int,Milliseconds from the beginning of the trial to the closing of the confidence report
+timeConfidenceCloseFinal,int,Milliseconds from the beginning of the trial to the closing of the final confidence report
 timeEnd,int,Milliseconds from the beginning of the trial to the end of the trial
 timeFeedbackOff,int|NA,Milliseconds from the beginning of the trial to the end of the trial feedback (NA if no feedback provided)
 timeFeedbackOn,int|NA,Milliseconds from the beginning of the trial to the start of the trial feedback (NA if no feedback provided)
