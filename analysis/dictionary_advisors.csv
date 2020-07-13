@@ -1,6 +1,4 @@
-"participantId","The identification code for the participant. Where the participant comes from Prolific this is the sha1 hash of their Prolific ID. Where they do not, this is the sha1 hash of their starting timestamp plus a random decimal portion"
-"id","The identification number for the advisor. This id is unique to an individual advisor within a participant. When examining relationships between participants and individual advisors this should be used. This corresponds to advisorId in other data frames"
-"adviceType","This is the code for the agreement profile of the advisor. Values should be one of:
+adviceType,"This is the code for the agreement profile of the advisor. Values should be one of:
 1.	Agree-in-confidence
 2.	Agree-in-uncertainty
 3.	Extreme agree-in-confidence
@@ -12,7 +10,12 @@
 9.	Consistent accuracy
 10.	Consistent agreement
 Other: balanced (used for practice)"
-"name","The name of the advisor, displayed to the participant whenever the advisor is referenced. Names come from a preset list."
-"portraitSrc","The relative path to the image holding the portrait of the advisor."
-"voiceId","Not used. This is an id corresponding to the name selection, and ensures that if voice lines are used the advisors introduce themselves using the correct names."
-"pid","A shorthand integer used for identifying a particular participant"
+advisorClass,The HTML/CSS class used to identify the advisor
+groupId,Id of the group to which the advisor belongs.
+id,The identification number for the advisor. This id is unique to an individual advisor within a participant. When examining relationships between participants and individual advisors this should be used. This corresponds to advisorId in other data frames
+name,"The name of the advisor, displayed to the participant whenever the advisor is referenced. Names come from a preset list."
+participantId,"The identification code for the participant. Where the participant comes from Prolific this is the sha1 hash of their Prolific ID. Where they do not, this is the sha1 hash of their starting timestamp plus a random decimal portion"
+pid,A shorthand integer used for identifying a particular participant
+portraitSrc,The relative path to the image holding the portrait of the advisor.
+styleClass,The HTML/CSS class assigned to the advisor
+voiceId,"Not used. This is an id corresponding to the name selection, and ensures that if voice lines are used the advisors introduce themselves using the correct names."

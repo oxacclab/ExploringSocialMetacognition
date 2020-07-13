@@ -1,58 +1,83 @@
-"participantId","The identification code for the participant. Where the participant comes from Prolific this is the sha1 hash of their Prolific ID. Where they do not, this is the sha1 hash of their starting timestamp plus a random decimal portion"
-"id","Trial number (sequential)"
-"block","Block number (includes sub-blocks and practice blocks, so 2nd block 1st sub-block is block number 4 if there is one practice block and two sub-blocks per block)"
-"practice","Whether the trial is a practice trial"
-"type","Whether the trial offers a choice of advisor (choice) or not (force), or no advisor (catch)"
-"typeName","Name of the trial type"
-"dotDifference","The number of dots added to the more populated box and subtracted from the less populated box. The objective task difficulty"
-"correctAnswer","The box containing the most dots
-0.	left
-1.	right"
-"initialAnswer","The participant’s initial answer to which box contains the most dots
-0.	left
-1.	right"
-"finalAnswer","The participant’s final answer to which box contains the most dots
-0.	left
-1.	right"
-"initialConfidence","The participant’s rating of their confidence in their first response [0-50]"
-"finalConfidence","The participant’s rating of their confidence in their final response [0-50]"
-"confidenceCategory","The category into which the participant’s confidence falls. This is calculated each trial by taking the participant’s confidence ratings so far and determining whether the current value falls into the
+adviceRight,Whether the advisor endorsed the right side
+adviceSide,Whether the advisor endorsed the left (0) or right (1) side. Basic value is overwritten by the R script and the raw value is stored as adviceSideOld because early version of the JavaScript code reported this incorrectly
+adviceSideOld,Archive of raw advisor endorsed-side variable from JavaScript
+adviceString,Text displayed to the participant indicating the side which was endorsed by the advisor
+adviceType,The advisor’s agreement profile
+advisor0adviceSide,Which of the binary options is endorsed by the 0th advisor.
+advisor0adviceString,The text of the advice given by advisor 0.
+advisor0agrees,Whether advisor 0 agrees with the participant.
+advisor0group,Id of the group to which advisor 0 belongs
+advisor0id,The id of advisor 0
+advisor0influence,The influence of advisor 0
+advisor0influenceRaw,The raw influence of advisor 0.
+advisor0type,Advice type offered by advisor 0
+advisor1adviceSide,Which of the binary options is endorsed by the 1st advisor.
+advisor1adviceString,The text of the advice given by advisor 1.
+advisor1agrees,Whether advisor 1 agrees with the participant.
+advisor1group,Id of the group to which advisor 1 belongs
+advisor1id,The id of advisor 1
+advisor1influence,The influence of advisor 1
+advisor1influenceRaw,The raw influence of advisor 1.
+advisor1type,Advice type offered by advisor 1
+advisorAgrees,Whether the advisor agrees with the participant. Basic value is overwritten by the R script and the raw value is stored as advisorAgreesOld because early versions of the JavaScript code reported this incorrectly
+advisorAgreesOld,Archive of raw advisor agreement variable from JavaScript
+advisorGroup,Id of the group to which the advisor belongs
+advisorId,The advisorId of the advisor giving advice on the trial
+advisorInfluence,Influence of the advisor
+advisorInfluenceRaw,Raw influence of the advisor
+block,"Block number (includes sub-blocks and practice blocks, so 2nd block 1st sub-block is block number 4 if there is one practice block and two sub-blocks per block)"
+choice0,The advisorId of the advisor in the choice slot at the top of the screen
+choice1,The advisorId of the advisor in the choice slot at the bottom of the screen
+confidenceCategory,"The category into which the participant’s confidence falls. This is calculated each trial by taking the participant’s confidence ratings so far and determining whether the current value falls into the
 0.	bottom 30%
 1.	middle 40%
 2.	top 30%"
-"hasChoice","Whether the trial offers a choice of advisor"
-"choice0","The advisorId of the advisor in the choice slot at the top of the screen"
-"choice1","The advisorId of the advisor in the choice slot at the bottom of the screen"
-"advisorId","The advisorId of the advisor giving advice on the trial"
-"advisorAgrees","Whether the advisor agrees with the participant. Basic value is overwritten by the R script and the raw value is stored as advisorAgreesOld because early versions of the JavaScript code reported this incorrectly"
-"adviceSide","Whether the advisor endorsed the left (0) or right (1) side. Basic value is overwritten by the R script and the raw value is stored as adviceSideOld because early version of the JavaScript code reported this incorrectly"
-"feedback","Whether the participant received feedback on their response"
-"warnings","Newline-separated strings of any warnings about the trial reported by JavaScript (e.g. that the difficulty has reached its maximum level)"
-"timeInitialStart","Timestamp of the beginning of the initial response phase"
-"timeInitialFixation","Timestamp of the fixation cross appearance for the initial response phase"
-"timeInitialStimOn","Timestamp of the stimulus onset for the initial response phase"
-"timeInitialStimOff","Timestamp of the stimulus offset for the initial response phase"
-"timeInitialResponse","Timestamp of the initial response"
-"adviceString","Text displayed to the participant indicating the side which was endorsed by the advisor"
-"durationAdvisorChoice","Duration of the advisor choice phase (ms)"
-"durationAdviceDuration","Duration of the advice phase (ms)"
-"timeFinalStart","Timestamp of the beginning of the final response phase"
-"timeFinalFixation","Timestamp of the fixation cross appearance for the final response phase"
-"timeFinalStimOn","Timestamp of the stimulus onset for the final response phase"
-"timeFinalStimOff","Timestamp of the stimulus offset for the final response phase"
-"timeFinalResponse","Timestamp of the final response"
-"adviceRight","Whether the advisor endorsed the right side"
-"adviceSideOld","Archive of raw advisor endorsed-side variable from JavaScript"
-"advisorAgreesOld","Archive of raw advisor agreement variable from JavaScript"
-"adviceType","The advisor’s agreement profile"
-"confidenceShift","The amount the participant’s confidence increased in their final response"
-"confidenceShiftRaw","The amount the participant’s confidence increased in their final response, capped by the magnitude of the largest possible positive increase"
-"influence","The amount the participant’s confidence changed towards the direction endorsed by the advisor"
-"rawInfluence","The amount the participant’s confidence changed towards the direction endorsed by the advisor using confidenceShiftRaw"
-"switch","Whether the participant changed their response side in their final answer"
-"initialCorrect","Whether the participant’s initial response was correct"
-"finalCorrect","Whether the participant’s final response was correct"
-"initialConfSpan","The participant’s initial confidence coded on a [-50,50] scale where leftwards answers are [-50,-1] and rightward answers are [1,50]"
-"finalConfSpan","The participant’s final confidence coded on a [-50,50] scale where leftwards answers are [-50,-1] and rightward answers are [1,50]"
-"irrational","Whether the influence on a trial is negative"
-"pid","A shorthand integer used for identifying a particular participant"
+confidenceShift,The amount the participant’s confidence increased in their final response
+confidenceShiftRaw,"The amount the participant’s confidence increased in their final response, capped by the magnitude of the largest possible positive increase"
+correctAnswer,"The box containing the most dots
+0.	left
+1.	right"
+defaultAdvisor,The default advisor offered for trials where participants have a default advisor and an option to switch to another.
+dotDifference,The number of dots added to the more populated box and subtracted from the less populated box. The objective task difficulty
+durationAdviceDuration,Duration of the advice phase (ms)
+durationAdvisorChoice,Duration of the advisor choice phase (ms)
+feedback,Whether the participant received feedback on their response
+finalAnswer,"The participant’s final answer to which box contains the most dots
+0.	left
+1.	right"
+finalConfidence,The participant’s rating of their confidence in their final response [0-50]
+finalConfSpan,"The participant’s final confidence coded on a [-50,50] scale where leftwards answers are [-50,-1] and rightward answers are [1,50]"
+finalCorrect,Whether the participant’s final response was correct
+grid,Hash of the specific dot task grid displayed to the participant
+hasChoice,Whether the trial offers a choice of advisor
+id,Trial number (sequential)
+influence,The amount the participant’s confidence changed towards the direction endorsed by the advisor
+initialAnswer,"The participant’s initial answer to which box contains the most dots
+0.	left
+1.	right"
+initialConfidence,The participant’s rating of their confidence in their first response [0-50]
+initialConfSpan,"The participant’s initial confidence coded on a [-50,50] scale where leftwards answers are [-50,-1] and rightward answers are [1,50]"
+initialCorrect,Whether the participant’s initial response was correct
+irrational,Whether the influence on a trial is negative
+isRepeat,Whether this trial's stimulus is a repeat of a previous stimulus
+isRepeated,Whether a future trial reuses this trial's stimulus
+participantId,"The identification code for the participant. Where the participant comes from Prolific this is the sha1 hash of their Prolific ID. Where they do not, this is the sha1 hash of their starting timestamp plus a random decimal portion"
+pid,A shorthand integer used for identifying a particular participant
+practice,Whether the trial is a practice trial
+rawInfluence,The amount the participant’s confidence changed towards the direction endorsed by the advisor using confidenceShiftRaw
+repeatRejection,Reason this trial's stimulus was disqualified from being repeated.
+stimulusParent,Id of the trial which originally used this trial's stimulus (isRepeat trials only)
+switch,Whether the participant changed their response side in their final answer
+timeFinalFixation,Timestamp of the fixation cross appearance for the final response phase
+timeFinalResponse,Timestamp of the final response
+timeFinalStart,Timestamp of the beginning of the final response phase
+timeFinalStimOff,Timestamp of the stimulus offset for the final response phase
+timeFinalStimOn,Timestamp of the stimulus onset for the final response phase
+timeInitialFixation,Timestamp of the fixation cross appearance for the initial response phase
+timeInitialResponse,Timestamp of the initial response
+timeInitialStart,Timestamp of the beginning of the initial response phase
+timeInitialStimOff,Timestamp of the stimulus offset for the initial response phase
+timeInitialStimOn,Timestamp of the stimulus onset for the initial response phase
+type,"Whether the trial offers a choice of advisor (choice) or not (force), or no advisor (catch)"
+typeName,Name of the trial type
+warnings,Newline-separated strings of any warnings about the trial reported by JavaScript (e.g. that the difficulty has reached its maximum level)

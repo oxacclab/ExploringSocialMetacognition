@@ -1,0 +1,5 @@
+﻿variable,type,description
+condition,int|NA,Experimental condition to which the participant has been assigned
+pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
+tags,string|NA,Comma-separated values of tags applied to the participant by the server
+uidHash,string|NA,SHA-1 hash of the participant's Prolific_PID

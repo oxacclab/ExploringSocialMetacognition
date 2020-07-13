@@ -1,0 +1,12 @@
+﻿variable,type,description
+browser,string,Browser as identified by the user
+clientTime,int,"Timestamp of the request to write this CSV line, according to the participant's computer"
+device,string,Device as identified by the user
+otherB,string,Free text field for 'other browser'
+otherD,string,Free text field for 'other device'
+otherOS,string,Free text field for 'other OS'
+os,string,Operating system as identifed by the user
+pid,string,8-character alphanumeric hash uniquely identifying a participant within an experiment
+studyId,string,Study title
+studyVersion,string,Major.minor.revision version number
+userAgent,string,User agent string supplied by the browser

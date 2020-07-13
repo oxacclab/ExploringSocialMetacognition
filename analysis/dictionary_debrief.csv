@@ -1,0 +1,5 @@
+answer,The answer provided
+id,Not used
+pid,A shorthand integer used for identifying a particular participant
+question,The question asked
+V1,Freeform comments about the participant's experience of the experiment
