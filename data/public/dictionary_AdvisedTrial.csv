@@ -77,8 +77,8 @@ responseMarkerValue,int,The points to be awarded for a correct response using th
 responseMarkerValueFinal,int,The points to be awarded for a correct response using the selected marker for the final response
 responseMarkerWidth,int,The width of the response marker in years
 responseMarkerWidthFinal,int,The width of the response marker in years for the final response
-responseSlider,int|NA,Whether the slider used in the response was on the left (0) or right (1)
-responseSliderFinal,int|NA,Whether the slider used in the final response was on the left (0) or right (1)
+responseSlider,string|NA,"Whether the slider used in the response was ""before"" (on the left, 0) or ""after"" (right, 1)"
+responseSliderFinal,string|NA,"Whether the slider used in the final response was ""before"" (on the left, 0) or ""after"" (right, 1)"
 responseTimeEstimate,int,The time elapsed in milliseconds between the opening of the response window and the collection of the response
 responseTimeEstimateFinal,int,The time elapsed in milliseconds between the opening of the response window and the collection of the final response
 serverTime,string|NA,Time of the entry according to the server

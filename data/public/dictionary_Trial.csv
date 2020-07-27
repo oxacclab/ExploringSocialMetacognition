@@ -23,7 +23,7 @@ responseLabels,string,"Comma-separated list of labels attached to the response o
 responseMarker,int|NA,Width of the marker used in the response
 responseMarkerValue,int,The points to be awarded for a correct response using the selected marker
 responseMarkerWidth,int,The width of the response marker in years
-responseSlider,int|NA,Whether the slider used in the response was on the left (0) or right (1)
+responseSlider,string|NA,"Whether the slider used in the response was ""before"" (on the left, 0) or ""after"" (right, 1)"
 responseTimeEstimate,int,The time elapsed in milliseconds between the opening of the response window and the collection of the response
 serverTime,string|NA,Time of the entry according to the server
 stimHTML,string,HTML displayed in the stimulus area
